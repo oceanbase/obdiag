@@ -4,7 +4,7 @@ cffi==1.15.1
 chardet==4.0.0
 crypto==1.4.1
 pycryptodome==3.15.0
-cryptography==3.3.2
+cryptography==38.0.3
 enum34==1.1.10
 idna==2.10
 ipaddress==1.0.23
