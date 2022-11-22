@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    {
+      "ip": "xxx.xxx.xxx.xxx",
+      "port": 22,
+      "user": "xxx",
+      "password": "xxx",
+      "private_key": ""
+    },
+    {
+      "ip": "xxx.xxx.xxx.xxx",
+      "port": 22,
+      "user": "xxx",
+      "password": "xxx",
+      "private_key": ""
+    }
+    ]
+}

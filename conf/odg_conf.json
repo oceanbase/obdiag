@@ -1,0 +1,10 @@
+{
+  "logger_conf": {
+    "mode": "odg",
+    "log_dir": "/tmp/oceanbase_diagnosis_gather/log",
+    "log_filename": "odg.log",
+    "log_level": "INFO",
+    "file_handler_log_level": "DEBUG",
+    "stdout_handler_log_level": "DEBUG"
+  }
+}
