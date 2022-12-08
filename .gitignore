@@ -1,0 +1,6 @@
+.idea/
+venv/
+*.pyc
+*site-packages/
+build/ob-diagnosis-gather/*
+build/ob-diagnosis-gather*

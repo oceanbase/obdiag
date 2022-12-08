@@ -6,13 +6,28 @@
 
 在第一期中，仅实现日志的收集、压缩、打包功能；
 
+# 编译安装包：
+- 执行环境: python >= 3.6.5 或者python > 2.7.5
+
+```shell script
+cd ob-diagnosis-gather
+./build/build.sh
+
+```
+说明：编译后的包是在./build/路径下的tar包，可直接使用解压后使用
+
+
 # 安装部署说明：
 ## 安装环境要求
 - 执行环境: python >= 3.6.5 或者python > 2.7.5
 - 环境依赖：需要环境中支持zip 命令
+- ODG是集中式采集,部署环境只需要在网络可连通到ob集群所要采集诊断信息的机器节点即可，可以不是ob所在的节点。
 
 ```shell script
-cd oceanbase_diagnosis_gather
+# 解压编译包
+tar zxvf ob-diagnosis-gather-xxxx-xxxxxxxx.tar.gz
+cd ob-diagnosis-gather
+
 ```
 
 # 参数配置说明：
@@ -26,7 +41,7 @@ odg_conf.json #odg本身的配置文件，一般不用修改
 ```
 
 使用的时候需要根据实际情况配置2个配置文件。
-- ocp_config.json(该文件不是必须配置的，如果你所在的ob集群是被ocp接管的话，你可以配置此文件来实现node配置的快速配置化以及通过Ocp来收集awr报告)
+- ocp_config.json(该文件不是必须配置的，如果你所在的ob集群是被ocp接管的话，你可以配置此文件来实现node配置的快速配置化以及通过Ocp来收集awr报告). 如果你部署的ob集群没有通过ocp来接管，你可以忽略ocp_config.json文件，直接配置node_config.json即可
 ```bash
 {
   "ocp": {
@@ -67,6 +82,22 @@ odg_conf.json #odg本身的配置文件，一般不用修改
   ]
 }
 ```
+
+- odg_conf.json
+```bash
+{
+  "logger_conf": {
+    "mode": "odg", ## 固定模式，暂不支持修改
+    "log_dir": "/tmp/ob-diagnosis-gather/log", # 日志目录
+    "log_filename": "odg.log", # 日志名
+    "log_level": "INFO", # 日志级别
+    "file_handler_log_level": "DEBUG", # 文件句柄相关的日志级别
+    "stdout_handler_log_level": "DEBUG" # 标准输出的日志级别
+  }
+}
+
+```
+说明：odg_conf.json文件一般不用修改，保持默认即可
 
 Tips: 当有ocp的时候，你如果想要收集某个集群下的所有主机的，你也可以通过./odg_ctl config来快速生成node_config.json的配置内容,使用方式如下:
 ```
