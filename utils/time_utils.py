@@ -10,7 +10,7 @@ import traceback
 import datetime
 from datetime import timedelta
 
-from common.odg_exception import ODGFormatException
+from common.obdiag_exception import OBDIAGFormatException
 
 
 class Timer(object):
@@ -56,7 +56,7 @@ def parse_time_length_to_sec(time_length_str):
     elif unit == "d":
         value *= 3600 * 24
     else:
-        raise ODGFormatException("time length must be format 'n'<m|h|d>")
+        raise OBDIAGFormatException("time length must be format 'n'<m|h|d>")
     return int(value)
 
 
@@ -64,7 +64,7 @@ def datetime_to_timestamp(datetime_str):
     # yyyy-mm-dd hh:mm:ss.uuuuus or yyyy-mm-dd hh:mm:ss
     try:
         if datetime_str[4] != "-" or datetime_str[7] != "-" or datetime_str[13] != ":" or datetime_str[16] != ":":
-            raise ODGFormatException(
+            raise OBDIAGFormatException(
                 'datetime_str is not valid. datetime_str={0}.'.format(datetime_str))
         yyyy, mm, dd = int(datetime_str[0:4]), int(datetime_str[5:7]), int(datetime_str[8:10])
         hh, mi, ss = int(datetime_str[11:13]), int(datetime_str[14:16]), int(datetime_str[17:19])
@@ -72,14 +72,14 @@ def datetime_to_timestamp(datetime_str):
         us = 0
         if len(datetime_str) > 19:
             if datetime_str[19] != ".":
-                raise ODGFormatException(
+                raise OBDIAGFormatException(
                     'datetime {0} is not valid. datetime_str={1}.'.format(datetime_str, datetime_str))
             us = int(datetime_str[20:26])
         us_timestamp = second_timestamp * 1000000 + int(us)
     except Exception as e:
         traceback.print_exc()
         except_str = traceback.format_exc()
-        raise ODGFormatException(except_str + "datetime_str={0}".format(datetime_str))
+        raise OBDIAGFormatException(except_str + "datetime_str={0}".format(datetime_str))
     return int(us_timestamp)
 
 
@@ -120,7 +120,7 @@ def parse_time_str(arg_time):
     except Exception as e:
         traceback.print_exc()
         except_str = traceback.format_exc()
-        raise ODGFormatException(except_str + "arg_time={0}".format(arg_time))
+        raise OBDIAGFormatException(except_str + "arg_time={0}".format(arg_time))
     return format_time
 
 
@@ -138,16 +138,20 @@ def filename_time_to_datetime(filename_time):
 
 
 def extract_filename_time_from_log_name(log_name):
+    """ eg: xxx.20221226231617 """
     log_name_fields = log_name.split(".")
-    if bytes.isdigit(log_name_fields[-1].encode("utf-8")) and len(log_name_fields[-1]) == 14:
+    if bytes.isdigit(log_name_fields[-1].encode("utf-8")) and len(log_name_fields[-1]) >= 14:
         return log_name_fields[-1]
-    return None
+    return ""
 
 
 def extract_time_from_log_file_text(log_text):
     # 因为 yyyy-mm-dd hh:mm:ss.000000 的格式已经占了27个字符，所以如果传进来的字符串包含时间信息，那长度一定大于27
     if len(log_text) > 27:
-        time_str = log_text[1: log_text.find(']')]
+        if log_text.startswith("["):
+            time_str = log_text[1: log_text.find(']')]
+        else:
+            time_str = log_text[0: log_text.find(',')]
         time_without_us = time_str[0: time_str.find('.')]
         format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
         format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())

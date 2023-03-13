@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-@time: 2022/6/23
-@file: gather_log_handler.py
+@time: 2023/01/31
+@file: gather_obproxy_log_handler.py
 @desc:
 """
 import datetime
@@ -19,7 +19,8 @@ from common.obdiag_exception import OBDIAGInvalidArgs
 from common.obdiag_exception import OBDIAGSSHConnException
 from common.constant import const
 from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size, show_file_size_tabulate
-from common.command import get_file_size, scp_log, is_empty_dir, rm_rf_file, get_logfile_name_list, mkdir, delete_empty_file, zip_encrypt_dir, zip_dir
+from common.command import get_file_size, scp_log, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, \
+    rm_rf_file, zip_encrypt_dir, zip_dir
 from utils.shell_utils import SshHelper
 from utils.password_util import gen_password
 from utils.time_utils import parse_time_str
@@ -28,13 +29,13 @@ from utils.time_utils import timestamp_to_filename_time
 from utils.time_utils import datetime_to_timestamp
 
 
-class GatherLogHandler(BaseShellHandler):
+class GatherObProxyLogHandler(BaseShellHandler):
     def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
-        super(GatherLogHandler, self).__init__(nodes)
+        super(GatherObProxyLogHandler, self).__init__(nodes)
         self.gather_timestamp = gather_timestamp
-        self.gather_ob_log_temporary_dir = const.GATHER_LOG_TEMPORARY_DIR_DEFAULT
+        self.gather_log_temporary_dir = const.GATHER_LOG_TEMPORARY_DIR_DEFAULT
         self.gather_pack_dir = gather_pack_dir
-        self.ob_log_dir = None
+        self.log_dir = None
         self.from_time_str = None
         self.to_time_str = None
         self.grep_args = None
@@ -48,10 +49,8 @@ class GatherLogHandler(BaseShellHandler):
             self.file_size_limit = int(parse_size(common_config["file_size_limit"]))
 
     def handle(self, args):
-        # check args first
         if not self.__check_valid_and_parse_args(args):
             raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
-        # example of the format of pack dir for this command: {gather_pack_dir}/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir,
                                              "gather_pack_{0}".format(timestamp_to_filename_time(
                                                  self.gather_timestamp)))
@@ -82,10 +81,7 @@ class GatherLogHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         print(summary_tuples)
-        # Persist the summary results to a file
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
-
-        # When using encryption mode, record the account and password information into the file
         return gather_tuples, gather_pack_path_dict
 
     def __handle_from_node(self, args, ip, user, password, port, private_key, pack_dir_this_command):
@@ -108,10 +104,9 @@ class GatherLogHandler(BaseShellHandler):
         except Exception as e:
             raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2} Please check the conf/config.yml file"
                                       .format(remote_user, remote_ip, e))
-        # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
         from_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.to_time_str))
-        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
+        gather_dir_name = "obproxy_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
         gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
         mkdir(ssh, gather_dir_full_path)
 
@@ -151,19 +146,15 @@ class GatherLogHandler(BaseShellHandler):
         return log_list, resp
 
     def __get_log_name(self, ssh_helper):
-        """
-        通过传入的from to的时间来过滤一遍文件列表，提取出初步满足要求的文件列表
-        :param ssh_helper:
-        :return: list
-        """
-        if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (self.ob_log_dir, self.scope)
+        if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or \
+                self.scope == "obproxy_limit" or self.scope == "obproxy_slow":
+            get_obproxy_log = "ls -1 -F %s/*%s.*log* | awk -F '/' '{print $NF}'" % (self.log_dir, self.scope)
         else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
-                        (self.ob_log_dir, self.ob_log_dir, self.ob_log_dir)
-        logger.info(get_oblog)
-        log_files = ssh_helper.ssh_exec_cmd(get_oblog)
-        log_name_list = get_logfile_name_list(ssh_helper, self.from_time_str, self.to_time_str, self.ob_log_dir, log_files)
+            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* | awk -F '/' '{print $NF}'" % \
+                        (self.log_dir, self.log_dir, self.log_dir, self.log_dir, self.log_dir)
+        logger.info("run cmd = [{0} on server {1}]".format(get_obproxy_log, ssh_helper.host_ip))
+        log_files = ssh_helper.ssh_exec_cmd_ignore_err(get_obproxy_log)
+        log_name_list = get_logfile_name_list(ssh_helper, self.from_time_str, self.to_time_str, self.log_dir, log_files)
         return log_name_list
 
     def __pharse_log(self, ssh_helper, log_name, gather_path):
@@ -177,27 +168,27 @@ class GatherLogHandler(BaseShellHandler):
                 grep_args=self.grep_args,
                 gather_path=gather_path,
                 log_name=log_name,
-                log_dir=self.ob_log_dir)
+                log_dir=self.log_dir)
             logger.info("Start grep files {0} on server {1}".format(log_name, ssh_helper.host_ip))
-            logger.debug("grep files, run cmd = [{0}]".format(grep_cmd))
+            logger.info("grep files, run cmd = [{0}]".format(grep_cmd))
             ssh_helper.ssh_exec_cmd(grep_cmd)
         else:
             cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
                 gather_path=gather_path,
                 log_name=log_name,
-                log_dir=self.ob_log_dir)
+                log_dir=self.log_dir)
             logger.info("Start copy files {0} on server {1}".format(log_name, ssh_helper.host_ip))
             logger.debug("copy files, run cmd = [{0}]".format(cp_cmd))
             ssh_helper.ssh_exec_cmd(cp_cmd)
 
     def __handle_zip_file(self, ip, ssh, resp, gather_dir_name, pack_dir_this_command):
         zip_password = ""
-        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_log_temporary_dir, gather_dir_name)
         if self.zip_encrypt:
             zip_password = gen_password(16)
-            zip_encrypt_dir(ssh, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name)
+            zip_encrypt_dir(ssh, zip_password, self.gather_log_temporary_dir, gather_dir_name)
         else:
-            zip_dir(ssh, self.gather_ob_log_temporary_dir, gather_dir_name)
+            zip_dir(ssh, self.gather_log_temporary_dir, gather_dir_name)
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
 
         gather_log_file_size = get_file_size(ssh, gather_package_dir)
@@ -260,10 +251,14 @@ class GatherLogHandler(BaseShellHandler):
             self.scope = getattr(args, "scope")[0]
         if getattr(args, "encrypt")[0] == "true":
             self.zip_encrypt = True
-        if getattr(args, "ob_install_dir") is not None:
-            self.ob_log_dir = getattr(args, "ob_install_dir") + "/log"
+        if getattr(args, "obproxy_install_dir") is not None:
+            obproxy_install_dir = getattr(args, "obproxy_install_dir")
+            if obproxy_install_dir.endswith("/"):
+                self.log_dir = obproxy_install_dir+ "log"
+            else:
+                self.log_dir = obproxy_install_dir + "/log"
         else:
-            self.ob_log_dir = const.OB_LOG_DIR_DEFAULT
+            self.log_dir = const.OBPROXY_LOG_DIR_DEFAULT
         return True
 
     @staticmethod
@@ -295,5 +290,5 @@ class GatherLogHandler(BaseShellHandler):
             else:
                 summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
                                     format_file_size, "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather Ob Log Summary:\n" + \
+        return "\nGather ObProxy Log Summary:\n" + \
                tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

@@ -35,6 +35,6 @@ def check_client_dependencies():
 
 if __name__ == "__main__":
     if check_client_dependencies():
-        print("\033[1;32m check all dependencies installed, you can use odg normal! \033[0m")
+        print("\033[1;32m check all dependencies installed, you can use obdiag normal! \033[0m")
     else:
         print("\033[1;31m check dependencies failed, you need resolve dependencies \033[0m")

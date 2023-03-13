@@ -2,17 +2,17 @@
 # -*- coding: UTF-8 -*-
 """
 @time: 2022/6/20
-@file: odg_exception.py
+@file: obdiag_exception.py
 @desc:
 """
 import pprint
 
 
-class ODGException(Exception):
+class OBDIAGException(Exception):
     pass
 
 
-class ODGIgnoreException(ODGException):
+class OBDIAGIgnoreException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -23,7 +23,7 @@ class ODGIgnoreException(ODGException):
         return repr(self)
 
 
-class ODGFormatException(ODGException):
+class OBDIAGFormatException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -34,7 +34,7 @@ class ODGFormatException(ODGException):
         return repr(self)
 
 
-class ODGConfNotFoundException(ODGException):
+class OBDIAGConfNotFoundException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -45,7 +45,7 @@ class ODGConfNotFoundException(ODGException):
         return repr(self)
 
 
-class ODGArgsNotFoundException(ODGException):
+class OBDIAGArgsNotFoundException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -56,7 +56,7 @@ class ODGArgsNotFoundException(ODGException):
         return repr(self)
 
 
-class ODGInvalidArgs(ODGException):
+class OBDIAGInvalidArgs(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -67,7 +67,7 @@ class ODGInvalidArgs(ODGException):
         return repr(self)
 
 
-class ODGSSHConnException(ODGException):
+class OBDIAGSSHConnException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -78,7 +78,7 @@ class ODGSSHConnException(ODGException):
         return repr(self)
 
 
-class ODGDBConnException(ODGException):
+class OBDIAGDBConnException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -89,7 +89,7 @@ class ODGDBConnException(ODGException):
         return repr(self)
 
 
-class ODGShellCmdException(ODGException):
+class OBDIAGShellCmdException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 
@@ -100,7 +100,7 @@ class ODGShellCmdException(ODGException):
         return repr(self)
 
 
-class ODGAPIException(ODGException):
+class OBDIAGAPIException(OBDIAGException):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
 

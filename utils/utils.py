@@ -7,6 +7,9 @@
 """
 import sys
 import subprocess
+
+from prettytable import PrettyTable
+
 from common.logger import logger
 
 
