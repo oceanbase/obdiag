@@ -6,6 +6,8 @@
 @desc:
 """
 import mysql.connector
+from prettytable import from_db_cursor, PrettyTable
+
 from common.logger import logger
 
 
@@ -44,5 +46,34 @@ class OBConnector(object):
         cursor = self.conn.cursor(buffered=True)
         cursor.execute(sql)
         ret = cursor.fetchall()
+        cursor.close()
+        return ret
+
+    def execute_sql_return_cursor_dictionary(self, sql):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor(buffered=True, dictionary=True)
+        cursor.execute(sql)
+        return cursor
+
+    def execute_sql_return_cursor(self, sql):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor(buffered=True)
+        cursor.execute(sql)
+        return cursor
+
+    def execute_sql_pretty(self, sql):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor(buffered=True)
+        cursor.execute(sql)
+        ret = from_db_cursor(cursor)
         cursor.close()
         return ret

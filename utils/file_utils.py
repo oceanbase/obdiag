@@ -11,6 +11,8 @@ import io
 import shutil
 import threading
 
+import tabulate
+
 
 def synchronized(wrapped):
     lock = threading.Lock()
@@ -148,3 +150,17 @@ def parse_size(size_str, unit='B'):
 def write_result_append_to_file(filename, result):
     with io.open(filename, 'a', encoding='utf-8') as fileobj:
         fileobj.write(result)
+
+
+def show_file_size_tabulate(ip, file_size):
+    """
+        show the size of the file
+        :param args: remote host ip, file size
+        :return: file info
+        """
+    format_file_size = size_format(int(file_size), output_str=True)
+    summary_tab = []
+    field_names = ["Node", "LogSize"]
+    summary_tab.append((ip, format_file_size))
+    return "\nZipFileInfo:\n" + \
+           tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
