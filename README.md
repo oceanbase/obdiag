@@ -3,6 +3,8 @@
 OceanBase诊断工具(OceanBase Diagnostic Tool) 是 原诊断信息收集工具 (OceanBase Diagnosis Gather)的功能升级版，形成了统一的黑屏命令风格，简单易用。
 目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
 
+![01](images/structure.png)
+
 # 安装部署说明：
 ## 安装环境要求
 - 执行环境: python >= 3.6.5 或者python > 2.7.5
@@ -121,3 +123,8 @@ optional arguments:
 - [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
 
 - [一键收集全部诊断信息](./docs/gather_all.md)
+
+## 许可证
+
+OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
+您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
