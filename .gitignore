@@ -2,5 +2,9 @@
 venv/
 *.pyc
 *site-packages/
-build/ob-diagnosis-gather/*
-build/ob-diagnosis-gather*
+dependencies/python2/site-packages
+dependencies/python2/libs
+dependencies/python3/site-packages
+dependencies/python3/libs
+dependencies/bin
+gather_pack_*

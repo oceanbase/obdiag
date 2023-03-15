@@ -11,7 +11,7 @@ mysql==0.0.3
 mysql-connector-python==8.0.29
 mysqlclient==2.1.0
 paramiko==2.11.0
-protobuf==4.21.6
+protobuf==4.21.0
 pyasn1==0.4.8
 pycparser==2.21
 PyNaCl==1.5.0
@@ -22,3 +22,6 @@ tabulate==0.8.9
 zstandard==0.17.0
 pycryptodome~=3.14.1
 pick==1.2.0
+PyYAML==6.0
+prettytable==3.5.0
+oyaml==1.0

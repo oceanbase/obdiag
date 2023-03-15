@@ -1,5 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+# -*- coding: UTF-8 -*
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
 """
 @time: 2022/6/21
 @file: base_handler.py
@@ -14,10 +24,9 @@ from common.logger import logger
 class BaseHttpHandler(object):
     def __init__(self, ocp):
         self.ocp = ocp
-        self.ocp_exits = ocp["is_exits"]
-        self.ocp_user = ocp["user"]
-        self.ocp_password = ocp["password"]
-        self.ocp_url = ocp["url"]
+        self.ocp_user = ocp["LOGIN"]["user"]
+        self.ocp_password = ocp["LOGIN"]["password"]
+        self.ocp_url = ocp["LOGIN"]["url"]
         self.auth = (self.ocp_user, self.ocp_password)
 
     @staticmethod
@@ -31,7 +40,7 @@ class BaseHttpHandler(object):
             try:
                 http_resp = func()
             except Exception as e:
-                logger.warning("Oceanbase Diagnosis Gather Request exception: {0}. retry={1}".format(e, retry))
+                logger.warning("Oceanbase Diagnostic Tool Request exception: {0}. retry={1}".format(e, retry))
                 request_exception_msg = "{0}".format(e)
                 continue
             if http_resp is None:
@@ -39,19 +48,19 @@ class BaseHttpHandler(object):
                 continue
             request_exception_msg = None
             if http_resp.status_code != 200:
-                logger.warning("Oceanbase Diagnosis Gather Request get {0} status code. retry={1}".format(
+                logger.warning("Oceanbase Diagnostic Tool Request get {0} status code. retry={1}".format(
                     http_resp.status_code, retry))
             else:
                 break
         # handle error in http request
         if request_exception_msg is not None:
             resp["error"] = True
-            resp["error_msg"] = "Oceanbase Diagnosis Gather Request exception: {0}.".format(request_exception_msg)
+            resp["error_msg"] = "Oceanbase Diagnostic Tool Request exception: {0}.".format(request_exception_msg)
             return resp
         if http_resp.status_code != 200:
             resp["error"] = True
-            logger.error("Oceanbase Diagnosis Gather Request get {0} status code.".format(http_resp.status_code))
-            resp["error_msg"] = "Oceanbase Diagnosis Gather Request get {0} status code.".format(http_resp.status_code)
+            logger.error("Oceanbase Diagnostic Tool Request get {0} status code.".format(http_resp.status_code))
+            resp["error_msg"] = "Oceanbase Diagnostic Tool Request get {0} status code.".format(http_resp.status_code)
             return resp
         resp_dict = http_resp.json()
         resp["raw_resp"] = resp_dict

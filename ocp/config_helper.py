@@ -1,18 +1,33 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+# -*- coding: UTF-8 -*
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
 """
 @time: 2022/6/25
 @file: config_helper.py
 @desc:
 """
 import json
-import io
-import sys
+import os
+import time
+from collections import OrderedDict
+
 from common.logger import logger
 from common.ob_connector import OBConnector
-from utils.decrypt_util import AESCipher
+from utils.decrypt_utils import AESCipher
 from pick import pick
 from ocp.ocp_base import OcpBase
+from utils.file_utils import mkdir_if_not_exist
+from utils.time_utils import timestamp_to_filename_time
+from utils.yaml_utils import write_yaml_data, read_yaml_data, write_yaml_data_append, write_yaml_data_append_sorted
 
 
 class ConfigHelper(object):
@@ -38,7 +53,7 @@ class ConfigHelper(object):
         res = obConnetcor.execute_sql(sql)
         if len(res) == 0:
             raise Exception("Failed to get the ocp host ip from ocp metadb by cluster name, "
-                            "please check whether conf/node_config.json correct!!!")
+                            "please check whether conf/config.yml correct!!!")
         rootserver_json_list = []
         for (row,) in res:
             rootserver_json_list.append(row)
@@ -57,8 +72,8 @@ class ConfigHelper(object):
         sql = "select id,password from %s.iam_user where username='%s'" % (self.metadb_name, self.ocp_user)
         res = obConnetcor.execute_sql(sql)
         if len(res) == 0:
-            raise Exception("Failed to get the ocp user id from conf/node_config.json, "
-                            "please check whether conf/node_config.json correct!!!")
+            raise Exception("Failed to get the ocp user id from conf/config.yml, "
+                            "please check whether conf/config.yml correct!!!")
         return {"user_id": res[0][0], "password": res[0][1]}
 
     def __get_host_profile_credential_info(self, host_id):
@@ -101,15 +116,15 @@ class ConfigHelper(object):
                             "please check whether the cluster_name and cluster_id correct!!!")
         host_info_list = []
         for row in res:
-            host_info = {
-                "ip": row[1],
-                "port": row[2]
-            }
+            host_info = OrderedDict()
+            host_info["ip"] = row[1]
+            host_info["port"] = row[2]
             if int(row[0]) > 0:
                 host_profile_credential_info = self.__get_host_profile_credential_info(row[0])
                 host_info["user"] = host_profile_credential_info["user_name"]
                 host_info["password"] = host_profile_credential_info["password"]
                 host_info["private_key"] = ""
+            logger.debug("get host info: %s", host_info)
             host_info_list.append(host_info)
         return host_info_list
 
@@ -119,7 +134,7 @@ class ConfigHelper(object):
             ocp_base_init = OcpBase(self.ocp_url, self.ocp_user, self.ocp_password)
             ocp_base_init.check_ocp_site()
         except Exception as e:
-            raise Exception("check login ocp failed, please check whether conf/ocp_config.json is set correctly"
+            raise Exception("check login ocp failed, please check whether conf/config.yml is set correctly"
                             .format(e))
         all_host_info_list = self.get_host_info_list_by_cluster(args)
         logger.debug("get node list %s", all_host_info_list)
@@ -142,11 +157,29 @@ class ConfigHelper(object):
             if host["ip"] in selected_host_ip_list:
                 selected_host_info_list.append(host)
 
-        nodes_info = {"nodes": selected_host_info_list}
-        with io.open(path, "w", newline='\n') as f:
-            if sys.version_info.major == 2:
-                f.write(u'{}'.format(json.dumps(nodes_info, indent=2)))
-            else:
-                f.write(json.dumps(nodes_info, indent=2))
-        logger.info("Node information has been rewritten to the configuration file conf/node_config.json, "
+        old_config = self.get_old_configuration(path)
+        # backup old config
+        self.save_old_configuration(old_config)
+        # rewrite config
+        obdiag_config = old_config["OBDIAG"]
+        write_yaml_data({"OBDIAG": obdiag_config}, path)
+        ocp_config = old_config["OCP"]
+        write_yaml_data_append({"OCP": ocp_config}, path)
+        ob_cluster_config = old_config["OBCLUSTER"]
+        write_yaml_data_append({"OBCLUSTER": ob_cluster_config}, path)
+        write_yaml_data_append({"NODES": selected_host_info_list}, path)
+        logger.info("Node information has been rewritten to the configuration file conf/config.yml, "
                     "and you can enjoy the gather journey !")
+
+    def get_old_configuration(self, path):
+        data = read_yaml_data(path)
+        return data
+
+    def save_old_configuration(self, config):
+        backup_config_dir = os.path.abspath(config["OBDIAG"]["BASIC"]["config_backup_dir"])
+        filename = "config_backup_{0}.yml".format(timestamp_to_filename_time(int(round(time.time() * 1000))))
+        backup_config_path = os.path.join(backup_config_dir, filename)
+        mkdir_if_not_exist(backup_config_dir)
+        write_yaml_data(config, backup_config_path)
+
+

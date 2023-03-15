@@ -1,5 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+# -*- coding: UTF-8 -*
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
 """
 @time: 2022/6/21
 @file: file_utils.py
@@ -10,6 +20,8 @@ import os
 import io
 import shutil
 import threading
+
+import tabulate
 
 
 def synchronized(wrapped):
@@ -148,3 +160,17 @@ def parse_size(size_str, unit='B'):
 def write_result_append_to_file(filename, result):
     with io.open(filename, 'a', encoding='utf-8') as fileobj:
         fileobj.write(result)
+
+
+def show_file_size_tabulate(ip, file_size):
+    """
+        show the size of the file
+        :param args: remote host ip, file size
+        :return: file info
+        """
+    format_file_size = size_format(int(file_size), output_str=True)
+    summary_tab = []
+    field_names = ["Node", "LogSize"]
+    summary_tab.append((ip, format_file_size))
+    return "\nZipFileInfo:\n" + \
+           tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
