@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BUILD_SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-OBDIAG_VERSION=`cat obdiag-VER.txt`
+OBDIAG_VERSION="1.0.0"
 RELEASE_ID=`date +%Y%m%d%H%M%S`
 
 cd $BUILD_SHELL_DIR
@@ -47,6 +47,6 @@ cd ../../..
 
 cd ./dependencies/python3/site-packages
 for so_file in `find . -name '*.so*' | xargs ldd | grep -v 'linux-vdso.so.1' |  grep '=>' | awk -F '=>' '{print $2}' | awk '{print $1}' |  sort | uniq`; do cp ${so_file} ../libs; done
-cd ../..
+cd ../../../..
 
 tar zcvf oceanbase-diagnostic-tool-$OBDIAG_VERSION-$RELEASE_ID.tar.gz ./oceanbase-diagnostic-tool/*
