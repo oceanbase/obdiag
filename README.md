@@ -5,23 +5,30 @@ OceanBase诊断工具(OceanBase Diagnostic Tool) 是 原诊断信息收集工具
 
 ![01](images/structure.png)
 
-# 安装部署说明：
-## 安装环境要求
+# 编译部署说明：
+## 编译环境要求
 - 执行环境: python >= 3.6.5 或者python > 2.7.5
-- 环境依赖：支持zip命令
-- 安装依赖包
 
 ```shell script
-# 下载安装包并安装
-rpm -ivh oceanbase-diagnostic-tool-1.0.0-xxxx.alios7.x86_64.rpm
+# 下载源代码
+git clone https://github.com/oceanbase/oceanbase-diagnostic-tool.git
 
-# 进入安装包
-cd oceanbase-diagnostic-tool
+# 编译(编译过程是拉取python依赖包放到编译目录下)
+cd oceanbase-diagnostic-tool && sh ./build/build.sh
+
+# 编译后会在./build/生成一个tar.gz的包
+cd ./build/
+ls
+oceanbase-diagnostic-tool-1.0.0-yyyyMMddHHmmss.tar.gz
 
 ```
-说明：如果是OBDIAG升级场景，执行 
+## 使用环境要求
+- 环境依赖：支持zip命令
+ 将上边编译的包解压或者直接从https://github.com/oceanbase/oceanbase-diagnostic-tool/releases 下载包解压，进入解压后的文件即可使用obdiag提供的各项功能
+
 ```shell script
-rpm -Uvh oceanbase-diagnostic-tool-1.0.0-xxxxxx.alios7.x86_64.rpm
+tar zxvf oceanbase-diagnostic-tool-1.0.0-yyyyMMddHHmmss.tar.gz
+
 ```
 
 # 参数配置说明：
