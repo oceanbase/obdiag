@@ -3,7 +3,7 @@ certifi==2021.10.8
 cffi==1.15.0
 charset-normalizer==2.0.12
 constant==0.0.4
-cryptography==2.8
+cryptography==39.0.1
 idna==3.3
 Jinja2==3.0.3
 MarkupSafe==2.0.1
