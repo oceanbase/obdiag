@@ -135,3 +135,6 @@ optional arguments:
 
 OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
 您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
+
+## 联系我们
+钉钉群: 17920025807
