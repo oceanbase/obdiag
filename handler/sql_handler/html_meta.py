@@ -282,7 +282,7 @@ html_dict.set_value(
         });
         </script>
         
-        <div id='debug' class="fixed"><a target='_blank' href='https://yuque.antfin-inc.com/xiaochu.yh/doc/rb6pmq'>帮助文档</a> @晓楚</div>
+        <div id='debug' class="fixed"><a target='_blank' href='https://www.oceanbase.com/'>帮助文档</a> </div>
         </body>
         </html>
         '''
