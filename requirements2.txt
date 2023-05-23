@@ -13,7 +13,7 @@ paramiko==2.11.0
 pycparser==2.21
 PyNaCl==1.4.0
 PyYAML==5.4.1
-requests==2.27.1
+requests==2.31.0
 shellescape==3.8.1
 six==1.16.0
 tabulate==0.8.10
