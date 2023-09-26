@@ -30,11 +30,11 @@ class OcpBase:
     def check_ocp_site(self):
         logger.info("Checking if OCP is accessible...")
         output = utils.execute_command(
-            "curl -s --user {}:{} -X GET '{}/api/v2/git-info'"
+            "curl -s --user {}:{} -X GET '{}/api/v2/info'"
             .format(self.username, self.password, self.url))
         response = json.loads(output)
         logger.info("check ocp response: {0}".format(response))
         try:
-            response["commitId"]
+            response["buildTime"]
         except KeyError:
             raise Exception("OCP is inaccessible because: {}".format(response["error"]))
