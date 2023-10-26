@@ -179,9 +179,9 @@ class GatherObProxyLogHandler(BaseShellHandler):
             get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* | awk -F '/' '{print $NF}'" % \
                         (self.log_dir, self.log_dir, self.log_dir, self.log_dir, self.log_dir)
         if self.is_ssh:
-            log_files = SshClient().run_get_stderr(ssh_helper, get_obproxy_log)
+            log_files = SshClient().run(ssh_helper, get_obproxy_log)
         else:
-            log_files = LocalClient().run_get_stderr(get_obproxy_log)
+            log_files = LocalClient().run(get_obproxy_log)
         log_name_list = []
         if log_files:
             log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, self.log_dir, log_files)
@@ -225,7 +225,8 @@ class GatherObProxyLogHandler(BaseShellHandler):
         print(show_file_size_tabulate(ip, gather_log_file_size))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
-            local_path = download_file(self.is_ssh, ssh, gather_package_dir, pack_dir_this_command)
+            local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
+            local_path = download_file(self.is_ssh, ssh, gather_package_dir, local_store_path)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
