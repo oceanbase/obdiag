@@ -12,7 +12,7 @@
 
 """
 @time: 2023/01/12
-@file: gather_perf_handler
+@file: gather_perf.py
 @desc:
 """
 import os
@@ -21,20 +21,24 @@ import time
 import datetime
 
 import tabulate
+import uuid
 
-from common.command import get_observer_pid
+from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
 from common.logger import logger
+from common.command import LocalClient, SshClient
 from common.obdiag_exception import OBDIAGInvalidArgs
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
 from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size
 from utils.shell_utils import SshHelper
 from utils.time_utils import timestamp_to_filename_time
+from utils.utils import get_localhost_inner_ip, display_trace
 
 
 class GatherPerfHandler(BaseShellHandler):
     def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
         super(GatherPerfHandler, self).__init__(nodes)
+        self.is_ssh = True
         self.gather_timestamp = gather_timestamp
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
@@ -65,18 +69,21 @@ class GatherPerfHandler(BaseShellHandler):
                                   int(time.time() - st),
                                   resp["gather_pack_path"]))
 
-        node_threads = [threading.Thread(None, handle_from_node, args=(
-            node["ip"],
-            node["user"],
-            node["password"],
-            node["port"],
-            node["private_key"]))
-                        for node in self.nodes]
+        if self.is_ssh:
+            node_threads = [threading.Thread(None, handle_from_node, args=(
+                node["ip"],
+                node["user"],
+                node["password"],
+                node["port"],
+                node["private_key"])) for node in self.nodes]
+        else:
+            node_threads = [threading.Thread(None, handle_from_node, args=(get_localhost_inner_ip(), "", "", "", ""))]
         list(map(lambda x: x.start(), node_threads))
         list(map(lambda x: x.join(timeout=const.GATHER_THREAD_TIMEOUT), node_threads))
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         print(summary_tuples)
+        display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
         # Persist the summary results to a file
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
@@ -86,7 +93,7 @@ class GatherPerfHandler(BaseShellHandler):
             "error": "",
             "gather_pack_path": ""
         }
-        remote_ip = ip
+        remote_ip = ip if self.is_ssh else get_localhost_inner_ip()
         remote_user = user
         remote_password = password
         remote_port = port
@@ -97,37 +104,49 @@ class GatherPerfHandler(BaseShellHandler):
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         remote_dir_name = "perf_{0}_{1}".format(ip, now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
-        ssh_helper = SshHelper(remote_ip, remote_user, remote_password, remote_port, remote_private_key)
-        ssh_helper.ssh_mkdir_if_not_exist(remote_dir_full_path)
+        ssh_failed = False
+        try:
+            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key)
+        except Exception as e:
+            config_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            logger.error("ssh {0}@{1}: failed, Please check the {2}/conf/config.yml file".format(
+                remote_user, 
+                remote_ip, 
+                config_path))
+            ssh_failed = True
+            resp["skip"] = True
+            resp["error"] = "Please check the {0}/conf/config.yml".format(config_path)
+        if not ssh_failed:
+            mkdir(self.is_ssh, ssh_helper, remote_dir_full_path)
 
-        pid_observer_list = get_observer_pid(ssh_helper, self.ob_install_dir)
-        if len(pid_observer_list) == 0:
-            resp["error"] = "can't find observer"
-            return resp
-        for pid_observer in pid_observer_list:
-            if self.scope == "sample":
-                self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
-            elif self.scope == "flame":
-                self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
-            elif self.scope == "pstack":
-                self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
+            pid_observer_list = get_observer_pid(self.is_ssh, ssh_helper, self.ob_install_dir)
+            if len(pid_observer_list) == 0:
+                resp["error"] = "can't find observer"
+                return resp
+            for pid_observer in pid_observer_list:
+                if self.scope == "sample":
+                    self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
+                elif self.scope == "flame":
+                    self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
+                elif self.scope == "pstack":
+                    self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
+                else:
+                    self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
+                    self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
+                    self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
+
+            zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name)
+            remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
+            file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path)
+            if int(file_size) < self.file_size_limit:
+                local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+                download_file(self.is_ssh,ssh_helper, remote_file_full_path, local_file_path)
+                resp["error"] = ""
             else:
-                self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
-                self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
-                self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
-
-        ssh_helper.zip_rm_dir("/tmp", remote_dir_name)
-        remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
-        file_size = ssh_helper.get_file_size(remote_file_full_path)
-        if int(file_size) < self.file_size_limit:
-            local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-            ssh_helper.download(remote_file_full_path, local_file_path)
-            resp["error"] = ""
-        else:
-            resp["error"] = "File too large"
-        ssh_helper.delete_file_force(remote_file_full_path)
-        ssh_helper.ssh_close()
-        resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+                resp["error"] = "File too large"
+            delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path)
+            ssh_helper.ssh_close()
+            resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
         return resp
 
     def __gather_perf_sample(self, ssh_helper, gather_path, pid_observer):
@@ -135,12 +154,12 @@ class GatherPerfHandler(BaseShellHandler):
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
             logger.info("gather perf sample, run cmd = [{0}]".format(cmd))
-            ssh_helper.ssh_exec_cmd_ignore_exception(cmd)
+            SshClient().run(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
 
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(
             gather_path=gather_path)
             logger.info("generate perf sample data, run cmd = [{0}]".format(generate_data))
-            ssh_helper.ssh_exec_cmd_ignore_exception(generate_data)
+            SshClient().run(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
         except:
             logger.error("generate perf sample data on server [{0}] failed".format(ssh_helper.host_ip))
 
@@ -149,12 +168,12 @@ class GatherPerfHandler(BaseShellHandler):
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
             logger.info("gather perf, run cmd = [{0}]".format(perf_cmd))
-            ssh_helper.ssh_exec_cmd_ignore_exception(perf_cmd)
+            SshClient().run(ssh_helper, perf_cmd) if self.is_ssh else LocalClient().run(perf_cmd)
 
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(
             gather_path=gather_path)
             logger.info("generate perf data, run cmd = [{0}]".format(generate_data))
-            ssh_helper.ssh_exec_cmd_ignore_exception(generate_data)
+            SshClient().run(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
         except:
             logger.error("generate perf data on server [{0}] failed".format(ssh_helper.host_ip))
 
@@ -163,7 +182,7 @@ class GatherPerfHandler(BaseShellHandler):
             pstack_cmd = "cd {gather_path} && pstack {pid} > pstack.viz".format(
             gather_path=gather_path, pid=pid_observer)
             logger.info("gather pstack, run cmd = [{0}]".format(pstack_cmd))
-            ssh_helper.ssh_exec_cmd(pstack_cmd)
+            SshClient().run(ssh_helper, pstack_cmd) if self.is_ssh else LocalClient().run(pstack_cmd)
         except:
             logger.error("gather pstack on server failed [{0}]".format(ssh_helper.host_ip))
 

@@ -1,7 +1,6 @@
 
 # Oceanbase Diagnostic Tool
-OceanBase诊断工具(OceanBase Diagnostic Tool) 是 原诊断信息收集工具 (OceanBase Diagnosis Gather)的功能升级版，形成了统一的黑屏命令风格，简单易用。
-目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
+OceanBase诊断工具(OceanBase Diagnostic Tool) 是 OceanBase 的黑屏诊断工具。目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集、分析，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
 
 ![01](images/structure.png)
 
@@ -114,7 +113,7 @@ optional arguments:
 
 ```
 
-## 功能列表
+## 一键收集功能列表
 - [一键收集OB日志](./docs/gather_ob_log.md)
 
 - [一键收集AWR报告](./docs/gather_awr.md)
@@ -130,6 +129,10 @@ optional arguments:
 - [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
 
 - [一键收集全部诊断信息](./docs/gather_all.md)
+
+## 一键分析功能列表
+
+- [一键分析OB日志](./docs/analyze_ob_log.md)
 
 ## 许可证
 

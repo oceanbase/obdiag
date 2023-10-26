@@ -15,8 +15,12 @@
 @file: utils.py
 @desc:
 """
+import datetime
+import os
+import re
 import sys
 import subprocess
+import socket
 
 from prettytable import PrettyTable
 
@@ -56,3 +60,35 @@ def execute_command(cmd):
         raise
     logger.debug("Executed cmd={}, output={}".format(cmd, output))
     return output
+
+
+def get_localhost_inner_ip():
+    localhost_ip = "127.0.0.1"
+    try:
+        localhost_ip = socket.gethostbyname(socket.gethostname())
+        return localhost_ip
+    except Exception as e:
+        return localhost_ip
+
+
+def get_observer_ip_from_trace_id(content):
+    if content[0] == 'Y' and len(content) >= 12:
+        sep = content.find('-')
+        uval = int(content[1:sep], 16)
+        ip = uval & 0xffffffff
+        port = (uval >> 32) & 0xffff
+        return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xff), (ip >> 16 & 0xff), (ip >> 8 & 0xff), (ip >> 0 & 0xff), port)
+    else:
+        return ""
+
+
+def skip_char(sub, b):
+    if len(sub) <= 0:
+        return False
+    if sub[0] == b:
+        sub = sub[1:]
+        return True
+    return False
+
+def display_trace(uuid):
+    print("If you want to view detailed obdiag logs, please run:'obdiag display-trace --trace_id {0}'".format(uuid))

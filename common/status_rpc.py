@@ -33,7 +33,6 @@ class StatusResponse(Response):
     def __init__(self, request, status_result_dict, timestamp=None):
         super(StatusResponse, self).__init__(request.request_id,
                                              timestamp=timestamp)
-        # log_filename -> (log_size, grepped_log_size, log_datetime)
         self.status_result_dict = status_result_dict
 
     def to_dict(self):

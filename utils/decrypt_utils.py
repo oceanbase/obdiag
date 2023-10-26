@@ -10,16 +10,16 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-import base64
-import hashlib
-from Crypto import Random
-from Crypto.Cipher import AES
-
 """
 @time: 2022/6/24
 @file: decrypt_utils.py
 @desc:
 """
+
+import base64
+import hashlib
+from Crypto import Random
+from Crypto.Cipher import AES
 
 
 class AESCipher(object):

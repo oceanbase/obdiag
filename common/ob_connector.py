@@ -16,7 +16,7 @@
 @desc:
 """
 import mysql.connector
-from prettytable import from_db_cursor, PrettyTable
+from prettytable import from_db_cursor
 
 from common.logger import logger
 

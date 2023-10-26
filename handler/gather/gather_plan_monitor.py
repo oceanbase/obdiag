@@ -12,13 +12,15 @@
 
 """
 @time: 2022/11/29
-@file: gather_plan_monitor_handler.py
+@file: gather_plan_monitor.py
 @desc:
 """
 import os
+import sys
 import shutil
 import time
 from decimal import Decimal
+import uuid
 
 import MySQLdb
 import tabulate
@@ -28,10 +30,11 @@ from common.logger import logger
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGInvalidArgs, OBDIAGArgsNotFoundException
 from handler.base_sql_handler import BaseSQLHandler
-from handler.sql_handler.html_meta import GlobalHtmlMeta
-from handler.sql_handler.sql_meta import GlobalSqlMeta
-from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file
+from handler.meta.html_meta import GlobalHtmlMeta
+from handler.meta.sql_meta import GlobalSqlMeta
+from utils.file_utils import mkdir_if_not_exist, write_result_append_to_file
 from utils.time_utils import timestamp_to_filename_time
+from utils.utils import display_trace
 
 
 class GatherPlanMonitorHandler(BaseSQLHandler):
@@ -167,12 +170,13 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
             gather_pack_path_dict[cluster_name] = resp["gather_pack_path"]
             gather_tuples.append((cluster_name, False, "", int(time.time() - st), pack_dir_this_command))
 
-        cs_resources_path = os.path.join(self.local_stored_path, "resources")
+        cs_resources_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], "../../resources")
         target_resources_path = os.path.join(pack_dir_this_command, "resources")
         self.copy_cs_resource(cs_resources_path, target_resources_path)
         handle_plan_monitor_from_ob(self.ob_cluster_name, args)
         summary_tuples = self.__get_overall_summary(gather_tuples)
         print(summary_tuples)
+        display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
         # 将汇总结果持久化记录到文件中
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         return gather_tuples, gather_pack_path_dict
@@ -192,6 +196,13 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                 return False
         else:
             return False
+        if getattr(args, "store_dir") is not None:
+            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
+                logger.error("Error: Set store dir {0} failed: No such directory."
+                             .format(os.path.abspath(getattr(args, "store_dir"))))
+                return False
+            else:
+                self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
         self.tenant_mode_detected()
         return True
 
@@ -503,11 +514,21 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
             data = self.ob_connector.execute_sql("select version();")
             logger.info("Detected mySQL mode successful,  Database version : %s " % ("%s" % data[0]))
             v = "%s" % data
-            if len(v.split('-')) > 1:
-                v = v.split('-')[2][1:]
-                version = v[0]
+            if not v.find("CE"):
+                if len(v.split('-')) > 1:
+                    v = v.split('-')[2][1:]
+                    version = v[0]
+                else:
+                    version = v
             else:
-                version = v
+                if len(v.split('-')) > 1:
+                    if sys.version_info[0] < 3:
+                        v = v.split('-')[0][4:]
+                    else:
+                        v = v.split('-')[0][3:]
+                    version = v[0]
+                else:
+                    version = v
             if int(version[0]) >= 4:
                 self.sql_audit_name = "gv$ob_sql_audit"
                 self.plan_explain_name = "gv$ob_plan_cache_plan_explain"

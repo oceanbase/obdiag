@@ -10,16 +10,14 @@ PY_VERSION=`$OBDIAG_PYTHON -V 2>&1|awk '{print $2}'|awk -F '.' '{print $1}'`
 
 if (( $PY_VERSION == 3 ))
 then
-    echo "your python version is $PY_VERSION"
     export LD_LIBRARY_PATH=$(ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | awk -F\" '{print $2}' | sed 's/=//' | tr '\n' ':')$OBDIAG_DIR/dependencies/python3/libs/
     export PYTHONPATH=$OBDIAG_DIR/dependencies/python3/site-packages:$PYTHONPATH
-    $OBDIAG_PYTHON ./dependencies/check_dependencies.py
+    $OBDIAG_PYTHON $OBDIAG_DIR/dependencies/check_dependencies.py
 elif (( $PY_VERSION == 2 ))
 then
-    echo "your python version is $PY_VERSION"
     export LD_LIBRARY_PATH=$(ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | awk -F\" '{print $2}' | sed 's/=//' | tr '\n' ':')$OBDIAG_DIR/dependencies/python2/libs/
     export PYTHONPATH=$OBDIAG_DIR/dependencies/python2/site-packages:$PYTHONPATH
-    $OBDIAG_PYTHON ./dependencies/check_dependencies.py
+    $OBDIAG_PYTHON $OBDIAG_DIR/dependencies/check_dependencies.py
 else
     echo "Please make sure Python exists in your environment"
 fi
@@ -32,5 +30,5 @@ do
     fi
     final_str=${final_str}${blank_str}${i}
 done
-PROG="$0" $OBDIAG_PYTHON ./obdiag_main.py $final_str
+PROG="$0" $OBDIAG_PYTHON $OBDIAG_DIR/obdiag_main.py $final_str
 

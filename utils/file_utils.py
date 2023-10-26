@@ -159,7 +159,7 @@ def parse_size(size_str, unit='B'):
 
 def write_result_append_to_file(filename, result):
     with io.open(filename, 'a', encoding='utf-8') as fileobj:
-        fileobj.write(result)
+        fileobj.write(u'{}'.format(result))
 
 
 def show_file_size_tabulate(ip, file_size):
@@ -174,3 +174,30 @@ def show_file_size_tabulate(ip, file_size):
     summary_tab.append((ip, format_file_size))
     return "\nZipFileInfo:\n" + \
            tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+
+
+def show_file_list_tabulate(ip, file_list):
+    """
+    Display the list of log files on the node
+    :param args: remote host ip, file list
+    :return: file list info
+    """
+    summary_tab = []
+    field_names = ["Node", "LogList"]
+    summary_tab.append((ip, file_list))
+    return "\nFileListInfo:\n" + \
+           tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+
+
+def find_all_file(base):
+    """
+    Traverse and query all files in the specified directory
+    :param args: specified directory
+    :return: file list
+    """
+    file_list = []
+    for root, ds, fs in os.walk(base):
+        for f in fs:
+            fullname = os.path.join(root, f)
+            file_list.append(fullname)
+    return file_list
