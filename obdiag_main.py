@@ -29,7 +29,7 @@ def pharse_config(args):
         if args.config:
             args.config(args)
     except AttributeError:
-        logger.info("object has no attribute 'config' pass quick config\n")
+        logger.debug("object has no attribute 'config' pass quick config\n")
 
 
 def gather_log(args):
@@ -37,7 +37,7 @@ def gather_log(args):
         if args.gather_log:
             args.gather_log(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_log' pass gather log\n")
+        logger.debug("object has no attribute 'gather_log' pass gather log\n")
 
 
 def gather_awr(args):
@@ -45,7 +45,7 @@ def gather_awr(args):
         if args.gather_awr:
             args.gather_awr(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_awr' pass gather awr\n")
+        logger.debug("object has no attribute 'gather_awr' pass gather awr\n")
 
 
 def gather_sysstat(args):
@@ -53,7 +53,7 @@ def gather_sysstat(args):
         if args.gather_sysstat:
             args.gather_sysstat(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_sysstat' pass gather sysstat info\n")
+        logger.debug("object has no attribute 'gather_sysstat' pass gather sysstat info\n")
 
 
 def gather_perf(args):
@@ -61,15 +61,14 @@ def gather_perf(args):
         if args.gather_perf:
             args.gather_perf(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_perf' pass gather perf info\n")
-
+        logger.debug("object has no attribute 'gather_perf' pass gather perf info\n")
 
 def gather_plan_monitor(args):
     try:
         if args.gather_plan_monitor:
             args.gather_plan_monitor(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_plan_monitor' pass gather ob sql plan monitor\n")
+        logger.debug("object has no attribute 'gather_plan_monitor' pass gather ob sql plan monitor\n")
 
 
 def gather_clog(args):
@@ -77,27 +76,51 @@ def gather_clog(args):
         if args.gather_clog:
             args.gather_clog(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_clog' pass gather clog\n")
+        logger.debug("object has no attribute 'gather_clog' pass gather clog\n")
 
 def gather_slog(args):
     try:
         if args.gather_slog:
             args.gather_slog(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_slog' pass gather slog\n")
+        logger.debug("object has no attribute 'gather_slog' pass gather slog\n")
 
 def gather_obproxy_log(args):
     try:
         if args.gather_obproxy_log:
             args.gather_obproxy_log(args)
     except AttributeError:
-        logger.info("object has no attribute 'gather_obproxy_log' pass gather obproxy log\n")
+        logger.debug("object has no attribute 'gather_obproxy_log' pass gather obproxy log\n")
+
+def get_version(args):
+    try:
+        if args.version:
+            args.version(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'version'\n")
+
+def get_obdiag_trace_log(args):
+    try:
+        if args.display:
+            args.display(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'display'\n")
+
+
+def analyze_log(args):
+    try:
+        if args.analyze_log:
+            args.analyze_log(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'analyze_log' pass analyze log\n")
 
 
 if __name__ == '__main__':
     obdiag = OBDIAGClient().init()
     arg_parser = ArgParser(obdiag)
     obdiag_args = arg_parser.parse_argv()
+    get_version(obdiag_args)
+    get_obdiag_trace_log(obdiag_args)
     pharse_config(obdiag_args)
     gather_log(obdiag_args)
     gather_awr(obdiag_args)
@@ -107,3 +130,4 @@ if __name__ == '__main__':
     gather_clog(obdiag_args)
     gather_slog(obdiag_args)
     gather_obproxy_log(obdiag_args)
+    analyze_log(obdiag_args)

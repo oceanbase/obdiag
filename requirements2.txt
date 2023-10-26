@@ -7,12 +7,11 @@ pycryptodome==3.15.0
 cryptography==2.8
 enum34==1.1.10
 idna==2.10
-ipaddress==1.0.23
 Naked==0.1.31
 paramiko==2.11.0
 pycparser==2.21
 PyNaCl==1.4.0
-PyYAML==5.4.1
+PyYAML==5.3.1
 requests==2.27.1
 shellescape==3.8.1
 six==1.16.0

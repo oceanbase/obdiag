@@ -15,6 +15,8 @@
 @file: shell_utils.py
 @desc:
 """
+import sys
+
 import paramiko
 import time
 
@@ -26,7 +28,8 @@ from common.obdiag_exception import OBDIAGShellCmdException
 
 
 class SshHelper(object):
-    def __init__(self, host_ip, username, password, ssh_port, key_file):
+    def __init__(self, is_ssh, host_ip, username, password, ssh_port, key_file):
+        self.is_ssh = is_ssh
         self.host_ip = host_ip
         self.username = username
         self.ssh_port = ssh_port
@@ -35,25 +38,26 @@ class SshHelper(object):
         self.key_file = key_file
         self._ssh_fd = None
         self._sftp_client = None
-        if len(self.key_file) > 0:
-            try:
+        if self.is_ssh:
+            if len(self.key_file) > 0:
+                try:
+                    self._ssh_fd = paramiko.SSHClient()
+                    self._ssh_fd.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    self._ssh_fd.load_system_host_keys()
+                    key = paramiko.RSAKey.from_private_key_file(key_file)
+                    self._ssh_fd.connect(hostname=host_ip, username=username, pkey=key, port=ssh_port)
+                except AuthenticationException:
+                    self.password = input("Authentication failed, Input {0}@{1} password:\n".format(username, host_ip))
+                    self.need_password = True
+                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port)
+                except Exception as e:
+                    raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(username, host_ip, e))
+            else:
                 self._ssh_fd = paramiko.SSHClient()
-                self._ssh_fd.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 self._ssh_fd.load_system_host_keys()
-                key = paramiko.RSAKey.from_private_key_file(key_file)
-                self._ssh_fd.connect(hostname=host_ip, username=username, pkey=key, port=ssh_port)
-            except AuthenticationException:
-                self.password = input("Authentication failed, Input {0}@{1} password:\n".format(username, host_ip))
                 self.need_password = True
                 self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port)
-            except Exception as e:
-                raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(username, host_ip, e))
-        else:
-            self._ssh_fd = paramiko.SSHClient()
-            self._ssh_fd.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self._ssh_fd.load_system_host_keys()
-            self.need_password = True
-            self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port)
 
     def ssh_exec_cmd(self, cmd):
         try:
@@ -70,14 +74,9 @@ class SshHelper(object):
     def ssh_exec_cmd_ignore_err(self, cmd):
         try:
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
-            err_text = stderr.read()
-            if len(err_text):
-                print("Execute Shell command on server {0} failed, "
-                      "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text))
+            return stdout.read().decode('utf-8')
         except SSHException as e:
-            print("Execute Shell command on server {0} failed, "
-                  "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
-        return stdout.read().decode('utf-8')
+            print("Execute Shell command on server {0} failed,command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
 
     def ssh_exec_cmd_ignore_exception(self, cmd):
         try:
@@ -93,67 +92,49 @@ class SshHelper(object):
         except SSHException as e:
             pass
 
+    def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        bar_len = 20
+        filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
+        percents = round(20.0 * transferred / float(to_be_transferred), 1)
+        bar = '\033[32;1m%s\033[0m' % '=' * filled_len + '-' * (bar_len - filled_len)
+        print_percents = round((percents * 5), 1)
+        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']',  suffix))
+        sys.stdout.flush()
+
     def download(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
-        self._sftp_client.get(remote_path, local_path)
+        print('Download {0}:{1}'.format(self.host_ip,remote_path))
+        self._sftp_client.get(remote_path, local_path, callback=self.progress_bar)
         self._sftp_client.close()
+
+    def translate_byte(self, B):
+        B = float(B)
+        KB = float(1024)
+        MB = float(KB ** 2)
+        GB = float(MB ** 2)
+        TB = float(GB ** 2)
+        if B < KB:
+            return '{} {}'.format(B, 'bytes' if B > 1 else "byte")
+        elif KB < B < MB:
+            return '{:.2f} KB'.format(B / KB)
+        elif MB < B < GB:
+            return '{:.2f} MB'.format(B / MB)
+        elif GB < B < TB:
+            return '{:.2f} GB'.format(B / GB)
+        else:
+            return '{:.2f} TB'.format(B / TB)
 
     def upload(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
-        self._sftp_client.put(local_path, remote_path)
+        self._sftp_client.put(remote_path, local_path)
         self._sftp_client.close()
 
     def ssh_close(self):
         if self._sftp_client is not None:
             self._sftp_client.close()
             self._sftp_client = None
-
-    def delete_file_force(self, file_name):
-        rm_cmd = "rm -rf {0}".format(file_name)
-        self.ssh_exec_cmd(rm_cmd)
-
-    def delete_empty_file(self, file_path):
-        rm_cmd = "find  {file_path} -name '*' -type f -size 0c | xargs -n 1 rm -f".format(file_path=file_path)
-        self.ssh_exec_cmd(rm_cmd)
-
-    def get_file_size(self, file_path):
-        get_file_size_cmd = "ls -nl %s | awk '{print $5}'" % file_path
-        file_size = self.ssh_exec_cmd(get_file_size_cmd)
-        return file_size
-
-    def is_empty_dir(self, dir_path):
-        cmd = "ls -A {dir_path}|wc -w".format(dir_path=dir_path)
-        file_num = self.ssh_exec_cmd(cmd)
-        if int(file_num) == 0:
-            return True
-        else:
-            return False
-
-    def is_empty_file(self, file_path):
-        file_size = self.get_file_size(file_path)
-        if int(file_size) == 0:
-            return True
-        else:
-            return False
-
-    def ssh_mkdir_if_not_exist(self, dir_path):
-        mkdir_cmd = "mkdir -p {0}".format(dir_path)
-        self.ssh_exec_cmd(mkdir_cmd)
-
-    def zip_rm_dir(self, upper_dir, zip_dir):
-        zip_cmd = "cd {upper_dir} && zip {zip_dir}.zip -rm {zip_dir}".format(
-            upper_dir=upper_dir,
-            zip_dir=zip_dir)
-        self.ssh_exec_cmd(zip_cmd)
-
-    def zip_encrypt_rm_dir(self, upper_dir, zip_dir, password):
-        zip_cmd = "cd {upper_dir} && zip --password {password} {zip_dir}.zip -rm {zip_dir}".format(
-            upper_dir=upper_dir,
-            password=password,
-            zip_dir=zip_dir)
-        self.ssh_exec_cmd(zip_cmd)
 
     def __del__(self):
         if self._sftp_client is not None:

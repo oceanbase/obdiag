@@ -40,6 +40,9 @@ const.OBPROXY_LOG_DIR_DEFAULT = "/home/admin/obproxy/log"
 
 const.GATHER_LOG_TEMPORARY_DIR_DEFAULT = "/tmp"
 
+const.OBSTACK2_DEFAULT_INSTALL_PATH = '/tmp/obstack_x86_64_7'
+const.OBSTACK2_LOCAL_STORED_PATH = "./dependencies/bin/obstack_x86_64_7"
+
 # 限制收集任务的并发线程数量 10
 const.GATHER_THREADS_LIMIT = 10
 # 限制收集任务的并发线程单个线程的执行超时时间 15分钟
@@ -48,3 +51,4 @@ const.GATHER_THREAD_TIMEOUT = 15 * 60
 const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK = "2.0.0"
 
 const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN = "4.0.0"
+

@@ -14,13 +14,15 @@
 @file: obdiag_client.py
 @desc:
 """
-from handler.shell_handler.gather_log_handler import GatherLogHandler
-from handler.http_handler.gather_awr_handler import GatherAwrHandler
-from handler.shell_handler.gather_obproxy_log_handler import GatherObProxyLogHandler
-from handler.shell_handler.gather_sysstat_handler import GatherOsInfoHandler
-from handler.shell_handler.gather_obadmin_handler import GatherObAdminHandler
-from handler.shell_handler.gather_perf_hander import GatherPerfHandler
-from handler.sql_handler.gather_plan_monitor_handler import GatherPlanMonitorHandler
+from common.command import get_obdiag_display
+from handler.analyzer.analyze_log import AnalyzeLogHandler
+from handler.gather.gather_log import GatherLogHandler
+from handler.gather.gather_awr import GatherAwrHandler
+from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
+from handler.gather.gather_sysstat import GatherOsInfoHandler
+from handler.gather.gather_obadmin import GatherObAdminHandler
+from handler.gather.gather_perf import GatherPerfHandler
+from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from ocp.config_helper import ConfigHelper
 import base64
 import os
@@ -28,6 +30,7 @@ from common.obdiag_exception import OBDIAGConfNotFoundException
 from common.logger import logger
 from utils.time_utils import get_current_us_timestamp
 from utils.yaml_utils import read_yaml_data
+from utils.version_utils import get_obdiag_version
 
 CONFIG_FILE = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "./conf")), "config.yml")
 
@@ -59,7 +62,7 @@ class OBDIAGClient(object):
             self.ocp_metadb_ip = None
             self.ocp_metadb_port = None
             self.ocp_metadb_name = None
-            # handler
+            # gather handler
             self.gather_awr_handler = None
             self.gather_log_handler = None
             self.gather_sysstat_handler = None
@@ -68,6 +71,8 @@ class OBDIAGClient(object):
             self.gather_slog_handler = None
             self.gather_plan_monitor_handler = None
             self.gather_obproxy_log_handler = None
+            # analyze handler
+            self.analyze_log_handler = None
             # params
             self.default_collect_pack_dir = ""
             self.cluster = ""
@@ -108,6 +113,16 @@ class OBDIAGClient(object):
         self.nodes = self.config["NODES"]
         # obdiag basic config
         self.basic_config = self.config["OBDIAG"]["BASIC"]
+        self.obdiag_log_file = os.path.join(self.config["OBDIAG"]["LOGGER"]["log_dir"], self.config["OBDIAG"]["LOGGER"]["log_filename"])
+
+    def obdiag_version(self, args):
+        return get_obdiag_version()
+
+    def obdiag_display(self, args):
+        trace_id = ""
+        if getattr(args, "trace_id") is not None:
+            trace_id = getattr(args, "trace_id")[0]
+        return get_obdiag_display(self.obdiag_log_file, trace_id)
 
     def quick_build_configuration(self, args):
         config_helper = ConfigHelper(self.ocp_url, self.ocp_user, self.ocp_password,
@@ -157,3 +172,7 @@ class OBDIAGClient(object):
                                                                             base64.b64encode(
                                                                                 args.password[0].encode())))
         return
+
+    def handle_analyze_log_command(self, args):
+        self.analyze_log_handler = AnalyzeLogHandler(self.nodes, self.default_collect_pack_dir, self.gather_timestamp, self.basic_config)
+        return self.analyze_log_handler.handle(args)

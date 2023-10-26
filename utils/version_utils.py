@@ -16,6 +16,11 @@
 @desc:
 """
 
+# obdiag version
+OBDIAG_VERSION = '<VERSION>'
+# obdiag build time
+OBDIAG_BUILD_TIME = '<B_TIME>'
+
 
 def compare_versions_greater(v1, v2):
     for i, j in zip(map(int, v1.split(".")), map(int, v2.split("."))):
@@ -31,3 +36,14 @@ def compare_versions_lower(v1, v2):
             continue
         return i < j
     return len(v1.split(".")) < len(v2.split("."))
+
+
+def get_obdiag_version():
+    version = '''OceanBase Diagnostic Tool: %s
+BUILD_TIME: %s
+Copyright (C) 2022 OceanBase
+License Mulan PSL v2: http://license.coscl.org.cn/MulanPSL2.
+You can use this software according to the terms and conditions of the Mulan PSL v2.
+There is NO WARRANTY, to the extent permitted by law.''' % (OBDIAG_VERSION, OBDIAG_BUILD_TIME)
+    print(version)
+

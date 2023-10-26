@@ -163,20 +163,11 @@ def extract_time_from_log_file_text(log_text):
         else:
             time_str = log_text[0: log_text.find(',')]
         time_without_us = time_str[0: time_str.find('.')]
-        format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
-        format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
-    else:
-        format_time_str = ""
-    return format_time_str
-
-
-def extract_start_and_end_time_from_log_file_text(log_text):
-    # 传入的日志文本包含首行和尾行，需要针对首行和尾行分别解析出时间
-    if len(log_text) > 27:
-        time_str = log_text[1: log_text.find(']')]
-        time_without_us = time_str[0: time_str.find('.')]
-        format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
-        format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
+        try:
+            format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
+            format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
+        except Exception as e:
+            format_time_str = ""
     else:
         format_time_str = ""
     return format_time_str

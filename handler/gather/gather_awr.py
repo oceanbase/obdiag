@@ -12,7 +12,7 @@
 
 """
 @time: 2022/6/24
-@file: gather_awr_handler.py
+@file: gather_awr.py
 @desc:
 """
 import os
@@ -251,7 +251,7 @@ class GatherAwrHandler(BaseHttpHandler):
                 logger.error("Error: the format of since must be 'n'<m|h|d>")
                 return False
             now_time = datetime.datetime.now()
-            self.to_time_str = now_time.strftime('%Y-%m-%d %H:%M:%S')
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             if since_to_seconds < 3600:
                 since_to_seconds = 3600
             self.from_time_str = (now_time - datetime.timedelta(seconds=since_to_seconds)).strftime('%Y-%m-%d %H:%M:%S')

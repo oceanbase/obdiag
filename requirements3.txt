@@ -1,9 +1,9 @@
 bcrypt==3.2.2
-certifi==2021.10.8
+certifi==2022.6.15
 cffi==1.15.0
 charset-normalizer==2.0.12
 constant==0.0.4
-cryptography==2.8
+cryptography==37.0.2
 idna==3.3
 Jinja2==3.0.3
 MarkupSafe==2.0.1

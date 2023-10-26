@@ -72,10 +72,28 @@ class ArgParser(object):
         parents_common_arguments.add_argument("--store_dir", metavar="store_dir",
                                               help="the dir to store gather result, current dir by default.")
 
+        parser_version = subparsers.add_parser(
+            "version", help="Oceanbase Diagnostic Tool Version",
+            epilog="Example: obdiag version",
+            conflict_handler='resolve',
+            description="Oceanbase Diagnostic Tool Version"
+        )
+        parser_version.set_defaults(version=self.client.obdiag_version)
+
+        parser_obdiag_display = subparsers.add_parser(
+            "display-trace", help="Display obdiag trace log",
+            epilog="Example: obdiag display",
+            conflict_handler='resolve',
+            description="Display obdiag trace log"
+        )
+        parser_obdiag_display.add_argument("--trace_id", metavar="trace_id", nargs=1,
+                                   help="obdiag-trace trace_id", required=True)
+        parser_obdiag_display.set_defaults(display=self.client.obdiag_display)
+
         # 通过ocp快速生成配置文件
         parser_config = subparsers.add_parser(
             "config", help="Quick build config",
-            epilog="Example: ./obdiag config --cluster_name demo1 --cluster_id xxx",
+            epilog="Example: obdiag config --cluster_name demo1 --cluster_id xxx",
             conflict_handler='resolve',
             description="Quick build config"
         )
@@ -93,7 +111,7 @@ class ArgParser(object):
         # 定义gather命令的子命令: log
         gather_log_arguments = subparsers_gather.add_parser(
             "log", help="Filter and gather logs into a package",
-            epilog="Example: ./obdiag gather log --scope observer "
+            epilog="Example: obdiag gather log --scope observer "
                    "--from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_common_arguments, parents_observer_arguments],
             conflict_handler='resolve',
@@ -108,7 +126,7 @@ class ArgParser(object):
                                           help="log type constrains, "
                                                "choices=[observer, election, rootservice, all], "
                                                "default=all")
-        gather_log_arguments.add_argument("--grep", metavar="grep", nargs=1,
+        gather_log_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain")
         gather_log_arguments.add_argument("--encrypt", metavar="encrypt", nargs=1,
                                           choices=["true", "false"],
@@ -120,7 +138,7 @@ class ArgParser(object):
         # 定义gather命令的子命令: sysstat, 收集主机层面的信息
         gather_sysstat_arguments = subparsers_gather.add_parser(
             "sysstat", help="Gather sysstat info",
-            epilog="Example: ./obdiag gather sysstat",
+            epilog="Example: obdiag gather sysstat",
             parents=[parents_common_arguments],
             conflict_handler='resolve',
             description="According to the input parameters, gather the os info "
@@ -131,7 +149,7 @@ class ArgParser(object):
         # gather 子命令 awr
         gather_awr_arguments = subparsers_gather.add_parser(
             "awr", help="Filter and gather awr reports",
-            epilog="Example: ./obdiag gather awr --cluster_name demo1 "
+            epilog="Example: obdiag gather awr --cluster_name demo1 "
                    "--from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_common_arguments],
             conflict_handler='resolve',
@@ -146,7 +164,7 @@ class ArgParser(object):
         # 定义gather命令的子命令: perf
         gather_perf_arguments = subparsers_gather.add_parser(
             "perf", help="Gather perf info",
-            epilog="Example: ./obdiag gather perf",
+            epilog="Example: obdiag gather perf",
             parents=[parents_observer_arguments, parents_common_arguments],
             conflict_handler='resolve',
             description="According to the input parameters, gather the perf info "
@@ -162,7 +180,7 @@ class ArgParser(object):
         # gather 子命令 plan_monitor
         gather_plan_monitor_arguments = subparsers_gather.add_parser(
             "plan_monitor", help="Filter and gather sql plan monitor reports",
-            epilog="Example: ./obdiag gather plan_monitor --trace_id xxxxx",
+            epilog="Example: obdiag gather plan_monitor --trace_id xxxxx",
             parents=[parents_common_arguments],
             conflict_handler='resolve',
             description="According to the input parameters, gather the sql plan monitor of the specified trace_id "
@@ -175,15 +193,15 @@ class ArgParser(object):
         # gather 子命令 clog
         gather_clog_arguments = subparsers_gather.add_parser(
             "clog", help="Filter and gather clog",
-            epilog="Example: ./obdiag gather clog --cluster_name demo1 --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
+            epilog="Example: obdiag gather clog --clog_dir demo1 --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_common_arguments, parents_observer_arguments],
             conflict_handler='resolve',
             description="According to the input parameters, gather the clog of the specified range "
                         "(whether it is time range), compress and pack, "
                         "and transmit to the specified path of the obdiag machine.")
         gather_clog_arguments.set_defaults(gather_clog=self.client.handle_gather_clog_command)
-        gather_clog_arguments.add_argument("--cluster_name", metavar="cluster_name", required=True,
-                                              nargs=1, help="cluster name.")
+        gather_clog_arguments.add_argument("--clog_dir", metavar="clog_dir", required=True,
+                                              nargs=1, help="clog dir.")
         gather_clog_arguments.add_argument("--encrypt", metavar="encrypt", nargs=1,
                                               choices=["true", "false"],
                                               default="false",
@@ -194,7 +212,7 @@ class ArgParser(object):
         # gather 子命令 slog
         gather_slog_arguments = subparsers_gather.add_parser(
             "slog", help="Filter and gather slog",
-            epilog="Example: ./obdiag gather slog --cluster_name demo1 "
+            epilog="Example: obdiag gather slog --cluster_name demo1 "
                    "--from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_common_arguments, parents_observer_arguments],
             conflict_handler='resolve',
@@ -202,8 +220,8 @@ class ArgParser(object):
                         "(whether it is time range), compress and pack, "
                         "and transmit to the specified path of the obdiag machine.")
         gather_slog_arguments.set_defaults(gather_slog=self.client.handle_gather_slog_command)
-        gather_slog_arguments.add_argument("--cluster_name", metavar="cluster_name", required=True,
-                                           nargs=1, help="cluster name.")
+        gather_slog_arguments.add_argument("--slog_dir", metavar="slog_dir", required=True,
+                                           nargs=1, help="slog dir.")
         gather_slog_arguments.add_argument("--encrypt", metavar="encrypt", nargs=1,
                                            choices=["true", "false"],
                                            default="false",
@@ -214,7 +232,7 @@ class ArgParser(object):
         # 定义gather命令的子命令: obproxy_log
         gather_obproxy_log_arguments = subparsers_gather.add_parser(
             "obproxy_log", help="Filter and gather obproxy logs into a package",
-            epilog="Example: ./obdiag gather obproxy_log --scope obproxy "
+            epilog="Example: obdiag gather obproxy_log --scope obproxy "
                    "--from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_common_arguments, parents_obproxy_arguments],
             conflict_handler='resolve',
@@ -229,7 +247,7 @@ class ArgParser(object):
                                           help="log type constrains, "
                                                "choices=[obproxy, obproxy_digest, obproxy_stat, obproxy_slow, obproxy_limit, all], "
                                                "default=all")
-        gather_obproxy_log_arguments.add_argument("--grep", metavar="grep", nargs=1,
+        gather_obproxy_log_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain")
         gather_obproxy_log_arguments.add_argument("--encrypt", metavar="encrypt", nargs=1,
                                           choices=["true", "false"],
@@ -241,14 +259,13 @@ class ArgParser(object):
         # gather all
         gather_all_arguments = subparsers_gather.add_parser(
             "all", help="Gather all",
-            epilog="Example: ./obdiag gather all --cluster_name demo1 "
+            epilog="Example: obdiag gather all --cluster_name demo1 "
                    "--from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 ",
             parents=[parents_time_arguments, parents_observer_arguments, parents_common_arguments],
             conflict_handler='resolve',
             description="According to the input parameters, gather all reports")
 
         gather_all_arguments.set_defaults(
-            gather_awr=self.client.handle_gather_awr_command,
             gather_log=self.client.handle_gather_log_command,
             gather_sysstat=self.client.handle_gather_sysstat_command,
             gather_perf=self.client.handle_gather_perf_command,
@@ -267,10 +284,45 @@ class ArgParser(object):
                                           help="Whether the returned results need to be encrypted, "
                                                "choices=[true, false], "
                                                "default=false")
-        gather_all_arguments.add_argument("--grep", metavar="grep", nargs=1,
+        gather_all_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain for log")
         gather_all_arguments.add_argument("--cluster_name", metavar="cluster_name", required=True,
                                           nargs=1, help="cluster name, awr report need")
+        gather_all_arguments.add_argument("--slog_dir", metavar="slog_dir", required=True,
+                                           nargs=1, help="slog dir.")
+        gather_all_arguments.add_argument("--clog_dir", metavar="clog_dir", required=True,
+                                           nargs=1, help="clog dir.")
+
+        # analyze
+        parser_analyze = subparsers.add_parser("analyze", help="analyze logs and other information", )
+        subparsers_analyze = parser_analyze.add_subparsers()
+        analyze_log_arguments = subparsers_analyze.add_parser(
+            "log", help="Filter and analyze observer logs",
+            epilog="Example1: obdiag analyze log --scope observer --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00\n\n"
+                   "Example2: obdiag analyze log --scope observer --since 1h --grep STORAGE\n\n"
+                   "Example3: obdiag analyze log --files observer.log.20230831142211247\n\n"
+                   "Example4: obdiag analyze log --files ./log/",
+            parents=[parents_time_arguments, parents_common_arguments, parents_observer_arguments],
+            conflict_handler='resolve',
+            description="According to the input parameters, analyze observer logs")
+
+        analyze_log_arguments.set_defaults(analyze_log=self.client.handle_analyze_log_command)
+        analyze_log_arguments.add_argument("--scope", metavar="scope", nargs=1,
+                                          choices=["observer", "election", "rootservice", "all"],
+                                          default="all",
+                                          help="log type constrains, "
+                                               "choices=[observer, election, rootservice, all], "
+                                               "default=all")
+        analyze_log_arguments.add_argument("--log_level", metavar="log_level", nargs=1,
+                                          choices=["DEBUG", "TRACE", "INFO", "WDIAG", "WARN", "EDIAG", "ERROR"],
+                                          default="WARN",
+                                          help="log level constrains, "
+                                               "choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR], "
+                                               "default=WARN")
+        analyze_log_arguments.add_argument("--files", metavar="files", nargs='+',
+                                           help="specify file")
+        analyze_log_arguments.add_argument("--grep", metavar="grep", nargs='+',
+                                          help="specify keywords constrain")
 
         # parse args
         args = parser.parse_args(args=argv)
