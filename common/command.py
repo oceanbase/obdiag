@@ -317,7 +317,7 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
     if is_ssh:
         ob_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
     else:
-        ob_version_info = LocalClient().run(cmd)
+        ob_version_info = LocalClient().run_get_stderr(cmd)
     logger.info("get observer version, run cmd = [{0}] ".format(cmd))
     if ob_version_info is not None:
         ob_version = re.findall(r'[(]OceanBase.(.+?)[)]', ob_version_info)
@@ -327,9 +327,9 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(
                 ob_install_dir=ob_install_dir)
             if is_ssh:
-                ob_version_info = SshClient().run(ssh_helper, cmd)
+                ob_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
             else:
-                ob_version_info = LocalClient().run(cmd)
+                ob_version_info = LocalClient().run_get_stderr(cmd)
             logger.info("get observer version, run cmd = [{0}]".format(cmd))
             ob_version = re.findall(r'[(]OceanBase.CE\s(.+?)[)]', ob_version_info)[0]
             return ob_version
