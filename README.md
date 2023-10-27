@@ -18,7 +18,7 @@ cd oceanbase-diagnostic-tool && sh ./build/build.sh
 # 编译后会在./build/生成一个tar.gz的包
 cd ./build/
 ls
-oceanbase-diagnostic-tool-1.0.0-yyyyMMddHHmmss.tar.gz
+oceanbase-diagnostic-tool-1.3.0-yyyyMMddHHmmss.tar.gz
 
 ```
 ## 使用环境要求
@@ -26,7 +26,9 @@ oceanbase-diagnostic-tool-1.0.0-yyyyMMddHHmmss.tar.gz
  将上边编译的包解压或者直接从https://github.com/oceanbase/oceanbase-diagnostic-tool/releases 下载包解压，进入解压后的文件即可使用obdiag提供的各项功能
 
 ```shell script
-tar zxvf oceanbase-diagnostic-tool-1.0.0-yyyyMMddHHmmss.tar.gz
+tar zxvf oceanbase-diagnostic-tool-1.3.0-yyyyMMddHHmmss.tar.gz
+
+cd oceanbase-diagnostic-tool && source init.sh
 
 ```
 
