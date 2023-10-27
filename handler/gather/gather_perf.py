@@ -154,12 +154,12 @@ class GatherPerfHandler(BaseShellHandler):
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
             logger.info("gather perf sample, run cmd = [{0}]".format(cmd))
-            SshClient().run(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
+            SshClient().run_ignore_err(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
 
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(
             gather_path=gather_path)
             logger.info("generate perf sample data, run cmd = [{0}]".format(generate_data))
-            SshClient().run(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
+            SshClient().run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
         except:
             logger.error("generate perf sample data on server [{0}] failed".format(ssh_helper.host_ip))
 
@@ -168,12 +168,12 @@ class GatherPerfHandler(BaseShellHandler):
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
             logger.info("gather perf, run cmd = [{0}]".format(perf_cmd))
-            SshClient().run(ssh_helper, perf_cmd) if self.is_ssh else LocalClient().run(perf_cmd)
+            SshClient().run_ignore_err(ssh_helper, perf_cmd) if self.is_ssh else LocalClient().run(perf_cmd)
 
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(
             gather_path=gather_path)
             logger.info("generate perf data, run cmd = [{0}]".format(generate_data))
-            SshClient().run(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
+            SshClient().run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
         except:
             logger.error("generate perf data on server [{0}] failed".format(ssh_helper.host_ip))
 
