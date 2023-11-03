@@ -25,6 +25,7 @@ from paramiko import SSHException
 from common.logger import logger
 from utils.time_utils import extract_time_from_log_file_text, filename_time_to_datetime, \
     extract_filename_time_from_log_name
+from common.ob_connector import OBConnector
 
 
 class LocalClient:
@@ -333,6 +334,31 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
             logger.info("get observer version, run cmd = [{0}]".format(cmd))
             ob_version = re.findall(r'[(]OceanBase.CE\s(.+?)[)]', ob_version_info)[0]
             return ob_version
+def get_observer_version_by_sql(ob_cluster):
+    logger.debug("start get_observer_version_by_sql . input: {0}".format(ob_cluster))
+    try:
+        ob_connector = OBConnector(ip=ob_cluster["host"],
+                                   port=ob_cluster["port"],
+                                   username=ob_cluster["user"],
+                                   password=ob_cluster["password"],
+                                   timeout=100)
+        ob_version_info = ob_connector.execute_sql("select version();")
+    except Exception as e:
+        raise Exception("get_observer_version_by_sql Exception. Maybe cluster'info is error: "+e.__str__())
+
+    ob_version = str(ob_version_info[0])
+    logger.info("get_observer_version_by_sql ob_version_info is {0}".format(ob_version))
+    if len(ob_version) > 10:
+        # 4.x
+        ob_version = str(ob_version)[2:-3].split("_")[-1]
+        # 将下划线替换为空格
+        ob_version = ob_version.replace("-", " ")
+    else:
+        # 3.x
+        ob_version = str(ob_version)[2:-3]
+    return ob_version
+    
+    
 
 
 def get_observer_pid(is_ssh, ssh_helper, ob_install_dir):

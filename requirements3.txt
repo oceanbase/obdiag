@@ -25,3 +25,5 @@ pick==1.2.0
 PyYAML==6.0
 prettytable==3.5.0
 oyaml==1.0
+xmltodict==0.13.0
+subprocess32==3.5.4

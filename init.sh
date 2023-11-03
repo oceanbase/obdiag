@@ -16,7 +16,8 @@ else
 fi
 
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
-
+cp ${WORK_DIR}/check_package.yaml ${OBDIAG_HOME}/
+cp -r ${WORK_DIR}/handler/checker/tasks  ${OBDIAG_HOME}/tasks
 if [ ! -e "OceanBase.repo" ]; then
     wget -q https://mirrors.aliyun.com/oceanbase/OceanBase.repo
 fi

@@ -114,6 +114,14 @@ def analyze_log(args):
     except AttributeError:
         logger.debug("object has no attribute 'analyze_log' pass analyze log\n")
 
+def check(args):
+    try:
+        if args.check:
+            args.check(args)
+    except AttributeError as e:
+        logger.debug("object has no attribute 'check' pass check\n")
+    
+
 
 if __name__ == '__main__':
     obdiag = OBDIAGClient().init()
@@ -131,3 +139,5 @@ if __name__ == '__main__':
     gather_slog(obdiag_args)
     gather_obproxy_log(obdiag_args)
     analyze_log(obdiag_args)
+    check(obdiag_args)
+    

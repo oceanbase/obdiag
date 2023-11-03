@@ -1,0 +1,13 @@
+info: 'Check whether there is any observer not in the ACTIVE state.'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select count(0) from oceanbase.DBA_OB_SERVERS where STATUS<>"ACTIVE";'
+      result:
+        set_value: not_ACTIVE
+        verify_type: equal
+        verify: 0
+        err_msg: 'There is an abnormal observer, please check as soon as possible.'
+
+

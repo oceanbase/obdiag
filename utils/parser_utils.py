@@ -324,6 +324,18 @@ class ArgParser(object):
         analyze_log_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain")
 
+        # 定义巡检参数check arguments
+
+        check_arguments = subparsers.add_parser("check", help="do check",
+                                                epilog="Example: ./obdiag check \n\n"
+                                                       "Example: ./obdiag check --cases= system\n\n",
+                                                conflict_handler='resolve', )
+        check_arguments.set_defaults(check=self.client.handle_check_command)
+        check_arguments.add_argument("--cases", metavar="cases", nargs=1,
+                                     help="check cases on package_file", required=False)
+        check_arguments.add_argument("--report-path", metavar="report_path", nargs=1,
+                                     help="report path", required=False)
+
         # parse args
         args = parser.parse_args(args=argv)
         return args

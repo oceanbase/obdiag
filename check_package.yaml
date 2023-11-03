@@ -1,0 +1,10 @@
+test:
+  - system.parameter
+sysbench_free:
+  - sysbench.sysbench_free_test_cpu_count
+  - sysbench.sysbench_free_test_memory_limit
+  - sysbench.sysbench_free_test_network_speed
+filter:
+  - sysbench.sysbench_free_test_cpu_count
+  - sysbench.sysbench_free_test_memory_limit
+  - sysbench.sysbench_free_test_network_speed

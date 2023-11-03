@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BUILD_SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-OBDIAG_VERSION="1.3.0"
+OBDIAG_VERSION=`cat obdiag-VER.txt`
 RELEASE_ID=`date +%Y%m%d%H%M%S`
 
 cd $BUILD_SHELL_DIR
@@ -23,6 +23,7 @@ cp obdiag ./build/oceanbase-diagnostic-tool/
 cp obdiag_main.py ./build/oceanbase-diagnostic-tool/
 cp requirements2.txt ./build/oceanbase-diagnostic-tool/
 cp requirements3.txt ./build/oceanbase-diagnostic-tool/
+cp check_package.yaml ./build/oceanbase-diagnostic-tool/
 
 cd ./build/oceanbase-diagnostic-tool/
 mkdir -p ./dependencies/python2/site-packages

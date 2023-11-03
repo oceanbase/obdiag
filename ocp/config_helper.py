@@ -114,6 +114,19 @@ class ConfigHelper(object):
         if len(res) == 0:
             raise Exception("Failed to get the node from ocp metadb, "
                             "please check whether the cluster_name and cluster_id correct!!!")
+        # get InstallPathlist attributes_json
+        sql = "select  attributes_json from %s.ob_cluster where ob_cluster_id=%s" % (
+            self.metadb_name, str(getattr(args, "cluster_id")[0]))
+
+        res_attributes_json = obConnetcor.execute_sql(sql)
+        if len(res_attributes_json) == 0:
+            raise Exception("Failed to get attributes_json the node from ocp metadb, "
+                            "please check whether the cluster_name and cluster_id correct!!!")
+        attributes_json = res_attributes_json[0]
+        if "InstallPath" not in json.loads(attributes_json):
+            raise Exception("Failed to get InstallPath the node from ocp metadb, "
+                            "please check whether the cluster_name and cluster_id correct!!!")
+        install_path = json.loads(attributes_json)["InstallPath"]
         host_info_list = []
         for row in res:
             host_info = OrderedDict()
@@ -124,6 +137,7 @@ class ConfigHelper(object):
                 host_info["user"] = host_profile_credential_info["user_name"]
                 host_info["password"] = host_profile_credential_info["password"]
                 host_info["private_key"] = ""
+                host_info["home_path"] = install_path
             logger.debug("get host info: %s", host_info)
             host_info_list.append(host_info)
         return host_info_list
@@ -168,6 +182,9 @@ class ConfigHelper(object):
         ob_cluster_config = old_config["OBCLUSTER"]
         write_yaml_data_append({"OBCLUSTER": ob_cluster_config}, path)
         write_yaml_data_append({"NODES": selected_host_info_list}, path)
+        # add checker conf
+        checker_conf = old_config["CHECK"]
+        write_yaml_data_append({"CHECK": checker_conf}, path)
         logger.info("Node information has been rewritten to the configuration file conf/config.yml, "
                     "and you can enjoy the gather journey !")
 

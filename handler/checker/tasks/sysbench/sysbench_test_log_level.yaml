@@ -1,0 +1,16 @@
+info: 'Check when running sysbench  , cluster info about syslog_level'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="syslog_level";'
+      result:
+        set_value: syslog_level
+        verify_type: base
+        verify: '[ syslog_level == "INFO" || syslog_level == "ERROR" || $log_level == "syslog_level" ]'
+        err_msg: "syslog_level is #{syslog_level} , need to 'INFO'、'WARN'、'ERROR'"
+
+        
+        
+    
+
