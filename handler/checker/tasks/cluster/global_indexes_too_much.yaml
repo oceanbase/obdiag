@@ -1,0 +1,16 @@
+info: "Check whether there is a table with more than 20 global indexes."
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "SELECT  COUNT(*) as count
+FROM  oceanbase.DBA_PART_INDEXES
+WHERE LOCALITY = 'LOCAL'
+GROUP BY TABLE_NAME
+ORDER BY count DESC limit 1;"
+      result:
+        set_value: major_err_nu
+        report_type: warning
+        verify_type: max
+        verify: 20
+        err_msg: "There is a table with more than 20 global indexes"

@@ -33,3 +33,11 @@ NODES:
   user: xxx
   password: xxx
   private_key: ''
+  home_path: xxx
+CHECK:
+  ignore_obversion: false
+  report:
+    report_path: "./check_report/"
+    export_type: table
+  package_file: "~/.obdiag/check_package.yaml"
+  tasks_base_path: "~/.obdiag/tasks/"

@@ -26,7 +26,7 @@ oceanbase-diagnostic-tool-1.3.0-yyyyMMddHHmmss.tar.gz
  将上边编译的包解压或者直接从https://github.com/oceanbase/oceanbase-diagnostic-tool/releases 下载包解压，进入解压后的文件即可使用obdiag提供的各项功能
 
 ```shell script
-tar zxvf oceanbase-diagnostic-tool-1.3.0-yyyyMMddHHmmss.tar.gz
+tar zxvf oceanbase-diagnostic-tool-1.4.0-yyyyMMddHHmmss.tar.gz
 
 cd oceanbase-diagnostic-tool && source init.sh
 
@@ -135,6 +135,10 @@ optional arguments:
 ## 一键分析功能列表
 
 - [一键分析OB日志](./docs/analyze_ob_log.md)
+
+
+## 一键巡检功能
+- [一键巡检](./docs/check.md)
 
 ## 许可证
 

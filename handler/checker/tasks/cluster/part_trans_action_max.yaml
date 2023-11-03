@@ -1,0 +1,10 @@
+info: 'Check whether there are more than 200 transaction participants'
+task:
+  - steps:
+    - type: sql
+      sql: 'select part_trans_action from oceanbase.__all_virtual_trans_stat order by part_trans_action desc limit 1;'
+      result:
+        set_value: mod_max_memory
+        verify_type: max
+        verify: 200
+        err_msg: 'part_trans_action_max over 200'

@@ -21,7 +21,7 @@ optional arguments:
   --scope scope         log type constrains, choices=[observer, election, rootservice, all], default=all
   --log_level log_level
                         log level constrains, choices=[DEBUG, TRACE, INFO,
-                        WDIAG, WARN, EDIAG, ERROR], default=WARN
+                        WDIAG, WARN, EDIAG, ERROR], default=WDIAG
   --files files [files ...]
                         specify file
   --grep grep [grep ...]

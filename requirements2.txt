@@ -22,4 +22,6 @@ pick==0.6.7
 prettytable==1.0.1
 mysql==0.0.3
 oyaml==1.0
+xmltodict==0.12.0
+subprocess32==3.5.4
 

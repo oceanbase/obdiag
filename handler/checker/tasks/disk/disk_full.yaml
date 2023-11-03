@@ -1,0 +1,20 @@
+
+info: "Check whether the disk usage has reached the threshold."
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/LOG_DISK_IN_USE >80;'
+      result:
+        set_value: major_err_nu
+        report_type: warning
+        verify_type: equal
+        verify: 0
+        err_msg: "Disk usage exceeds 80% of capacity"
+    - type: sql
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/LOG_DISK_IN_USE >90;'
+      result:
+        set_value: major_err_nu
+        verify_type: equal
+        verify: 0
+        err_msg: "Disk usage exceeds 90% of capacity"

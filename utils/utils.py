@@ -90,5 +90,61 @@ def skip_char(sub, b):
         return True
     return False
 
+
+def convert_to_number(s):
+    if s.isdigit():  # 判断字符串是否全为数字
+        return int(s)  # 如果是，转换为整数
+    elif s.isnumeric():  # 判断字符串是否全为数字或小数点
+        return float(s)  # 如果是，转换为浮点数
+    else:
+        return str(s)  # 如果都不是，保持原样
+
+
+def parse_range_string(range_str, nu):
+    # parse_range_string: Determine whether variable 'nu' is within the range of 'range_str'
+    # 提取范围字符串中的数字
+    nu = int(nu)
+    range_str = range_str.replace(" ", "")
+    # range_str = range_str.replace(".", "")
+    start, end = range_str[1:-1].split(',')
+    need_less = True
+    need_than = True
+    # 将数字转换为整数
+    if start.strip() == "*":
+        need_less = False
+    else:
+        start = float(start.strip())
+    if end.strip() == "*":
+        need_than = False
+    else:
+        end = float(end.strip())
+    logger.info("range_str is {0}".format(range_str))
+
+    if need_less:
+        if range_str[0] == "(":
+            if nu <= start:
+                return False
+        elif range_str[0] == "[":
+            if nu < start:
+                return False
+    if need_than:
+        if range_str[-1] == ")":
+            if nu >= end:
+                return False
+        elif range_str[-1] == "]":
+            if nu > end:
+                return False
+    return True
+
+
+def build_str_on_expr_by_dict(expr, variable_dict):
+    s = expr
+    d = variable_dict
+
+    def replacer(match):
+        key = match.group(1)
+        return str(d.get(key, match.group(0)))
+
+    return re.sub(r'#\{(\w+)\}', replacer, s)
 def display_trace(uuid):
     print("If you want to view detailed obdiag logs, please run:'obdiag display-trace --trace_id {0}'".format(uuid))

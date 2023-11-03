@@ -16,6 +16,7 @@
 """
 from common.command import get_obdiag_display
 from handler.analyzer.analyze_log import AnalyzeLogHandler
+from handler.checker.check_handler import CheckHandler
 from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
@@ -86,6 +87,8 @@ class OBDIAGClient(object):
             self.ob_cluster_name = None
             # obdiag basic config
             self.basic_config = None
+            # obdiag check
+            self.check_handler = None
 
     def init(self):
         self.read_config(CONFIG_FILE)
@@ -113,6 +116,13 @@ class OBDIAGClient(object):
         self.nodes = self.config["NODES"]
         # obdiag basic config
         self.basic_config = self.config["OBDIAG"]["BASIC"]
+        # check
+        if "CHECK" in self.config:
+            self.check_report_path = self.config["CHECK"]["report"]["report_path"]
+            self.check_report_type = self.config["CHECK"]["report"]["export_type"]
+            self.check_case_package_file=self.config["CHECK"]["package_file"]
+            self.check_tasks_base_path=self.config["CHECK"]["tasks_base_path"]
+            self.check_ignore_obversion=self.config["CHECK"]["ignore_obversion"]
         self.obdiag_log_file = os.path.join(self.config["OBDIAG"]["LOGGER"]["log_dir"], self.config["OBDIAG"]["LOGGER"]["log_filename"])
 
     def obdiag_version(self, args):
@@ -176,3 +186,13 @@ class OBDIAGClient(object):
     def handle_analyze_log_command(self, args):
         self.analyze_log_handler = AnalyzeLogHandler(self.nodes, self.default_collect_pack_dir, self.gather_timestamp, self.basic_config)
         return self.analyze_log_handler.handle(args)
+
+    def handle_check_command(self, args):
+
+        self.check_handler = CheckHandler("", self.check_ignore_obversion, self.ob_cluster, self.nodes,
+                                          export_report_path=self.check_report_path,
+                                          export_report_type=self.check_report_type,
+                                          case_package_file=self.check_case_package_file,
+                                          tasks_base_path=self.check_tasks_base_path)
+        self.check_handler.handle(args)
+        return self.check_handler.execute()

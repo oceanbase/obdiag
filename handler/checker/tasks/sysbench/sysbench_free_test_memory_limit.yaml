@@ -1,0 +1,27 @@
+info: 'Check when sysbench free , cluster info about memory_limit'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where NAME="memory_limit";'
+      result:
+        set_value: memory_limit_data
+    - type: ssh
+      ssh: "echo #{memory_limit_data}|awk '{print $1 * 100}'"
+      result:
+        set_value: memory_limit
+    - type: ssh
+      ssh: "free -m | grep Mem | awk '{print int($2/1024)}'"
+      result:
+        set_value: os_memory
+    - type: ssh
+      ssh: 'echo "#{memory_limit}/#{os_memory}" | bc'
+      result:
+        set_value: result
+        verify_type: between
+        verify: "[80,100]"
+        err_msg: 'memory_limit/os_memory is #{result}%,is not between 80 and 100'
+        
+        
+    
+

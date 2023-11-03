@@ -1,0 +1,13 @@
+info: "Check whether the log disk size is less than three times the memory size."
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'SELECT COUNT(*)
+FROM oceanbase.DBA_OB_UNIT_CONFIGS
+WHERE LOG_DISK_SIZE < MEMORY_SIZE * 3;'
+      result:
+        set_value: major_err_nu
+        verify_type: equal
+        verify: 0
+        err_msg: "There is a tenant's log present_ Size less than MEMORY_ Three times the size, please modify the tenant specifications in a timely manner"

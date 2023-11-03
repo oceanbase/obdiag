@@ -1,0 +1,21 @@
+info: 'Check whether data_dir and log_dir_disk are on the same disk.'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: ssh
+      ssh: "df -h #{remote_home_path}/store/sstable | grep '/' | awk '{print $6}'"
+      result:
+        set_value: data_dir_disk
+    - type: ssh
+      ssh: "df -h #{remote_home_path}/store/clog | grep '/' | awk '{print $6}'"
+      result:
+        set_value: log_dir_disk
+        verify: '[ "#{data_dir_disk}" != "${log_dir_disk}" ]'
+        err_msg: "#{remote_ip} data_dir and log_dir_disk are on the same disk."
+
+
+
+
+
+
+
