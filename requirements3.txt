@@ -22,7 +22,7 @@ tabulate==0.8.9
 zstandard==0.17.0
 pycryptodome~=3.14.1
 pick==1.2.0
-PyYAML==6.0
+PyYAML==5.4
 prettytable==3.5.0
 oyaml==1.0
 xmltodict==0.13.0
