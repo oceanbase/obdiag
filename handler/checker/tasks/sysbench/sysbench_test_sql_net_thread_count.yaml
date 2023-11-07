@@ -1,24 +1,46 @@
-info: 'Check when running sysbench  , cluster info about syslog_level'
+info: 'Check when running sysbench  , cluster info about sql_net_thread_count'
 task:
   - obversion: "[4.0.0.0,*]"
     steps:
-    - type: sql
-      sql: 'select count(0) from oceanbase.GV$OB_PARAMETERS where Name="sql_net_thread_count" and VALUE<>0;'
-      result:
-        set_value: sql_net_thread_count_nu
-        verify_type: equal
-        report_type: execution
-        verify: 0
-        err_msg: "There is an observer whose sql_net_thread_count is not 0"
 
     - type: sql
-      sql: 'select count(0) from oceanbase.GV$OB_PARAMETERS where Name="net_thread_count" and SVR_IP=#{remote_ip}'
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="cpu_count";'
+      result:
+        set_value: cpu_count
+        verify_type: min
+        report_type: warning
+        verify: 0
+        err_msg: 'cpu_count of cluster : #{cpu_count} , need to calculate the relationship between cpu_count and the number of system CPUs'
+    - type: ssh
+      ssh: "lscpu | grep '^CPU(s):' | awk '{print $2}'"
+      result:
+        set_value: os_cpu_count
+    - type: ssh
+      ssh: '[ #{cpu_count} -eq 0 ] && echo #{os_cpu_count} || echo #{cpu_count}'
+      result:
+        set_value: cpu_count
+
+    - type: sql
+      sql: 'select GROUP_CONCAT(DISTINCT ZONE) from oceanbase.GV$OB_PARAMETERS where Name="sql_net_thread_count"  and VALUE <>0 and VALUE<(#{cpu_count}/8);'
+      result:
+        set_value: sql_net_thread_count
+        report_type: execution
+        verify: '[ -z "${log_disk_size_tenant_name}" ]'
+        err_msg: "There is an observer whose sql_net_thread_count is not 0. the zone is #{sql_net_thread_count}"
+
+    - type: sql
+      sql: "    SELECT GROUP_CONCAT(DISTINCT ZONE)
+    FROM oceanbase.GV$OB_PARAMETERS t1
+    WHERE Name = 'sql_net_thread_count'
+      AND Value != 0
+      AND EXISTS (SELECT 1
+                  FROM oceanbase.GV$OB_PARAMETERS t2
+                  WHERE t2.zone = t1.zone
+                    AND t2.Value != t1.Value);"
       result:
         set_value: net_thread_count
-        verify_type: equal
-        report_type: execution
-        verify: 0
-        err_msg: "There is an observer whose sql_net_thread_count is not 0"
+        verify: '[ -z "${net_thread_count}" ]'
+        err_msg: "There is an observer whose sql_net_thread_count is not 0 .the zone is #{net_thread_count}"
         
         
     

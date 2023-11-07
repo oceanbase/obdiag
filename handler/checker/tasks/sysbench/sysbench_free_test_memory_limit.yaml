@@ -3,17 +3,27 @@ task:
   - obversion: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where NAME="memory_limit";'
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where NAME="memory_limit" and SVR_IP="#{remote_ip}";'
       result:
         set_value: memory_limit_data
     - type: ssh
       ssh: "echo #{memory_limit_data}|awk '{print $1 * 100}'"
       result:
         set_value: memory_limit
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where NAME="memory_limit_percentage" and SVR_IP="#{remote_ip}";'
+      result:
+        set_value: memory_limit_percentage
     - type: ssh
       ssh: "free -m | grep Mem | awk '{print int($2/1024)}'"
       result:
         set_value: os_memory
+      # check memory_limit
+    - type: ssh
+      ssh: '[ #{memory_limit} -eq 0 ] && echo "#{os_memory} * #{memory_limit_percentage} / 100" | bc || echo #{memory_limit}'
+      result:
+        set_value: memory_limit
+
     - type: ssh
       ssh: 'echo "#{memory_limit}/#{os_memory}" | bc'
       result:
@@ -21,6 +31,25 @@ task:
         verify_type: between
         verify: "[80,100]"
         err_msg: 'memory_limit/os_memory is #{result}%,is not between 80 and 100'
+
+      # memory_size
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(DISTINCT TENANT_NAME)  FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip='#{remote_ip}'
+  and t1.tenant_id>1000
+  and t3.MEMORY_SIZE/1024/1024/1024<(#{memory_limit}*0.8)
+ORDER BY t1.tenant_name;"
+      result:
+        set_value: memory_size_not_check_TENANT_NAME
+        report_type: warning
+        verify: '[ -z "${memory_size_not_check_TENANT_NAME}" ]'
+        err_msg: 'memory_size should over memory_limit*80%. tenant: #{memory_size_not_check_TENANT_NAME} need check'
+
+
+
         
         
     

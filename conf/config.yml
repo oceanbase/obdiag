@@ -32,7 +32,7 @@ NODES:
   port: xxx
   user: xxx
   password: xxx
-  private_key: ''
+  private_key: xxx
   home_path: xxx
 CHECK:
   ignore_obversion: false

@@ -1,10 +1,29 @@
-test:
+ad:
   - system.parameter
 sysbench_free:
   - sysbench.sysbench_free_test_cpu_count
   - sysbench.sysbench_free_test_memory_limit
   - sysbench.sysbench_free_test_network_speed
+  - sysbench.sysbench_test_cluster_datafile_size
+  - sysbench.sysbench_test_cluster_log_disk_size
+  - sysbench.sysbench_test_cluster_parameters
+  - sysbench.sysbench_test_cpu_quota_concurrency
+  - sysbench.sysbench_test_log_level
+  - sysbench.sysbench_test_sql_net_thread_count
+  - sysbench.sysbench_test_tenant_cpu_parameters
+  - sysbench.sysbench_test_tenant_log_disk_size
+  - sysbench.sysbench_test_tenant_primary_zone
+
 filter:
   - sysbench.sysbench_free_test_cpu_count
   - sysbench.sysbench_free_test_memory_limit
   - sysbench.sysbench_free_test_network_speed
+  - sysbench.sysbench_test_cluster_datafile_size
+  - sysbench.sysbench_test_cluster_log_disk_size
+  - sysbench.sysbench_test_cluster_parameters
+  - sysbench.sysbench_test_cpu_quota_concurrency
+  - sysbench.sysbench_test_log_level
+  - sysbench.sysbench_test_sql_net_thread_count
+  - sysbench.sysbench_test_tenant_cpu_parameters
+  - sysbench.sysbench_test_tenant_log_disk_size
+  - sysbench.sysbench_test_tenant_primary_zone

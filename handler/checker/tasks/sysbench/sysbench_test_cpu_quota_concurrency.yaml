@@ -1,0 +1,29 @@
+info: 'Check when running sysbench  , cluster info about cpu_quota_concurrency'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select count(0) from (SELECT DISTINCT tenant_id
+                      FROM oceanbase.__all_virtual_tenant_parameter_info
+                      WHERE name = "cpu_quota_concurrency"
+                        AND value NOT IN (2, 4) and tenant_id>1000);'
+      result:
+        set_value: cpu_quota_concurrency_nu
+        verify_type: equal
+        report_type: execution
+        verify: 0
+        err_msg: "There are #{cpu_quota_concurrency_nu} cpu_quota_concurrency whose concurrency is not equal to 2 or 4. cpu_quota_concurrency should equal to 2 or 4"
+
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id)
+                      FROM oceanbase.__all_virtual_tenant_parameter_info
+                      WHERE name = "cpu_quota_concurrency"
+                        AND value NOT IN (2, 4) and tenant_id>1000'
+      result:
+        set_value: cpu_quota_concurrency_name
+        verify: '[ -z "${cpu_quota_concurrency_name}" ]'
+        err_msg: "the tenant_id is #{cpu_quota_concurrency_name}"
+        
+        
+    
+

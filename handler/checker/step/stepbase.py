@@ -16,8 +16,8 @@
 @desc:
 """
 
-from handler.checker.check_exception import StepResultFailException, StepExecuteFailException, StepExecuteFailException, \
-    ResultFalseException, ResultFailException
+from handler.checker.check_exception import StepResultFailException, StepExecuteFailException, \
+    ResultFalseException, ResultFailException, StepResultFalseException
 from handler.checker.step.get_system_parameter import GetSystemParameterHandler
 from handler.checker.result.result import CheckResult
 from handler.checker.step.ssh import SshHandler
@@ -88,7 +88,7 @@ class StepBase(object):
             report.add(resultException.msg, level)
             if level == "critical":
                 raise StepResultFailException(resultException.msg)
-            return
+            raise StepResultFalseException(resultException.msg)
 
         except ResultFailException as resultFailException:
             # 验证失败，属于fail类型，一般是verify阶段出现异常,需要马上修正
