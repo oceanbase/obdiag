@@ -37,7 +37,7 @@ ORDER BY t1.tenant_name;'
         set_value: small_min_cpu_count_tenant
         report_type: warning
         verify: '[ -z "${small_min_cpu_count_tenant}" ]'
-        err_msg: 'cpu_count is #{cpu_count}. the min_cpu of tenant should cpu_count/2 ~ cpu_count. tenant: #{small_max_cpu_count_tenant} need check'
+        err_msg: 'cpu_count is #{cpu_count}. the min_cpu of tenant should cpu_count/2 ~ cpu_count. tenant: #{small_min_cpu_count_tenant} need check'
 
     - type: sql
       sql: 'SELECT  GROUP_CONCAT(DISTINCT TENANT_NAME) as TENANT_NAME FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
