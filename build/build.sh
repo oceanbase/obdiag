@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BUILD_SHELL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-OBDIAG_VERSION=`cat obdiag-VER.txt`
+OBDIAG_VERSION=`1.4.0`
 RELEASE_ID=`date +%Y%m%d%H%M%S`
 
 cd $BUILD_SHELL_DIR
