@@ -34,8 +34,13 @@ class GetSystemParameterHandler:
         self.node = node
         self.task_variable_dict = task_variable_dict
 
-        self.ssh_helper = SshHelper(True, self.node["ip"], self.node["user"], self.node["password"], self.node["port"],
-                                    "")
+        try:
+            self.ssh_helper = SshHelper(True, self.node["ip"], self.node["user"], self.node["password"],
+                                        self.node["port"],
+                                        self.node["private_key"])
+        except Exception as e:
+            logger.error("GetSystemParameterHandler ssh init fail Exception : {0} .".format(e))
+            raise Exception("GetSystemParameterHandler ssh init fail Exception : {0} .".format(e))
 
         # step report
         self.parameter = []

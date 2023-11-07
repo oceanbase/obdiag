@@ -24,7 +24,5 @@ task:
         verify: 0
         err_msg: "cluster's enable_sql_audit is true , need to change False"
 
-        
-        
-    
+
 

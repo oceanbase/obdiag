@@ -3,7 +3,7 @@ task:
   - obversion: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="11.161.204.33" ;'
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="#{remote_ip}" ;'
       result:
         set_value: network_name
     - type: ssh

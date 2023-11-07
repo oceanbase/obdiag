@@ -1,0 +1,94 @@
+info: 'Check when sysbench free , cluster info about datafile_size and log_disk_size'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+#datafile_size
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="datafile_size" and SVR_IP="#{remote_ip}";'
+      result:
+        set_value: datafile_size
+    - type: ssh
+      ssh: "echo #{datafile_size} | grep -o '[0-9]*'"
+      result:
+        set_value: datafile_size
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="datafile_disk_percentage" and SVR_IP="#{remote_ip}";'
+      result:
+        set_value: datafile_disk_percentage
+
+    - type: ssh
+      ssh: "df #{remote_home_path}/store/sstable  | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f\n'"
+      result:
+        set_value: data_path_os_disk_size
+    - type: ssh
+      ssh: 'echo $((#{datafile_size} == 0 ? #{datafile_disk_percentage} * #{data_path_os_disk_size} : #{datafile_size}))'
+      result:
+        set_value: datafile_size
+    - type: ssh
+      ssh: 'echo $((#{datafile_size} * 100 / #{data_path_os_disk_size}))'
+      result:
+        set_value: datafile_size_percentage_end
+#logfile_size
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="log_disk_size" and SVR_IP="#{remote_ip}";'
+      result:
+        set_value: logfile_size
+    - type: ssh
+      ssh: "echo #{logfile_size} | grep -o '[0-9]*'"
+      result:
+        set_value: logfile_size
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="log_disk_percentage" and SVR_IP="#{remote_ip}";'
+      result:
+        set_value: logfile_disk_percentage
+    - type: ssh
+      ssh: "df  #{remote_home_path}/store/clog | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f\n'"
+      result:
+        set_value: log_path_os_disk_size
+    - type: ssh
+      ssh: 'echo $((#{logfile_size} == 0 ? #{logfile_disk_percentage} * #{log_path_os_disk_size} : #{logfile_size}))'
+      result:
+        set_value: logfile_size
+    - type: ssh
+      ssh: 'echo $((#{logfile_size} * 100 / #{log_path_os_disk_size}))'
+      result:
+        set_value: logfile_size_percentage_end
+
+#tag_public_data_and_log，1: publish;0:not
+    - type: ssh
+      ssh: "df -h #{remote_home_path}/store/sstable | grep '/' | awk '{print $6}'"
+      result:
+        set_value: data_dir_disk
+    - type: ssh
+      ssh: "df -h #{remote_home_path}/store/clog | grep '/' | awk '{print $6}'"
+      result:
+        set_value: log_dir_disk
+    - type: ssh
+      ssh: 'echo $([ "#{data_dir_disk}" = "#{log_dir_disk}" ] && echo 1 || echo 0)'
+      result:
+        set_value: tag_public_data_and_log
+
+
+    - type: ssh
+      ssh: 'echo $?'
+      result:
+        set_value: ver
+        report_type: warning
+        verify: '[ $tag_public_data_and_log -eq 1 ] && [ $datafile_size_percentage_end -gt 60 ]'
+        err_msg: "When the data disk and log disk are on the same disk, the data disk needs to occupy more than 60% of the disk space. now it is #{datafile_size_percentage_end}"
+
+    - type: ssh
+      ssh: 'echo $?'
+      result:
+        set_value: ver
+        report_type: warning
+        verify: '[ $tag_public_data_and_log -eq 1 ] && [ $logfile_size_percentage_end -gt 30 ]'
+        err_msg: "When the data disk and log disk are on the same disk, the log disk needs to occupy more than 30% of the disk space. now it is #{logfile_size_percentage_end}"
+
+
+
+
+        
+        
+    
+

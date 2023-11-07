@@ -1,0 +1,31 @@
+info: 'Check cluster log_disk_size parameters'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+
+
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT t1.tenant_name) FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip="#{remote_ip}"
+  and t3.LOG_DISK_SIZE/1024/1024/1024<20
+  and t1.tenant_id>1000
+ORDER BY t1.tenant_name;'
+      result:
+        set_value: log_disk_size_tenant_name
+        report_type: warning
+        verify: '[ -z "${log_disk_size_tenant_name}" ]'
+        err_msg: 'log_disk_size <20G tenant: #{log_disk_size_tenant_name} . log_disk_size need >20G'
+
+
+
+
+
+
+
+        
+        
+    
+
