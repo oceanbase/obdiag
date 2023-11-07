@@ -7,7 +7,7 @@ task:
       result:
         set_value: syslog_level
         verify_type: base
-        verify: '[ syslog_level == "INFO" || syslog_level == "ERROR" || $log_level == "syslog_level" ]'
+        verify: '[ "$syslog_level" == "INFO" ] || [ "$syslog_level" == "WARN" ] || [ "$syslog_level" == "ERROR" ]'
         err_msg: "syslog_level is #{syslog_level} , need to 'INFO'、'WARN'、'ERROR'"
 
         

@@ -29,8 +29,13 @@ class SshHandler:
         self.parameters = None
         self.step = step
         self.node = node
-        self.ssh_helper = SshHelper(True, self.node["ip"], self.node["user"], self.node["password"], self.node["port"],
-                                    "")
+        try:
+            self.ssh_helper = SshHelper(True, self.node["ip"], self.node["user"], self.node["password"],
+                                        self.node["port"],
+                                        self.node["private_key"])
+        except Exception as e:
+            logger.error("SshHandler init fail Exception : {0} .".format(e))
+            raise Exception("SshHandler init fail Exception : {0} .".format(e))
         self.task_variable_dict = task_variable_dict
         self.parameter = []
         self.report = TaskReport
@@ -42,6 +47,8 @@ class SshHandler:
             ssh_cmd = build_str_on_expr_by_dict(self.step["ssh"], self.task_variable_dict)
             logger.info("step SshHandler execute :{0} ".format(ssh_cmd))
             ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
+            if ssh_report_value == None:
+                ssh_report_value = ""
             logger.info("ssh result:{0}".format(convert_to_number(ssh_report_value[:-1])))
             if "result" in self.step and "set_value" in self.step["result"]:
                 logger.debug("ssh result set {0}".format(self.step["result"]["set_value"],

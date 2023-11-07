@@ -19,7 +19,7 @@
 from handler.checker.check_exception import StepExecuteFailException
 from common.logger import logger
 from common.ob_connector import OBConnector
-from utils.utils import build_str_on_expr_by_dict
+from utils.utils import build_str_on_expr_by_dict, convert_to_number
 
 
 class StepSQLHandler:
@@ -29,11 +29,15 @@ class StepSQLHandler:
         self.tenant_mode = None
         self.sys_database = None
         self.database = None
-        self.ob_connector = OBConnector(ip=ob_cluster["host"],
+        try:
+            self.ob_connector = OBConnector(ip=ob_cluster["host"],
                                         port=ob_cluster["port"],
                                         username=ob_cluster["user"],
                                         password=ob_cluster["password"],
                                         timeout=100)
+        except Exception as e:
+            logger.error("StepSQLHandler init fail Exception : {0} .".format(e))
+            raise Exception("StepSQLHandler init fail Exception : {0} .".format(e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.trace_id = None
@@ -59,6 +63,8 @@ class StepSQLHandler:
                 logger.warning("sql result is None: {0}".format(self.step["sql"]))
             else:
                 data = data[0][0]
+            if data is None:
+                data = ""
             logger.info("sql result:{0}".format(data))
             if "result" in self.step and "set_value" in self.step["result"]:
                 logger.info("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], data))

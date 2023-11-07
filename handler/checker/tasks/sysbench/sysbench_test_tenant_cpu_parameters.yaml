@@ -1,0 +1,97 @@
+info: 'Check tenant cpu parameters'
+task:
+  - obversion: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="cpu_count";'
+      result:
+        set_value: cpu_count
+        verify_type: min
+        report_type: warning
+        verify: 0
+        err_msg: 'cpu_count of cluster : #{cpu_count} , need to calculate the relationship between cpu_count and the number of system CPUs'
+    - type: ssh
+      ssh: "lscpu | grep '^CPU(s):' | awk '{print $2}'"
+      result:
+        set_value: os_cpu_count
+    - type: ssh
+      ssh: '[ #{cpu_count} -eq 0 ] && echo #{os_cpu_count} || echo #{cpu_count}'
+      result:
+        set_value: cpu_count
+
+        #min_cpu_min
+    - type: ssh
+      ssh: 'echo $((#{cpu_count} / 2))'
+      result:
+        set_value: cpu_min
+
+    - type: sql
+      sql: 'SELECT  GROUP_CONCAT(DISTINCT TENANT_NAME) as TENANT_NAME FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip="#{remote_ip}"
+AND t3.min_cpu<=#{cpu_min}
+ORDER BY t1.tenant_name;'
+      result:
+        set_value: small_min_cpu_count_tenant
+        report_type: warning
+        verify: '[ -z "${small_min_cpu_count_tenant}" ]'
+        err_msg: 'cpu_count is #{cpu_count}. the min_cpu of tenant should cpu_count/2 ~ cpu_count. tenant: #{small_max_cpu_count_tenant} need check'
+
+    - type: sql
+      sql: 'SELECT  GROUP_CONCAT(DISTINCT TENANT_NAME) as TENANT_NAME FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip="#{remote_ip}"
+AND t3.max_cpu<=#{cpu_min}
+ORDER BY t1.tenant_name;'
+      result:
+        set_value: small_max_cpu_count_tenant
+        report_type: warning
+        verify: '[ -z "${small_max_cpu_count_tenant}" ]'
+        err_msg: 'cpu_count is #{cpu_count}. the max_cpu of tenant should cpu_count/2 ~ cpu_count. tenant: #{small_max_cpu_count_tenant} need check'
+
+        #iops
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT TENANT_NAME) as TENANT_NAME FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip="#{remote_ip}"
+  and t1.tenant_id>1000
+and (t3.MAX_IOPS<t3.max_cpu*1000 or t3.MAX_IOPS>t3.max_cpu*100000)
+ORDER BY t1.tenant_name;'
+      result:
+        set_value: max_iops_not_tenant
+        report_type: warning
+        verify: '[ -z "${max_iops_not_tenant}" ]'
+        err_msg: 'the MAX_IOPS of tenant should max_cpu * 10000 ~ max_cpu * 1000000 .  tenant: #{max_iops_not_tenant} need check'
+
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT TENANT_NAME) as TENANT_NAME FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
+where t1.tenant_id = t4.tenant_id
+  AND t4.resource_pool_id=t2.resource_pool_id
+  AND t4.unit_config_id=t3.unit_config_id
+and t2.svr_ip="#{remote_ip}"
+  and t1.tenant_id>1000
+and (t3.MIN_IOPS<t3.min_cpu*1000 or t3.MIN_IOPS>t3.min_cpu*100000)
+ORDER BY t1.tenant_name;'
+      result:
+        set_value: min_iops_not_tenant
+        report_type: warning
+        verify: '[ -z "${min_iops_not_tenant}" ]'
+        err_msg: 'the MIN_IOPS of tenant should max_cpu * 10000 ~ max_cpu * 1000000 .  tenant: #{min_iops_not_tenant} need check'
+
+
+
+
+
+
+
+
+        
+        
+    
+
