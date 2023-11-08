@@ -1,0 +1,45 @@
+info: 'To detect dependent software, refer to: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643'
+task:
+  - steps:
+    - type: ssh
+      ssh: "swapon --show"
+      result:
+        set_value: swapon_switch
+        report_type: warning
+        verify: '[ -z "${swapon_switch}" ]'
+        err_msg: 'swapon need close. Now , it is #{swapon_switch}.'
+    - type: ssh
+      ssh: "getenforce"
+      result:
+        set_value: SELinux_switch
+        report_type: warning
+        verify: "[ 'Disabled' == ${SELinux_switch} ]"
+        err_msg: 'SELinux need Disabled. Now , it is #{SELinux_switch}.'
+    - type: ssh
+      ssh: 'systemctl status firewalld |grep "Active: inactive (dead)"'
+      result:
+        set_value: firewalld_switch
+        report_type: warning
+        verify: '[ -n "${firewalld_switch}" ]'
+        err_msg: 'firewalld need retrun "Active: inactive (dead)". Now , it is null.'
+    - type: ssh
+      ssh: 'systemctl status crond |grep "Active: active (running)"'
+      result:
+        set_value: crond_switch
+        report_type: warning
+        verify: '[ -n "${crond_switch}" ]'
+        err_msg: 'crond need retrun "Active: active (running)". Now , it is null.'
+    - type: ssh
+      ssh: 'cat /sys/kernel/mm/transparent_hugepage/enabled |grep "[never]"'
+      result:
+        set_value: transparent_hugepage_switch
+        report_type: warning
+        verify: '[ -n "${transparent_hugepage_switch}" ]'
+        err_msg: 'transparent_hugepage need retrun "[never]". Now , it is null.'
+    - type: ssh
+      ssh: "python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2"
+      result:
+        set_value: python_version
+        report_type: warning
+        verify: '[ "2.7" == ${python_version} ]'
+        err_msg: 'python version need retrun 2.7.x'

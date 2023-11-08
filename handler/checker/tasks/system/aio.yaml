@@ -1,0 +1,21 @@
+info: 'To detect aio, refer to: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643'
+task:
+  - steps:
+      - type: ssh
+        ssh: "ps -ef | grep observer | grep -v grep | wc -l"
+        result:
+          set_value: observer_nu
+      - type: get_system_parameter
+        parameter: fs.aio-max-nr
+        result:
+          set_value: aio_max_nr
+          report_type: warning
+          verify: "[ ${aio_max_nr} -gt 1048576 ]"
+          err_msg: 'fs.aio-max-nr : #{aio_max_nr} is a non recommended value, recommended value  need  >1048576'
+      - type: get_system_parameter
+        parameter: fs.aio-nr
+        result:
+          set_value: aio_nr
+          report_type: warning
+          verify: "[ $((aio_max_nr - aio_nr)) -eg $((20000*${observer_nu})) ]"
+          err_msg: 'fs.aio-nr : #{aio_nr} is a non recommended value, recommended value  need  aio-max-nr - aio-nr>20000 * observer_num'

@@ -267,12 +267,5 @@ task:
         verify_type: equal
         verify: 65535
         err_msg: 'ip_local_port_range_max : #{ip_local_port_range_max} is a non recommended value, recommended value is 65535'
-    - type: ssh
-      ssh: ulimit -c
-      result:
-        set_value: parameter
-        report_type: warning
-        verify: "[ 'unlimited' == ${parameter} ]"
-        err_msg: 'ulimit a non recommended value, and the recommended value : #{parameter} is unlimited. Please refer to the official website document for the configuration method'
-    
-    
+
+
