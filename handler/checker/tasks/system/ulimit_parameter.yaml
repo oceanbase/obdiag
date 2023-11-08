@@ -1,0 +1,33 @@
+info: |
+  'To detect ulimit parameters, refer to: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643'
+task:
+  - steps:
+    - type: ssh
+      ssh: ulimit -c
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ 'unlimited' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -c is #{parameter} . It is a non recommended value, and the recommended value is unlimited. Please refer to the official website document for the configuration method'
+    - type: ssh
+      ssh: ulimit -u
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ 'unlimited' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -u is #{parameter} . It is a non recommended value, and the recommended value is unlimited. Please refer to the official website document for the configuration method'
+    - type: ssh
+      ssh: ulimit -s
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ 'unlimited' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -s is #{parameter} . It is a non recommended value, and the recommended value is unlimited. Please refer to the official website document for the configuration method'
+    - type: ssh
+      ssh: ulimit -n
+      result:
+        set_value: parameter
+        report_type: warning
+        verify_type: equal
+        verify: 655350
+        err_msg: 'On ip : #{remote_ip}, ulimit -n is #{parameter} . It is a non recommended value, and the recommended value is unlimited. Please refer to the official website document for the configuration method'
