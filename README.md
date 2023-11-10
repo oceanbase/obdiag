@@ -6,7 +6,7 @@ OceanBase敏捷诊断工具(OceanBase Diagnostic Tool) 是 OceanBase 的黑屏�
 
 # 编译部署说明：
 ## 编译环境要求
-- 执行环境: python >= 3.6.5 或者python > 2.7.5
+- 执行环境: python >= 3.9 或者python > 2.7.5
 
 ```shell script
 # 下载源代码
@@ -18,7 +18,7 @@ cd oceanbase-diagnostic-tool && sh ./build/build.sh
 # 编译后会在./build/生成一个tar.gz的包
 cd ./build/
 ls
-oceanbase-diagnostic-tool-1.3.0-yyyyMMddHHmmss.tar.gz
+oceanbase-diagnostic-tool-1.4.0-yyyyMMddHHmmss.tar.gz
 
 ```
 ## 使用环境要求
@@ -69,13 +69,21 @@ OBCLUSTER:
   port: xxx
   user: xxx
   password: xxx
-# 配置四：收集的节点的登录信息
+# 配置四：收集的节点的ssh登录信息, 多个节点的话直接往后追加
 NODES:
-- ip: xxx.xxx.xxx.xxx
-  port: xxx
-  user: xxx
-  password: xxx
+- ip: xxx.xxx.xxx.xxx # 节点ip
+  port: xxx # 节点的ssh端口号，一般是22端口
+  user: xxx # 节点ssh登陆用户名
+  password: xxx # 节点ssh登陆密码
   private_key: ''
+  home_path: xxx # oceanbase部署路径
+CHECK:
+  ignore_obversion: false
+  report:
+    report_path: "./check_report/"
+    export_type: table
+  package_file: "~/.obdiag/check_package.yaml"
+  tasks_base_path: "~/.obdiag/tasks/"
 ```
 
 使用的时候需要根据实际情况配置上边的四个配置。其中OBDIAG极少修改，其他三个配置项按需修改，修改部分为"xxx"
@@ -101,17 +109,20 @@ Example: ./obdiag config --cluster_name demo1 --cluster_id xxx
 # 功能介绍
 通过 `./obdiag -h` 的命令，可以查看 Oceanbase Diagnostic Tool 的使用帮助。
 ```
-usage: ./obdiag [-h] {config,gather} ...
+usage: ./obdiag [-h] {version,config,gather,analyze} ...
 
 Oceanbase Diagnostic Tool
 
 positional arguments:
-  {config,gather}
-    config         Quick build config
-    gather         Gather logs and other information
+  {version,config,gather,analyze}
+    version             Oceanbase Diagnostic Tool Version
+    config              Quick build config
+    gather              Gather logs and other information
+    analyze             analyze logs and other information
 
 optional arguments:
-  -h, --help       show this help message and exit
+  -h, --help            show this help message and exit
+
 
 ```
 
