@@ -9,7 +9,7 @@ OBDIAG:
     file_handler_log_level: DEBUG
     log_level: INFO
     mode: obdiag
-    stdout_handler_log_level: DEBUG
+    stdout_handler_log_level: INFO
 OCP:
   LOGIN:
     url: http://xxx.xxx.xxx.xxx:xxxx
@@ -32,7 +32,7 @@ NODES:
   port: xxx
   user: xxx
   password: xxx
-  private_key: xxx
+  private_key: ""
   home_path: xxx
 CHECK:
   ignore_obversion: false

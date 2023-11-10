@@ -79,7 +79,9 @@ class CheckReport:
     def export_report_xml(self):
         allMap = self.report_tobeMap()
         with open(self.report_path + ".xml", 'w', encoding="utf8") as f:
-            json_str = json.dumps(allMap)
+            allreport = {}
+            allreport["report"] = allMap
+            json_str = json.dumps(allreport)
             xml_str = xmltodict.unparse(json.loads(json_str))
             f.write(xml_str)
             f.close()
@@ -93,7 +95,11 @@ class CheckReport:
         allMap = self.report_tobeMap()
         logger.debug("export_report_json allMap: {0}".format(allMap))
         with open(self.report_path + ".json", 'w', encoding="utf8") as f:
-            json.dump(allMap, f, ensure_ascii=False)
+            # for python2 and python3
+            try:
+                json.dump(allMap, f, ensure_ascii=False)
+            except:
+                f.write(unicode(json.dumps(allMap, ensure_ascii=False)))
 
     def report_tobeMap(self):
         failMap = {}
