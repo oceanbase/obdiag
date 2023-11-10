@@ -1,6 +1,6 @@
 
 # Oceanbase Diagnostic Tool
-OceanBase诊断工具(OceanBase Diagnostic Tool) 是 OceanBase 的黑屏诊断工具。目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集、分析，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
+OceanBase敏捷诊断工具(OceanBase Diagnostic Tool) 是 OceanBase 的黑屏诊断工具。目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集、分析，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
 
 ![01](images/structure.png)
 
