@@ -3,7 +3,7 @@ task:
   - obversion: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: "SELECT GROUP_CONCAT(TENANT_NAME) AS tenant_names
+      sql: "SELECT GROUP_CONCAT(DISTINCT TENANT_NAME) AS tenant_names
 FROM oceanbase.DBA_OB_TENANTS
 WHERE TENANT_TYPE='USER' and PRIMARY_ZONE LIKE '%;%';"
       result:

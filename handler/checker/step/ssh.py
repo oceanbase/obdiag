@@ -34,8 +34,8 @@ class SshHandler:
                                         self.node["port"],
                                         self.node["private_key"])
         except Exception as e:
-            logger.error("SshHandler init fail Exception : {0} .".format(e))
-            raise Exception("SshHandler init fail Exception : {0} .".format(e))
+            logger.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node,e))
+            raise Exception("SshHandler init fail. Please check the NODES conf node: {0}  Exception : {1} .".format(node,e))
         self.task_variable_dict = task_variable_dict
         self.parameter = []
         self.report = TaskReport
@@ -49,15 +49,20 @@ class SshHandler:
             ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
             if ssh_report_value == None:
                 ssh_report_value = ""
-            logger.info("ssh result:{0}".format(convert_to_number(ssh_report_value[:-1])))
+            if len(ssh_report_value)>0:
+                if ssh_report_value[-1]=="\n":
+                    ssh_report_value=ssh_report_value[:-1]
+            logger.info("ssh result:{0}".format(convert_to_number(ssh_report_value)))
             if "result" in self.step and "set_value" in self.step["result"]:
                 logger.debug("ssh result set {0}".format(self.step["result"]["set_value"],
-                                                         convert_to_number(ssh_report_value[:-1])))
-                self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(ssh_report_value[:-1])
+                                                         convert_to_number(ssh_report_value)))
+                self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(ssh_report_value)
         except Exception as e:
             logger.error("ssh execute Exception:{0}".format(e.msg))
             raise StepExecuteFailException(e)
-        logger.info("step SshHandler ssh_report_value:{0}".format(ssh_report_value[:-1]))
+        finally:
+            self.ssh_helper.ssh_close()
+        logger.info("step SshHandler ssh_report_value:{0}".format(ssh_report_value))
 
     def update_step_variable_dict(self):
         return self.task_variable_dict
