@@ -39,8 +39,8 @@ class GetSystemParameterHandler:
                                         self.node["port"],
                                         self.node["private_key"])
         except Exception as e:
-            logger.error("GetSystemParameterHandler ssh init fail Exception : {0} .".format(e))
-            raise Exception("GetSystemParameterHandler ssh init fail Exception : {0} .".format(e))
+            logger.error("GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
+            raise Exception("GetSystemParameterHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))
 
         # step report
         self.parameter = []

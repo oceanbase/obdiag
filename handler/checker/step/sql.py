@@ -36,8 +36,8 @@ class StepSQLHandler:
                                         password=ob_cluster["password"],
                                         timeout=100)
         except Exception as e:
-            logger.error("StepSQLHandler init fail Exception : {0} .".format(e))
-            raise Exception("StepSQLHandler init fail Exception : {0} .".format(e))
+            logger.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            raise Exception("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.trace_id = None

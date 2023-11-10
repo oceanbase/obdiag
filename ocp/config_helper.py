@@ -122,7 +122,7 @@ class ConfigHelper(object):
         if len(res_attributes_json) == 0:
             raise Exception("Failed to get attributes_json the node from ocp metadb, "
                             "please check whether the cluster_name and cluster_id correct!!!")
-        attributes_json = res_attributes_json[0]
+        attributes_json = res_attributes_json[0][0]
         if "InstallPath" not in json.loads(attributes_json):
             raise Exception("Failed to get InstallPath the node from ocp metadb, "
                             "please check whether the cluster_name and cluster_id correct!!!")
@@ -198,5 +198,3 @@ class ConfigHelper(object):
         backup_config_path = os.path.join(backup_config_dir, filename)
         mkdir_if_not_exist(backup_config_dir)
         write_yaml_data(config, backup_config_path)
-
-
