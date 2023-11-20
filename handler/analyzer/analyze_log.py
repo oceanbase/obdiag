@@ -304,7 +304,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         """
         error_dict = {}
         logger.info("start parse log {0}".format(file_full_path))
-        with open(file_full_path, 'r') as file:
+        with open(file_full_path, 'r', encoding='utf8', errors='ignore') as file:
             line_num = 0
             for line in file:
                 line_num = line_num + 1
