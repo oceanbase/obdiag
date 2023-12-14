@@ -56,6 +56,7 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 
 ## obdiag analyze Fuctions
 - [analyze log](./docs/analyze_ob_log.md)
+- [analyze flt trace log](./docs/analyze_flt_trace.md)
 
 # Licencing
 OceanBase Database is under MulanPubL - 2.0 license. You can freely copy and use the source code. When you modify or
