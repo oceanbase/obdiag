@@ -26,7 +26,6 @@ from handler.base_shell_handler import BaseShellHandler
 from common.logger import logger
 from common.obdiag_exception import OBDIAGFormatException
 from common.obdiag_exception import OBDIAGInvalidArgs
-from common.obdiag_exception import OBDIAGSSHConnException
 from common.constant import const
 from common.command import LocalClient, SshClient, delete_file
 from common.ob_log_level import OBLogLevel
@@ -40,9 +39,6 @@ from utils.time_utils import parse_time_length_to_sec
 from utils.time_utils import timestamp_to_filename_time
 from utils.time_utils import datetime_to_timestamp
 from utils.utils import display_trace, get_localhost_inner_ip
-from prettytable import PrettyTable
-from textwrap import fill
-from prettytable import ALL as ALL
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -61,6 +57,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.scope = None
         self.zip_encrypt = False
         self.log_level = OBLogLevel.WARN
+        self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
             self.file_number_limit = 20
             self.file_size_limit = 2 * 1024 * 1024
@@ -70,30 +67,26 @@ class AnalyzeLogHandler(BaseShellHandler):
 
     def handle(self, args):
         if not self.__check_valid_and_parse_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
         local_store_parent_dir = os.path.join(self.gather_pack_dir,
                                               "analyze_pack_{0}".format(timestamp_to_filename_time(
                                                   self.gather_timestamp)))
         logger.info("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
 
-        def handle_from_node(ip, user, password, port, private_key):
-            resp, node_results = self.__handle_from_node(args, ip, user, password, port, private_key,
-                                                         local_store_parent_dir)
-            analyze_tuples.append((ip, False, resp["error"], node_results))
+        def handle_from_node(node):
+            resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
+            analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
 
         if self.is_ssh:
-            node_threads = [threading.Thread(None, handle_from_node, args=(
-                node["ip"],
-                node["user"],
-                node["password"],
-                node["port"],
-                node["private_key"])) for node in self.nodes]
+            for node in self.nodes:
+                handle_from_node(node)
         else:
             local_ip = get_localhost_inner_ip()
-            node_threads = [threading.Thread(None, handle_from_node, args=(local_ip, "", "", "", ""))]
-        list(map(lambda x: x.start(), node_threads))
-        list(map(lambda x: x.join(timeout=const.GATHER_THREAD_TIMEOUT), node_threads))
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            for node in self.nodes:
+                handle_from_node(node)
 
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
@@ -105,38 +98,42 @@ class AnalyzeLogHandler(BaseShellHandler):
             for n in range(len(field_names)):
                 extend = "\n\n" if n == len(field_names) -1 else "\n"
                 write_result_append_to_file(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
-        last_info = "For more details, please run cmd 'cat {0}'".format(os.path.join(local_store_parent_dir, "result_details.txt"))
+        last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         print(last_info)
         display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
         return analyze_tuples
 
-    def __handle_from_node(self, args, ip, user, password, port, private_key, local_store_parent_dir):
+    def __handle_from_node(self, node, local_store_parent_dir):
         resp = {
             "skip": False,
             "error": ""
         }
         node_results = []
-        remote_ip = ip if self.is_ssh else "127.0.0.1"
-        remote_user = user
-        remote_password = password
-        remote_port = port
-        remote_private_key = private_key
+        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
+        remote_user = node.get("user")
+        remote_password = node.get("password")
+        remote_port = node.get("port")
+        remote_private_key = node.get("private_key")
+        remote_home_path = node.get("home_path")
         logger.info("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         mkdir_if_not_exist(local_store_parent_dir)
-        local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip.replace(".", "_"))
+        if "ssh_type" in node and node["ssh_type"]=="docker":
+            local_store_dir= "{0}/docker_{1}".format(local_store_parent_dir, node["container_name"])
+        else:
+            local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip.replace(".", "_"))
         mkdir_if_not_exist(local_store_dir)
         ssh_failed = False
+        ssh = None
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key)
+            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node)
         except Exception as e:
-            config_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            logger.error("ssh {0}@{1}: failed, Please check the {2}/conf/config.yml file".format(
+            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
-                config_path))
+                self.config_path))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}/conf/config.yml".format(config_path)
+            resp["error"] = "Please check the {0}".format(self.config_path)
         if not ssh_failed:
             from_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.from_time_str))
             to_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.to_time_str))
@@ -144,16 +141,16 @@ class AnalyzeLogHandler(BaseShellHandler):
             gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
             mkdir(self.is_ssh, ssh, gather_dir_full_path)
 
-            log_list, resp = self.__handle_log_list(ssh, ip, resp)
+            log_list, resp = self.__handle_log_list(ssh, node, resp)
             if resp["skip"]:
                 return resp, node_results
-            print(show_file_list_tabulate(ip, log_list))
+            print(show_file_list_tabulate(remote_ip, log_list))
             for log_name in log_list:
                 if self.directly_analyze_files:
                     self.__pharse_offline_log_file(ssh_helper=ssh, log_name=log_name, local_store_dir=local_store_dir)
                     analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
                 else:
-                    self.__pharse_log_file(ssh_helper=ssh, log_name=log_name,
+                    self.__pharse_log_file(ssh_helper=ssh, node=node, log_name=log_name,
                                         gather_path=gather_dir_full_path,
                                         local_store_dir=local_store_dir)
                     analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
@@ -163,13 +160,13 @@ class AnalyzeLogHandler(BaseShellHandler):
             ssh.ssh_close()
         return resp, node_results
 
-    def __handle_log_list(self, ssh, ip, resp):
+    def __handle_log_list(self, ssh, node, resp):
         if self.directly_analyze_files:
             log_list = self.__get_log_name_list_offline()
         else:
-            log_list = self.__get_log_name_list(ssh)
+            log_list = self.__get_log_name_list(ssh, node)
         if len(log_list) > self.file_number_limit:
-            logger.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(ip, len(log_list),
+            logger.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list),
                                                                                           self.file_number_limit))
             resp["skip"] = True,
             resp["error"] = "Too many files {0} > {1}, Please adjust the analyze time range".format(len(log_list),
@@ -182,27 +179,29 @@ class AnalyzeLogHandler(BaseShellHandler):
         elif len(log_list) == 0:
             logger.warn(
                 "{0} The number of log files is {1}, No files found, "
-                "Please adjust the query limit".format(ip, len(log_list)))
+                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
             resp["skip"] = True,
             resp["error"] = "No files found"
             return log_list, resp
         return log_list, resp
 
-    def __get_log_name_list(self, ssh_helper):
+    def __get_log_name_list(self, ssh_helper, node):
         """
         :param ssh_helper:
         :return: log_name_list
         """
+        home_path = node.get("home_path")
+        log_path = os.path.join(home_path, "log")
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (self.ob_log_dir, self.scope)
+            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
             get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
-                        (self.ob_log_dir, self.ob_log_dir, self.ob_log_dir)
+                        (log_path, log_path, log_path)
         log_name_list = []
         log_files = SshClient().run(ssh_helper, get_oblog) if self.is_ssh else LocalClient().run(get_oblog)
         if log_files:
             log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str,
-                                              self.ob_log_dir, log_files)
+                                              log_path, log_files)
         else:
             logger.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
         return log_name_list
@@ -225,18 +224,20 @@ class AnalyzeLogHandler(BaseShellHandler):
         logger.info("get log list {}".format(log_name_list))
         return log_name_list
 
-    def __pharse_log_file(self, ssh_helper, log_name, gather_path, local_store_dir):
+    def __pharse_log_file(self, ssh_helper, node, log_name, gather_path, local_store_dir):
         """
         :param ssh_helper, log_name, gather_path
         :return:
         """
+        home_path = node.get("home_path")
+        log_path = os.path.join(home_path, "log")
         local_store_path = "{0}/{1}".format(local_store_dir, log_name)
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
                 grep_args=self.grep_args,
                 gather_path=gather_path,
                 log_name=log_name,
-                log_dir=self.ob_log_dir)
+                log_dir=log_path)
             logger.debug("grep files, run cmd = [{0}]".format(grep_cmd))
             SshClient().run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient().run(grep_cmd)
             log_full_path = "{gather_path}/{log_name}".format(
@@ -250,13 +251,13 @@ class AnalyzeLogHandler(BaseShellHandler):
                 cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
                     gather_path=gather_path,
                     log_name=log_name,
-                    log_dir=self.ob_log_dir)
+                    log_dir=log_path)
                 logger.debug("copy files, run cmd = [{0}]".format(cp_cmd))
                 SshClient().run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient().run(cp_cmd)
                 log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
                 download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path)
             else:
-                log_full_path = "{log_dir}/{log_name}".format(log_name=log_name, log_dir=self.ob_log_dir)
+                log_full_path = "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
                 download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path)
 
     def __pharse_offline_log_file(self, ssh_helper, log_name, local_store_dir):
@@ -421,7 +422,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         # store_dir must exist, else return "No such file or directory".
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: Set store dir {0} failed: No such directory."
+                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
                              .format(os.path.abspath(getattr(args, "store_dir"))))
                 return False
             else:
@@ -431,10 +432,6 @@ class AnalyzeLogHandler(BaseShellHandler):
             self.grep_args = ' '.join(getattr(args, "grep"))
         if getattr(args, "scope") is not None:
             self.scope = getattr(args, "scope")[0]
-        if getattr(args, "ob_install_dir") is not None:
-            self.ob_log_dir = getattr(args, "ob_install_dir") + "/log"
-        else:
-            self.ob_log_dir = const.OB_LOG_DIR_DEFAULT
         if getattr(args, "log_level") is not None:
             self.log_level = OBLogLevel().get_log_level(getattr(args, "log_level")[0])
         return True

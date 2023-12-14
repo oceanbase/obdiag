@@ -46,15 +46,12 @@ class GatherObAdminHandler(BaseShellHandler):
         self.gather_ob_log_temporary_dir = const.GATHER_LOG_TEMPORARY_DIR_DEFAULT
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
-        self.ob_install_dir = None
         self.ob_admin_mode = mode
-        self.slog_dir = None
-        self.clog_dir = None
         self.from_time_str = None
         self.to_time_str = None
         self.grep_args = None
         self.zip_encrypt = False
-        self.obadmin_install_dir = None
+        self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
             self.file_size_limit = 2 * 1024 * 1024
         else:
@@ -62,7 +59,7 @@ class GatherObAdminHandler(BaseShellHandler):
 
     def handle(self, args):
         if not self.__check_valid_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
 
         pack_dir_this_command = os.path.join(self.local_stored_path,
                                              "gather_pack_{0}".format(timestamp_to_filename_time(
@@ -70,30 +67,27 @@ class GatherObAdminHandler(BaseShellHandler):
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
-        def handle_from_node(ip, user, password, port, private_key):
+        def handle_from_node(node):
             st = time.time()
-            resp = self.__handle_from_node(args, ip, user, password, port, private_key, pack_dir_this_command)
+            resp = self.__handle_from_node(args, pack_dir_this_command, node)
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((ip, False, resp["error"],
+            gather_tuples.append((node.get("ip"), False, resp["error"],
                                   file_size,
                                   resp["zip_password"],
                                   int(time.time() - st),
                                   resp["gather_pack_path"]))
 
         if self.is_ssh:
-            node_threads = [threading.Thread(None, handle_from_node, args=(
-                node["ip"],
-                node["user"],
-                node["password"],
-                node["port"],
-                node["private_key"])) for node in self.nodes]
+            for node in self.nodes:
+                handle_from_node(node)
         else:
-            node_threads = [threading.Thread(None, handle_from_node, args=(get_localhost_inner_ip(), "", "", "", ""))]
-
-        list(map(lambda x: x.start(), node_threads))
-        list(map(lambda x: x.join(timeout=const.GATHER_THREAD_TIMEOUT), node_threads))
+            local_ip = get_localhost_inner_ip()
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            for node in self.nodes:
+                handle_from_node(node)
 
         if self.ob_admin_mode == "slog":
             mode = "slog"
@@ -105,42 +99,44 @@ class GatherObAdminHandler(BaseShellHandler):
         # Persist the summary results to a file
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
-    def __handle_from_node(self, args, ip, user, password, port, private_key, local_stored_path):
+        last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        print(last_info)
+
+    def __handle_from_node(self, args, local_stored_path, node):
         resp = {
             "skip": False,
             "error": "",
             "gather_pack_path": ""
         }
-        remote_ip = ip if self.is_ssh else get_localhost_inner_ip()
-        remote_user = user
-        remote_password = password
-        remote_port = port
-        remote_private_key = private_key
+        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
+        remote_user = node.get("user")
+        remote_password = node.get("password")
+        remote_port = node.get("port")
+        remote_private_key = node.get("private_key")
         logger.info(
             "Sending Collect Shell Command to node {0} ...".format(remote_ip))
         mkdir_if_not_exist(local_stored_path)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         if self.ob_admin_mode == "slog":
-            remote_dir_name = "slog_{0}_{1}".format(ip, now_time)
+            remote_dir_name = "slog_{0}_{1}".format(remote_ip, now_time)
         else:
-            remote_dir_name = "clog_{0}_{1}".format(ip, now_time)
+            remote_dir_name = "clog_{0}_{1}".format(remote_ip, now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key)
+            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node)
         except Exception as e:
-            config_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            logger.error("ssh {0}@{1}: failed, Please check the {2}/conf/config.yml file".format(
+            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
-                config_path))
+                self.config_path))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}/conf/config.yml".format(config_path)
+            resp["error"] = "Please check the {0}".format(self.config_path)
         if not ssh_failed:
             mkdir_cmd = "mkdir -p {0}".format(remote_dir_full_path)
             SshClient().run(ssh_helper, mkdir_cmd) if self.is_ssh else LocalClient().run(mkdir_cmd)
-            ob_version = get_observer_version(self.is_ssh, ssh_helper, self.ob_install_dir)
+            ob_version = get_observer_version(self.is_ssh, ssh_helper, node.get("home_path"))
             if (ob_version != "" and not compare_versions_lower(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN)) or ob_version == "":
                 logger.info("This version {0} does not support gather clog/slog . The max supported version less than {1}".
                             format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
@@ -148,32 +144,32 @@ class GatherObAdminHandler(BaseShellHandler):
                 resp["gather_pack_path"] = "{0}".format(local_stored_path)
                 resp["zip_password"] = ""
                 return resp
-            log_list, resp = self.__handle_log_list(ssh_helper, ip, resp)
+            log_list, resp = self.__handle_log_list(ssh_helper, remote_ip, resp)
             for slog in log_list:
-                self.__gather_log_info(ssh_helper, slog, remote_dir_full_path)
+                self.__gather_log_info(ssh_helper, node, slog, remote_dir_full_path)
 
             self.__mv_log(ssh_helper, remote_dir_full_path)
             if is_empty_dir(self.is_ssh, ssh_helper, "/tmp/{0}".format(remote_dir_name)):
                 resp["error"] = "gather failed, folder is empty"
                 resp["zip_password"] = ""
             else:
-                resp = self.__handle_zip_file(ip, ssh_helper, resp, remote_dir_name, local_stored_path)
+                resp = self.__handle_zip_file(remote_ip, ssh_helper, resp, remote_dir_name, local_stored_path)
                 rm_rf_file(self.is_ssh, ssh_helper, remote_dir_full_path)
         return resp
 
-    def __handle_log_list(self, ssh, ip, resp):
-        log_list = self.__get_log_name(ssh)
+    def __handle_log_list(self, ssh, node, resp):
+        log_list = self.__get_log_name(ssh, node)
         if len(log_list) > 20:
             logger.warn(
                 "{0} The number of log files is {1}, out of range (0,20], "
-                "Please adjust the query limit".format(ip, len(log_list)))
+                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
             resp["skip"] = True,
             resp["error"] = "Too many files {0} > 20".format(len(log_list))
             return log_list, resp
         elif len(log_list) <= 0:
             logger.warn(
                 "{0} The number of log files is {1}, out of range (0,20], "
-                "Please adjust the query limit".format(ip, len(log_list)))
+                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
             resp["skip"] = True,
             resp["error"] = "No files found"
             return log_list, resp
@@ -205,17 +201,18 @@ class GatherObAdminHandler(BaseShellHandler):
             "Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
         return resp
 
-    def __get_log_name(self, ssh_helper):
+    def __get_log_name(self, ssh_helper, node):
         """
         通过传入的from to的时间来过滤一遍slog文件列表，提取出文件创建的时间
         :param ssh_helper:
         :return: list
         """
+        slog_dir = os.path.join(node.get("data_dir"), "/slog")
+        clog_dir = os.path.join(node.get("data_dir"), "/clog")
         if self.ob_admin_mode == "slog":
-            get_log = "ls -l SLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("SLOG_DIR",
-                                                                                                   self.slog_dir)
+            get_log = "ls -l SLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("SLOG_DIR", slog_dir)
         else:
-            get_log = "ls -l CLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("CLOG_DIR", self.clog_dir)
+            get_log = "ls -l CLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("CLOG_DIR", clog_dir)
         log_files =  SshClient().run(ssh_helper, get_log) if self.is_ssh else LocalClient().run(get_log)
         log_name_list = []
         for file_name in log_files.split('\n'):
@@ -231,24 +228,26 @@ class GatherObAdminHandler(BaseShellHandler):
                     log_name_list.append(str(log_name_fields[0]).rstrip())
         if len(log_name_list):
             logger.info("Find the qualified log file {0} on Server [{1}], "
-                        "wait for the next step".format(log_name_list, ssh_helper.host_ip))
+                        "wait for the next step".format(log_name_list, ssh_helper.get_name()))
         else:
             logger.warn("Failed to find the qualified log file on Server [{0}], "
-                        "please check whether the input parameters are correct. ".format(ssh_helper.host_ip))
+                        "please check whether the input parameters are correct. ".format(ssh_helper.get_name()))
         return log_name_list
 
-    def __gather_log_info(self, ssh_helper, log_name, remote_dir):
+    def __gather_log_info(self, ssh_helper, node, log_name, remote_dir):
+        home_path = node.get("home_path")
+        obadmin_install_dir = os.path.join(home_path, "/bin")
         if self.ob_admin_mode == "slog":
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && cd {store_dir} && {obadmin_dir}/ob_admin slog_tool -f {slog_name}".format(
-                ob_install_dir=self.ob_install_dir,
+                ob_install_dir=home_path,
                 store_dir=remote_dir,
-                obadmin_dir=self.obadmin_install_dir,
+                obadmin_dir=obadmin_install_dir,
                 slog_name=log_name)
         else:
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && cd {store_dir} && {obadmin_dir}/ob_admin clog_tool dump_all {clog_name}".format(
-                ob_install_dir=self.ob_install_dir,
+                ob_install_dir=home_path,
                 store_dir=remote_dir,
-                obadmin_dir=self.obadmin_install_dir,
+                obadmin_dir=obadmin_install_dir,
                 clog_name=log_name,
                 )
         logger.info("gather obadmin info, run cmd = [{0}]".format(cmd))
@@ -268,25 +267,15 @@ class GatherObAdminHandler(BaseShellHandler):
         :param args: command args
         :return: boolean. True if valid, False if invalid.
         """
-        if self.ob_admin_mode == "clog":
-            if getattr(args, "clog_dir") is not None:
-                self.clog_dir = getattr(args, "clog_dir")[0]
-        if self.ob_admin_mode == "slog":
-            if getattr(args, "slog_dir") is not None:
-                self.slog_dir = getattr(args, "slog_dir")[0]
         # 1: store_dir must exist, else return "No such file or directory".
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: Set store dir {0} failed: No such directory."
+                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
                              .format(os.path.abspath(getattr(args, "store_dir"))))
                 return False
             else:
                 self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
 
-        if getattr(args, "ob_install_dir") is not None:
-            self.ob_install_dir = getattr(args, "ob_install_dir")
-        else:
-            self.ob_install_dir = const.OB_INSTALL_DIR_DEFAULT
         if getattr(args, "encrypt")[0] == "true":
             self.zip_encrypt = True
         # 3: to timestamp must be larger than from timestamp, and be valid
@@ -308,7 +297,6 @@ class GatherObAdminHandler(BaseShellHandler):
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             self.from_time_str = (now_time - datetime.timedelta(
                 seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
-        self.obadmin_install_dir = self.ob_install_dir + "/bin"
         return True
 
     @staticmethod

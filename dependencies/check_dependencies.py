@@ -19,7 +19,6 @@
 def check_client_dependencies():
     install_flag = False
     try:
-        import mysql.connector
         import pprint
         import threading
         import tabulate

@@ -1,0 +1,27 @@
+info: 'Check whether there is any suspended major compaction process.'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select count(0) from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";'
+      result:
+        set_value: major_err_nu
+        verify_type: equal
+        verify: 0
+        err_msg: 'major have error'
+    - type: sql
+      sql: 'SELECT COUNT(*) AS count  
+FROM (  
+  SELECT START_TIME, TIMESTAMPDIFF(HOUR, START_TIME, CURRENT_TIMESTAMP) AS diff  
+  FROM oceanbase.CDB_OB_MAJOR_COMPACTION  
+  WHERE STATUS = "COMPACTING" AND TIMESTAMPDIFF(HOUR, START_TIME, CURRENT_TIMESTAMP) > 36  
+) AS subquery;'
+      result:
+        set_value: major_hold_nu
+        verify_type: equal
+        verify: 0
+        err_msg: 'major have hold'
+
+
+
+

@@ -1,0 +1,19 @@
+obcluster:
+  ob_cluster_name: test
+  db_host: 192.168.1.1
+  db_port: 2881 # default 2881
+  tenant_sys:
+    user: root@sys # default root@sys
+    password: ""
+  servers:
+    nodes:
+      - container_name: testdocker1 # container_name for ssh_type is docker
+        ssh_type: docker # ssh_type choice [remote, docker, kube] default remote
+      - container_name: testdocker2 # container_name for ssh_type is docker
+        ssh_type: docker # ssh_type choice [remote, docker, kube] default remote
+      - container_name: testdocker3 # container_name for ssh_type is docker
+        ssh_type: docker # ssh_type choice [remote, docker, kube] default remote
+    global:
+      home_path: /root/ob/
+      data_dir: /root/observer/store
+      redo_dir: /root/observer/store

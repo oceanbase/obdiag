@@ -1,5 +1,4 @@
 #!/bin/bash
-echo "============prepare work env start============"
 
 if [[ $# == 1 && $1 == "-f" ]]; then
     FORCE_DEPLOY="1"
@@ -16,21 +15,25 @@ else
 fi
 
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
-cp ${WORK_DIR}/check_package.yaml ${OBDIAG_HOME}/
-cp -r ${WORK_DIR}/handler/checker/tasks  ${OBDIAG_HOME}/tasks
-if [ ! -e "OceanBase.repo" ]; then
-    wget -q https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+
+if [ -d "${WORK_DIR}/tasks" ]; then
+    cp -rf ${WORK_DIR}/tasks  ${OBDIAG_HOME}/
+elif [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
+    cp -rf ${WORK_DIR}/handler/checker/tasks ${OBDIAG_HOME}/
 fi
 
-echo "============update .bashrc============"
+if [ -d "${WORK_DIR}/example" ]; then
+    cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
+fi
 
-ALIAS_OBDIAG_EXIST=$(grep "alias obdiag=" ~/.bashrc | head -n 1)
+cp -rf ${WORK_DIR}/*check_package.yaml ${OBDIAG_HOME}/
 
+ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
 if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
     echo "need update obdiag alias"
+    echo "alias obdiag='obdiag'" >> ~/.bashrc
 fi
 
-echo "export OBDIAG_INSTALL_PATH=${WORK_DIR}" >> ~/.bashrc
-echo "alias obdiag='sh ${WORK_DIR}/obdiag'" >> ~/.bashrc
-source ~/.bashrc
-echo "============prepare work env ok!============"
+source  ${WORK_DIR}/init_obdiag_cmd.sh
+
+echo "Init obdiag finished"

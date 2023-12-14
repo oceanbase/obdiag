@@ -45,13 +45,17 @@ class CheckResult:
                                       self.variable_dict, self.step_result_info["set_value"], verify_type)
                 result = verify.execute()
                 logger.info("verify.execute end. and result is {0}".format(result))
-                if not result:
-                    err_msg = self.build_msg()
-                    logger.info("verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
-                    raise ResultFalseException(err_msg)
-            except VerifyFailException as e:
+
+            except Exception as e:
                 logger.error("check_result execute VerifyFailException :{0}".format(e))
                 raise ResultFailException(e)
+            if not result:
+                err_msg = self.build_msg()
+                logger.info(
+                    "verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
+                raise ResultFalseException(err_msg)
+
+
 
     def build_msg(self):
         s = "the step is not pass"

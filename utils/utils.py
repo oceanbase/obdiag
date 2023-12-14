@@ -16,6 +16,8 @@
 @desc:
 """
 import datetime
+import decimal
+import json
 import os
 import re
 import sys
@@ -92,9 +94,18 @@ def skip_char(sub, b):
 
 
 def convert_to_number(s):
+    if isinstance(s,int) or isinstance(s,decimal.Decimal):
+        return s
+    if s.startswith("-"):
+        if s[1:].isdigit():
+            return int(s)
+        elif s[1:].isdecimal():  # 判断字符串是否全为数字或小数点
+            return float(s)  # 如果是，转换为浮点数
+        else:
+            return str(s)  # 如果都不是，保持原样
     if s.isdigit():  # 判断字符串是否全为数字
         return int(s)  # 如果是，转换为整数
-    elif s.isnumeric():  # 判断字符串是否全为数字或小数点
+    elif s.isdecimal():  # 判断字符串是否全为数字或小数点
         return float(s)  # 如果是，转换为浮点数
     else:
         return str(s)  # 如果都不是，保持原样
@@ -146,5 +157,34 @@ def build_str_on_expr_by_dict(expr, variable_dict):
         return str(d.get(key, match.group(0)))
 
     return re.sub(r'#\{(\w+)\}', replacer, s)
+
+
 def display_trace(uuid):
-    print("If you want to view detailed obdiag logs, please run:'obdiag display-trace --trace_id {0}'".format(uuid))
+    print("If you want to view detailed obdiag logs, please run:' obdiag display-trace --trace_id {0} '".format(uuid))
+
+
+def node_cut_passwd_for_log(obj):
+    if isinstance(obj, dict):
+        new_obj = {}
+        for key, value in obj.items():
+            if key == "password" or key == "ssh_password":
+                continue
+            new_obj[key] = node_cut_passwd_for_log(value)
+        return new_obj
+    elif isinstance(obj, list):
+        return [node_cut_passwd_for_log(item) for item in obj]
+    else:
+        return obj
+
+
+def obcluster_cut_passwd_for_log(obcluster):
+    new_obj = obcluster.copy()
+    if "tenant_sys" in new_obj and "password" in new_obj["tenant_sys"]:
+        del new_obj["tenant_sys"]["password"]
+    return new_obj
+
+
+def split_ip(ip_str):
+    pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+    result = re.findall(pattern, ip_str)
+    return result

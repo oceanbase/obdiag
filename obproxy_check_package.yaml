@@ -1,0 +1,3 @@
+# for obproxy or oms ,cases'name 
+proxy:
+  - version.bad_version

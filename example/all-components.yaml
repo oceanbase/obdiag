@@ -1,0 +1,46 @@
+ocp:
+  login:
+    url: http://192.168.1.100:8080
+    user: admin
+    password: ''
+obcluster:
+  ob_cluster_name: test
+  db_host: 192.168.1.1
+  db_port: 2881 # default 2881
+  tenant_sys:
+    user: root@sys # default root@sys
+    password: ''
+  servers:
+    nodes:
+      - ip: 192.168.1.1
+      - ip: 192.168.1.2
+      - ip: 192.168.1.3
+    global:
+      ssh_username: admin # your username
+      ssh_password: '' # password if need
+      # ssh_port: 22 # your ssh port, default 22
+      # ssh_key_file: "" # your ssh-key file path if need
+      # ssh_type: remote # ssh_type choice [remote, docker, kube] default remote
+      # container_name: xxx # container_name for ssh_type is docker
+      # The directory for oceanbase installed
+      home_path: /root/observer
+      # The directory for data storage. The default value is $home_path/store.
+      # data_dir: /root/observer/store
+      # The directory for clog, ilog, and slog. The default value is the same as the data_dir value.
+      # redo_dir: /root/observer/store
+obproxy:
+  obproxy_cluster_name: obproxy
+  servers:
+    nodes:
+      - ip: 192.168.1.4
+      - ip: 192.168.1.5
+      - ip: 192.168.1.6
+    global:
+      ssh_username: admin # your username
+      ssh_password: '' # password if need
+      # ssh_port: 22 # your ssh port, default 22
+      # ssh_key_file: "" # your ssh-key file path if need
+      # ssh_type: remote # ssh_type choice [remote, docker, kube] default remote
+      # container_name: xxx # container_name for ssh_type is docker
+      # The directory for obproxy installed
+      home_path: /root/obproxy

@@ -21,32 +21,27 @@ import sys
 import uuid
 from logging.handlers import TimedRotatingFileHandler
 
-from common.obdiag_exception import OBDIAGConfNotFoundException
+from common.constant import const
 from utils.file_utils import mkdir_if_not_exist
 from utils.yaml_utils import read_yaml_data
 
-tried_conf_path = []
-CONF_FILE = os.environ.get("LOG_CONF", os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))),
-                                                    "conf/config.yml"))
-if not os.path.exists(CONF_FILE):
-    tried_conf_path.append(CONF_FILE)
-    LOG_CONF_FILE = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), CONF_FILE)
-    if not os.path.exists(LOG_CONF_FILE):
-        tried_conf_path.append(LOG_CONF_FILE)
-        raise OBDIAGConfNotFoundException("Log Conf file not found:\n{0}".format("\n".join(tried_conf_path)))
-
+if getattr(sys, 'frozen', False):
+    absPath = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    absPath = os.path.dirname(os.path.abspath(__file__))
+INNER_CONF_FILE = os.path.join(absPath, "conf/inner_config.yml")
 
 class Logger(object):
     def __init__(self, log_config_dict):
         self.logger = logging.getLogger()
         try:
-            self.logger.setLevel(log_config_dict["OBDIAG"]["LOGGER"]["log_level"].upper())
+            self.logger.setLevel(log_config_dict["obdiag"]["logger"]["log_level"].upper())
         except Exception as e:
             raise ValueError("Invalid log level setting, error:{0} only supported set ['DEBUG','INFO','WARN','ERROR'], "
                              "Please modify conf/config.yml".format(e))
-        log_dir = os.path.abspath(log_config_dict["OBDIAG"]["LOGGER"]["log_dir"])
+        log_dir = os.path.expanduser(log_config_dict["obdiag"]["logger"]["log_dir"])
         mkdir_if_not_exist(log_dir)
-        log_filename = log_config_dict["OBDIAG"]["LOGGER"]["log_filename"]
+        log_filename = log_config_dict["obdiag"]["logger"]["log_filename"]
         log_format = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
         file_format = logging.Formatter(
             '[%%(asctime)s] [%%(levelname)s] [%s] [%%(filename)s->line:%%(lineno)d] %%(message)s' % uuid.uuid3(
@@ -55,13 +50,13 @@ class Logger(object):
                                                      when='D', interval=1, backupCount=30, encoding='utf-8')
         self.file_handler.setFormatter(file_format)
         try:
-            self.file_handler.setLevel(log_config_dict["OBDIAG"]["LOGGER"]["file_handler_log_level"].upper())
+            self.file_handler.setLevel(log_config_dict["obdiag"]["logger"]["file_handler_log_level"].upper())
         except Exception as e:
             raise ValueError("Invalid log level setting, error:{0} only supported set ['DEBUG','INFO','WARN','ERROR'], "
                              "Please modify conf/config.yml".format(e))
         self.stdout_handler = logging.StreamHandler(sys.stdout)
         try:
-            self.stdout_handler.setLevel(log_config_dict["OBDIAG"]["LOGGER"]["stdout_handler_log_level"].upper())
+            self.stdout_handler.setLevel(log_config_dict["obdiag"]["logger"]["stdout_handler_log_level"].upper())
         except Exception as e:
             raise ValueError("Invalid log level setting, error:{0} only supported set ['DEBUG','INFO','WARN','ERROR'], "
                              "Please modify conf/config.yml".format(e))
@@ -73,7 +68,10 @@ class Logger(object):
         return self.logger
 
 
-logger = Logger(read_yaml_data(CONF_FILE)).get_logger()
+inner_config = const.OBDIAG_BASE_DEFAULT_CONFIG
+if os.path.exists(INNER_CONF_FILE):
+    inner_config = read_yaml_data(INNER_CONF_FILE)
+logger = Logger(inner_config).get_logger()
 
 if __name__ == "__main__":
     logger.debug("tests debug")

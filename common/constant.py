@@ -15,6 +15,7 @@
 @file: constant.py
 @desc:
 """
+import os
 
 
 class _const:
@@ -34,9 +35,10 @@ class _const:
 
 const = _const()
 
-const.OB_INSTALL_DIR_DEFAULT = "/home/admin/oceanbase"
-const.OB_LOG_DIR_DEFAULT = "/home/admin/oceanbase/log"
-const.OBPROXY_LOG_DIR_DEFAULT = "/home/admin/obproxy/log"
+const.OB_INSTALL_DIR_DEFAULT = "/root/observer"
+const.OB_LOG_DIR_DEFAULT = "/root/observer/log"
+const.OBPROXY_INSTALL_DIR_DEFAULT = "/root/obproxy"
+const.OBPROXY_LOG_DIR_DEFAULT = "/root/obproxy/log"
 
 const.GATHER_LOG_TEMPORARY_DIR_DEFAULT = "/tmp"
 
@@ -51,4 +53,46 @@ const.GATHER_THREAD_TIMEOUT = 15 * 60
 const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK = "2.0.0"
 
 const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN = "4.0.0"
+
+const.DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser('~'), ".obdiag/config.yml")
+
+const.FLT_TRACE_TREE_MAX_RECURSION = 5
+const.FLT_TRACE_TREE_TOP_LEAF = 5
+const.FLT_TRACE_WORKER = 4
+const.FLT_TRACE_OUTPUT = 50
+
+const.OBDIAG_BASE_DEFAULT_CONFIG = {
+  "obdiag": {
+    "basic": {
+      "config_path": "~/.obdiag/config.yml",
+      "config_backup_dir": "~/.obdiag/backup_conf",
+      "file_number_limit": 20,
+      "file_size_limit": "2G"
+    },
+    "logger": {
+      "file_handler_log_level": "DEBUG",
+      "log_dir": "~/.obdiag/log",
+      "log_filename": "obdiag.log",
+      "log_level": "INFO",
+      "mode": "obdiag",
+      "stdout_handler_log_level": "INFO"
+    }
+  }
+}
+
+const.OBDIAG_CHECK_DEFAULT_CONFIG = {
+  "check": {
+    "ignore_version": "false",
+    "report": {
+      "report_path": "./check_report/",
+      "export_type": "table"
+    },
+    "package_file": "~/.obdiag/check_package.yaml",
+    "tasks_base_path": "~/.obdiag/tasks/"
+  }
+}
+const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemetry.txt")
+const.TELEMETRY_CONTENT_REPORTER = "obdiag"
+const.TELEMETRY_URL = "openwebapi.oceanbase.com"
+const.TELEMETRY_PATH = "/api/web/oceanbase/report"
 

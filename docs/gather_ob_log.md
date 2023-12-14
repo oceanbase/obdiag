@@ -1,12 +1,12 @@
 ## gather log命令
 通过 gather log命令，可以指定时间范围的来去搜集目标主机上的OceanBase日志(后续会陆续开放除OceanBase运行日志外其他信息的搜集)。
 ```
-./obdiag gather log -h
-usage: ./obdiag gather log [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--ob_install_dir ob_install_dir]
-                            [--store_dir store_dir] [--scope scope] [--grep grep] [--encrypt encrypt]
+$ obdiag gather log -h
+usage: obdiag gather log [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir]
+                         [-c config] [--scope scope] [--grep grep [grep ...]] [--encrypt encrypt]
 
-According to the input parameters, gather the logs of the specified range (whether it is time range), compress and pack, and transmit to the specified path
-of the obdiag machine.
+According to the input parameters, gather the logs of the specified range (whether it is time range), compress and pack, and transmit to
+the specified path of the obdiag machine.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -14,21 +14,22 @@ optional arguments:
                         specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
   --to datetime datetime
                         specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.
-  --ob_install_dir ob_install_dir
-                        the dir to ob log dir
+  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
+                        example: 1h.
   --store_dir store_dir
                         the dir to store gather result, current dir by default.
+  -c config             obdiag custom config
   --scope scope         log type constrains, choices=[observer, election, rootservice, all], default=all
-  --grep grep           specify keywords constrain
+  --grep grep [grep ...]
+                        specify keywords constrain
   --encrypt encrypt     Whether the returned results need to be encrypted, choices=[true, false], default=false
 
-Example: ./obdiag gather log --scope observer --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00
+Example: obdiag gather log --scope observer --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00
 ```
 
 例子：
 ```shell script
-./obdiag gather log --scope observer --from 2022-06-25 10:25:00 --to 2022-06-25 18:30:00 --grep STORAGE --encrypt true
+$ obdiag gather log --scope observer --from 2022-06-25 10:25:00 --to 2022-06-25 18:30:00 --grep STORAGE --encrypt true
 
 ...
 ZipFileInfo:

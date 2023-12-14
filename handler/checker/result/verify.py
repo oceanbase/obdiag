@@ -15,6 +15,7 @@
 @file: verify.py
 @desc:
 """
+import decimal
 import re
 import subprocess32 as subprocess
 from common.logger import logger
@@ -80,33 +81,47 @@ class VerifyResult(object):
             logger.info("_verify_base result: {0}".format(result))
             return result == "true"
         except Exception as e:
-            logger.error("_verify_base error: " + self.expr + "->" + e.__str__())
+            logger.error("_verify_base error: {0} -> {1}".format(str(self.expr) , e))
             raise VerifyFailException("_verify_base error: " + self.expr + "->" + e.__str__())
 
     def _verify_max(self):
         try:
+            if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
+                self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
+            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
+                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             range_str = self.expr
-            return int(self.env_dict[self.now_step_set_value_name]) < int(range_str)
+            result = int(self.env_dict[self.now_step_set_value_name]) < int(range_str)
+            return result
         except Exception as e:
-            logger.error("_verify_max error: " + self.expr + "->" + e.__str__())
+            logger.error("_verify_max error: {0} -> {1}".format(str(self.expr) , e))
             raise VerifyFalseException(e)
 
     def _verify_min(self):
         try:
+            if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
+                self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
+            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
+                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             range_str = self.expr
-            return int(self.env_dict[self.now_step_set_value_name]) > int(range_str)
+            result=int(self.env_dict[self.now_step_set_value_name]) > int(range_str)
+            return result
         except Exception as e:
-            logger.error("_verify_min error: " + self.expr + "->" + e.__str__())
+            logger.error("_verify_min error: {0} -> {1}".format(str(self.expr),e))
             raise VerifyFalseException(e)
 
     def _verify_equal(self):
         try:
+            if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
+                self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
+            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
+                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             result = False
             range_str = self.expr
             if int(self.env_dict[self.now_step_set_value_name]) == int(range_str):
                 result = True
         except Exception as e:
-            logger.error("_verify_equal error: " + self.expr + "->" + e.__str__())
+            logger.error("_verify_equal error: {0} -> {1}".format(str(self.expr),e))
             raise VerifyFailException(e)
         return result
 

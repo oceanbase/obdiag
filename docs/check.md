@@ -9,35 +9,50 @@
 ## 快速使用
 
 ```shell script
-./obdiag check
+obdiag check
 ```
 ### 关联动态可配参数：
 ```shell script
 --cases={CasesName}
 
-CasesName是对需要执行的巡检项目的集合名,巡检集合保存在"./check_package.yaml" ,每次仅能选择一个集合
+CasesName是对需要执行的巡检项目的集合名,巡检集合保存在"~/.obdiag/{check_target}_check_package.yaml" ,每次仅能选择一个集合
 若未设定则默认执行所有的巡检项
-Example1: ./obdiag check --cases= system
+
+{check_target}目前已支持的类型:
+observer  ->check_package.yaml
+obproxy   ->obproxy_check_package.yaml
+
+
+Example1:
+obdiag check --cases= ad
+obdiag check --obproxy_cases= proxy
+obdiag check --cases=ad --obproxy_cases=proxy
 ```
 
 ### 关联持久化参数：
 持久化参数主要是部分日常不会修改的参数，依赖于conf/config.yml
-check功能所关联的配置项在"CHECK"下，基本上的参数均无需变更
+
+若使用rpm方式进行安装，config.yml位于
+```shell script
+/user/local/oceanbase-diagnostic-tool/conf/config.yml
+```
+
+check功能所关联的配置项在"CHECK"下，基本上的参数均无需变更或更改频率较低
 ```yaml script
 CHECK:
-  ignore_obversion: false
+  ignore_version: false
   report:
     report_path: "./check_report/"
     export_type: table
-  package_file: "./check_package.yaml"
-  tasks_base_path: "./handler/checker/tasks/"
+  package_file: "~/.obdiag/check_package.yaml"
+  tasks_base_path: "~/.obdiag/tasks/"
 ```
-ignore_obversion表示是否需要在执行巡检项时跳过版本匹配
+ignore_version表示是否需要在执行巡检项时跳过版本匹配
 report下主要是对报告的参数进行配置
 - report_path表示输出报告的路径
 - export_type表示输出报告的类型，目前支持table 、json 、xml后续需要支持的可以提交issue
 package_file表示巡检项集合的保存路径
-tasks_base_path表示巡检项所保存的头路径
+tasks_base_path表示巡检项所保存的头路径,下面存储了不同check_target的巡检项目文件
 
   
 
@@ -54,8 +69,8 @@ task会包含一些用于巡检的前置声明，用于实现对ob进行更为�
 
 
 ```ssh script
-#先进入${CHECK.tasks_base_path} ,然后创建一个文件夹test,并创建我们的示例文件test.yaml
-cd ./handler/checker/tasks/
+#先进入${CHECK.tasks_base_path} ,然后创建一个文件夹test,并创建我们的示例文件test.yaml(以observer为测试目标)
+cd ~/.obdiag/tasks/observer
 mkdir test
 cd test
 touch test.yaml
@@ -86,20 +101,20 @@ task的作用是声明巡检执行的步骤，其基础结构是一个list
 
 task的一个元素的结构如下
 
-| 参数名       | 是否必填 |  |                                                          |  |
-|-----------| --- | --- |----------------------------------------------------------| --- |
-| obversion | 否 | 表示适用的版本，使用方式见下示例 | 用str的形式表示范围，需要完整的数字的版本号，3.x版本为三位，4.x版本为四位如：[3.1.1,3.2.0] |  |
-| steps      | 是 | 所执行步骤 | 为list结构                                                  |  |
+| 参数名     | 是否必填 |  |                                                          |  |
+|---------| --- | --- |----------------------------------------------------------| --- |
+| version | 否 | 表示适用的版本，使用方式见下示例 | 用str的形式表示范围，需要完整的数字的版本号，3.x版本为三位，4.x版本为四位如：[3.1.1,3.2.0] |  |
+| steps    | 是 | 所执行步骤 | 为list结构                                                  |  |
 
 如下就是一个示例
 
 ```yaml script
 info: testinfo
 task:
-  - obversion: "[3.1.0,3.2.4]"
+  - version: "[3.1.0,3.2.4]"
     steps:
     	{steps_object}
-  - obversion: [4.2.0.0,4.3.0.0]
+  - version: [4.2.0.0,4.3.0.0]
     steps:
     	{steps_object}
  ```

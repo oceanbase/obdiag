@@ -1,160 +1,78 @@
+English | [中文版](README-CN.md)
 
-# Oceanbase Diagnostic Tool
-OceanBase敏捷诊断工具(OceanBase Diagnostic Tool) 是 OceanBase 的黑屏诊断工具。目前包含了对于OceanBase日志、SQL Audit以及OceanBase进程堆栈等信息进行的扫描、收集、分析，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
+# Oceanbase Diagnostic Tool (obdiag)
+OceanBase Diagnostic Tool (obdiag) is is a quick diagnostic tool for open-source OceanBase software. The features include gather\analyze\check OceanBase Diagnostic information. It can be executed with one click in different deployment modes of OceanBase clusters (OCP, OBD, or manually deployed by users according to documentation).
 
-![01](images/structure.png)
+# Install obdiag
+You can install obdiag by using these methods:
 
-# 编译部署说明：
-## 编译环境要求
-- 执行环境: python >= 3.9 或者python > 2.7.5
-
+## Method 1: Install obdiag by using RPM packages
 ```shell script
-# 下载源代码
-git clone https://github.com/oceanbase/oceanbase-diagnostic-tool.git
-
-# 编译(编译过程是拉取python依赖包放到编译目录下)
-cd oceanbase-diagnostic-tool && sh ./build/build.sh
-
-# 编译后会在./build/生成一个tar.gz的包
-cd ./build/
-ls
-oceanbase-diagnostic-tool-1.4.0-yyyyMMddHHmmss.tar.gz
-
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+sudo yum install -y oceanbase-diagnostic-tool
+sh /usr/local/oceanbase-diagnostic-tool/init.sh
 ```
-## 使用环境要求
-- 环境依赖：支持zip命令
- 将上边编译的包解压或者直接从https://github.com/oceanbase/oceanbase-diagnostic-tool/releases 下载包解压，进入解压后的文件即可使用obdiag提供的各项功能
 
+## Method 2: Install obdiag by using the source code
+
+Before you install obdiag by using the source code, make sure that you have installed these dependencies:
+
+- gcc
+- wget
+- python-devel
+- mysql-devel
+
+To install obdiag on Python3.8, run these commands:
+
+```shell
+pip install -r requirements3.txt
+cd rpm && sh build.sh build_obdiag
+sh init.sh
+```
+
+# obdiag config
+The path of the configuration file for the diagnosed cluster is stored in `~/.obdiag/config.yml` .You can directly edit the configuration file or generate the configuration file through the `obdiag config <option>` command
 ```shell script
-tar zxvf oceanbase-diagnostic-tool-1.4.0-yyyyMMddHHmmss.tar.gz
-
-cd oceanbase-diagnostic-tool && source init.sh
-
+obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ```
 
-# 参数配置说明：
-## 参数配置
-所有的配置都在conf目录下的config.yml中:
+# obdiag Fuctions
 
-```yaml
-# 配置一：这部分的配置是OBDIAG自身的一些配置，包括自身的日志输出和外置的变量等
-OBDIAG:
-  BASIC:
-    config_backup_dir: /tmp/oceanbase-diagnostic-tool/conf # 配置文件快速生成的时候会覆写config.yml，为了让用户可查到上一次的配置，每次执行配置更新的时候会保存一份
-    file_number_limit: 20 # 收集observer的日志的时候单机限制回传的最大文件数量
-    file_size_limit: 2G # 收集observer的日志的时候单机限制回传的最大文件大小
-  LOGGER: # OBDIAG本身的日志打印相关配置
-    log_dir: /tmp/oceanbase-diagnostic-tool/log # OBDIAG日志文件路径
-    log_filename: obdiag.log # OBDIAG日志文件名
-    file_handler_log_level: DEBUG # 输出到日志文件中的日志级别
-    log_level: INFO # OBDIAG日志输出的级别
-    mode: obdiag
-    stdout_handler_log_level: DEBUG
-# 配置二：属于OCP的配置，有OCP托管的集群可以配置上
-OCP:
-  LOGIN:
-    url: http://xxx.xxx.xxx.xxx:xxxx
-    user: xxx
-    password: xxx
-  METADB:
-    ip: xxx.xxx.xxx.xxx
-    port: xxx
-    user: xxx
-    password: xxx
-    dbname: xxx
-# 配置三：收集的集群信息
-OBCLUSTER:
-  cluster_name: xxx
-  host: xxx.xxx.xxx.xxx
-  port: xxx
-  user: xxx
-  password: xxx
-# 配置四：收集的节点的ssh登录信息, 多个节点的话直接往后追加
-NODES:
-- ip: xxx.xxx.xxx.xxx # 节点ip
-  port: xxx # 节点的ssh端口号，一般是22端口
-  user: xxx # 节点ssh登陆用户名
-  password: xxx # 节点ssh登陆密码
-  private_key: ''
-  home_path: xxx # oceanbase部署路径
-CHECK:
-  ignore_obversion: false
-  report:
-    report_path: "./check_report/"
-    export_type: table
-  package_file: "~/.obdiag/check_package.yaml"
-  tasks_base_path: "~/.obdiag/tasks/"
-```
+## obdiag check Fuctions
+- [check](./docs/check.md)
 
-使用的时候需要根据实际情况配置上边的四个配置。其中OBDIAG极少修改，其他三个配置项按需修改，修改部分为"xxx"
+## obdiag gather Fuctions
 
-Tips: 当有ocp的时候，你如果想要收集ocp托管下某个集群的所有所有主机的上的信息，你也可以通过./obdiag config来快速生成NODES的配置内容,使用方式如下:
-```
-./obdiag config -h
-usage: ./obdiag config [-h] --cluster cluster_name --cluster_id cluster_id
+- [gather log](./docs/gather_ob_log.md)
+- [gather sysstat](./docs/gather_sysstat.md)
+- [gather slog/clog](./docs/gather_admin.md)
+- [gather perf](./docs/gather_perf.md)
+- [gather obstack](./docs/gather_ob_stack.md)
+- [gather sql plan monitor](./docs/gather_sql_plan_monitor.md)
+- [gather obproxy_log](./docs/gather_obproxy_log.md)
+- [gather awr](./docs/gather_awr.md)
+- [gather all](./docs/gather_all.md)
 
-Quick build config
+## obdiag analyze Fuctions
+- [analyze log](./docs/analyze_ob_log.md)
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --cluster_name cluster_name
-                        cluster name
-  --cluster_id cluster_id
-                        cluster id
-
-Example: ./obdiag config --cluster_name demo1 --cluster_id xxx
-
-```
-
-# 功能介绍
-通过 `./obdiag -h` 的命令，可以查看 Oceanbase Diagnostic Tool 的使用帮助。
-```
-usage: ./obdiag [-h] {version,config,gather,analyze} ...
-
-Oceanbase Diagnostic Tool
-
-positional arguments:
-  {version,config,gather,analyze}
-    version             Oceanbase Diagnostic Tool Version
-    config              Quick build config
-    gather              Gather logs and other information
-    analyze             analyze logs and other information
-
-optional arguments:
-  -h, --help            show this help message and exit
+# Licencing
+OceanBase Database is under MulanPubL - 2.0 license. You can freely copy and use the source code. When you modify or
+distribute the source code, please obey the MulanPubL - 2.0 license.
 
 
-```
+# Contributing
 
-## 一键收集功能列表
-- [一键收集OB日志](./docs/gather_ob_log.md)
+Contributions are warmly welcomed and greatly appreciated. Here are a few ways you can contribute:
 
-- [一键收集AWR报告](./docs/gather_awr.md)
+- Raise us an [issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues).
+- Submit Pull Requests.
 
-- [一键收集主机信息](./docs/gather_sysstat.md)
+# Support
 
-- [一键收集slog/clog日志](./docs/gather_admin.md)
+In case you have any problems when using obdiag, welcome reach out for help:
 
-- [一键收集火焰图信息](./docs/gather_perf.md)
+- [GitHub Issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+- [Official Website](https://www.oceanbase.com/docs/obdiag-cn)
 
-- [一键收集并行SQL的执行详情信息](./docs/gather_sql_plan_monitor.md)
-
-- [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
-
-- [一键收集全部诊断信息](./docs/gather_all.md)
-
-## 一键分析功能列表
-
-- [一键分析OB日志](./docs/analyze_ob_log.md)
-
-
-## 一键巡检功能
-- [一键巡检](./docs/check.md)
-
-## 许可证
-
-OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
-您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
-
-## 联系我们
-钉钉群: 17920025807

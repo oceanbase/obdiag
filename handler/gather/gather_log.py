@@ -53,6 +53,7 @@ class GatherLogHandler(BaseShellHandler):
         self.grep_args = None
         self.scope = None
         self.zip_encrypt = False
+        self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
             self.file_number_limit = 20
             self.file_size_limit = 2 * 1024 * 1024
@@ -63,7 +64,7 @@ class GatherLogHandler(BaseShellHandler):
     def handle(self, args):
         # check args first
         if not self.__check_valid_and_parse_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
         # example of the format of pack dir for this command: {gather_pack_dir}/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir,
                                              "gather_pack_{0}".format(timestamp_to_filename_time(
@@ -72,30 +73,27 @@ class GatherLogHandler(BaseShellHandler):
         gather_tuples = []
         gather_pack_path_dict = {}
 
-        def handle_from_node(ip, user, password, port, private_key):
+        def handle_from_node(node):
             st = time.time()
-            resp = self.__handle_from_node(args, ip, user, password, port, private_key, pack_dir_this_command)
+            resp = self.__handle_from_node(args, pack_dir_this_command, node)
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((ip, False, resp["error"],
+            gather_tuples.append((node.get("ip"), False, resp["error"],
                                   file_size,
                                   resp["zip_password"],
                                   int(time.time() - st),
                                   resp["gather_pack_path"]))
 
         if self.is_ssh:
-            node_threads = [threading.Thread(None, handle_from_node, args=(
-                node["ip"],
-                node["user"],
-                node["password"],
-                node["port"],
-                node["private_key"])) for node in self.nodes]
+            for node in self.nodes:
+                handle_from_node(node)
         else:
             local_ip = get_localhost_inner_ip()
-            node_threads = [threading.Thread(None, handle_from_node, args=(local_ip, "", "", "", ""))]
-        list(map(lambda x: x.start(), node_threads))
-        list(map(lambda x: x.join(timeout=const.GATHER_THREAD_TIMEOUT), node_threads))
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            for node in self.nodes:
+                handle_from_node(node)
 
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         print(summary_tuples)
@@ -103,36 +101,42 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
+        last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        print(last_info)
+
         # When using encryption mode, record the account and password information into the file
         return gather_tuples, gather_pack_path_dict
 
-    def __handle_from_node(self, args, ip, user, password, port, private_key, pack_dir_this_command):
+    def __handle_from_node(self, args, pack_dir_this_command, node):
         resp = {
             "skip": False,
             "error": "",
             "zip_password": "",
             "gather_pack_path": ""
         }
-        remote_ip = ip if self.is_ssh else get_localhost_inner_ip()
-        remote_user = user
-        remote_password = password
-        remote_port = port
-        remote_private_key = private_key
+        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
+        remote_user = node.get("user")
+        remote_password = node.get("password")
+        remote_port = node.get("port")
+        remote_private_key = node.get("private_key")
+        remote_home_path = node.get("home_path")
         ssh_failed = False
-        logger.info(
-            "Sending Collect Shell Command to node {0} ...".format(remote_ip))
-        mkdir_if_not_exist(pack_dir_this_command)
+        logger.info("Sending Collect Shell Command to node {0} ...".format(remote_ip))
+        if "ssh_type" in node and node["ssh_type"] == "docker":
+            local_store_dir = "{0}/docker_{1}".format(pack_dir_this_command, node["container_name"])
+        else:
+            local_store_dir = "{0}/{1}".format(pack_dir_this_command, remote_ip)
+        mkdir_if_not_exist(local_store_dir)
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key)
+            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node)
         except Exception as e:
-            config_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            logger.error("ssh {0}@{1}: failed, Please check the {2}/conf/config.yml file".format(
+            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
-                config_path))
+                self.config_path))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}/conf/config.yml".format(config_path)
+            resp["error"] = "Please check the {0}/conf/config.yml".format(self.config_path)
 
         if not ssh_failed:   
             # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
@@ -142,11 +146,11 @@ class GatherLogHandler(BaseShellHandler):
             gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
             mkdir(self.is_ssh, ssh, gather_dir_full_path)
 
-            log_list, resp = self.__handle_log_list(ssh, ip, resp)
+            log_list, resp = self.__handle_log_list(ssh, node, resp)
             if resp["skip"]:
                 return resp
             for log_name in log_list:
-                self.__pharse_log(ssh_helper=ssh, log_name=log_name, gather_path=gather_dir_full_path)
+                self.__pharse_log(ssh_helper=ssh, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
             delete_empty_file(self.is_ssh, ssh, gather_dir_full_path)
 
             is_empty = is_empty_dir(self.is_ssh, ssh, gather_dir_full_path)
@@ -155,12 +159,13 @@ class GatherLogHandler(BaseShellHandler):
                 resp["zip_password"] = ""
                 rm_rf_file(self.is_ssh, ssh, gather_dir_full_path)
             else:
-                self.__handle_zip_file(ip, ssh, resp, gather_dir_name, pack_dir_this_command)
+                self.__handle_zip_file(node.get("ip"), ssh, resp, gather_dir_name, pack_dir_this_command)
             ssh.ssh_close()
         return resp
 
-    def __handle_log_list(self, ssh, ip, resp):
-        log_list = self.__get_log_name(ssh)
+    def __handle_log_list(self, ssh, node, resp):
+        log_list = self.__get_log_name(ssh, node)
+        ip = node.get("ip")
         if len(log_list) > self.file_number_limit:
             logger.warn(
                 "{0} The number of log files is {1}, out of range (0,{2}], "
@@ -177,44 +182,47 @@ class GatherLogHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __get_log_name(self, ssh_helper):
+    def __get_log_name(self, ssh_helper, node):
         """
         通过传入的from to的时间来过滤一遍文件列表，提取出初步满足要求的文件列表
         :param ssh_helper:
         :return: list
         """
+        home_path = node.get("home_path")
+        log_path = os.path.join(home_path, "log")
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (self.ob_log_dir, self.scope)
+            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
             get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
-                        (self.ob_log_dir, self.ob_log_dir, self.ob_log_dir)
+                        (log_path, log_path, log_path)
         log_name_list = []
         log_files = SshClient().run(ssh_helper, get_oblog) if self.is_ssh else LocalClient().run(get_oblog)
         if log_files:
-            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, self.ob_log_dir, log_files)
+            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files)
         else:
-            logger.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
+            logger.error("Unable to find the log file. Please provide the correct home_path, the default is [/root/observer]")
         return log_name_list
 
-    def __pharse_log(self, ssh_helper, log_name, gather_path):
+    def __pharse_log(self, ssh_helper, home_path, log_name, gather_path):
         """
         处理传入的日志文件，将满足条件的日志文件归集到一起
         :param ssh_helper, log_name, gather_path
         :return:
         """
+        log_path = os.path.join(home_path, "log")
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
                 grep_args=self.grep_args,
                 gather_path=gather_path,
                 log_name=log_name,
-                log_dir=self.ob_log_dir)
+                log_dir=log_path)
             logger.debug("grep files, run cmd = [{0}]".format(grep_cmd))
             SshClient().run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient().run(grep_cmd)
         else:
             cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
                 gather_path=gather_path,
                 log_name=log_name,
-                log_dir=self.ob_log_dir)
+                log_dir=log_path)
             logger.debug("copy files, run cmd = [{0}]".format(cp_cmd))
             SshClient().run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient().run(cp_cmd)
 
@@ -230,6 +238,7 @@ class GatherLogHandler(BaseShellHandler):
 
         gather_log_file_size = get_file_size(self.is_ssh, ssh, gather_package_dir)
         print(show_file_size_tabulate(ip, gather_log_file_size))
+        local_store_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
             local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
             download_file(self.is_ssh, ssh, gather_package_dir, local_store_path)
@@ -276,7 +285,7 @@ class GatherLogHandler(BaseShellHandler):
         # 2: store_dir must exist, else return "No such file or directory".
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: Set store dir {0} failed: No such directory."
+                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
                              .format(os.path.abspath(getattr(args, "store_dir"))))
                 return False
             else:
@@ -288,10 +297,6 @@ class GatherLogHandler(BaseShellHandler):
             self.scope = getattr(args, "scope")[0]
         if getattr(args, "encrypt")[0] == "true":
             self.zip_encrypt = True
-        if getattr(args, "ob_install_dir") is not None:
-            self.ob_log_dir = getattr(args, "ob_install_dir") + "/log"
-        else:
-            self.ob_log_dir = const.OB_LOG_DIR_DEFAULT
         return True
 
     @staticmethod

@@ -38,10 +38,15 @@ from utils.utils import get_localhost_inner_ip, display_trace
 class GatherOsInfoHandler(BaseShellHandler):
     def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
         super(GatherOsInfoHandler, self).__init__(nodes)
+        for node in nodes:
+            if node.get("ssh_type") == "docker":
+                logger.error("the ssh_type is docker not support sysstat")
+                raise Exception("the ssh_type is docker not support sysstat")
         self.is_ssh = True
         self.gather_timestamp = gather_timestamp
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
+        self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
             self.file_size_limit = 2 * 1024 * 1024
         else:
@@ -50,7 +55,7 @@ class GatherOsInfoHandler(BaseShellHandler):
     def handle(self, args):
         # check args first
         if not self.__check_valid_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
 
         # if user indicates the store_dir, use it, otherwise use the dir in the config(default)
         if args.store_dir is not None:
@@ -62,64 +67,65 @@ class GatherOsInfoHandler(BaseShellHandler):
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
-        def handle_from_node(ip, user, password, port, private_key):
+        def handle_from_node(node):
             st = time.time()
-            resp = self.__handle_from_node(args, ip, user, password, port, private_key, pack_dir_this_command)
+            resp = self.__handle_from_node(args, node, pack_dir_this_command)
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((ip, False, resp["error"],
+            gather_tuples.append((node.get("ip"), False, resp["error"],
                                   file_size,
                                   int(time.time() - st),
                                   resp["gather_pack_path"]))
 
+
         if self.is_ssh:
-            node_threads = [threading.Thread(None, handle_from_node, args=(
-                node["ip"],
-                node["user"],
-                node["password"],
-                node["port"],
-                node["private_key"])) for node in self.nodes]
+            for node in self.nodes:
+                handle_from_node(node)
         else:
-            node_threads = [threading.Thread(None, handle_from_node, args=(get_localhost_inner_ip(), "", "", "", ""))]
-        list(map(lambda x: x.start(), node_threads))
-        list(map(lambda x: x.join(timeout=const.GATHER_THREAD_TIMEOUT), node_threads))
+            local_ip = get_localhost_inner_ip()
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            for node in self.nodes:
+                handle_from_node(node)
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         print(summary_tuples)
         display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
         # Persist the summary results to a file
         write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
+        last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        print(last_info)
 
-    def __handle_from_node(self, args, ip, user, password, port, private_key, local_stored_path):
+    def __handle_from_node(self, args, node, local_stored_path):
         resp = {
             "skip": False,
             "error": "",
             "gather_pack_path": ""
         }
-        remote_ip = ip if self.is_ssh else get_localhost_inner_ip()
-        remote_user = user
-        remote_password = password
-        remote_port = port
-        remote_private_key = private_key
+        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
+        remote_user = node.get("user")
+        remote_password = node.get("password")
+        remote_port = node.get("port")
+        remote_private_key = node.get("private_key")
+        remote_home_path = node.get("home_path")
         logger.info(
             "Sending Collect Shell Command to node {0} ...".format(remote_ip))
         mkdir_if_not_exist(local_stored_path)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        remote_dir_name = "sysstat_{0}_{1}".format(ip, now_time)
+        remote_dir_name = "sysstat_{0}_{1}".format(remote_ip, now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key)
+            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node)
         except Exception as e:
-            config_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            logger.error("ssh {0}@{1}: failed, Please check the {2}/conf/config.yml file".format(
+            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
-                config_path))
+                self.config_path))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}/conf/config.yml".format(config_path)
+            resp["error"] = "Please check the {0}".format(self.config_path)
         if not ssh_failed:
             mkdir(self.is_ssh, ssh_helper, remote_dir_full_path)
 
@@ -150,33 +156,33 @@ class GatherOsInfoHandler(BaseShellHandler):
             logger.info("gather dmesg current info, run cmd = [{0}]".format(dmesg_cmd))
             SshClient().run(ssh_helper, dmesg_cmd) if self.is_ssh else LocalClient().run(dmesg_cmd)
         except:
-            logger.error("Failed to gather dmesg current info on server {0}".format(ssh_helper.host_ip))
+            logger.error("Failed to gather dmesg current info on server {0}".format(ssh_helper.get_name()))
 
     def __gather_dmesg_boot_info(self, ssh_helper, dir_path):
         try:
             dmesg_cmd = 'cp --force /var/log/dmesg {dir_path}/dmesg.boot'.format(dir_path=dir_path)
-            logger.info("gather dmesg boot info on server {0}, run cmd = [{1}]".format(ssh_helper.host_ip, dmesg_cmd))
+            logger.info("gather dmesg boot info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), dmesg_cmd))
             SshClient().run(ssh_helper, dmesg_cmd) if self.is_ssh else LocalClient().run(dmesg_cmd)
         except:
-            logger.error("Failed to gather the /var/log/dmesg on server {0}".format(ssh_helper.host_ip))
+            logger.error("Failed to gather the /var/log/dmesg on server {0}".format(ssh_helper.get_name()))
 
     def __gather_cpu_info(self, ssh_helper, gather_path):
         try:
             tsar_cmd = "tsar --cpu -i 1 > {gather_path}/one_day_cpu_data.txt".format(
                 gather_path=gather_path)
-            logger.info("gather cpu info on server {0}, run cmd = [{1}]".format(ssh_helper.host_ip, tsar_cmd))
+            logger.info("gather cpu info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient().run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient().run(tsar_cmd)
         except:
-            logger.error("Failed to gather cpu info use tsar on server {0}".format(ssh_helper.host_ip))
+            logger.error("Failed to gather cpu info use tsar on server {0}".format(ssh_helper.get_name()))
 
     def __gather_mem_info(self, ssh_helper, gather_path):
         try:
             tsar_cmd = "tsar --mem -i 1 > {gather_path}/one_day_mem_data.txt".format(
                 gather_path=gather_path)
-            logger.info("gather memory info on server {0}, run cmd = [{1}]".format(ssh_helper.host_ip, tsar_cmd))
+            logger.info("gather memory info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient().run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient().run(tsar_cmd)
         except:
-            logger.error("Failed to gather memory info use tsar on server {0}".format(ssh_helper.host_ip))
+            logger.error("Failed to gather memory info use tsar on server {0}".format(ssh_helper.get_name()))
 
     @staticmethod
     def __check_valid_args(args):
@@ -186,9 +192,11 @@ class GatherOsInfoHandler(BaseShellHandler):
         :return: boolean. True if valid, False if invalid.
         """
         # 1: store_dir must exist, else return "No such file or directory".
-        if args.store_dir is not None and not os.path.exists(os.path.abspath(args.store_dir)):
-            logger.error("Error: Set store dir {0} failed: No such directory.".format(os.path.abspath(args.store_dir)))
-            return False
+        if getattr(args, "store_dir") is not None:
+            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
+                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
+                             .format(os.path.abspath(getattr(args, "store_dir"))))
+                return False
         return True
 
     @staticmethod

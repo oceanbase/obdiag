@@ -31,24 +31,26 @@ import json
 from io import open
 
 from handler.checker.check_exception import CheckException
+from telemetry.telemetry import telemetry
 
 
 class CheckReport:
-    def __init__(self, export_report_path="./check_report/", export_report_type="table"):
+    def __init__(self, report_target="observer", export_report_path="./check_report/", export_report_type="table"):
         self.tasks = []
         self.export_report_path = export_report_path
         try:
             if not os.path.exists(export_report_path):
                 os.makedirs(export_report_path)
         except Exception as e:
-            logger.error("int check_report {0}".format(e))
+            logger.error("init check_report {0}".format(e))
             raise CheckrReportException("int check_report {0}".format(e))
         self.export_report_type = export_report_type
 
         now = datetime.datetime.now()
-        date_format = now.strftime("%Y-%m-%d-%H:%M:%S")
+        date_format = now.strftime("%Y-%m-%d-%H-%M-%S")
 
-        file_name = "/check_report_" + date_format
+        file_name = "/check_report_{0}_".format(report_target) + date_format
+        self.report_target = report_target
 
         report_path = self.export_report_path + file_name
         self.report_path = report_path
@@ -74,8 +76,10 @@ class CheckReport:
         except Exception as e:
             logger.error("export_report Exception : {0}".format(e))
             raise CheckrReportException(e)
-        print("'cat {0}.{1}', export type is {1}".format(self.report_path, self.export_report_type))
-        print("For more details, please run cmd 'cat {0}.{1}'".format(self.report_path, self.export_report_type))
+
+    def get_report_path(self):
+        return self.report_path + "." + self.export_report_type
+
     def export_report_xml(self):
         allMap = self.report_tobeMap()
         with open(self.report_path + ".xml", 'w', encoding="utf8") as f:
@@ -121,7 +125,8 @@ class CheckReport:
         allMap["critical"] = criticalMap
         allMap["warning"] = warningMap
         allMap["all"] = allInfoMap
-
+        telemetry.push_check_info(self.report_target,
+            {"fail_cases": list(failMap), "critical_cases": list(criticalMap), "warning_cases": list(warningMap)})
         return allMap
 
     def export_report_table(self):
@@ -141,7 +146,7 @@ class CheckReport:
             report_all_tb = PrettyTable(["task", "task_report"])
             report_all_tb.align["task_report"] = "l"
             report_all_tb.title = "all-tasks-report"
-            logger.info("export report start")
+            logger.debug("export report start")
 
             for task in self.tasks:
                 if len(task.all_fail()) != 0:
@@ -159,23 +164,20 @@ class CheckReport:
 
             if len(report_fail_tb._rows) != 0:
                 logger.debug(report_fail_tb)
-                fp.write(report_fail_tb.get_string()+"\n")
+                fp.write(report_fail_tb.get_string() + "\n")
             if len(report_critical_tb._rows) != 0:
                 logger.debug(report_critical_tb)
-                fp.write(report_critical_tb.get_string()+"\n")
+                fp.write(report_critical_tb.get_string() + "\n")
             if len(report_warning_tb._rows) != 0:
                 logger.debug(report_warning_tb)
-                fp.write(report_warning_tb.get_string()+"\n")
+                fp.write(report_warning_tb.get_string() + "\n")
             if len(report_all_tb._rows) != 0:
                 logger.debug(report_all_tb)
-                fp.write(report_all_tb.get_string()+"\n")
+                fp.write(report_all_tb.get_string() + "\n")
             fp.close()
-            logger.info("export report end")
+            logger.debug("export report end")
         except Exception as e:
             raise CheckrReportException("export report {0}".format(e))
-
-    def get_report_path(self):
-        return self.report_path
 
 
 class TaskReport:
@@ -242,4 +244,4 @@ class TaskReport:
 
 class CheckrReportException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(CheckrReportException,self).__init__(msg, obj)
+        super(CheckrReportException, self).__init__(msg, obj)
