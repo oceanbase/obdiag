@@ -1,3 +1,8 @@
+![License](https://img.shields.io/:license-MulanPSL2-blue.svg)
+![pyversions](https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg)
+[![Github stars](https://img.shields.io/github/stars/oceanbase/oceanbase-diagnostic-tool?style=flat-square)](https://github.com/oceanbase/oceanbase-diagnostic-tool)
+[![OpenIssue](https://img.shields.io/github/issues/oceanbase/oceanbase-diagnostic-tool)](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+
 # Oceanbase Diagnostic Tool (obdiag)
 OceanBase Diagnostic Tool (obdiag) 是一款专门OceanBase打造的敏捷诊断工具，功能包括诊断信息收集、分析、巡检，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
 

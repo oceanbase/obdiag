@@ -1,5 +1,11 @@
 English | [中文版](README-CN.md)
 
+![License](https://img.shields.io/:license-MulanPSL2-blue.svg)
+![pyversions](https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg)
+[![Github stars](https://img.shields.io/github/stars/oceanbase/oceanbase-diagnostic-tool?style=flat-square)](https://github.com/oceanbase/oceanbase-diagnostic-tool)
+[![OpenIssue](https://img.shields.io/github/issues/oceanbase/oceanbase-diagnostic-tool)](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+
+
 # Oceanbase Diagnostic Tool (obdiag)
 OceanBase Diagnostic Tool (obdiag) is is a quick diagnostic tool for open-source OceanBase software. The features include gather\analyze\check OceanBase Diagnostic information. It can be executed with one click in different deployment modes of OceanBase clusters (OCP, OBD, or manually deployed by users according to documentation).
 
