@@ -1,9 +1,25 @@
 English | [中文版](README-CN.md)
 
-![License](https://img.shields.io/:license-MulanPSL2-blue.svg)
-![pyversions](https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg)
-[![Github stars](https://img.shields.io/github/stars/oceanbase/oceanbase-diagnostic-tool?style=flat-square)](https://github.com/oceanbase/oceanbase-diagnostic-tool)
-[![OpenIssue](https://img.shields.io/github/issues/oceanbase/oceanbase-diagnostic-tool)](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+<p align="center">
+    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool/blob/master/LICENSE">
+        <img alt="license" src="https://img.shields.io/badge/license-MulanPubL--2.0-blue" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool/releases/latest">
+        <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool%2Freleases%2Flatest" />
+    </a>
+    <a href="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg">
+        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool">
+        <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool">
+        <img alt="forks" src="https://img.shields.io/badge/dynamic/json?color=blue&label=forks&query=forks&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool" />
+    </a>
+    <a href="https://www.oceanbase.com/docs/obdiag-cn">
+        <img alt="Chinese doc" src="https://img.shields.io/badge/文档-简体中文-blue" />
+    </a>
+</p>
 
 
 # Oceanbase Diagnostic Tool (obdiag)
