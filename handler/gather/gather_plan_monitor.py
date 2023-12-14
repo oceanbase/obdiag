@@ -15,17 +15,19 @@
 @file: gather_plan_monitor.py
 @desc:
 """
+from logging import log
 import os
+import re
 import sys
 import shutil
 import time
 from decimal import Decimal
 import uuid
-
-import MySQLdb
+import pymysql as mysql
 import tabulate
 from prettytable import from_db_cursor
 
+from common.command import get_observer_version_by_sql
 from common.logger import logger
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGInvalidArgs, OBDIAGArgsNotFoundException
@@ -43,14 +45,14 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
         self.ob_cluster = ob_cluster
         self.local_stored_path = gather_pack_dir
         self.gather_timestamp = gather_timestamp
-        self.ob_cluster_name = ob_cluster["cluster_name"]
+        self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
         self.tenant_mode = None
         self.sys_database = None
         self.database = None
-        self.ob_connector = OBConnector(ip=ob_cluster["host"],
-                                        port=ob_cluster["port"],
-                                        username=ob_cluster["user"],
-                                        password=ob_cluster["password"],
+        self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
+                                        port=ob_cluster.get("db_port"),
+                                        username=ob_cluster.get("tenant_sys").get("user"),
+                                        password=ob_cluster.get("tenant_sys").get("password"),
                                         timeout=100)
         self.enable_dump_db = False
         self.trace_id = None
@@ -68,7 +70,7 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
         :return: the summary should be displayed
         """
         if not self.__check_valid_and_parse_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
         pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(
             timestamp_to_filename_time(self.gather_timestamp)))
         self.report_file_path = os.path.join(pack_dir_this_command, "sql_plan_monitor_report.html")
@@ -125,26 +127,36 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                 plan_explain_sql = self.plan_explain_sql(tenant_id, plan_id, svr_ip, svr_port)
 
                 # 输出报告头
+                logger.info("[sql plan monitor report task] report header")
                 self.report_header()
                 # 输出sql_audit的概要信息
+                logger.info("[sql plan monitor report task] report sql_audit")
                 self.report_sql_audit()
                 # 输出sql explain的信息
+                logger.info("[sql plan monitor report task] report plan explain")
                 self.report_plan_explain(db_name, sql)
                 # 输出plan cache的信息
+                logger.info("[sql plan monitor report task] report plan cache")
                 self.report_plan_cache(plan_explain_sql)
                 # 输出表结构的信息
+                logger.info("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql)
                 self.init_monitor_stat()
                 # 输出sql_audit的详细信息
+                logger.info("[sql plan monitor report task] report sql_audit details")
                 self.report_sql_audit_details(full_audit_sql_by_trace_id_sql)
                 # 输出算子信息 表+图
+                logger.info("[sql plan monitor report task] report sql plan monitor dfo")
                 self.report_sql_plan_monitor_dfo_op(sql_plan_monitor_dfo_op)
                 # 输出算子信息按 svr 级汇总 表+图
+                logger.info("[sql plan monitor report task] report sql plan monitor group by server")
                 self.report_sql_plan_monitor_svr_agg(sql_plan_monitor_svr_agg_v1, sql_plan_monitor_svr_agg_v2)
                 self.report_fast_preview()
                 # 输出算子信息按算子维度聚集
+                logger.info("[sql plan monitor report task] sql plan monitor detail operator")
                 self.report_sql_plan_monitor_detail_operator_priority(sql_plan_monitor_detail_v1)
                 # 输出算子信息按线程维度聚集
+                logger.info("[sql plan monitor report task] sql plan monitor group by priority")
                 self.reportsql_plan_monitor_detail_svr_priority(sql_plan_monitor_detail_v2)
 
                 # 输出本报告在租户下使用的 SQL
@@ -170,10 +182,17 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
             gather_pack_path_dict[cluster_name] = resp["gather_pack_path"]
             gather_tuples.append((cluster_name, False, "", int(time.time() - st), pack_dir_this_command))
 
-        cs_resources_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], "../../resources")
+        if getattr(sys, 'frozen', False):
+                absPath = os.path.dirname(sys.executable)
+        else:
+            absPath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        cs_resources_path = os.path.join(absPath, "resources")
+        logger.info("[cs resource path] : {0}".format(cs_resources_path))
         target_resources_path = os.path.join(pack_dir_this_command, "resources")
         self.copy_cs_resource(cs_resources_path, target_resources_path)
+        logger.info("[sql plan monitor report task] start")
         handle_plan_monitor_from_ob(self.ob_cluster_name, args)
+        logger.info("[sql plan monitor report task] end")
         summary_tuples = self.__get_overall_summary(gather_tuples)
         print(summary_tuples)
         display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
@@ -198,7 +217,7 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
             return False
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: Set store dir {0} failed: No such directory."
+                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
                              .format(os.path.abspath(getattr(args, "store_dir"))))
                 return False
             else:
@@ -240,6 +259,7 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                     try:
                         data = self.ob_connector.execute_sql("show create table %s" % t)
                         schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % (data[1])
+                        logger.debug("table schema: {0}".format(schemas))
                     except Exception as e:
                         pass
             cursor = self.ob_connector.execute_sql_return_cursor("show variables like '%parallel%'")
@@ -513,22 +533,9 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
         try:
             data = self.ob_connector.execute_sql("select version();")
             logger.info("Detected mySQL mode successful,  Database version : %s " % ("%s" % data[0]))
-            v = "%s" % data
-            if not v.find("CE"):
-                if len(v.split('-')) > 1:
-                    v = v.split('-')[2][1:]
-                    version = v[0]
-                else:
-                    version = v
-            else:
-                if len(v.split('-')) > 1:
-                    if sys.version_info[0] < 3:
-                        v = v.split('-')[0][4:]
-                    else:
-                        v = v.split('-')[0][3:]
-                    version = v[0]
-                else:
-                    version = v
+            ob_version = data[0]
+            version_info = re.findall(r'OceanBase(_)?(.CE)?-v(.+)', ob_version[0])
+            version = version_info[0][2]
             if int(version[0]) >= 4:
                 self.sql_audit_name = "gv$ob_sql_audit"
                 self.plan_explain_name = "gv$ob_plan_cache_plan_explain"
@@ -717,8 +724,8 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
     def report_plan_explain(self, db_name, raw_sql):
         explain_sql = "explain %s" % raw_sql
         try:
-            db = MySQLdb.connect(host=self.ob_cluster["host"], port=self.ob_cluster["port"],
-                                 user=self.ob_cluster["user"], passwd=self.ob_cluster["password"], db=db_name)
+            db = mysql.connect(host=self.ob_cluster["db_host"], port=int(self.ob_cluster["db_port"]),
+                                 user=self.ob_cluster["tenant_sys"]["user"], passwd=self.ob_cluster["tenant_sys"]["password"], db=db_name)
             cursor = db.cursor()
             logger.debug("execute SQL: %s", explain_sql)
             cursor.execute(explain_sql)

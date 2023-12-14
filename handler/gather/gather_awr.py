@@ -54,7 +54,7 @@ class GatherAwrHandler(BaseHttpHandler):
         """
         # check args first
         if not self.__check_valid_and_parse_args(args):
-            raise OBDIAGInvalidArgs("Invalid args, args={0}".format(args))
+            return
         # example of the format of pack dir for this command: (gather_pack_dir)/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir,
                                              "gather_pack_{0}".format(timestamp_to_filename_time(
@@ -228,7 +228,8 @@ class GatherAwrHandler(BaseHttpHandler):
                 self.ob_cluster = ocp_cluster.ObCluster(self.ocp_url, self.auth, None)
                 self.cluster_id = self.ob_cluster.get_cluster_id_by_name(getattr(args, "cluster_name"))
             except Exception as e:
-                raise Exception("get cluster id from ocp failed, Exception:{0}, please check cluster_name".format(e))
+                logger.error("get cluster id from ocp failed, Exception:{0}, please check cluster_name".format(e))
+                return False
             # 3: to timestamp must be larger than from timestamp, otherwise be valid
         if getattr(args, "from") is not None and getattr(args, "to") is not None:
             try:
@@ -256,7 +257,7 @@ class GatherAwrHandler(BaseHttpHandler):
                 since_to_seconds = 3600
             self.from_time_str = (now_time - datetime.timedelta(seconds=since_to_seconds)).strftime('%Y-%m-%d %H:%M:%S')
         else:
-            raise OBDIAGInvalidArgs(
+            logger.error(
                 "Invalid args, you need input since or from and to datetime, args={0}".format(args))
         return True
 

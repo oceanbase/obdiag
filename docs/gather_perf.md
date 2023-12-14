@@ -5,14 +5,14 @@
 - 支持一键获取observer进程的"pstack 火焰图", 用"pstack"代指
 
 ```
-./obdiag gather perf [-h]
+$ obdiag gather perf [-h]
 
-Example: ./obdiag gather perf --scope all
+Example: obdiag gather perf --scope all
 ```
 
 执行结果
 ```shell script
-Example: ./obdiag gather perf --scope all
+Example: obdiag gather perf --scope all
 
 Gather Perf Summary:
 +----------------+-----------+----------+--------+-------------------------------------------------------------------+

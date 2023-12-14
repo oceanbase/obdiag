@@ -1,0 +1,76 @@
+# Oceanbase Diagnostic Tool (obdiag)
+OceanBase Diagnostic Tool (obdiag) 是一款专门OceanBase打造的敏捷诊断工具，功能包括诊断信息收集、分析、巡检，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
+
+# 安装 obdiag
+
+可通过如下方式安装obdiag
+
+## 方式一: 通过rpm包安装
+```shell script
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+sudo yum install -y oceanbase-diagnostic-tool
+sh /usr/local/oceanbase-diagnostic-tool/init.sh
+```
+
+## 方式二：源码编译安装
+源码编译环境确保有如下依赖
+- gcc
+- wget
+- python-devel
+- mysql-devel
+
+源码编译需要在python >= 3.8的环境下进行
+
+```shell
+pip install -r requirements3.txt
+cd rpm && sh build.sh build_obdiag
+sh init.sh
+```
+
+# obdiag config
+配置文件的默认路径是`~/.obdiag/config.yml` . 可直接编辑配置文件或者通过`obdiag config <option>` 命令快速生成配置
+```shell script
+obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
+```
+
+# obdiag 功能
+
+## obdiag 巡检功能
+- [一键巡检](./docs/check.md)
+
+## obdiag 一键信息采集功能
+
+- [一键收集OB日志](./docs/gather_ob_log.md)
+- [一键收集AWR报告](./docs/gather_awr.md)
+- [一键收集主机信息](./docs/gather_sysstat.md)
+- [一键收集slog/clog日志](./docs/gather_admin.md)
+- [一键收集火焰图信息](./docs/gather_perf.md)
+- [一键收集OB堆栈信息](./docs/gather_ob_stack.md)
+- [一键收集并行SQL的执行详情信息](./docs/gather_sql_plan_monitor.md)
+- [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
+- [一键收集AWR报告](./docs/gather_awr.md)
+- [一键收集全部诊断信息](./docs/gather_all.md)
+
+## obdiag 一键分析功能说明
+- [一键分析OB日志](./docs/analyze_ob_log.md)
+
+# 许可证
+
+OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
+您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
+
+
+## 贡献
+
+我们热烈欢迎并高度赞赏您的贡献。您可以通过以下几种方式做出贡献：
+
+- 向我们提出一个[issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)。
+- 提交请求。
+
+## 支持
+
+如果您在使用 OceanBase LogProxy 时遇到任何问题，欢迎联系我们寻求帮助：
+
+- [GitHub Issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+- [官方网站](https://www.oceanbase.com/docs/obdiag-cn)

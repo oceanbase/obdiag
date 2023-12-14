@@ -24,17 +24,17 @@ from utils.utils import build_str_on_expr_by_dict, convert_to_number
 
 class StepSQLHandler:
     def __init__(self, step, ob_cluster, task_variable_dict):
-        self.ob_cluster = ob_cluster
-        self.ob_cluster_name = ob_cluster["cluster_name"]
-        self.tenant_mode = None
-        self.sys_database = None
-        self.database = None
         try:
-            self.ob_connector = OBConnector(ip=ob_cluster["host"],
-                                        port=ob_cluster["port"],
-                                        username=ob_cluster["user"],
-                                        password=ob_cluster["password"],
-                                        timeout=100)
+            self.ob_cluster = ob_cluster
+            self.ob_cluster_name = ob_cluster.get("cluster_name")
+            self.tenant_mode = None
+            self.sys_database = None
+            self.database = None
+            self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
+                                        port=ob_cluster.get("db_port"),
+                                        username=ob_cluster.get("tenant_sys").get("user"),
+                                        password=ob_cluster.get("tenant_sys").get("password"),
+                                        timeout=10000)
         except Exception as e:
             logger.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
             raise Exception("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
@@ -65,13 +65,13 @@ class StepSQLHandler:
                 data = data[0][0]
             if data is None:
                 data = ""
-            logger.info("sql result:{0}".format(data))
+            logger.info("sql result:{0}".format(convert_to_number(data)))
             if "result" in self.step and "set_value" in self.step["result"]:
-                logger.info("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], data))
-                self.task_variable_dict[self.step["result"]["set_value"]] = data
+                logger.info("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], convert_to_number(data)))
+                self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(data)
         except Exception as e:
-            logger.error("StepSQLHandler execute Exception: {0}".format(e))
-            raise StepExecuteFailException(e)
+            logger.error("StepSQLHandler execute Exception: {0}".format(e).strip())
+            raise StepExecuteFailException("StepSQLHandler execute Exception: {0}".format(e).strip())
 
     def update_step_variable_dict(self):
         return self.task_variable_dict

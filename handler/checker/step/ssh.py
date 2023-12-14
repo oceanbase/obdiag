@@ -20,7 +20,7 @@ from handler.checker.check_exception import StepExecuteFailException
 from handler.checker.check_report import TaskReport
 from utils.shell_utils import SshHelper
 from common.logger import logger
-from utils.utils import convert_to_number, build_str_on_expr_by_dict
+from utils.utils import convert_to_number, build_str_on_expr_by_dict, get_localhost_inner_ip
 
 
 class SshHandler:
@@ -30,12 +30,18 @@ class SshHandler:
         self.step = step
         self.node = node
         try:
-            self.ssh_helper = SshHelper(True, self.node["ip"], self.node["user"], self.node["password"],
-                                        self.node["port"],
-                                        self.node["private_key"])
+            is_ssh = True
+            self.ssh_helper = SshHelper(is_ssh, node.get("ip"),
+                                        node.get("user"),
+                                        node.get("password"),
+                                        node.get("port"),
+                                        node.get("private_key"),
+                                        node)
         except Exception as e:
-            logger.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node,e))
-            raise Exception("SshHandler init fail. Please check the NODES conf node: {0}  Exception : {1} .".format(node,e))
+            logger.error(
+                "SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
+            raise Exception(
+                "SshHandler init fail. Please check the NODES conf node: {0}  Exception : {1} .".format(node, e))
         self.task_variable_dict = task_variable_dict
         self.parameter = []
         self.report = TaskReport
@@ -47,19 +53,18 @@ class SshHandler:
             ssh_cmd = build_str_on_expr_by_dict(self.step["ssh"], self.task_variable_dict)
             logger.info("step SshHandler execute :{0} ".format(ssh_cmd))
             ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
-            if ssh_report_value == None:
+            if ssh_report_value is None:
                 ssh_report_value = ""
-            if len(ssh_report_value)>0:
-                if ssh_report_value[-1]=="\n":
-                    ssh_report_value=ssh_report_value[:-1]
+            if len(ssh_report_value) > 0:
+                ssh_report_value = ssh_report_value.strip()
             logger.info("ssh result:{0}".format(convert_to_number(ssh_report_value)))
             if "result" in self.step and "set_value" in self.step["result"]:
                 logger.debug("ssh result set {0}".format(self.step["result"]["set_value"],
                                                          convert_to_number(ssh_report_value)))
                 self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(ssh_report_value)
         except Exception as e:
-            logger.error("ssh execute Exception:{0}".format(e.msg))
-            raise StepExecuteFailException(e)
+            logger.error("ssh execute Exception:{0}".format(e).strip())
+            raise StepExecuteFailException("ssh execute Exception:{0}".format(e).strip())
         finally:
             self.ssh_helper.ssh_close()
         logger.info("step SshHandler ssh_report_value:{0}".format(ssh_report_value))

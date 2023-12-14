@@ -24,9 +24,9 @@ from common.logger import logger
 class BaseHttpHandler(object):
     def __init__(self, ocp):
         self.ocp = ocp
-        self.ocp_user = ocp["LOGIN"]["user"]
-        self.ocp_password = ocp["LOGIN"]["password"]
-        self.ocp_url = ocp["LOGIN"]["url"]
+        self.ocp_user = ocp["login"]["user"]
+        self.ocp_password = ocp["login"]["password"]
+        self.ocp_url = ocp["login"]["url"]
         self.auth = (self.ocp_user, self.ocp_password)
 
     @staticmethod

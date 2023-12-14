@@ -62,7 +62,7 @@ class ResultFailException(CheckException):
 
 class VerifyFalseException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(VerifyFalseException.self).__init__(msg, obj)
+        super(VerifyFalseException,self).__init__(msg, obj)
 
 
 class VerifyFailException(CheckException):

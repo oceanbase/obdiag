@@ -15,10 +15,8 @@
 @file: command.py
 @desc:
 """
-import os
 import re
 import subprocess
-import sys
 
 from paramiko import SSHException
 
@@ -53,29 +51,30 @@ class LocalClient:
 class SshClient:
     def run(self, ssh_helper, cmd):
         try:
-            logger.info("[remote host {0}] excute cmd = [{1}]".format(ssh_helper.host_ip, cmd))
+            logger.info("[remote host {0}] excute cmd = [{1}]".format(ssh_helper.get_name(), cmd))
             stdout = ssh_helper.ssh_exec_cmd(cmd)
             logger.debug(
-                "[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(ssh_helper.host_ip, cmd, stdout))
+                "[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(ssh_helper.get_name(), cmd, stdout))
             return stdout
         except Exception as e:
-            logger.error("[remote host {0}] excute cmd = [{1}] except: [{2}]".format(ssh_helper.host_ip, cmd, e))
+            logger.error("[remote host {0}] excute cmd = [{1}] except: [{2}]".format(ssh_helper.get_name(), cmd, e))
 
     def run_get_stderr(self, ssh_helper, cmd):
         try:
-            logger.info("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.host_ip, cmd))
+            logger.info("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
             std = ssh_helper.ssh_exec_cmd_get_stderr(cmd)
             return std
         except Exception as e:
-            logger.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.host_ip, cmd, e))
+            logger.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
 
     def run_ignore_err(self, ssh_helper, cmd):
         try:
-            logger.info("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.host_ip, cmd))
+            logger.info("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
             std = ssh_helper.ssh_exec_cmd_ignore_err(cmd)
             return std
         except SSHException as e:
-            logger.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.host_ip, cmd, e))
+            logger.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
+
 
 def get_file_size(is_ssh, ssh_helper, dir):
     """
@@ -98,13 +97,16 @@ def download_file(is_ssh, ssh_helper, remote_path, local_path):
     :return: local path
     """
     logger.info(
-        "Please wait a moment, download file [{0}] from server {1} to [{2}]".format(remote_path, ssh_helper.host_ip,
+        "Please wait a moment, download file [{0}] from server {1} to [{2}]".format(remote_path, ssh_helper.get_name(),
                                                                                     local_path))
-    if is_ssh:
-        ssh_helper.download(remote_path, local_path)
-    else:
-        cmd = "cp -r {0} {1}".format(remote_path, local_path)
-        LocalClient().run(cmd)
+    try:
+        if is_ssh:
+            ssh_helper.download(remote_path, local_path)
+        else:
+            cmd = "cp -r {0} {1}".format(remote_path, local_path)
+            LocalClient().run(cmd)
+    except Exception as e:
+        logger.error("Download File Failed error: {0}".format(e))
     return local_path
 
 
@@ -115,12 +117,15 @@ def upload_file(is_ssh, ssh_helper, local_path, remote_path):
     :return: local path
     """
     logger.info("Please wait a moment, upload file to server {0}, local file path {1}, remote file path {2}".format(
-        ssh_helper.host_ip, local_path, remote_path))
-    if is_ssh:
-        ssh_helper.upload(local_path, remote_path)
-    else:
-        cmd = "cp -r {0} {1}".format(local_path, remote_path)
-        LocalClient().run(cmd)
+        ssh_helper.get_name(), local_path, remote_path))
+    try:
+        if is_ssh:
+            ssh_helper.upload(local_path, remote_path)
+        else:
+            cmd = "cp -r {0} {1}".format(local_path, remote_path)
+            LocalClient().run(cmd)
+    except Exception as e:
+        logger.error("Upload File Failed error: {0}".format(e))
 
 
 def rm_rf_file(is_ssh, ssh_helper, dir):
@@ -218,11 +223,11 @@ def get_logfile_name_list(is_ssh, ssh_helper, from_time_str, to_time_str, log_di
                     log_name_list.append(file_name)
     if len(log_name_list) > 0:
         logger.info("Find the qualified log file {0} on Server [{1}], "
-                    "wait for the next step".format(log_name_list, "localhost" if is_ssh else ssh_helper.host_ip))
+                    "wait for the next step".format(log_name_list, "localhost" if not is_ssh else ssh_helper.get_name()))
     else:
         logger.warn("Failed to find the qualified log file on Server [{0}], "
                     "please check whether the input parameters are correct. ".format(
-            "localhost" if is_ssh else ssh_helper.host_ip))
+            "localhost" if not is_ssh else ssh_helper.get_name()))
     return log_name_list
 
 
@@ -331,9 +336,47 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
                 ob_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
             else:
                 ob_version_info = LocalClient().run_get_stderr(cmd)
-            logger.info("get observer version, run cmd = [{0}]".format(cmd))
+            logger.info("get observer version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,ob_version_info))
+            if "REVISION" not in ob_version_info:
+                raise Exception("Please check conf about observer,{0}".format(ob_version_info))
             ob_version = re.findall(r'[(]OceanBase.CE\s(.+?)[)]', ob_version_info)[0]
             return ob_version
+
+
+def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir):
+    """
+    get obproxy version
+    :param args: is_ssh, ssh helper, ob install dir
+    :return:
+    """
+    obproxy_version = ""
+    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+    if is_ssh:
+        obproxy_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
+    else:
+        obproxy_version_info = LocalClient().run_get_stderr(cmd)
+    logger.info("get obproxy version, run cmd = [{0}] ".format(cmd))
+    if obproxy_version_info is not None:
+        ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
+        if len(ob_version) > 0:
+            return ob_version[0]
+        else:
+            cmd = "export LD_LIBRARY_PATH={obproxy_install_dir}/lib && {obproxy_install_dir}/bin/obproxy --version".format(
+                obproxy_install_dir=obproxy_install_dir)
+            if is_ssh:
+                obproxy_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
+            else:
+                obproxy_version_info = LocalClient().run_get_stderr(cmd)
+            logger.info("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,obproxy_version_info))
+            if "REVISION" not in obproxy_version_info:
+                raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
+            pattern = r"(\d+\.\d+\.\d+\.\d+)"
+            match = re.search(pattern, obproxy_version_info)
+            if match:
+                obproxy_version_info = match.group(1)
+                obproxy_version_info = obproxy_version_info.split()[0]
+            return obproxy_version_info
+
 def get_observer_version_by_sql(ob_cluster):
     logger.debug("start get_observer_version_by_sql . input: {0}".format(ob_cluster))
     try:
@@ -344,21 +387,15 @@ def get_observer_version_by_sql(ob_cluster):
                                    timeout=100)
         ob_version_info = ob_connector.execute_sql("select version();")
     except Exception as e:
-        raise Exception("get_observer_version_by_sql Exception. Maybe cluster'info is error: "+e.__str__())
+        raise Exception("get_observer_version_by_sql Exception. Maybe cluster'info is error: " + e.__str__())
 
-    ob_version = str(ob_version_info[0])
-    logger.info("get_observer_version_by_sql ob_version_info is {0}".format(ob_version))
-    if len(ob_version) > 10:
-        # 4.x
-        ob_version = str(ob_version)[2:-3].split("_")[-1]
-        # 将下划线替换为空格
-        ob_version = ob_version.replace("-", " ")
+    ob_version = ob_version_info[0]
+    logger.debug("get_observer_version_by_sql ob_version_info is {0}".format(ob_version))
+    version = re.findall(r'OceanBase(_)?(.CE)?-v(.+)', ob_version[0])
+    if len(version) > 0:
+        return version[0][2]
     else:
-        # 3.x
-        ob_version = str(ob_version)[2:-3]
-    return ob_version
-    
-    
+        return None
 
 
 def get_observer_pid(is_ssh, ssh_helper, ob_install_dir):
@@ -468,5 +505,5 @@ def get_obdiag_display(log_dir, trace_id):
     cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
     stdout = LocalClient().run(cmd)
     print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
-    if len(print_stdout)>0:
+    if len(print_stdout) > 0:
         print(print_stdout)

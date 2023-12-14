@@ -23,7 +23,7 @@ from handler.checker.result.result import CheckResult
 from handler.checker.step.ssh import SshHandler
 from handler.checker.step.sql import StepSQLHandler
 from common.logger import logger
-
+import docker
 
 class StepBase(object):
     def __init__(self, step, node, cluster, task_variable_dict):
@@ -34,38 +34,48 @@ class StepBase(object):
         self.task_variable_dict = task_variable_dict
 
     def execute(self, report):
+        no_cluster_name_msg="(Please set ob_cluster_name or obproxy_cluster_name)"
         # execute and result
         try:
-            self.task_variable_dict["remote_ip"] = self.node["ip"]
+            # init task_variable_dict
+            ## set remote_ip
+            if "ip" in self.node:
+                self.task_variable_dict["remote_ip"] = self.node["ip"]
+            elif "ssh_type" in self.node and self.node["ssh_type"]=="docker":
+                logger.debug("execute ssh_type is docker")
+                self.task_variable_dict["remote_ip"] = docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks']['bridge']["IPAddress"]
             self.task_variable_dict["remote_home_path"] = self.node["home_path"]
 
             if "type" not in self.step:
                 raise StepExecuteFailException("Missing field :type")
             if self.step["type"] == "get_system_parameter":
                 handler = GetSystemParameterHandler(self.step, self.node, self.task_variable_dict)
-                # self.task_variable_dict = handler.update_step_variable_dict()
             elif self.step["type"] == "ssh":
                 handler = SshHandler(self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "sql":
                 handler = StepSQLHandler(self.step, self.cluster, self.task_variable_dict)
             else:
                 raise StepExecuteFailException("the type not support: {0}" .format(self.step["type"]))
-            logger.info("task execute and result")
+            logger.debug("task execute and result")
             handler.execute()
         except Exception as e:
-            logger.error("StepBase handler.execute fail".format(e))
-            report.add(e.msg, "fail")
-            raise StepExecuteFailException("StepBase handler.execute fail".format(e))
+            logger.error("StepBase handler.execute fail {0}".format(e))
+            if self.step["type"] == "sql":
+                report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
+                                                                                    "obproxy_cluster_name") or no_cluster_name_msg, e), "fail")
+            else:
+                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",e), "fail")
+            raise StepExecuteFailException("StepBase handler.execute fail {0}".format(e))
 
         try:
             self.task_variable_dict = handler.update_step_variable_dict()
             logger.debug("self.task_variable_dict: {0}".format(self.task_variable_dict))
             if "result" in self.step:
-                logger.info("result execute ")
+                logger.debug("result execute ")
                 result = CheckResult(self.step["result"], self.task_variable_dict)
                 result.execute()
                 if "report_type" in self.step["result"] and self.step["result"]["report_type"] == "execution":
-                    logger.info("report_type stop this step")
+                    logger.debug("report_type stop this step")
                     return
 
         except ResultFalseException as resultException:
@@ -74,7 +84,7 @@ class StepBase(object):
             # When result.type is execution, if this step is executed successfully, subsequent steps will not be
             # executed.
 
-            logger.warning("step_base ResultFalseException:{0}".format(resultException.msg))
+            logger.warning("step_base ResultFalseException:{0}".format(resultException))
             level = "critical"
             logger.debug("step_base ResultFalseException self.step.result:{0}".format(self.step["result"]))
             if "result" in self.step:
@@ -84,16 +94,23 @@ class StepBase(object):
 
             if level == "execution":
                 level = "warning"
-
-            report.add(resultException.msg, level)
+            if self.step["type"] == "sql":
+                report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
+                    "obproxy_cluster_name") or no_cluster_name_msg , resultException), level)
+            else:
+                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultException), level)
             if level == "critical":
-                raise StepResultFailException(resultException.msg)
-            raise StepResultFalseException(resultException.msg)
+                raise StepResultFailException(resultException)
+            raise StepResultFalseException(resultException)
 
         except ResultFailException as resultFailException:
             # 验证失败，属于fail类型，一般是verify阶段出现异常,需要马上修正
-            logger.error("step_base ResultFailException:{0}".format(resultFailException.msg))
-            report.add(resultFailException.msg, "fail")
+            logger.error("step_base ResultFailException:{0}".format(resultFailException))
+            if self.step["type"] == "sql":
+                report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
+                    "obproxy_cluster_name") or no_cluster_name_msg , resultFailException), "fail")
+            else:
+                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultFailException), "fail")
             raise StepResultFailException(resultFailException)
 
         except Exception as e:

@@ -15,6 +15,7 @@
 @file: time_utils.py
 @desc:
 """
+import json
 import time
 import traceback
 import datetime
@@ -203,3 +204,42 @@ def get_time_rounding(dt, step=0, rounding_level="s"):
     else:
         new_dt = dt
     return str(new_dt)
+
+
+def trans_time(size: int):
+    """
+    将时间单位转化为字符串
+    :param size: 时间单位，单位为微秒
+    :return: 转化后的字符串
+    """
+    if size < 0:
+        return 'NO_END'
+    mapping = [
+        (86400000000, 'd'),
+        (3600000000, 'h'),
+        (60000000, 'm'),
+        (1000000, 's'),
+        (1000, 'ms'),
+        (1, 'μs'),
+    ]
+    for unit, unit_str in mapping:
+        if size >= unit:
+            if unit == 1:
+                return '{} {}'.format(size, unit_str)
+            else:
+                return '{:.3f} {}'.format(size / unit, unit_str)
+    return '0'
+
+
+def str_2_timestamp(t):
+    if isinstance(t, int):
+        return t
+    temp = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
+    return int(datetime.datetime.timestamp(temp) * 10 ** 6)
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            # 将datetime对象转换为字符串
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        # 其他类型按默认处理
+        return super().default(obj)

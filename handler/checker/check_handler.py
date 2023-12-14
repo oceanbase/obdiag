@@ -23,69 +23,92 @@ from common.logger import logger
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
-from common.command import get_observer_version_by_sql
+from common.command import get_observer_version, get_obproxy_version
 import re
-from utils.utils import display_trace
+from utils.utils import display_trace, node_cut_passwd_for_log
 from utils.yaml_utils import read_yaml_data
+from utils.shell_utils import SshHelper
 
 
 class CheckHandler:
 
-    def __init__(self, ignore_obversion, package_name, cluster, nodes, export_report_path, export_report_type,
+    def __init__(self, ignore_version, cluster, nodes, export_report_path, export_report_type,
+                 check_target_type="observer",
                  case_package_file="./check_package.yaml", tasks_base_path="./handler/checker/tasks/"):
-
+        # init input parameters
+        self.report = None
         self.tasks = None
         self.export_report_path = export_report_path
         self.export_report_type = export_report_type
-        self.ignore_obversion = ignore_obversion
+        self.ignore_version = ignore_version
         self.cluster = cluster
         self.nodes = nodes
         self.tasks_base_path = tasks_base_path
-        logger.info("check_package_file is {0} ,package_name is {1}, ignore_obversion is{2} , tasks_base_path is {3},"
-                    "cluster is {4}, nodes is {5}, export_report_path is {6}, export_report_type is {7},".format(
-            case_package_file, package_name,
-            ignore_obversion, tasks_base_path, cluster, nodes, export_report_path, export_report_type))
+        self.check_target_type = check_target_type
+
+        logger.debug("CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
+                     "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
+                     "case_package_file is {6}, tasks_base_path is {7}.".format(ignore_version,
+                                                                                cluster.get(
+                                                                                    "ob_cluster_name") or cluster.get(
+                                                                                    "obproxy_cluster_name"),
+                                                                                node_cut_passwd_for_log(nodes),
+                                                                                export_report_path,
+                                                                                export_report_type,
+                                                                                check_target_type,
+                                                                                case_package_file,
+                                                                                tasks_base_path))
+
         # case_package_file
+        # build case_package_file
+        if check_target_type is not None and check_target_type != "observer":
+            file_name = os.path.basename(case_package_file)
+            file_dir = os.path.dirname(case_package_file)
+            case_package_file = file_dir+"/"+check_target_type + "_" + file_name
         case_package_file = os.path.expanduser(case_package_file)
         if os.path.exists(case_package_file):
             self.package_file_name = case_package_file
-        elif os.path.exists("./check_package.yaml"):
-            logger.warning(
-                "case_package_file {0} is not exist . use default ./check_package.yaml".format(case_package_file))
-            self.tasks_base_path = "./check_package.yaml"
         else:
             raise CheckException("case_package_file {0} is not exist".format(case_package_file))
         logger.info("case_package_file is " + self.package_file_name)
+
         # checker tasks_base_path
-        if not tasks_base_path == "":
-            tasks_base_path = os.path.expanduser(tasks_base_path)
-            if os.path.exists(tasks_base_path):
-                self.tasks_base_path = tasks_base_path
-            elif os.path.exists("./handler/checker/tasks/"):
-                logger.warning(
-                    "tasks_base_path {0} is not exist . use default ./handler/checker/tasks/".format(tasks_base_path))
-                self.tasks_base_path = "./handler/checker/tasks/"
-            else:
-                raise CheckException("tasks_base_path {0} is not exist".format(tasks_base_path))
+        # build tasks_base_path
+        if check_target_type is not None:
+            tasks_base_path = tasks_base_path + "/" + check_target_type
+        tasks_base_path = os.path.expanduser(tasks_base_path)
+        if os.path.exists(tasks_base_path):
+            self.tasks_base_path = tasks_base_path
+        else:
+            raise CheckException("tasks_base_path {0} is not exist".format(tasks_base_path))
         logger.info("tasks_base_path is " + self.tasks_base_path)
+
         # checker export_report_path
         export_report_path = os.path.expanduser(export_report_path)
         if not os.path.exists(export_report_path):
             logger.warning("{0} not exists. mkdir it!".format(self.export_report_path))
             os.mkdir(export_report_path)
-            self.export_report_path = export_report_path
+        self.export_report_path = export_report_path
         logger.info("export_report_path is " + self.export_report_path)
 
     def handle(self, args):
         package_name = None
-        if getattr(args, "cases"):
-            package_name = getattr(args, "cases")[0]
-            logger.info("cases name is {0}".format(package_name))
-        else:
-            logger.info("cases name is None")
+        if self.check_target_type == "obproxy" and getattr(args, "obproxy_cases"):
+            obproxy_cases = getattr(args, "obproxy_cases")
+            if isinstance(obproxy_cases, list):
+                package_name = obproxy_cases[0]
+            else:
+                package_name = getattr(args, "obproxy_cases")
+
+        if self.check_target_type == "observer" and getattr(args, "cases"):
+            package_name = getattr(args, "cases")
+            if isinstance(package_name, list):
+                package_name = package_name[0]
+            else:
+                package_name = getattr(args, "cases")
+
         logger.info("package_name is {0}".format(package_name))
         # get package's by package_name
-
         self.tasks = {}
         if package_name:
             package_tasks_by_name = self.get_package_tasks(package_name)
@@ -96,7 +119,7 @@ class CheckHandler:
                     end_tasks[package_task] = self.tasks[package_task]
             self.tasks = end_tasks
         else:
-            logger.info("tasks_package is all")
+            logger.debug("tasks_package is all")
             self.get_all_tasks()
             filter_tasks = self.get_package_tasks("filter")
             self.tasks = {key: value for key, value in self.tasks.items() if key not in
@@ -138,17 +161,32 @@ class CheckHandler:
     def execute_one(self, task_name):
         try:
             logger.info("execute tasks is {0}".format(task_name))
-            # Verify if the obversion is within a reasonable range
+            # Verify if the version is within a reasonable range
             report = TaskReport(task_name)
-            if not self.ignore_obversion:
-                obversion = get_observer_version_by_sql(self.cluster)
-                logger.info("cluster.obversion is {0}".format(obversion))
-                if len(obversion) < 5:
-                    raise CheckException("execute_one Exception : obversion len <5")
+            if not self.ignore_version:
+                try:
+                    node = self.nodes[0]
+                    ssh = SshHelper(True, node.get("ip"),
+                                    node.get("user"),
+                                    node.get("password"),
+                                    node.get("port"),
+                                    node.get("private_key"),
+                                    node)
 
-                self.cluster["obversion"] = re.findall(r'\d+\.\d+\.\d+\.\d+', obversion)[0]
+                    if self.check_target_type == "observer":
+                        version = get_observer_version(True, ssh, self.nodes[0]["home_path"])
+                    elif self.check_target_type == "obproxy":
+                        version = get_obproxy_version(True, ssh, self.nodes[0]["home_path"])
+                    else:
+                        raise Exception(
+                            "check_target_type is {0} . No func to get the version".format(self.check_target_type))
+                    self.cluster["version"] = re.findall(r'\d+\.\d+\.\d+\.\d+', version)[0]
+                    logger.info("cluster.version is {0}".format(self.cluster["version"]))
+                except Exception as e:
+                    logger.error("can't get version, Exception: {0}".format(e))
+                    raise Exception("can't get version, Exception: {0}".format(e))
             else:
-                logger.info("ignore obversion")
+                logger.info("ignore version")
             task = TaskBase(self.tasks[task_name]["task"], self.nodes, self.cluster, report)
             logger.info("{0} execute!".format(task_name))
             task.execute()
@@ -162,12 +200,14 @@ class CheckHandler:
         try:
             logger.info("execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()),
                                                                                              self.tasks.keys()))
-            report = CheckReport(export_report_path=self.export_report_path, export_report_type=self.export_report_type)
+            self.report = CheckReport(export_report_path=self.export_report_path,
+                                      export_report_type=self.export_report_type,
+                                      report_target=self.check_target_type)
             # one of tasks to execute
             for task in self.tasks:
                 t_report = self.execute_one(task)
-                report.add_task_report(t_report)
-            report.export_report()
+                self.report.add_task_report(t_report)
+            self.report.export_report()
         except CheckrReportException as e:
             logger.error("Report error :{0}".format(e))
         except Exception as e:

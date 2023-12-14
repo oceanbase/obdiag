@@ -1,5 +1,11 @@
+# for obproxy or oms ,cases'name
 ad:
   - system.parameter
+proxy:
+  - version.bad_version
+sysbench_run:
+  - sysbench.sysbench_run_test_tenant_cpu_used
+  - sysbench.sysbench_run_test_tenant_memory_used
 sysbench_free:
   - sysbench.sysbench_free_test_cpu_count
   - sysbench.sysbench_free_test_memory_limit

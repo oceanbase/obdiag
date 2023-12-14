@@ -1,9 +1,9 @@
-## analyze log命令
-通过 analyze log命令，可以指定时间范围去分析目标主机上的OceanBase日志以及传递OceanBase的日志文件进行分析。
+## analyze log
+'obdiag analyze log' can specify a time range to analyze the OceanBase logs on the target host and the log files passing OceanBase for analysis.
 ```
 $ obdiag analyze log -h
 usage: obdiag analyze log [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir]
-                            [--ob_install_dir ob_install_dir] [--scope scope] [--files files [files ...]] [--grep grep [grep ...]]
+                          [-c config] [--scope scope] [--log_level log_level] [--files files [files ...]] [--grep grep [grep ...]]
 
 According to the input parameters, analyze observer logs
 
@@ -13,15 +13,14 @@ optional arguments:
                         specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
   --to datetime datetime
                         specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.
+  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
+                        example: 1h.
   --store_dir store_dir
                         the dir to store gather result, current dir by default.
-  --ob_install_dir ob_install_dir
-                        the dir to ob log dir
+  -c config             obdiag custom config
   --scope scope         log type constrains, choices=[observer, election, rootservice, all], default=all
   --log_level log_level
-                        log level constrains, choices=[DEBUG, TRACE, INFO,
-                        WDIAG, WARN, EDIAG, ERROR], default=WDIAG
+                        log level constrains, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR], default=WARN
   --files files [files ...]
                         specify file
   --grep grep [grep ...]
@@ -33,7 +32,7 @@ Example3: obdiag analyze log --files observer.log.20230831142211247
 Example4: obdiag analyze log --files ./log/
 ```
 
-例子：
+Example：
 ```shell script
 $ obdiag analyze log --scope observer --from 2023-10-08 10:25:00 --to 2023-10-08 11:30:00
 
@@ -59,7 +58,7 @@ Analyze OceanBase Online Log Summary:
 +----------------+-----------+------------------------------------------------------------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------------+---------+
 | 192.168.2.11   | Completed | analyze_pack_20231008171201/192_168_2_11/observer.log.20231008114410668      |       -4009 | IO error                                                                                                                      |      20 |
 +----------------+-----------+------------------------------------------------------------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------------+---------+
-For more details, please run cmd 'cat analyze_pack_20231008171201/result_details.txt'
+For more details, please run cmd ' cat analyze_pack_20231008171201/result_details.txt '
 ```
 
 ```shell script
@@ -85,5 +84,5 @@ Analyze OceanBase Offline Log Summary:
 +-----------+-----------+-----------------------------------------------------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------------+---------+
 | 127.0.0.1 | Completed | analyze_pack_20231008172144/127_0_0_1_/observer.log.20231008114410668 |       -4009 | IO error                                                                                                                      |      20 |
 +-----------+-----------+-----------------------------------------------------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------------+---------+
-For more details, please run cmd 'cat analyze_pack_20231008172144/result_details.txt'
+For more details, please run cmd ' cat analyze_pack_20231008172144/result_details.txt '
 ```

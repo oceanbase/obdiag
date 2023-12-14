@@ -1,0 +1,10 @@
+info: 'Check whether there are more than 200 transaction participants'
+task:
+  - steps:
+    - type: sql
+      sql: 'select count(0) from oceanbase.__all_virtual_trans_stat where part_trans_action > 2 ;'
+      result:
+        set_value: transaction_participants
+        verify_type: max
+        verify: 200
+        err_msg: 'part_trans_action_max is #{transaction_participants} ,  over 200'

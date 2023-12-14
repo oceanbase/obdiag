@@ -1,6 +1,6 @@
 #!/bin/bash
 ####
-OBDIAG_PYTHON="python"
+OBDIAG_PYTHON="python3"
 ####
 whitespace="[[:space:]]"
 final_str=""
@@ -13,13 +13,9 @@ then
     export LD_LIBRARY_PATH=$(ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | awk -F\" '{print $2}' | sed 's/=//' | tr '\n' ':')$OBDIAG_DIR/dependencies/python3/libs/
     export PYTHONPATH=$OBDIAG_DIR/dependencies/python3/site-packages:$PYTHONPATH
     $OBDIAG_PYTHON $OBDIAG_DIR/dependencies/check_dependencies.py
-elif (( $PY_VERSION == 2 ))
-then
-    export LD_LIBRARY_PATH=$(ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | awk -F\" '{print $2}' | sed 's/=//' | tr '\n' ':')$OBDIAG_DIR/dependencies/python2/libs/
-    export PYTHONPATH=$OBDIAG_DIR/dependencies/python2/site-packages:$PYTHONPATH
-    $OBDIAG_PYTHON $OBDIAG_DIR/dependencies/check_dependencies.py
 else
-    echo "Please make sure Python exists in your environment"
+    echo "Please make sure Python3 exists in your environment"
+    exit 1
 fi
 
 for i in "$@"

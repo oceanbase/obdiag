@@ -20,6 +20,7 @@ from common.logger import logger
 from handler.checker.check_exception import StepResultFailException, \
     StepExecuteFailException, StepResultFalseException, TaskException
 from handler.checker.step.stepbase import StepBase
+from utils.utils import node_cut_passwd_for_log
 from utils.version_utils import compare_versions_greater
 
 
@@ -36,18 +37,16 @@ class TaskBase(object):
 
     def execute(self):
         logger.info("task_base execute")
-        steps_nu = self.filter_by_obversion()
+        steps_nu = self.filter_by_version()
         if steps_nu < 0:
-            logger.warning("Unadapted by obversion. SKIP")
-            self.report.add("Unadapted by obversion. SKIP", "warning")
-            return "Unadapted by obversion.SKIP"
-        logger.info("filter_by_obversion is return {0}".format(steps_nu))
+            logger.warning("Unadapted by version. SKIP")
+            self.report.add("Unadapted by version. SKIP", "warning")
+            return "Unadapted by version.SKIP"
+        logger.info("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes)==0:
             raise Exception("node is not exist")
         for node in self.nodes:
-            if "ip" not in node:
-                raise Exception("ip of node is not exist")
-            logger.info("run task in node: {0}".format(node["ip"]))
+            logger.info("run task in node: {0}".format(node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
             nu = 1
             for step in steps["steps"]:
@@ -79,43 +78,43 @@ class TaskBase(object):
                 nu = nu + 1
         logger.info("task execute end")
 
-    def filter_by_obversion(self):
+    def filter_by_version(self):
         try:
             steps = self.task
             steps_nu = 0
             # get observer version
-            if "obversion" not in self.cluster or self.cluster["obversion"] == "":
+            if "version" not in self.cluster or self.cluster["version"] == "":
                 return steps_nu
             for now_steps in steps:
-                # have obversion in task ?
-                if "obversion" in now_steps:
-                    steps_obversions = now_steps["obversion"]
-                    if not isinstance(steps_obversions, str):
-                        raise TaskException("filter_by_obversion steps_obversions Exception : {0}".format("the type of obversion is not string"))
-                    obversion_real = self.cluster["obversion"]
-                    logger.info("obversion_int is {0} steps_obversions is {1}".format(obversion_real, steps_obversions))
+                # have version in task ?
+                if "version" in now_steps:
+                    steps_versions = now_steps["version"]
+                    if not isinstance(steps_versions, str):
+                        raise TaskException("filter_by_version steps_version Exception : {0}".format("the type of version is not string"))
+                    version_real = self.cluster["version"]
+                    logger.info("version_int is {0} steps_versions is {1}".format(version_real, steps_versions))
 
-                    steps_obversions = steps_obversions.replace(" ", "")
-                    steps_obversions = steps_obversions[1:-1]
-                    steps_obversions_list = steps_obversions.split(",")
-                    minVersion = steps_obversions_list[0]
-                    maxVersion = steps_obversions_list[1]
+                    steps_versions = steps_versions.replace(" ", "")
+                    steps_versions = steps_versions[1:-1]
+                    steps_versions_list = steps_versions.split(",")
+                    minVersion = steps_versions_list[0]
+                    maxVersion = steps_versions_list[1]
                     # min
                     if minVersion == "*":
                         minVersion = "-1"
                     if maxVersion == "*":
                         maxVersion = "999"
-                    if compare_versions_greater(obversion_real, minVersion) and compare_versions_greater(maxVersion,
-                                                                                                         obversion_real):
+                    if compare_versions_greater(version_real, minVersion) and compare_versions_greater(maxVersion,
+                                                                                                         version_real):
                         break
                 else:
-                    logger.info("not obversion in now_steps")
+                    logger.info("not version in now_steps")
                     break
                 steps_nu = steps_nu + 1
             if steps_nu > len(steps) - 1:
-                logger.warning("not obversion in this task")
+                logger.warning("not version in this task")
                 return -1
             return steps_nu
         except Exception as e:
-            logger.error("filter_by_obversion Exception : {0}".format(e))
-            raise TaskException("filter_by_obversion Exception : {0}".format(e))
+            logger.error("filter_by_version Exception : {0}".format(e))
+            raise TaskException("filter_by_version Exception : {0}".format(e))

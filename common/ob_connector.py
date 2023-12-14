@@ -15,9 +15,8 @@
 @file: ob_connector.py
 @desc:
 """
-import mysql.connector
 from prettytable import from_db_cursor
-
+import pymysql as mysql
 from common.logger import logger
 
 
@@ -39,7 +38,7 @@ class OBConnector(object):
 
     def _connect_db(self):
         logger.debug("connect OB: {0}:{1} with user {2}".format(self.ip, self.port, self.username))
-        self.conn = mysql.connector.connect(
+        self.conn = mysql.connect(
             host=self.ip,
             port=self.port,
             user=self.username,
@@ -53,7 +52,7 @@ class OBConnector(object):
             self._connect_db()
         else:
             self.conn.ping(reconnect=True)
-        cursor = self.conn.cursor(buffered=True)
+        cursor = self.conn.cursor()
         cursor.execute(sql)
         ret = cursor.fetchall()
         cursor.close()
@@ -64,7 +63,7 @@ class OBConnector(object):
             self._connect_db()
         else:
             self.conn.ping(reconnect=True)
-        cursor = self.conn.cursor(buffered=True, dictionary=True)
+        cursor = self.conn.cursor(mysql.cursors.DictCursor)
         cursor.execute(sql)
         return cursor
 
@@ -73,7 +72,7 @@ class OBConnector(object):
             self._connect_db()
         else:
             self.conn.ping(reconnect=True)
-        cursor = self.conn.cursor(buffered=True)
+        cursor = self.conn.cursor()
         cursor.execute(sql)
         return cursor
 
@@ -82,7 +81,7 @@ class OBConnector(object):
             self._connect_db()
         else:
             self.conn.ping(reconnect=True)
-        cursor = self.conn.cursor(buffered=True)
+        cursor = self.conn.cursor()
         cursor.execute(sql)
         ret = from_db_cursor(cursor)
         cursor.close()
