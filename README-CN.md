@@ -54,6 +54,7 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 
 ## obdiag 一键分析功能说明
 - [一键分析OB日志](./docs/analyze_ob_log.md)
+- [一键全链路诊断](./docs/analyze_flt_trace.md)
 
 # 许可证
 
