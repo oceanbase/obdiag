@@ -64,7 +64,7 @@ class StepBase(object):
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
                                                                                     "obproxy_cluster_name") or no_cluster_name_msg, e), "fail")
             else:
-                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",e), "fail")
+                report.add("[{0}:{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",e), "fail")
             raise StepExecuteFailException("StepBase handler.execute fail {0}".format(e))
 
         try:
@@ -98,7 +98,7 @@ class StepBase(object):
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
                     "obproxy_cluster_name") or no_cluster_name_msg , resultException), level)
             else:
-                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultException), level)
+                report.add("[{0}:{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultException), level)
             if level == "critical":
                 raise StepResultFailException(resultException)
             raise StepResultFalseException(resultException)
@@ -110,7 +110,7 @@ class StepBase(object):
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
                     "obproxy_cluster_name") or no_cluster_name_msg , resultFailException), "fail")
             else:
-                report.add("[{0}{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultFailException), "fail")
+                report.add("[{0}:{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "",resultFailException), "fail")
             raise StepResultFailException(resultFailException)
 
         except Exception as e:

@@ -157,7 +157,7 @@ class OBDIAGClient(object):
 
                 global_ssh_type = get_conf_data_str(global_values.get("ssh_type"), "remote")
 
-                global_container_name = get_conf_data_str(global_values.get("container_name"), "observer")
+                global_container_name = get_conf_data_str(global_values.get("container_name"), "")
 
                 global_home_path = get_conf_data_str(global_values.get("home_path"), const.OB_INSTALL_DIR_DEFAULT)
 
@@ -207,7 +207,7 @@ class OBDIAGClient(object):
                 global_ssh_password = get_conf_data_str(global_values.get("ssh_password"), "")
                 global_ssh_port = get_conf_data_str(global_values.get("ssh_port"), 22)
                 global_ssh_type = get_conf_data_str(global_values.get("ssh_type"), "remote")
-                global_container_name = get_conf_data_str(global_values.get("container_name"), "obproxy")
+                global_container_name = get_conf_data_str(global_values.get("container_name"), "")
                 global_home_path = get_conf_data_str(global_values.get("home_path"), const.OBPROXY_INSTALL_DIR_DEFAULT)
                 global_ssh_key_file = get_conf_data_str(global_values.get("ssh_key_file"), "")
                 global_data_dir = get_conf_data_str(global_values.get("data_dir"),

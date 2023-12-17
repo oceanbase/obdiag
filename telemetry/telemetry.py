@@ -30,7 +30,8 @@ from common.ob_connector import OBConnector
 from utils.time_utils import DateTimeEncoder
 from utils.version_utils import get_obdiag_version
 
-
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 class Telemetry():
     def __init__(self):
         self.ob_connector = None
@@ -138,7 +139,7 @@ class Telemetry():
         try:
             for thread in self.threads:
                 thread.join()
-            report_data = {"reporter": const.TELEMETRY_CONTENT_REPORTER, "eventId": ip_mix_by_sha256(str(time.time)), "obdiagVersion": get_obdiag_version()}
+            report_data = {"reporter": const.TELEMETRY_CONTENT_REPORTER, "eventId": ip_mix_by_sha256(str(time.time())), "obdiagVersion": get_obdiag_version()}
             if self.cluster_info is not None:
                 report_data["cluster_info"] = self.cluster_info
             if self.tenant_info is not None:
@@ -148,11 +149,13 @@ class Telemetry():
             if self.check_info is not None:
                 report_data["check_info"] = self.check_info
 
-            re = {"content": report_data}
+            re = {"content": report_data,"component":"obdiag"}
+
             # put to /tmp
             with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'w', encoding="utf8") as f:
                 f.write(json.dumps(re, ensure_ascii=False))
             self.put_info_to_oceanbase()
+
         except Exception as e:
             pass
         return
@@ -161,7 +164,7 @@ class Telemetry():
         if not self.work_tag:
             return
         try:
-            conn = http.client.HTTPSConnection(const.TELEMETRY_URL, timeout=(3))
+            conn = http.client.HTTPSConnection(const.TELEMETRY_URL, timeout=(5))
             with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'rb') as file:
                 payload = file.read()
             headers = {
@@ -170,16 +173,15 @@ class Telemetry():
             }
             conn.request("POST", const.TELEMETRY_PATH, payload, headers)
             res = conn.getresponse()
-            data = res.read()
-        except:
+        except :
             pass
 
 
 def check_observer():
     try:
         url = "https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH
-        socket.setdefaulttimeout(2)
-        response = requests.get(url,timeout=(2))
+        socket.setdefaulttimeout(3)
+        response = requests.get(url,timeout=(3))
         if response.status_code == 200:
             return True
         else:
