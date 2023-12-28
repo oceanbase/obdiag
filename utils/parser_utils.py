@@ -143,6 +143,17 @@ class ArgParser(object):
 
         gather_sysstat_arguments.set_defaults(gather_sysstat=self.client.handle_gather_sysstat_command)
 
+        # 定义gather命令的子命令: stack
+        gather_obstack_arguments = subparsers_gather.add_parser(
+            "stack", help="Gather ob stack",
+            epilog="Example: obdiag gather stack",
+            parents=[parents_common_arguments],
+            conflict_handler='resolve',
+            description="According to the input parameters, gather the ob stack "
+                        "compress and pack, and transmit to the specified path of the obdiag machine.")
+
+        gather_obstack_arguments.set_defaults(gather_obstack=self.client.handle_gather_obstack_command)
+
         # gather 子命令 awr
         gather_awr_arguments = subparsers_gather.add_parser(
             "awr", help="Filter and gather awr reports",
@@ -260,6 +271,7 @@ class ArgParser(object):
         gather_all_arguments.set_defaults(
             gather_log=self.client.handle_gather_log_command,
             gather_sysstat=self.client.handle_gather_sysstat_command,
+            gather_obstack=self.client.handle_gather_obstack_command,
             gather_perf=self.client.handle_gather_perf_command
         )
         gather_all_arguments.add_argument("--scope", metavar="scope", nargs=1,

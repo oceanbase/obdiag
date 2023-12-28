@@ -4,17 +4,34 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/LOG_DISK_IN_USE >80;'
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/DATA_DISK_CAPACITY >80;'
       result:
-        set_value: major_err_nu
+        set_value: over_nu
         report_type: warning
         verify_type: equal
         verify: 0
-        err_msg: "Disk usage exceeds 80% of capacity"
+        err_msg: "data disk usage exceeds 80% of capacity"
     - type: sql
-      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/LOG_DISK_IN_USE >90;'
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where DATA_DISK_IN_USE*100/DATA_DISK_CAPACITY >90;'
       result:
-        set_value: major_err_nu
+        set_value: over_nu
+        verify_type: equal
+        report_type: warning
+        verify: 0
+        err_msg: "data disk usage exceeds 90% of capacity"
+    - type: sql
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where LOG_DISK_IN_USE*100/LOG_DISK_CAPACITY >80;'
+      result:
+        set_value: over_nu
+        report_type: warning
         verify_type: equal
         verify: 0
-        err_msg: "Disk usage exceeds 90% of capacity"
+        err_msg: "log disk usage exceeds 80% of capacity"
+    - type: sql
+      sql: 'SELECT count(0) FROM oceanbase.GV$OB_SERVERS where LOG_DISK_IN_USE*100/LOG_DISK_CAPACITY >90;'
+      result:
+        set_value: over_nu
+        verify_type: equal
+        report_type: warning
+        verify: 0
+        err_msg: "log disk usage exceeds 90% of capacity"

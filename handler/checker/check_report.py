@@ -147,18 +147,26 @@ class CheckReport:
             report_all_tb.align["task_report"] = "l"
             report_all_tb.title = "all-tasks-report"
             logger.debug("export report start")
+            failMap=[]
+            criticalMap=[]
+            warningMap=[]
 
             for task in self.tasks:
                 if len(task.all_fail()) != 0:
                     report_fail_tb.add_row([task.name, '\n'.join(task.all_fail())])
+                    failMap.append(task.name)
                 if len(task.all_critical()) != 0:
                     report_critical_tb.add_row([task.name, '\n'.join(task.all_critical())])
+                    criticalMap.append(task.name)
                 if len(task.all_warning()) != 0:
                     report_warning_tb.add_row([task.name, '\n'.join(task.all_warning())])
+                    warningMap.append(task.name)
                 if len(task.all()) != 0:
                     report_all_tb.add_row([task.name, '\n'.join(task.all())])
                 if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_tb.add_row([task.name, "all pass"])
+            telemetry.push_check_info(self.report_target,
+            {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases":  list(set(warningMap))})
 
             fp = open(self.report_path + ".table", 'a+', encoding="utf8")
 

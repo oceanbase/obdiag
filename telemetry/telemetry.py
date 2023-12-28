@@ -39,7 +39,7 @@ class Telemetry():
         self.cluster_info = None
         self.tenant_info = None
         self.cmd_info = None
-        self.check_info = None
+        self.check_info = {}
         self.cluster_conn = None
         self.threads = []
         self.work_tag = True

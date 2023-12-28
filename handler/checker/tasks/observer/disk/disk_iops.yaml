@@ -1,0 +1,12 @@
+info: "Check whether the disk iops."
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(DISTINCT CONCAT(SVR_IP, ':', SVR_PORT) SEPARATOR ', ') AS unique_server_endpoints
+FROM oceanbase.GV$OB_IO_BENCHMARK
+WHERE size=16384 AND IOPS<1024;"
+      result:
+        set_value: over_server
+        verify: '[ -z "${over_server}" ]'
+        err_msg: "These observer 16K IOPS are below 1024, please migrate as soon as possible. #{over_server}"
