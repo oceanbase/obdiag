@@ -70,28 +70,16 @@ def parse_time_length_to_sec(time_length_str):
         raise OBDIAGFormatException("time length must be format 'n'<m|h|d>")
     return int(value)
 
-
 def datetime_to_timestamp(datetime_str):
     # yyyy-mm-dd hh:mm:ss.uuuuus or yyyy-mm-dd hh:mm:ss
     try:
-        if datetime_str[4] != "-" or datetime_str[7] != "-" or datetime_str[13] != ":" or datetime_str[16] != ":":
-            raise OBDIAGFormatException(
-                'datetime_str is not valid. datetime_str={0}.'.format(datetime_str))
-        yyyy, mm, dd = int(datetime_str[0:4]), int(datetime_str[5:7]), int(datetime_str[8:10])
-        hh, mi, ss = int(datetime_str[11:13]), int(datetime_str[14:16]), int(datetime_str[17:19])
-        second_timestamp = _get_timestamp(yyyy, mm, dd, hh, mi, ss)
-        us = 0
         if len(datetime_str) > 19:
-            if datetime_str[19] != ".":
-                raise OBDIAGFormatException(
-                    'datetime {0} is not valid. datetime_str={1}.'.format(datetime_str, datetime_str))
-            us = int(datetime_str[20:26])
-        us_timestamp = second_timestamp * 1000000 + int(us)
+            dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
+        else:
+            dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        return int(dt.timestamp() * 1000000)
     except Exception as e:
-        traceback.print_exc()
-        except_str = traceback.format_exc()
-        raise OBDIAGFormatException(except_str + "datetime_str={0}".format(datetime_str))
-    return int(us_timestamp)
+        return 0
 
 
 def trans_datetime_utc_to_local(datetime_str):

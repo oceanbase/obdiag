@@ -2,12 +2,12 @@ info: 'To detect dependent software, refer to: https://www.oceanbase.com/docs/en
 task:
   - steps:
     - type: ssh
-      ssh: "swapon --show"
+      ssh: 'swapon --summary | grep -q "^" && echo "used" || echo "not used"'
       result:
         set_value: swapon_switch
         report_type: warning
-        verify: '[ -z "${swapon_switch}" ]'
-        err_msg: 'swapon need close. Now , it is #{swapon_switch}.'
+        verify: "[ 'not used' == ${swapon_switch} ]"
+        err_msg: 'swapon need be closed. Now , it is #{swapon_switch}.'
     - type: ssh
       ssh: "getenforce"
       result:
@@ -16,19 +16,19 @@ task:
         verify: "[ 'Disabled' == ${SELinux_switch} ]"
         err_msg: 'SELinux need Disabled. Now , it is #{SELinux_switch}.'
     - type: ssh
-      ssh: '[[ "$(systemctl status firewalld 2>&1)" =~ active ]] && echo "Running" || echo "Not Running"'
+      ssh: 'systemctl is-active --quiet firewalld  && echo "Running" || echo "Not Running"'
       result:
         set_value: firewalld_switch
         report_type: warning
         verify: '[ "Not Running" == "${firewalld_switch}" ]'
-        err_msg: 'firewalld is #{firewalld_switch}'
+        err_msg: 'firewalld is #{firewalld_switch} ,It is recommended to disable firewalld or add allow rules for each service in the OceanBase cluster to avoid firewall interception.'
     - type: ssh
-      ssh: '[[ "$(systemctl status crond 2>&1)" =~ active ]] && echo "Running" || echo "Not Running"'
+      ssh: 'systemctl is-active --quiet crond  && echo "Running" || echo "Not Running"'
       result:
         set_value: crond_switch
         report_type: warning
-        verify: '[ "Not Running" == "${crond_switch}" ]'
-        err_msg: 'crond need retrun "Active: active (running)". Now , it is null.'
+        verify: '[ "Running" == "${crond_switch}" ]'
+        err_msg: 'crond is #{crond_switch}.It is recommended to enable it, mainly for setting up scheduled tasks and providing related operation and maintenance capabilities.'
     - type: ssh
       ssh: 'cat /sys/kernel/mm/transparent_hugepage/enabled |grep "[never]"'
       result:

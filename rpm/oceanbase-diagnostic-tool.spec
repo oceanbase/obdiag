@@ -1,5 +1,5 @@
 Name: oceanbase-diagnostic-tool
-Version:1.5.0
+Version:1.5.1
 Release: %(echo $RELEASE)%{?dist}
 Summary: oceanbase diagnostic tool program
 Group: Development/Tools

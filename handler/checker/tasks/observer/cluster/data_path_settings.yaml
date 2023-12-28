@@ -21,11 +21,26 @@ task:
         verify: '[ "${data_dir_disk}" != "${log_dir_disk}" ]'
         err_msg: "ip:#{remote_ip} ,data_dir and log_dir_disk are on the same disk."
     - type: ssh
+      ssh: "df -T  #{data_dir_path} | awk 'NR==2 && $2==\"XFS\" {used=$3/(1024^4); exit !(used > 16)}' && echo 0 || echo 1"
+      result:
+        set_value:  file_system
+        verify_type: equal
+        verify: 0
+        err_msg: "the data_dir_path of disk size over 16TB ,the type must be XFS"
+
+    - type: ssh
       ssh: "df -Th  #{log_dir_path} | grep '/' | awk '{print $2}'"
       result:
         set_value:  file_system
         verify: '[ "${file_system}" == "XFS" ] || [ "${file_system}" == "ext4" ]'
         err_msg: "ip:#{remote_ip} ,file_system is not XFS or ext4."
+    - type: ssh
+      ssh: "df -T  #{log_dir_path} | awk 'NR==2 && $2==\"XFS\" {used=$3/(1024^4); exit !(used > 16)}' && echo 0 || echo 1"
+      result:
+        set_value:  file_system
+        verify_type: equal
+        verify: 0
+        err_msg: "the log_dir_path of disk size over 16TB ,the type must be XFS"
 
     - type: ssh
       ssh: "df -Th  #{log_dir_path} | grep '/' | awk '{print $2}'"

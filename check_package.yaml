@@ -3,6 +3,12 @@ ad:
   - system.parameter
 proxy:
   - version.bad_version
+build_before:
+  - cluster.data_path_settings
+  - system.parameter
+  - system.aio
+  - system.dependent_software
+  - system.ulimit_parameter
 sysbench_run:
   - sysbench.sysbench_run_test_tenant_cpu_used
   - sysbench.sysbench_run_test_tenant_memory_used

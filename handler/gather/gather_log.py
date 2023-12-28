@@ -136,7 +136,7 @@ class GatherLogHandler(BaseShellHandler):
                 self.config_path))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}/conf/config.yml".format(self.config_path)
+            resp["error"] = "Please check the {0}".format(self.config_path)
 
         if not ssh_failed:   
             # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
