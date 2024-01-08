@@ -6,7 +6,7 @@ task:
       result:
         set_value: swapon_switch
         report_type: warning
-        verify: "[ 'not used' == ${swapon_switch} ]"
+        verify: '[ "not used" == "${swapon_switch}" ]'
         err_msg: 'swapon need be closed. Now , it is #{swapon_switch}.'
     - type: ssh
       ssh: "getenforce"
