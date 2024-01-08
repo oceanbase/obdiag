@@ -94,21 +94,30 @@ def skip_char(sub, b):
 
 
 def convert_to_number(s):
-    if isinstance(s,int) or isinstance(s,decimal.Decimal):
+    if isinstance(s, (int, float)):
         return s
-    if s.startswith("-"):
-        if s[1:].isdigit():
-            return int(s)
-        elif s[1:].isdecimal():  # 判断字符串是否全为数字或小数点
+    if isinstance(s,decimal.Decimal):
+        try:
+            return float(s)
+        except:
+            return s
+
+    if isinstance(s, str):
+        if s.startswith("-"):
+            if s[1:].isdigit():
+                return int(s)
+            elif s[1:].isdecimal():  # 判断字符串是否全为数字或小数点
+                return float(s)  # 如果是，转换为浮点数
+        if s.isdigit():  # 判断字符串是否全为数字
+            return int(s)  # 如果是，转换为整数
+        elif s.isdecimal():  # 判断字符串是否全为数字或小数点
             return float(s)  # 如果是，转换为浮点数
-        else:
-            return str(s)  # 如果都不是，保持原样
-    if s.isdigit():  # 判断字符串是否全为数字
-        return int(s)  # 如果是，转换为整数
-    elif s.isdecimal():  # 判断字符串是否全为数字或小数点
-        return float(s)  # 如果是，转换为浮点数
-    else:
-        return str(s)  # 如果都不是，保持原样
+        try:
+            return float(s)
+        except Exception:
+            pass
+
+    return s
 
 
 def parse_range_string(range_str, nu):

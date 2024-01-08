@@ -88,8 +88,8 @@ class VerifyResult(object):
         try:
             if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
                 self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
-            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
-                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
+            if not isinstance(self.env_dict[self.now_step_set_value_name],(int,float,decimal.Decimal)):
+                raise Exception("{0} is {1} and the type is {2}, not int or float or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             range_str = self.expr
             result = int(self.env_dict[self.now_step_set_value_name]) < int(range_str)
             return result
@@ -101,8 +101,8 @@ class VerifyResult(object):
         try:
             if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
                 self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
-            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
-                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
+            if not isinstance(self.env_dict[self.now_step_set_value_name],(int,float,decimal.Decimal)):
+                raise Exception("{0} is {1} and the type is {2}, not int or float ordecimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             range_str = self.expr
             result=int(self.env_dict[self.now_step_set_value_name]) > int(range_str)
             return result
@@ -114,8 +114,8 @@ class VerifyResult(object):
         try:
             if isinstance(self.env_dict[self.now_step_set_value_name],decimal.Decimal):
                 self.env_dict[self.now_step_set_value_name]=int(self.env_dict[self.now_step_set_value_name])
-            if not isinstance(self.env_dict[self.now_step_set_value_name],int):
-                raise Exception("{0} is {1} and the type is {2}, not int or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
+            if not isinstance(self.env_dict[self.now_step_set_value_name],(int,float,decimal.Decimal)):
+                raise Exception("{0} is {1} and the type is {2}, not int or float or decimal !".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name],type(self.env_dict[self.now_step_set_value_name])))
             result = False
             range_str = self.expr
             if int(self.env_dict[self.now_step_set_value_name]) == int(range_str):

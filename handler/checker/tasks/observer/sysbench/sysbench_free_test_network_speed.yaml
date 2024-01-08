@@ -14,7 +14,7 @@ task:
         #report_type: warning
         err_msg: "network_speed is #{network_speed}, can not get real speed"
     - type: ssh
-      ssh: "ethtool #{network_name} | grep Speed | grep -o '[0-9]*'"
+      ssh: "ethtool #{network_name} 2>/dev/null | grep Speed | grep -o '[0-9]*'"
       result:
         set_value: network_speed
         verify_type: min

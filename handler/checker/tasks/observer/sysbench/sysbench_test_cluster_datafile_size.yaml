@@ -17,7 +17,7 @@ task:
         set_value: datafile_disk_percentage
 
     - type: ssh
-      ssh: "df #{remote_home_path}/store/sstable  | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f\n'"
+      ssh: "df #{remote_home_path}/store/sstable  | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f'"
       result:
         set_value: data_path_os_disk_size
     - type: ssh
@@ -42,7 +42,7 @@ task:
       result:
         set_value: logfile_disk_percentage
     - type: ssh
-      ssh: "df  #{remote_home_path}/store/clog | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f\n'"
+      ssh: "df  #{remote_home_path}/store/clog | awk 'NR==2{print $2/1024/1024}' | bc -l | xargs printf '%.0f'"
       result:
         set_value: log_path_os_disk_size
     - type: ssh
@@ -75,7 +75,7 @@ task:
         set_value: ver
         report_type: warning
         verify: '[ $tag_public_data_and_log -eq 1 ] && [ $datafile_size_percentage_end -gt 60 ]'
-        err_msg: "When the data disk and log disk are on the same disk, the data disk needs to occupy more than 60% of the disk space. now it is #{datafile_size_percentage_end}"
+        err_msg: "When the data disk and log disk are on the same disk, the data disk needs to occupy more than 60% of the disk space. now it is #{datafile_size_percentage_end}%"
 
     - type: ssh
       ssh: 'echo $?'
@@ -83,7 +83,7 @@ task:
         set_value: ver
         report_type: warning
         verify: '[ $tag_public_data_and_log -eq 1 ] && [ $logfile_size_percentage_end -gt 30 ]'
-        err_msg: "When the data disk and log disk are on the same disk, the log disk needs to occupy more than 30% of the disk space. now it is #{logfile_size_percentage_end}"
+        err_msg: "When the data disk and log disk are on the same disk, the log disk needs to occupy more than 30% of the disk space. now it is #{logfile_size_percentage_end}%"
 
 
 
