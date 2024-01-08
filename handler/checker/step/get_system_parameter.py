@@ -66,15 +66,6 @@ class GetSystemParameterHandler:
             if "parameter" not in self.step:
                 raise StepExecuteFailException("GetSystemParameterHandler execute parameter is not set")
             logger.info("GetSystemParameterHandler execute: {0}".format(self.step["parameter"]))
-            s = ""
-            if '.'  in self.step["parameter"]:
-                last_substring = s.rsplit('.', 1)[1]
-                s=last_substring
-            # SystemParameter exist?
-            if self.ssh_helper.ssh_exec_cmd('find /proc/sys/ -name "{0}"'.format(s))=="" :
-                if "result" in self.step and "set_value" in self.step["result"]:
-                    self.task_variable_dict[self.step["result"]["set_value"]]=""
-                return
             parameter_value = self.get_parameter(self.step["parameter"])
 
             if "result" in self.step and "set_value" in self.step["result"]:
