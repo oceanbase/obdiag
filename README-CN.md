@@ -67,7 +67,6 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 - [一键收集主机信息](./docs/gather_sysstat.md)
 - [一键收集slog/clog日志](./docs/gather_admin.md)
 - [一键收集火焰图信息](./docs/gather_perf.md)
-- [一键收集OB堆栈信息](./docs/gather_ob_stack.md)
 - [一键收集并行SQL的执行详情信息](./docs/gather_sql_plan_monitor.md)
 - [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
 - [一键收集AWR报告](./docs/gather_awr.md)
