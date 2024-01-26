@@ -23,7 +23,6 @@ from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_sysstat import GatherOsInfoHandler
-from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_obadmin import GatherObAdminHandler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
@@ -350,10 +349,6 @@ class OBDIAGClient(object):
                                                           self.gather_timestamp, self.basic_config)
         return self.gather_sysstat_handler.handle(args)
 
-    def handle_gather_obstack_command(self, args):
-        self.gather_obstack_handler = GatherObstack2Handler(self.observer_nodes, self.default_collect_pack_dir,
-                                                            self.gather_timestamp, self.basic_config)
-        return self.gather_obstack_handler.handle(args)
 
     def handle_gather_perf_command(self, args):
         self.gather_perf_handler = GatherPerfHandler(self.observer_nodes, self.default_collect_pack_dir,

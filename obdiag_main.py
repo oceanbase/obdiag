@@ -65,14 +65,6 @@ def gather_perf(args):
         logger.debug("object has no attribute 'gather_perf' pass gather perf info\n")
 
 
-def gather_obstack(args):
-    try:
-        if args.gather_obstack:
-            args.gather_obstack(args)
-    except AttributeError:
-        logger.debug("object has no attribute 'gather_obstack' pass gather ob stack\n")
-
-
 def gather_plan_monitor(args):
     try:
         if args.gather_plan_monitor:
@@ -158,7 +150,6 @@ if __name__ == '__main__':
         gather_awr(obdiag_args)
         gather_sysstat(obdiag_args)
         gather_perf(obdiag_args)
-        gather_obstack(obdiag_args)
         gather_plan_monitor(obdiag_args)
         gather_clog(obdiag_args)
         gather_slog(obdiag_args)
