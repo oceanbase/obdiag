@@ -176,7 +176,7 @@ class AnalyzeFltTraceHandler(object):
         """
         local_store_path = os.path.join(local_store_dir, self.flt_trace_id)
         log_name_list = self.__get_log_name_list_offline()
-        if self.flt_trace_id is not None:
+        if self.flt_trace_id is not None and (len(log_name_list) > 0):
             grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(
                 grep_args=self.flt_trace_id,
                 log_file=' '.join(log_name_list),
@@ -344,13 +344,12 @@ class AnalyzeFltTraceHandler(object):
             self.directly_analyze_files = True
             self.analyze_files_list = getattr(args, "files")
             self.is_ssh = False
+        # 2: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
-            else:
-                self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
         if getattr(args, "flt_trace_id") is not None:
             self.flt_trace_id = getattr(args, "flt_trace_id")[0]
         if getattr(args, "top") is not None:

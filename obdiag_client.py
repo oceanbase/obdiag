@@ -14,6 +14,10 @@
 @file: obdiag_client.py
 @desc:
 """
+import uuid
+
+from prettytable import PrettyTable
+
 from common.command import get_obdiag_display
 from common.constant import const
 from handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
@@ -23,16 +27,22 @@ from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_sysstat import GatherOsInfoHandler
+from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_obadmin import GatherObAdminHandler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
+from handler.gather.gather_scenes import GatherSceneHandler
+from handler.gather.scenes.list import GatherScenesListHandler
+from handler.rca.rca_list import RcaScenesListHandler
 from common.config_helper import ConfigHelper
 import base64
 import os
 import sys
 from common.logger import logger
+from handler.rca.rca_handler import RCAHandler
 from telemetry.telemetry import telemetry
 from utils.time_utils import get_current_us_timestamp
+from utils.utils import display_trace
 from utils.yaml_utils import read_yaml_data
 from utils.version_utils import print_obdiag_version
 from colorama import Fore, Style
@@ -85,6 +95,9 @@ class OBDIAGClient(object):
             self.gather_slog_handler = None
             self.gather_plan_monitor_handler = None
             self.gather_obproxy_log_handler = None
+            self.handle_gather_scene_handler = None
+            self.handle_gather_scene_list_handler = None
+            self.handle_rca_scenes_list_handler = None
             # analyze handler
             self.analyze_log_handler = None
             self.analyze_flt_trace_handler = None
@@ -99,6 +112,8 @@ class OBDIAGClient(object):
             self.obdiag_log_file = os.path.join(
                 os.path.expanduser(const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_dir"]),
                 const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_filename"])
+            # obdiag rca
+            self.rca_result_path = None
 
     def init(self, args):
         if "c" in args and (getattr(args, "c") is not None):
@@ -134,6 +149,20 @@ class OBDIAGClient(object):
             return sucess_3 and (sucess_1 or sucess_2)
         elif "gather_plan_monitor" in args:
             return self.init_obcluster_config()
+        elif ("gather_scene" in args) or ("gather_scene_list" in args):
+            self.init_obcluster_config()
+            sucess_1 = self.init_observer_node_config()
+            self.init_obproxy_config()
+            sucess_2 = self.init_obproxy_node_config()
+            sucess_3 = self.init_gather_scene_config()
+            return sucess_3 and (sucess_1 or sucess_2)
+        elif "rca_run" in args:
+            self.init_obcluster_config()
+            sucess_1 = self.init_observer_node_config()
+            self.init_obproxy_config()
+            sucess_2 = self.init_obproxy_node_config()
+            sucess_3 = self.init_rca_config()
+            return sucess_3 and (sucess_1 or sucess_2)
 
     def init_observer_node_config(self):
         try:
@@ -143,7 +172,7 @@ class OBDIAGClient(object):
                 cluster_name = ob_cluster.get("ob_cluster_name")
                 db_host = ob_cluster.get("db_host")
 
-                db_port = get_conf_data_str(ob_cluster.get("db_port"),2881)
+                db_port = get_conf_data_str(ob_cluster.get("db_port"), 2881)
 
                 ob_servers = ob_cluster.get("servers")
                 global_values = ob_servers.get("global")
@@ -190,8 +219,8 @@ class OBDIAGClient(object):
                 return False
             self.observer_nodes = observer_nodes
             return True
-        except:
-            logger.error("observer node config init Failed")
+        except Exception as e:
+            logger.error("observer node config init Failed, error:{0}".format(e))
             return False
 
     def init_obproxy_node_config(self):
@@ -213,7 +242,6 @@ class OBDIAGClient(object):
                                                     os.path.join(global_home_path, "store").strip())
                 global_redo_dir = get_conf_data_str(global_values.get("redo_dir"), global_data_dir)
                 global_node_ip = global_values.get("ip")
-
 
                 nodes = obproxy_servers.get("nodes")
                 for node in nodes:
@@ -238,21 +266,23 @@ class OBDIAGClient(object):
                 return True
             else:
                 return False
-        except:
-            logger.error("obproxy node config init Failed")
+        except Exception as e:
+            logger.error("obproxy node config init Failed, error:{0}".format(e))
             return False
 
     def init_basic_config(self):
         try:
             if self.inner_config.get("obdiag"):
                 self.basic_config = self.inner_config.get("obdiag").get("basic")
-                self.obdiag_log_file = os.path.join(os.path.expanduser(self.inner_config.get("obdiag").get("logger").get("log_dir")),
-                                                    self.inner_config.get("obdiag").get("logger").get("log_filename"))
+                self.obdiag_log_file = os.path.join(
+                    os.path.expanduser(self.inner_config.get("obdiag").get("logger").get("log_dir")),
+                    self.inner_config.get("obdiag").get("logger").get("log_filename"))
                 self.config_file = os.path.expanduser(self.basic_config.get("config_path"))
         except:
             self.basic_config = const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["basic"]
-            self.obdiag_log_file = os.path.join(os.path.expanduser(const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_dir"]),
-                                                const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_filename"])
+            self.obdiag_log_file = os.path.join(
+                os.path.expanduser(const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_dir"]),
+                const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_filename"])
 
     def init_ocp_config(self):
         try:
@@ -265,8 +295,8 @@ class OBDIAGClient(object):
                 return True
             else:
                 return False
-        except:
-            logger.warning("ocp config init Failed")
+        except Exception as e:
+            logger.warning("ocp config init Failed, error:{0}".format(e))
             return False
 
     def init_checker_config(self):
@@ -280,8 +310,35 @@ class OBDIAGClient(object):
             self.check_tasks_base_path = check_config["tasks_base_path"]
             self.check_ignore_version = check_config["ignore_version"]
             return True
-        except:
-            logger.error("checker config init Failed")
+        except Exception as e:
+            logger.error("checker config init Failed, error:{0}".format(e))
+            return False
+
+    def init_gather_scene_config(self):
+        try:
+            gather_scene_config = self.inner_config.get("gather")
+            if gather_scene_config is None:
+                gather_scene_config = const.OBDIAG_GATHER_DEFAULT_CONFIG
+            self.gather_scene_base_path = gather_scene_config["scenes_base_path"]
+            return True
+        except Exception as e:
+            logger.error("gather scene config init Failed, error:{0}".format(e))
+            return False
+
+
+    def init_rca_config(self):
+        try:
+            rca_config = self.inner_config.get("rca")
+            if rca_config is None:
+                rca_config = const.OBDIAG_RCA_DEFAULT_CONFIG
+            self.rca_result_path = rca_config["result_path"]
+            self.rca_result_path = os.path.dirname(self.rca_result_path)
+            if not os.path.isdir(self.rca_result_path):
+                logger.warning("rca_result_path is not exist ,mkdir it: {0}".format(self.rca_result_path))
+                os.makedirs(self.rca_result_path)
+            return True
+        except Exception as e:
+            logger.error("rca config init Failed, error:{0}".format(e))
             return False
 
     def init_obproxy_config(self):
@@ -293,8 +350,8 @@ class OBDIAGClient(object):
             if config:
                 self.obproxy_cluster = self.config.get("obproxy")
                 return True
-        except:
-            logger.error("obproxy config init Failed")
+        except Exception as e:
+            logger.error("obproxy config init Failed, error:{0}".format(e))
             return False
 
     def init_obcluster_config(self):
@@ -306,8 +363,8 @@ class OBDIAGClient(object):
             if config:
                 self.ob_cluster = self.config.get("obcluster")
                 return True
-        except:
-            logger.error("obcluster config init Failed")
+        except Exception as e:
+            logger.error("obcluster config init Failed, error:{0}".format(e))
             return False
 
     def read_config(self, config_file):
@@ -330,13 +387,16 @@ class OBDIAGClient(object):
     def quick_build_configuration(self, args):
         try:
             user = getattr(args, "u")[0]
-            password = getattr(args, "p")[0]
+            if getattr(args, "p"):
+                password = getattr(args, "p")[0]
+            else:
+                password = ""
             host = getattr(args, "h")[0]
             port = getattr(args, "P")[0]
             config_helper = ConfigHelper(user, password, host, port)
             config_helper.build_configuration(args, self.config_file, INNER_CONFIG_FILE)
-        except:
-            logger.error("Configuration generation failed")
+        except Exception as e:
+            logger.error("Configuration generation failed, error:{0}".format(e))
 
     def handle_gather_log_command(self, args):
         self.gather_log_handler = GatherLogHandler(self.observer_nodes, self.default_collect_pack_dir,
@@ -349,6 +409,10 @@ class OBDIAGClient(object):
                                                           self.gather_timestamp, self.basic_config)
         return self.gather_sysstat_handler.handle(args)
 
+    def handle_gather_obstack_command(self, args):
+        self.gather_obstack_handler = GatherObstack2Handler(self.observer_nodes, self.default_collect_pack_dir,
+                                                            self.gather_timestamp, self.basic_config)
+        return self.gather_obstack_handler.handle(args)
 
     def handle_gather_perf_command(self, args):
         self.gather_perf_handler = GatherPerfHandler(self.observer_nodes, self.default_collect_pack_dir,
@@ -374,6 +438,14 @@ class OBDIAGClient(object):
         self.gather_plan_monitor_handler = GatherPlanMonitorHandler(self.ob_cluster, self.default_collect_pack_dir,
                                                                     self.gather_timestamp)
         return self.gather_plan_monitor_handler.handle(args)
+
+    def handle_gather_scene_command(self, args):
+        self.handle_gather_scene_handler = GatherSceneHandler(self.obproxy_cluster, self.obproxy_nodes, self.ob_cluster, self.observer_nodes, self.default_collect_pack_dir, self.gather_timestamp, self.gather_scene_base_path)
+        return self.handle_gather_scene_handler.handle(args)
+
+    def handle_gather_scene_list_command(self, args):
+        self.handle_gather_scene_list_handler = GatherScenesListHandler(self.gather_scene_base_path)
+        return self.handle_gather_scene_list_handler.handle(args)
 
     def handle_gather_obproxy_log_command(self, args):
         self.gather_obproxy_log_handler = GatherObProxyLogHandler(self.obproxy_nodes, self.default_collect_pack_dir,
@@ -402,24 +474,25 @@ class OBDIAGClient(object):
         return self.analyze_flt_trace_handler.handle(args)
 
     def handle_check_command(self, args):
-        obproxy_check_handler=None
-        observer_check_handler= None
+        obproxy_check_handler = None
+        observer_check_handler = None
         if self.obproxy_cluster is not None:
-            obproxy_check_handler = CheckHandler(ignore_version=self.check_ignore_version, cluster=self.obproxy_cluster, nodes=self.obproxy_nodes,
-                                              export_report_path=self.check_report_path,
-                                              export_report_type=self.check_report_type,
-                                              case_package_file=self.check_case_package_file,
-                                              tasks_base_path=self.check_tasks_base_path,
+            obproxy_check_handler = CheckHandler(ignore_version=self.check_ignore_version, cluster=self.obproxy_cluster,
+                                                 nodes=self.obproxy_nodes,
+                                                 export_report_path=self.check_report_path,
+                                                 export_report_type=self.check_report_type,
+                                                 case_package_file=self.check_case_package_file,
+                                                 tasks_base_path=self.check_tasks_base_path,
                                                  check_target_type="obproxy")
             obproxy_check_handler.handle(args)
             obproxy_check_handler.execute()
         if self.ob_cluster is not None:
-            observer_check_handler = CheckHandler(ignore_version=self.check_ignore_version,  cluster=self.ob_cluster,
+            observer_check_handler = CheckHandler(ignore_version=self.check_ignore_version, cluster=self.ob_cluster,
                                                   nodes=self.observer_nodes,
-                                              export_report_path=self.check_report_path,
-                                              export_report_type=self.check_report_type,
-                                              case_package_file=self.check_case_package_file,
-                                              tasks_base_path=self.check_tasks_base_path)
+                                                  export_report_path=self.check_report_path,
+                                                  export_report_type=self.check_report_type,
+                                                  case_package_file=self.check_case_package_file,
+                                                  tasks_base_path=self.check_tasks_base_path)
             observer_check_handler.handle(args)
             observer_check_handler.execute()
         if obproxy_check_handler is not None:
@@ -430,6 +503,27 @@ class OBDIAGClient(object):
                 observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
 
         return
+
+    def handle_rca_run_command(self, args):
+        try:
+            rca_handler = RCAHandler(cluster=self.ob_cluster,
+                                     nodes=self.observer_nodes,
+                                     obproxy_nodes=self.obproxy_nodes,
+                                     result_path=self.rca_result_path or "./rca")
+            rca_handler.handle(args)
+            rca_handler.execute()
+            logger.info(
+                "rca finished. For more details, the result on '" + Fore.YELLOW + rca_handler.get_result_path() + Style.RESET_ALL + "' \nYou can get the suggest by '" + Fore.YELLOW + "cat " + rca_handler.get_result_path() + "/record" + Style.RESET_ALL + "'")
+        except Exception as e:
+            logger.error("rca failed! error msg:" + str(e))
+        finally:
+            display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+
+        return
+
+    def handle_rca_list_command(self,args):
+        self.handle_rca_scenes_list_handler = RcaScenesListHandler()
+        return self.handle_rca_scenes_list_handler.handle(args)
 
 
 def get_conf_data_str(value, dafult_value):

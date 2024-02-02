@@ -17,7 +17,6 @@
 """
 import datetime
 import os
-import threading
 import time
 import uuid
 
@@ -26,7 +25,6 @@ import tabulate
 from handler.base_shell_handler import BaseShellHandler
 from common.logger import logger
 from common.obdiag_exception import OBDIAGFormatException
-from common.obdiag_exception import OBDIAGInvalidArgs
 from common.command import LocalClient, SshClient
 from common.constant import const
 from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size, show_file_size_tabulate
@@ -42,7 +40,7 @@ from utils.utils import get_localhost_inner_ip, display_trace
 
 
 class GatherObProxyLogHandler(BaseShellHandler):
-    def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
+    def __init__(self, nodes, gather_pack_dir, gather_timestamp=None, common_config=None, is_scene=False):
         super(GatherObProxyLogHandler, self).__init__(nodes)
         self.is_ssh = True
         self.gather_timestamp = gather_timestamp
@@ -54,10 +52,11 @@ class GatherObProxyLogHandler(BaseShellHandler):
         self.grep_args = None
         self.scope = None
         self.zip_encrypt = False
+        self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
             self.file_number_limit = 20
-            self.file_size_limit = 2 * 1024 * 1024
+            self.file_size_limit = 2 * 1024 * 1024 * 1024
         else:
             self.file_number_limit = int(common_config["file_number_limit"])
             self.file_size_limit = int(parse_size(common_config["file_size_limit"]))
@@ -65,9 +64,10 @@ class GatherObProxyLogHandler(BaseShellHandler):
     def handle(self, args):
         if not self.__check_valid_and_parse_args(args):
             return
-        pack_dir_this_command = os.path.join(self.gather_pack_dir,
-                                             "gather_pack_{0}".format(timestamp_to_filename_time(
-                                                 self.gather_timestamp)))
+        if self.is_scene:
+            pack_dir_this_command = self.gather_pack_dir
+        else:
+            pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
         gather_pack_path_dict = {}
@@ -166,8 +166,8 @@ class GatherObProxyLogHandler(BaseShellHandler):
             return log_list, resp
         elif len(log_list) <= 0:
             logger.warn(
-                "{0} The number of log files is {1}, No files found, "
-                "Please adjust the query limit".format(ip, len(log_list)))
+                "{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found"
+                "Please adjust the query time limit".format(ip, len(log_list), self.from_time_str, self.to_time_str))
             resp["skip"] = True,
             resp["error"] = "No files found"
             return log_list, resp
@@ -190,7 +190,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
         if log_files:
             log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files)
         else:
-            logger.error("Unable to find the log file. Please provide the correct home_path config, the default is [/home/admin/obproxy]")
+            logger.error("Unable to find the log file. Please provide the correct home_path config and check obproxy {0} log exist".format(log_path))
         return log_name_list
 
     def __pharse_log(self, ssh_helper, home_path, log_name, gather_path):
@@ -277,14 +277,12 @@ class GatherObProxyLogHandler(BaseShellHandler):
                     seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-        # 2: store_dir must exist, else return "No such file or directory".
+        # 2: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
-            else:
-                self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
 
         if getattr(args, "grep") is not None:
             self.grep_args = ' '.join(getattr(args, "grep"))

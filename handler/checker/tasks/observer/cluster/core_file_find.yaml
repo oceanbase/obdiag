@@ -3,7 +3,7 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: ssh
-      ssh: 'ls | grep "^core" | wc -l'
+      ssh: 'ls #{remote_home_path}| grep "^core" | wc -l'
       result:
         set_value: core_file_number
         verify_type: equal

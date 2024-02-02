@@ -27,6 +27,7 @@ import requests
 from io import open
 from common.constant import const
 from common.ob_connector import OBConnector
+from utils.network_utils import network_connectivity
 from utils.time_utils import DateTimeEncoder
 from utils.version_utils import get_obdiag_version
 
@@ -49,7 +50,7 @@ class Telemetry():
         if not self.work_tag:
             return
         if self.work_tag:
-            self.work_tag = check_observer()
+            self.work_tag = network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
         if not self.work_tag:
             return
 
@@ -90,6 +91,7 @@ class Telemetry():
                         data_one["svr_ip"] = ip_mix_by_sha256(data_one["svr_ip"])
 
                 self.cluster_info = json.dumps(data)
+                self.cluster_info["obversion"] = version
             except Exception as e:
                 pass
         return
@@ -177,18 +179,6 @@ class Telemetry():
             pass
 
 
-def check_observer():
-    try:
-        url = "https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH
-        socket.setdefaulttimeout(3)
-        response = requests.get(url,timeout=(3))
-        if response.status_code == 200:
-            return True
-        else:
-            return False
-    except Exception as e:
-
-        return False
 
 
 key="********"

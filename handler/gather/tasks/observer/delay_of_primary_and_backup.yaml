@@ -1,0 +1,143 @@
+info_en: "[delay of primary and backup]"
+info_cn: "[主备库延迟]"
+command: obdiag gather scene run --scene=observer.delay_of_primary_and_backup
+task:
+  - version: "[2.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.v$ob_cluster"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
+        global: true
+      - type: sql
+        sql: "SELECT id,svr_ip,svr_port,zone,inner_port,with_rootserver,status,start_service_time,last_offline_time FROM  oceanbase.__all_server;"
+        global: true
+      - type: sql
+        sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_failover_info;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_freeze_schema_version ;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_sys_task_status;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_replica_task;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_rebalance_task_stat;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_unit where migrate_from_svr_ip !='';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_root_table where is_restore != 0;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_meta_table where is_restore != 0;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_core_table where table_name like '%schema_status%'';"
+        global: true
+      - type: sql
+        sql: "SELECT TENANT_ID, COUNT(*)  FROM oceanbase.__ALL_VIRTUAL_META_TABLE  WHERE ROLE = 2  GROUP BY TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_virtual_clog_stat WHERE is_in_sync = 0 AND is_offline = 0 AND replica_type != 16  limit 10;"
+        global: true
+      - type: sql
+        sql: "select tenant_id, table_id, partition_id from oceanbase.__all_virtual_partition_table group by 1,2,3 having min(role) = 2;"
+        global: true
+      - type: sql
+        sql: "SELECT USEC_TO_TIME(CURRENT_SCN) AS CUR_PROCESS, NOW(6) - USEC_TO_TIME(CURRENT_SCN) AS DELAY FROM oceanbase.V$OB_CLUSTER;"
+        global: true
+      - type: sql
+        sql: "SELECT count(*),svr_ip FROM oceanbase.__all_virtual_clog_stat WHERE is_in_sync = 0 AND is_offline = 0 AND replica_type != 16 group by svr_ip;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_tenant_memstore_info where (active_memstore_used > major_freeze_trigger) or (total_memstore_used > memstore_limit);"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__ALL_ROOTSERVICE_EVENT_HISTORY  WHERE MODULE = 'BALANCER' AND EVENT LIKE '%ADD_REPLICA%'  ORDER BY GMT_CREATE DESC LIMIT 100;"
+        global: true
+      - type: sql
+        sql: "SELECT count(1) FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action<=2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
+        global: true
+      - type: sql
+        sql: "SELECT count(1) FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action > 2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1)"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_clog_stat group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_clog_stat where role = 'LEADER') ;"
+        global: true
+      - type: sql
+        sql: "SELECT svr_ip ,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.v$ob_cluster;"
+        global: true
+      - type: sql
+        sql: "SELECT TENANT_ID, COUNT(*)  FROM oceanbase.__ALL_VIRTUAL_META_TABLE  WHERE ROLE = 1  GROUP BY TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "select tenant_id, table_id, partition_id from oceanbase.__all_virtual_partition_table group by 1,2,3 having min(role) = 2;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1) ;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_clog_stat group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_clog_stat where role = 'LEADER') ;"
+        global: true
+      - type: log
+        global: false
+        grep: ""
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_ZONES;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.GV$OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
+        global: true
+      - type: sql
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%backup%';"
+        global: true
+      - type: sql
+        sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, SCN_TO_TIMESTAMP(SYNC_SCN) FROM oceanbase.DBA_OB_TENANTS WHERE TENANT_NAME = 'standby_tenant';;"
+        global: true
+      - type: sql
+        sql: "SELECT LS_ID, SCN_TO_TIMESTAMP(END_SCN) FROM oceanbase.GV$OB_LOG_STAT WHERE ROLE = 'LEADER';"
+        global: true
+      - type: log
+        global: false
+        grep: ""

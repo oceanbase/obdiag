@@ -336,7 +336,7 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
                 ob_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
             else:
                 ob_version_info = LocalClient().run_get_stderr(cmd)
-            logger.info("get observer version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,ob_version_info))
+            logger.info("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
             if "REVISION" not in ob_version_info:
                 raise Exception("Please check conf about observer,{0}".format(ob_version_info))
             ob_version = re.findall(r'[(]OceanBase.CE\s(.+?)[)]', ob_version_info)[0]
@@ -355,7 +355,7 @@ def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir):
         obproxy_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
     else:
         obproxy_version_info = LocalClient().run_get_stderr(cmd)
-    logger.info("get obproxy version, run cmd = [{0}] ".format(cmd))
+    logger.debug("get obproxy version, run cmd = [{0}] ".format(cmd))
     if obproxy_version_info is not None:
         ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
         if len(ob_version) > 0:
@@ -367,7 +367,7 @@ def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir):
                 obproxy_version_info = SshClient().run_get_stderr(ssh_helper, cmd)
             else:
                 obproxy_version_info = LocalClient().run_get_stderr(cmd)
-            logger.info("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,obproxy_version_info))
+            logger.debug("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
                 raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
             pattern = r"(\d+\.\d+\.\d+\.\d+)"

@@ -201,3 +201,10 @@ def find_all_file(base):
             fullname = os.path.join(root, f)
             file_list.append(fullname)
     return file_list
+
+
+def write_data_append(output_file, results):
+    with open(output_file, 'a', encoding='utf-8') as f:
+        for row in results:
+            line_to_write = ','.join(str(item) for item in row)
+            f.write(line_to_write + '\n')

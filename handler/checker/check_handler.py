@@ -23,7 +23,7 @@ from common.logger import logger
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
-from common.command import get_observer_version, get_obproxy_version
+from common.scene import get_version
 import re
 from utils.utils import display_trace, node_cut_passwd_for_log
 from utils.yaml_utils import read_yaml_data
@@ -84,12 +84,7 @@ class CheckHandler:
         logger.info("tasks_base_path is " + self.tasks_base_path)
 
         # checker export_report_path
-        export_report_path = os.path.expanduser(export_report_path)
-        if not os.path.exists(export_report_path):
-            logger.warning("{0} not exists. mkdir it!".format(self.export_report_path))
-            os.mkdir(export_report_path)
-        self.export_report_path = export_report_path
-        logger.info("export_report_path is " + self.export_report_path)
+        self.export_report_path=export_report_path
 
     def handle(self, args):
         package_name = None
@@ -106,6 +101,14 @@ class CheckHandler:
                 package_name = package_name[0]
             else:
                 package_name = getattr(args, "cases")
+        if getattr(args, "report_path") :
+            self.export_report_path = getattr(args, "report_path")
+            logger.info("export_report_path change to " + self.export_report_path)
+        self.export_report_path = os.path.expanduser(self.export_report_path)
+        if not os.path.exists(self.export_report_path):
+            logger.warning("{0} not exists. mkdir it!".format(self.export_report_path))
+            os.mkdir(self.export_report_path)
+        logger.info("export_report_path is " + self.export_report_path)
 
         logger.info("package_name is {0}".format(package_name))
         # get package's by package_name
@@ -164,34 +167,19 @@ class CheckHandler:
             # Verify if the version is within a reasonable range
             report = TaskReport(task_name)
             if not self.ignore_version:
-                try:
-                    node = self.nodes[0]
-                    ssh = SshHelper(True, node.get("ip"),
-                                    node.get("user"),
-                                    node.get("password"),
-                                    node.get("port"),
-                                    node.get("private_key"),
-                                    node)
-
-                    if self.check_target_type == "observer":
-                        version = get_observer_version(True, ssh, self.nodes[0]["home_path"])
-                    elif self.check_target_type == "obproxy":
-                        version = get_obproxy_version(True, ssh, self.nodes[0]["home_path"])
-                    else:
-                        raise Exception(
-                            "check_target_type is {0} . No func to get the version".format(self.check_target_type))
+                version = get_version(self.nodes, self.check_target_type)
+                if version:
                     self.cluster["version"] = re.findall(r'\d+\.\d+\.\d+\.\d+', version)[0]
                     logger.info("cluster.version is {0}".format(self.cluster["version"]))
-                except Exception as e:
-                    logger.error("can't get version, Exception: {0}".format(e))
-                    raise Exception("can't get version, Exception: {0}".format(e))
+                    task = TaskBase(self.tasks[task_name]["task"], self.nodes, self.cluster, report)
+                    logger.info("{0} execute!".format(task_name))
+                    task.execute()
+                    logger.info("execute tasks end : {0}".format(task_name))
+                    return report
+                else:
+                    logger.error("can't get version")
             else:
                 logger.info("ignore version")
-            task = TaskBase(self.tasks[task_name]["task"], self.nodes, self.cluster, report)
-            logger.info("{0} execute!".format(task_name))
-            task.execute()
-            logger.info("execute tasks end : {0}".format(task_name))
-            return report
         except Exception as e:
             logger.error("execute_one Exception : {0}".format(e))
             raise CheckException("execute_one Exception : {0}".format(e))

@@ -3,17 +3,21 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: ssh
-      ssh: 'find #{remote_home_path} -name "sstable"'
+      ssh: 'find #{remote_data_dir} -name "sstable"'
       result:
         set_value: data_dir_path
+        verify: '[ -n "${data_dir_path}" ]'
+        err_msg: "data_dir_path is null . Please check your nodes.data_dir need absolute Path"
     - type: ssh
       ssh: "df -h #{data_dir_path} | grep '/' | awk '{print $6}'"
       result:
         set_value: data_dir_disk
     - type: ssh
-      ssh: 'find #{remote_home_path} -name "clog"'
+      ssh: 'find #{remote_redo_dir} -name "clog"'
       result:
         set_value: log_dir_path
+        verify: '[ -n "${log_dir_path}" ]'
+        err_msg: "log_dir_path is null . Please check your nodes.redo_dir need absolute Path"
     - type: ssh
       ssh: "df -h #{log_dir_path} | grep '/' | awk '{print $6}'"
       result:
@@ -54,13 +58,4 @@ task:
         set_value:  file_system
         verify: '[ "${file_system}" == "XFS" ] || [ "${file_system}" == "ext4" ]'
         err_msg: "ip:#{remote_ip} ,file_system is not XFS or ext4."
-
-
-
-
-
-
-
-
-
 

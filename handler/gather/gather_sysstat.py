@@ -16,7 +16,6 @@
 @desc:
 """
 import os
-import threading
 import time
 import datetime
 
@@ -24,10 +23,9 @@ import tabulate
 import uuid
 
 from common.logger import logger
-from common.obdiag_exception import OBDIAGInvalidArgs
 from common.constant import const
 from common.command import LocalClient, SshClient
-from common.command import get_file_size, download_file, mkdir, zip_dir, delete_file_force
+from common.command import get_file_size, download_file, mkdir, zip_dir
 from handler.base_shell_handler import BaseShellHandler
 from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size
 from utils.shell_utils import SshHelper
@@ -36,7 +34,7 @@ from utils.utils import get_localhost_inner_ip, display_trace
 
 
 class GatherOsInfoHandler(BaseShellHandler):
-    def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
+    def __init__(self, nodes, gather_pack_dir, gather_timestamp=None, common_config=None, is_scene=False):
         super(GatherOsInfoHandler, self).__init__(nodes)
         for node in nodes:
             if node.get("ssh_type") == "docker":
@@ -46,9 +44,10 @@ class GatherOsInfoHandler(BaseShellHandler):
         self.gather_timestamp = gather_timestamp
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
+        self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
-            self.file_size_limit = 2 * 1024 * 1024
+            self.file_size_limit = 2 * 1024 * 1024 * 1024
         else:
             self.file_size_limit = int(parse_size(common_config["file_size_limit"]))
 
@@ -57,13 +56,10 @@ class GatherOsInfoHandler(BaseShellHandler):
         if not self.__check_valid_args(args):
             return
 
-        # if user indicates the store_dir, use it, otherwise use the dir in the config(default)
-        if args.store_dir is not None:
-            self.local_stored_path = os.path.abspath(args.store_dir)
-
-        pack_dir_this_command = os.path.join(self.local_stored_path,
-                                             "gather_pack_{0}".format(timestamp_to_filename_time(
-                                                 self.gather_timestamp)))
+        if self.is_scene:
+            pack_dir_this_command = self.local_stored_path
+        else:
+            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
@@ -160,9 +156,14 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_dmesg_boot_info(self, ssh_helper, dir_path):
         try:
-            dmesg_cmd = 'cp --force /var/log/dmesg {dir_path}/dmesg.boot'.format(dir_path=dir_path)
-            logger.info("gather dmesg boot info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), dmesg_cmd))
-            SshClient().run(ssh_helper, dmesg_cmd) if self.is_ssh else LocalClient().run(dmesg_cmd)
+            file_exit_cmd = "ls -l {file_path} 2>/dev/null".format(file_path="/var/log/dmesg")
+            file_exit = SshClient().run(ssh_helper, file_exit_cmd) if self.is_ssh else LocalClient().run(file_exit_cmd)
+            if file_exit:
+                dmesg_cmd = 'cp --force /var/log/dmesg {dir_path}/dmesg.boot'.format(dir_path=dir_path)
+                logger.info("gather dmesg boot info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), dmesg_cmd))
+                SshClient().run(ssh_helper, dmesg_cmd) if self.is_ssh else LocalClient().run(dmesg_cmd)
+            else:
+                logger.warn("the file /var/log/dmesg on server {0} not found ".format(ssh_helper.get_name()))
         except:
             logger.error("Failed to gather the /var/log/dmesg on server {0}".format(ssh_helper.get_name()))
 
@@ -184,19 +185,19 @@ class GatherOsInfoHandler(BaseShellHandler):
         except:
             logger.error("Failed to gather memory info use tsar on server {0}".format(ssh_helper.get_name()))
 
-    @staticmethod
-    def __check_valid_args(args):
+
+    def __check_valid_args(self, args):
         """
         chech whether command args are valid. If invalid, stop processing and print the error to the user
         :param args: command args
         :return: boolean. True if valid, False if invalid.
         """
-        # 1: store_dir must exist, else return "No such file or directory".
+        # 1: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
         return True
 
     @staticmethod

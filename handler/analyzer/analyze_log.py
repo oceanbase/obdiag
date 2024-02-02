@@ -85,8 +85,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             local_ip = get_localhost_inner_ip()
             node = self.nodes[0]
             node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
+            handle_from_node(node)
 
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
@@ -419,14 +418,12 @@ class AnalyzeLogHandler(BaseShellHandler):
                     seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-        # store_dir must exist, else return "No such file or directory".
+        # 2: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
-            else:
-                self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
 
         if getattr(args, "grep") is not None:
             self.grep_args = ' '.join(getattr(args, "grep"))

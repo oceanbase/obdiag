@@ -29,3 +29,4 @@ pwinput==1.0.3
 pyinstaller>=4.3
 colorama==0.4.6
 PyMySQL==1.0.2
+sqlparse==0.4.4

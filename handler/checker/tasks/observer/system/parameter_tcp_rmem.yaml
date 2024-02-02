@@ -1,0 +1,35 @@
+
+info: |
+  'To detect kernel parameters, refer to: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643'
+task:
+  - steps:
+    - type: get_system_parameter
+      parameter: net.ipv4.tcp_rmem
+      result:
+        set_value: tcp_rmem
+        verify: '[[ -n "$tcp_rmem" && "$tcp_rmem" != "-1" ]]'
+        err_msg: "net.ipv4.tcp_rmem is #{tcp_rmem} . Please check net.ipv4.tcp_rmem on your node"
+    - type: ssh
+      ssh: "echo \"#{tcp_rmem}\" | awk '{print $1}'"
+      result:
+        set_value: tcp_rmem_min
+        report_type: warning
+        verify_type: between
+        verify: "[4096,8192]"
+        err_msg: 'net.ipv4.tcp_rmem_min : #{tcp_rmem_min} is a non recommended value, recommended value is 4096 ≤ min ≤ 8192'
+    - type: ssh
+      ssh: "echo \"#{tcp_rmem}\" | awk '{print $2}'"
+      result:
+        set_value: tcp_rmem_default
+        report_type: warning
+        verify_type: between
+        verify: "[65536,131072]"
+        err_msg: 'net.ipv4.tcp_rmem_default : #{tcp_rmem_default}. net.ipv4.tcp_rmem_default from net.ipv4.tcp_rmem. It is a non recommended value, recommended value :is 65536 ≤ default≤ 131072'
+    - type: ssh
+      ssh: "echo \"#{tcp_rmem}\" | awk '{print $3}'"
+      result:
+        set_value: tcp_rmem_max
+        report_type: warning
+        verify_type: between
+        verify: "[8388608,16777216]"
+        err_msg: 'net.ipv4.tcp_rmem_max : #{tcp_rmem_max}. net.ipv4.tcp_rmem_max from net.ipv4.tcp_rmem. It is a non recommended value, recommended value is 65536 ≤ max≤ 131072'

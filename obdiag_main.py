@@ -65,6 +65,14 @@ def gather_perf(args):
         logger.debug("object has no attribute 'gather_perf' pass gather perf info\n")
 
 
+def gather_obstack(args):
+    try:
+        if args.gather_obstack:
+            args.gather_obstack(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'gather_obstack' pass gather ob stack\n")
+
+
 def gather_plan_monitor(args):
     try:
         if args.gather_plan_monitor:
@@ -95,6 +103,21 @@ def gather_obproxy_log(args):
             args.gather_obproxy_log(args)
     except AttributeError:
         logger.debug("object has no attribute 'gather_obproxy_log' pass gather obproxy log\n")
+
+
+def gather_scene(args):
+    try:
+        if args.gather_scene:
+            args.gather_scene(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'gather_scene' pass gather scene\n")
+
+def gather_scene_list(args):
+    try:
+        if args.gather_scene_list:
+            args.gather_scene_list(args)
+    except AttributeError:
+        logger.debug("object has no attribute 'gather_scene_list' pass gather scene list\n")
 
 
 def get_version(args):
@@ -128,12 +151,29 @@ def analyze_flt_trace(args):
     except AttributeError:
         logger.debug("object has no attribute 'analyze_flt_trace' pass analyze trace log\n")
 
+
 def check(args):
     try:
         if args.check:
             args.check(args)
     except AttributeError as e:
         logger.debug("object has no attribute 'check' pass check\n")
+
+
+def rca_run(args):
+    try:
+        if args.rca_run:
+            args.rca_run(args)
+    except AttributeError as e:
+        logger.debug("object has no attribute 'rca_run' pass rca run\n")
+
+
+def rca_list(args):
+    try:
+        if args.rca_list:
+            args.rca_list(args)
+    except AttributeError as e:
+        logger.debug("object has no attribute 'rca_list' pass rca list\n")
 
 
 if __name__ == '__main__':
@@ -144,17 +184,22 @@ if __name__ == '__main__':
     get_obdiag_trace_log(obdiag_args)
     pharse_config(obdiag_args)
     telemetry.push_cmd_info(obdiag_args)
+    rca_list(obdiag_args)
     if obdiag.init(obdiag_args):
         telemetry.set_cluster_conn(obdiag.ob_cluster)
         gather_log(obdiag_args)
         gather_awr(obdiag_args)
         gather_sysstat(obdiag_args)
         gather_perf(obdiag_args)
+        gather_obstack(obdiag_args)
         gather_plan_monitor(obdiag_args)
         gather_clog(obdiag_args)
         gather_slog(obdiag_args)
         gather_obproxy_log(obdiag_args)
+        gather_scene(obdiag_args)
+        gather_scene_list(obdiag_args)
         analyze_log(obdiag_args)
         analyze_flt_trace(obdiag_args)
         check(obdiag_args)
+        rca_run(obdiag_args)
         telemetry.put_data()

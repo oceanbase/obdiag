@@ -37,15 +37,18 @@ class OBConnector(object):
             logger.exception(e)
 
     def _connect_db(self):
-        logger.debug("connect OB: {0}:{1} with user {2}".format(self.ip, self.port, self.username))
-        self.conn = mysql.connect(
-            host=self.ip,
-            port=self.port,
-            user=self.username,
-            passwd=self.password,
-            connect_timeout=30,
-        )
-        logger.debug("connect databse ...")
+        try:
+            logger.debug("connect OB: {0}:{1} with user {2}".format(self.ip, self.port, self.username))
+            self.conn = mysql.connect(
+                host=self.ip,
+                port=self.port,
+                user=self.username,
+                passwd=self.password,
+                connect_timeout=30,
+            )
+            logger.debug("connect databse ...")
+        except mysql.Error as e:
+            logger.error("connect OB: {0}:{1} with user {2} failed, error:{3}".format(self.ip, self.port, self.username, e))
 
     def execute_sql(self, sql):
         if self.conn is None:
@@ -57,6 +60,18 @@ class OBConnector(object):
         ret = cursor.fetchall()
         cursor.close()
         return ret
+
+    def execute_sql_return_columns_and_data(self, sql):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor()
+        cursor.execute(sql)
+        column_names = [col[0] for col in cursor.description]
+        ret = cursor.fetchall()
+        cursor.close()
+        return column_names, ret
 
     def execute_sql_return_cursor_dictionary(self, sql):
         if self.conn is None:

@@ -22,6 +22,10 @@ elif [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
     cp -rf ${WORK_DIR}/handler/checker/tasks ${OBDIAG_HOME}/
 fi
 
+if [ -d "${WORK_DIR}/gather" ]; then
+    cp -rf ${WORK_DIR}/gather  ${OBDIAG_HOME}/
+fi
+
 if [ -d "${WORK_DIR}/example" ]; then
     cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
 fi

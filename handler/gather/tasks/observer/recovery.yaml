@@ -1,0 +1,79 @@
+info_en: "[recovery]"
+info_cn: "[数据恢复问题]"
+command: obdiag gather scene run --scene=observer.recovery
+task:
+  - version: "[2.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.v$ob_cluster"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
+        global: true
+      - type: sql
+        sql: "SELECT id,svr_ip,svr_port,zone,inner_port,with_rootserver,status,start_service_time,last_offline_time FROM  oceanbase.__all_server;"
+        global: true
+      - type: sql
+        sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_restore_info;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        global: true
+      - type: sql
+        sql: "select svr_ip,role, is_restore, count(*) from oceanbase.__all_root_table as a, (select value from oceanbase.__all_restore_info where name='tenant_id') as b where a.tenant_id=b.value group by role, is_restore, svr_ip order by svr_ip, is_restore;"
+        global: true
+      - type: sql
+        sql: "select svr_ip,role, is_restore, count(*) from oceanbase.__all_virtual_meta_table as a, (select value from oceanbase.__all_restore_info where name='tenant_id') as b where a.tenant_id=b.value group by role, is_restore, svr_ip order by svr_ip, is_restore;"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+      - type: sysstat
+        sysstat: ""
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_ZONES;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.GV$OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
+        global: true
+      - type: sql
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.CDB_OB_RESTORE_PROGRESS limit 20;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.CDB_OB_RESTORE_HISTORY limit 20;"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+      - type: sysstat
+        sysstat: ""
+        global: false

@@ -1,6 +1,6 @@
 ocp:
   login:
-    url: http://192.168.1.100:8080
+    url: http://xx.xx.xx.xx:xx
     user: admin
     password: ''
 obcluster:
@@ -9,14 +9,14 @@ obcluster:
   db_port: 2881 # default 2881
   tenant_sys:
     user: root@sys # default root@sys
-    password: ''
+    password: ""
   servers:
     nodes:
       - ip: 192.168.1.1
       - ip: 192.168.1.2
       - ip: 192.168.1.3
     global:
-      ssh_username: admin # your username
+      ssh_username: '' # your username
       ssh_password: '' # password if need
       # ssh_port: 22 # your ssh port, default 22
       # ssh_key_file: "" # your ssh-key file path if need
