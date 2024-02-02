@@ -18,3 +18,7 @@ check:
     export_type: table
   package_file: "~/.obdiag/check_package.yaml"
   tasks_base_path: "~/.obdiag/tasks/"
+gather:
+  scenes_base_path: "~/.obdiag/gather/tasks"
+rca:
+  result_path: "./rca/"

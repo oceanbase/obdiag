@@ -23,7 +23,7 @@ import uuid
 
 import tabulate
 from common.logger import logger
-from common.obdiag_exception import OBDIAGInvalidArgs, OBDIAGFormatException
+from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
 from common.command import LocalClient, SshClient, is_empty_dir
 from handler.base_shell_handler import BaseShellHandler
@@ -267,14 +267,12 @@ class GatherObAdminHandler(BaseShellHandler):
         :param args: command args
         :return: boolean. True if valid, False if invalid.
         """
-        # 1: store_dir must exist, else return "No such file or directory".
+        # 1: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
-            else:
-                self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
 
         if getattr(args, "encrypt")[0] == "true":
             self.zip_encrypt = True

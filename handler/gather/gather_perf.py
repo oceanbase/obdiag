@@ -26,7 +26,6 @@ import uuid
 from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
 from common.logger import logger
 from common.command import LocalClient, SshClient
-from common.obdiag_exception import OBDIAGInvalidArgs
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
 from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size
@@ -36,13 +35,14 @@ from utils.utils import get_localhost_inner_ip, display_trace
 
 
 class GatherPerfHandler(BaseShellHandler):
-    def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
+    def __init__(self, nodes, gather_pack_dir, gather_timestamp=None, common_config=None, is_scene=False):
         super(GatherPerfHandler, self).__init__(nodes)
         self.is_ssh = True
         self.gather_timestamp = gather_timestamp
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
         self.ob_install_dir = None
+        self.is_scene = is_scene
         self.scope = "all"
         self.config_path = const.DEFAULT_CONFIG_PATH
         if common_config is None:
@@ -53,9 +53,10 @@ class GatherPerfHandler(BaseShellHandler):
     def handle(self, args):
         if not self.__check_valid_args(args):
             return
-        if args.store_dir is not None:
-            self.local_stored_path = os.path.abspath(args.store_dir)
-        pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
+        if self.is_scene:
+            pack_dir_this_command = self.local_stored_path
+        else:
+            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
@@ -136,6 +137,7 @@ class GatherPerfHandler(BaseShellHandler):
                     self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
                     self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
                     self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
+                self.__gather_top(ssh_helper, remote_dir_full_path, pid_observer)
 
             zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name)
             remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
@@ -188,18 +190,28 @@ class GatherPerfHandler(BaseShellHandler):
         except:
             logger.error("gather pstack on server failed [{0}]".format(ssh_helper.get_name()))
 
+    def __gather_top(self, ssh_helper, gather_path, pid_observer):
+        try:
+            cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(
+            gather_path=gather_path, pid=pid_observer)
+            logger.info("gather top, run cmd = [{0}]".format(cmd))
+            SshClient().run(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
+        except:
+            logger.error("gather top on server failed [{0}]".format(ssh_helper.get_name()))
+
+
     def __check_valid_args(self, args):
         """
         chech whether command args are valid. If invalid, stop processing and print the error to the user
         :param args: command args
         :return: boolean. True if valid, False if invalid.
         """
-        # 1: store_dir must exist, else return "No such file or directory".
+        # 1: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
         if getattr(args, "scope") is not None:
             self.scope = getattr(args, "scope")[0]
         return True

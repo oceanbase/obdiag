@@ -91,8 +91,19 @@ const.OBDIAG_CHECK_DEFAULT_CONFIG = {
     "tasks_base_path": "~/.obdiag/tasks/"
   }
 }
+
+const.OBDIAG_GATHER_DEFAULT_CONFIG = {
+  "gather": {
+    "cases_base_path": "~/.obdiag/gather/tasks"
+  }
+}
+
+const.OBDIAG_RCA_DEFAULT_CONFIG = {
+    "rca": {
+        "result_path": "./rca/",
+    }
+}
 const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemetry.txt")
 const.TELEMETRY_CONTENT_REPORTER = "obdiag"
 const.TELEMETRY_URL = "openwebapi.oceanbase.com"
 const.TELEMETRY_PATH = "/api/web/oceanbase/report"
-

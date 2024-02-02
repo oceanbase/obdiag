@@ -208,29 +208,6 @@ class GatherAwrHandler(BaseHttpHandler):
         :param args: command args
         :return: boolean. True if valid, False if invalid.
         """
-        if getattr(args, "cluster_name") is not None:
-            # 1: cluster_name must be must be provided, if not be valid
-            try:
-                self.cluster_name = getattr(args, "cluster_name")[0]
-            except OBDIAGArgsNotFoundException:
-                logger.error("Error: cluster_name must be must be provided")
-                return False
-
-            try:
-                ocp_base_init = ocp_base.OcpBase(self.ocp_url, self.ocp_user, self.ocp_password)
-                ocp_base_init.check_ocp_site()
-            except Exception as e:
-                raise Exception("check login ocp failed, please check whether conf/config.yml is set correctly"
-                                .format(e))
-
-            # 2. get cluster id from ocp
-            try:
-                self.ob_cluster = ocp_cluster.ObCluster(self.ocp_url, self.auth, None)
-                self.cluster_id = self.ob_cluster.get_cluster_id_by_name(getattr(args, "cluster_name"))
-            except Exception as e:
-                logger.error("get cluster id from ocp failed, Exception:{0}, please check cluster_name".format(e))
-                return False
-            # 3: to timestamp must be larger than from timestamp, otherwise be valid
         if getattr(args, "from") is not None and getattr(args, "to") is not None:
             try:
                 self.from_time_str = getattr(args, "from")
@@ -245,7 +222,7 @@ class GatherAwrHandler(BaseHttpHandler):
                 logger.error("Error: from datetime is larger than to datetime, please check.")
                 return False
         elif (getattr(args, "from") is None or getattr(args, "to") is None) and args.since is not None:
-            # 3: the format of since must be 'n'<m|h|d>
+            # the format of since must be 'n'<m|h|d>
             try:
                 since_to_seconds = parse_time_length_to_sec(args.since)
             except ValueError:
@@ -257,8 +234,13 @@ class GatherAwrHandler(BaseHttpHandler):
                 since_to_seconds = 3600
             self.from_time_str = (now_time - datetime.timedelta(seconds=since_to_seconds)).strftime('%Y-%m-%d %H:%M:%S')
         else:
-            logger.error(
-                "Invalid args, you need input since or from and to datetime, args={0}".format(args))
+            logger.error("Invalid args, you need input since or from and to datetime, args={0}".format(args))
+        # store_dir must exist, else create directory.
+        if getattr(args, "store_dir") is not None:
+            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
         return True
 
     @staticmethod

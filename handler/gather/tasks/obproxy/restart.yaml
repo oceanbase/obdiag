@@ -1,0 +1,18 @@
+info_en: "[obproxy restart]"
+info_cn: "[obproxy无故重启]"
+command: obdiag gather scene run --scene=obproxy.restart
+task:
+  - version: "[2.0.0.0, *]"
+    steps:
+      - type: ssh
+        ssh: "ps -ef | grep obproxy"
+        global: false
+      - type: ssh
+        ssh: "cat /proc/sys/kernel/core_pattern"
+        global: false
+      - type: ssh
+        ssh: "ls -lhrt ${obproxy_data_dir}"
+        global: false
+      - type: obproxy_log
+        grep: ""
+        global: false

@@ -1,13 +1,11 @@
-info: 'Check whether there is any observer not in the ACTIVE state.'
+info: 'Check whether there is any observer have CPU oversold.'
 task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: 'select count(0) from oceanbase.DBA_OB_SERVERS where STATUS<>"ACTIVE";'
+      sql: "SELECT GROUP_CONCAT(CONCAT(SVR_IP, ':', SVR_PORT) SEPARATOR ', ') AS IP_PORT_COMBINATIONSFROM from oceanbase.GV$OB_SERVERS WHERE CPU_ASSIGNED > CPU_CAPACITY;"
       result:
-        set_value: not_ACTIVE
-        verify_type: equal
-        verify: 0
-        err_msg: 'There is #{not_ACTIVE} not_ACTIVE observer, please check as soon as possible.'
-
-
+        set_value: CPU_oversold
+        verify: '[ -z "$CPU_oversold" ]'
+        report_type: warning
+        err_msg: 'Some observers have CPU oversold. There are #{CPU_oversold}'

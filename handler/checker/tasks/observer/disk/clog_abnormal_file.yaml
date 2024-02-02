@@ -4,9 +4,11 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: ssh
-      ssh: 'find #{remote_home_path} -name "clog"'
+      ssh: 'find #{remote_redo_dir} -name "clog"'
       result:
         set_value: log_dir_path
+        verify: '[ -n "${log_dir_path}" ]'
+        err_msg: "log_dir_path is null . Please check your nodes.redo_dir need absolute Path"
     - type: ssh
       ssh: "find #{log_dir_path} -type f -name '*[^0-9]*'  ! -name  '*.tmp' ! -name '*.flashback' ! -name 'meta'"
       result:

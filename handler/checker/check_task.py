@@ -21,7 +21,7 @@ from handler.checker.check_exception import StepResultFailException, \
     StepExecuteFailException, StepResultFalseException, TaskException
 from handler.checker.step.stepbase import StepBase
 from utils.utils import node_cut_passwd_for_log
-from utils.version_utils import compare_versions_greater
+from common.scene import filter_by_version
 
 
 class TaskBase(object):
@@ -37,7 +37,7 @@ class TaskBase(object):
 
     def execute(self):
         logger.info("task_base execute")
-        steps_nu = self.filter_by_version()
+        steps_nu = filter_by_version(self.task, self.cluster)
         if steps_nu < 0:
             logger.warning("Unadapted by version. SKIP")
             self.report.add("Unadapted by version. SKIP", "warning")
@@ -55,7 +55,7 @@ class TaskBase(object):
                     if len(self.cluster)==0:
                         raise Exception("cluster is not exist")
                     step_run = StepBase(step, node, self.cluster, self.task_variable_dict)
-                    logger.info("step nu: {0} initted, to execute".format(nu))
+                    logger.debug("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
                     self.task_variable_dict = step_run.update_task_variable_dict()
                     if "report_type" in step["result"] and step["result"]["report_type"] == "execution":
@@ -74,47 +74,6 @@ class TaskBase(object):
                     logger.error("TaskBase execute Exception: {0}".format(e))
                     raise TaskException("TaskBase execute Exception:  {0}".format(e))
 
-                logger.info("step nu: {0} execute end ".format(nu))
+                logger.debug("step nu: {0} execute end ".format(nu))
                 nu = nu + 1
         logger.info("task execute end")
-
-    def filter_by_version(self):
-        try:
-            steps = self.task
-            steps_nu = 0
-            # get observer version
-            if "version" not in self.cluster or self.cluster["version"] == "":
-                return steps_nu
-            for now_steps in steps:
-                # have version in task ?
-                if "version" in now_steps:
-                    steps_versions = now_steps["version"]
-                    if not isinstance(steps_versions, str):
-                        raise TaskException("filter_by_version steps_version Exception : {0}".format("the type of version is not string"))
-                    version_real = self.cluster["version"]
-                    logger.info("version_int is {0} steps_versions is {1}".format(version_real, steps_versions))
-
-                    steps_versions = steps_versions.replace(" ", "")
-                    steps_versions = steps_versions[1:-1]
-                    steps_versions_list = steps_versions.split(",")
-                    minVersion = steps_versions_list[0]
-                    maxVersion = steps_versions_list[1]
-                    # min
-                    if minVersion == "*":
-                        minVersion = "-1"
-                    if maxVersion == "*":
-                        maxVersion = "999"
-                    if compare_versions_greater(version_real, minVersion) and compare_versions_greater(maxVersion,
-                                                                                                         version_real):
-                        break
-                else:
-                    logger.info("not version in now_steps")
-                    break
-                steps_nu = steps_nu + 1
-            if steps_nu > len(steps) - 1:
-                logger.warning("not version in this task")
-                return -1
-            return steps_nu
-        except Exception as e:
-            logger.error("filter_by_version Exception : {0}".format(e))
-            raise TaskException("filter_by_version Exception : {0}".format(e))

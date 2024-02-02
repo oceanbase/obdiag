@@ -23,18 +23,18 @@ observer  ->check_package.yaml
 obproxy   ->obproxy_check_package.yaml
 
 
-Example1:
+Example:
 obdiag check --cases= ad
 obdiag check --obproxy_cases= proxy
 obdiag check --cases=ad --obproxy_cases=proxy
 ```
 
 ### 关联持久化参数：
-持久化参数主要是部分日常不会修改的参数，依赖于conf/config.yml
+持久化参数主要是部分日常不会修改的参数，依赖于conf/inner_config.yml
 
 若使用rpm方式进行安装，config.yml位于
 ```shell script
-/user/local/oceanbase-diagnostic-tool/conf/config.yml
+/user/local/oceanbase-diagnostic-tool/conf/inner_config.yml
 ```
 
 check功能所关联的配置项在"CHECK"下，基本上的参数均无需变更或更改频率较低

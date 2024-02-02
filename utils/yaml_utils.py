@@ -17,12 +17,25 @@
 """
 
 import oyaml as yaml
+import os
 
+
+def is_yaml_file(path):
+    if not os.path.isfile(path):
+        return False
+    if path.endswith(('.yaml', '.yml')):
+        return True
+    else:
+        return False
 
 def read_yaml_data(file_path):
-    with open(file_path, 'r') as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
-    return data
+    if is_yaml_file(file_path):
+        try:
+            with open(file_path, 'r') as f:
+                data = yaml.load(f, Loader=yaml.FullLoader)
+            return data
+        except yaml.YAMLError as exc:
+            raise Exception("Error loading YAML from file, error: {0}".format(exc))
 
 
 def write_yaml_data(data, file_path):

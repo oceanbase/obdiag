@@ -15,7 +15,6 @@
 @file: gather_plan_monitor.py
 @desc:
 """
-from logging import log
 import os
 import re
 import sys
@@ -27,20 +26,21 @@ import pymysql as mysql
 import tabulate
 from prettytable import from_db_cursor
 
-from common.command import get_observer_version_by_sql
 from common.logger import logger
 from common.ob_connector import OBConnector
-from common.obdiag_exception import OBDIAGInvalidArgs, OBDIAGArgsNotFoundException
+from common.obdiag_exception import OBDIAGArgsNotFoundException
 from handler.base_sql_handler import BaseSQLHandler
 from handler.meta.html_meta import GlobalHtmlMeta
 from handler.meta.sql_meta import GlobalSqlMeta
 from utils.file_utils import mkdir_if_not_exist, write_result_append_to_file
 from utils.time_utils import timestamp_to_filename_time
+from utils.string_utils import parse_custom_env_string
 from utils.utils import display_trace
+from utils.string_utils import parse_mysql_cli_connection_string, validate_db_info
 
 
 class GatherPlanMonitorHandler(BaseSQLHandler):
-    def __init__(self, ob_cluster, gather_pack_dir, gather_timestamp):
+    def __init__(self, ob_cluster, gather_pack_dir, gather_timestamp=None, db_conn={}, is_scene=False):
         super(GatherPlanMonitorHandler, self).__init__()
         self.ob_cluster = ob_cluster
         self.local_stored_path = gather_pack_dir
@@ -56,12 +56,19 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                                         timeout=100)
         self.enable_dump_db = False
         self.trace_id = None
+        self.env = {}
         self.STAT_NAME = {}
         self.report_file_path = ""
         self.enable_fast_dump = False
         self.ob_major_version = None
         self.sql_audit_name = "gv$sql_audit"
         self.plan_explain_name = "gv$plan_cache_plan_explain"
+        self.db_conn = db_conn
+        self.is_scene = is_scene
+        self.gather_pack_dir = gather_pack_dir
+
+    def __init_db_connector(self):
+        self.db_connector = OBConnector(ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), timeout=100)
 
     def handle(self, args):
         """
@@ -71,7 +78,10 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
         """
         if not self.__check_valid_and_parse_args(args):
             return
-        pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(
+        if self.is_scene:
+            pack_dir_this_command = self.gather_pack_dir
+        else:
+            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(
             timestamp_to_filename_time(self.gather_timestamp)))
         self.report_file_path = os.path.join(pack_dir_this_command, "sql_plan_monitor_report.html")
         logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
@@ -215,15 +225,33 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                 return False
         else:
             return False
+        # 2: store_dir must exist, else create directory.
         if getattr(args, "store_dir") is not None:
             if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.error("Error: args --store_dir [{0}] incorrect: No such directory."
-                             .format(os.path.abspath(getattr(args, "store_dir"))))
-                return False
-            else:
-                self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
+        if getattr(args, "env") is not None:
+            self.__init_db_conn(args)
+        else:
+            self.db_connector = self.ob_connector
         self.tenant_mode_detected()
         return True
+
+    def __init_db_conn(self, args):
+        try:
+            env_dict = parse_custom_env_string(getattr(args, "env"))
+            self.env = env_dict
+            cli_connection_string = self.env.get("db_connect")
+            self.db_conn = parse_mysql_cli_connection_string(cli_connection_string)
+            if validate_db_info(self.db_conn):
+                self.__init_db_connector()
+            else:
+                logger.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env {0}".format(env_dict))
+                self.db_connector = self.ob_connector
+        except Exception as e:
+            self.db_connector = self.ob_connector
+            logger.error("init db connector, error: {0}, please check --env args {1}".format(e, parse_custom_env_string(getattr(args, "env"))))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
@@ -257,7 +285,7 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
                     valid_words.append(t)
                 for t in valid_words:
                     try:
-                        data = self.ob_connector.execute_sql("show create table %s" % t)
+                        data = self.db_connector.execute_sql("show create table %s" % t)
                         schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % (data[1])
                         logger.debug("table schema: {0}".format(schemas))
                     except Exception as e:
@@ -531,20 +559,26 @@ class GatherPlanMonitorHandler(BaseSQLHandler):
 
     def tenant_mode_detected(self):
         try:
-            data = self.ob_connector.execute_sql("select version();")
-            logger.info("Detected mySQL mode successful,  Database version : %s " % ("%s" % data[0]))
-            ob_version = data[0]
-            version_info = re.findall(r'OceanBase(_)?(.CE)?-v(.+)', ob_version[0])
-            version = version_info[0][2]
-            if int(version[0]) >= 4:
-                self.sql_audit_name = "gv$ob_sql_audit"
-                self.plan_explain_name = "gv$ob_plan_cache_plan_explain"
+            data = self.db_connector.execute_sql("show variables like 'version_comment'")
+            ob_version = "3.0.0.0"
+            for row in data:
+                ob_version = row[1]
+            logger.info("Detected mySQL mode successful,  Database version :{0} ".format(ob_version))
+            version_pattern = r'(?:OceanBase(_CE)?\s+)?(\d+\.\d+\.\d+\.\d+)'
+            matched_version = re.search(version_pattern, ob_version)
+            if matched_version:
+                version = matched_version.group(2)
+                if int(version[0]) >= 4:
+                    self.sql_audit_name = "gv$ob_sql_audit"
+                    self.plan_explain_name = "gv$ob_plan_cache_plan_explain"
+                else:
+                    self.sql_audit_name = "gv$sql_audit"
+                    self.plan_explain_name = "gv$plan_cache_plan_explain"
+                self.ob_major_version = int(version[0])
+                self.tenant_mode = "mysql"
+                self.sys_database = "oceanbase"
             else:
-                self.sql_audit_name = "gv$sql_audit"
-                self.plan_explain_name = "gv$plan_cache_plan_explain"
-            self.ob_major_version = int(version[0])
-            self.tenant_mode = "mysql"
-            self.sys_database = "oceanbase"
+                logger.warn("Failed to match ob version")
         except:
             data = self.ob_connector.execute_sql("select SUBSTR(BANNER, 11, 100) from V$VERSION;")
             logger.info("Detectedo oracle mode successful,  Database version : %s " % ("%s" % data[0]))

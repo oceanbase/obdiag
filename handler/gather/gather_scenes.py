@@ -1,0 +1,200 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+"""
+@time: 2024/01/04
+@file: gather_scene_handler.py
+@desc:
+"""
+
+import os
+import re
+import uuid
+import datetime
+from common.logger import logger
+from handler.gather.scenes.base import SceneBase
+from utils.utils import display_trace
+from common.obdiag_exception import OBDIAGFormatException
+from utils.time_utils import parse_time_str
+from utils.time_utils import parse_time_length_to_sec
+from utils.time_utils import timestamp_to_filename_time
+from utils.utils import display_trace
+from handler.gather.scenes.list import GatherScenesListHandler
+from utils.file_utils import mkdir_if_not_exist
+from utils.string_utils import parse_custom_env_string
+from common.scene import get_obproxy_and_ob_version
+from colorama import Fore, Style
+
+
+class GatherSceneHandler:
+
+    def __init__(self, obproxy_cluster, obproxy_nodes, ob_cluster, ob_nodes, gather_pack_dir, gather_timestamp, tasks_base_path="./handler/gather/tasks/", task_type="observer"):
+        self.is_ssh = True
+        self.report = None
+        self.gather_timestamp = gather_timestamp
+        self.gather_pack_dir = gather_pack_dir
+        self.report_path = None
+        self.yaml_tasks = {}
+        self.code_tasks = []
+        self.env = {}
+        self.scene = None
+        self.obproxy_cluster = obproxy_cluster
+        self.obproxy_nodes = obproxy_nodes
+        self.cluster = ob_cluster
+        self.ob_nodes = ob_nodes
+        self.tasks_base_path = tasks_base_path
+        self.task_type = task_type
+        self.variables = {}
+
+    def handle(self, args):
+        if not self.__check_valid_and_parse_args(args):
+            return
+        self.__init_variables()
+        self.__init_report_path()
+        self.__init_task_names()
+        self.execute()
+        self.__print_result()
+
+    def execute(self):
+        try:
+            logger.info("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
+            for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
+                self.__execute_yaml_task_one(key, value)
+            for task in self.code_tasks:
+                self.__execute_code_task_one(task)
+        except Exception as e:
+            logger.error("Internal error :{0}".format(e))
+        finally:
+            display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+
+    # execute yaml task
+    def __execute_yaml_task_one(self, task_name, task_data):
+        try:
+            logger.info("execute tasks is {0}".format(task_name))
+            task_type = self.__get_task_type(task_name)
+            version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type)
+            if version:
+                self.cluster["version"] = re.findall(r'\d+\.\d+\.\d+\.\d+', version)[0]
+                logger.info("cluster.version is {0}".format(self.cluster["version"]))
+                task = SceneBase(scene=task_data["task"], obproxy_nodes=self.obproxy_nodes, ob_nodes=self.ob_nodes, cluster=self.cluster, report_dir=self.report_path, args=self.args, env=self.env, scene_variable_dict=self.variables, task_type=task_type)
+                logger.info("{0} execute!".format(task_name))
+                task.execute()
+                logger.info("execute tasks end : {0}".format(task_name))
+            else:
+                logger.error("can't get version")
+        except Exception as e:
+            logger.error("__execute_yaml_task_one Exception : {0}".format(e))
+
+    # execute code task
+    def __execute_code_task_one(self, task_name):
+        try:
+            logger.info("execute tasks is {0}".format(task_name))
+            scene = {"name": task_name}
+            task = SceneBase(scene=scene, obproxy_nodes=self.obproxy_nodes, ob_nodes=self.ob_nodes, cluster=self.cluster, report_dir=self.report_path, args=self.args, env=self.env, mode='code', task_type=task_name)
+            logger.info("{0} execute!".format(task_name))
+            task.execute()
+            logger.info("execute tasks end : {0}".format(task_name))
+        except Exception as e:
+            logger.error("__execute_code_task_one Exception : {0}".format(e))
+
+    def __init_task_names(self):
+        if self.scene:
+            new = re.sub(r'\{|\}', '', self.scene)
+            items = re.split(r'[;,]', new)
+            scene = GatherScenesListHandler(self.tasks_base_path)
+            for item in items:
+                yaml_task_data = scene.get_one_yaml_task(item)
+                is_code_task = scene.is_code_task(item)
+                if is_code_task:
+                    self.code_tasks.append(item)
+                else:
+                    if yaml_task_data:
+                        self.yaml_tasks[item] = yaml_task_data
+                    else:
+                        logger.error("Invalid Task :{0}".format(item))
+        else:
+            logger.error("get task name failed")
+
+    def __init_report_path(self):
+        try:
+            self.report_path = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
+            logger.info("Use {0} as pack dir.".format(self.report_path))
+            mkdir_if_not_exist(self.report_path)
+        except Exception as e:
+            logger.error("init_report_path failed, error:{0}".format(e))
+
+    def __init_variables(self):
+        try:
+
+            self.variables = {
+                "observer_data_dir": self.ob_nodes[0].get("home_path") if self.ob_nodes and self.ob_nodes[0].get("home_path") else "",
+                "obproxy_data_dir": self.obproxy_nodes[0].get("home_path") if self.obproxy_nodes and self.obproxy_nodes[0].get("home_path") else "",
+                "from_time": self.from_time_str,
+                "to_time": self.to_time_str
+            }
+            logger.info("gather scene variables: {0}".format(self.variables))
+        except Exception as e:
+            logger.error("init gather scene variables failed, error: {0}".format(e))
+
+    def __get_task_type(self, s):
+        trimmed_str = s.strip()
+        if '.' in trimmed_str:
+            parts = trimmed_str.split('.', 1)
+            return parts[0]
+        else:
+            return None
+
+    def __check_valid_and_parse_args(self, args):
+        """
+        chech whether command args are valid. If invalid, stop processing and print the error to the user
+        :param args: command args
+        :return: boolean. True if valid, False if invalid.
+        """
+        self.args = args
+        # 1: to timestamp must be larger than from timestamp, and be valid
+        if getattr(args, "from") is not None and getattr(args, "to") is not None:
+            try:
+                from_timestamp = parse_time_str(getattr(args, "from"))
+                to_timestamp = parse_time_str(getattr(args, "to"))
+                self.from_time_str = getattr(args, "from")
+                self.to_time_str = getattr(args, "to")
+            except OBDIAGFormatException:
+                logger.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}".format(getattr(args, "from"), getattr(args, "to")))
+                return False
+            if to_timestamp <= from_timestamp:
+                logger.error("Error: from datetime is larger than to datetime, please check.")
+                return False
+        else:
+            now_time = datetime.datetime.now()
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            if args.since is not None:
+                self.from_time_str = (now_time - datetime.timedelta(
+                    seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
+        # 2: store_dir must exist, else create directory.
+        if getattr(args, "store_dir") is not None:
+            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
+                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
+                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
+            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
+        if getattr(args, "scene") is not None:
+            self.scene = ' '.join(getattr(args, "scene"))
+        else:
+            return False
+        if getattr(args, "env") is not None:
+            env_dict = parse_custom_env_string(getattr(args, "env"))
+            self.env = env_dict
+        return True
+
+    def __print_result(self):
+        print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)

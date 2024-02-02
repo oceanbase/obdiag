@@ -19,7 +19,7 @@
     </a>
 </p>
 
-# Oceanbase Diagnostic Tool (obdiag)
+# OceanBase Diagnostic Tool (obdiag)
 OceanBase Diagnostic Tool (obdiag) 是一款专门OceanBase打造的敏捷诊断工具，功能包括诊断信息收集、分析、巡检，可以在OceanBase集群不同的部署模式下（OCP，OBD或用户根据文档手工部署）实现一键执行。
 
 # 安装 obdiag
@@ -60,6 +60,9 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ## obdiag 巡检功能
 - [一键巡检](./docs/check.md)
 
+## obdiag 一键场景化信息采集功能
+- [一键场景化信息采集](./docs/gather_scene.md)
+
 ## obdiag 一键信息采集功能
 
 - [一键收集OB日志](./docs/gather_ob_log.md)
@@ -67,6 +70,7 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 - [一键收集主机信息](./docs/gather_sysstat.md)
 - [一键收集slog/clog日志](./docs/gather_admin.md)
 - [一键收集火焰图信息](./docs/gather_perf.md)
+- [一键收集OB堆栈信息](./docs/gather_ob_stack.md)
 - [一键收集并行SQL的执行详情信息](./docs/gather_sql_plan_monitor.md)
 - [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
 - [一键收集AWR报告](./docs/gather_awr.md)
@@ -75,6 +79,9 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ## obdiag 一键分析功能说明
 - [一键分析OB日志](./docs/analyze_ob_log.md)
 - [一键全链路诊断](./docs/analyze_flt_trace.md)
+
+## obdiag 一键场景化根因分析功能
+- [一键场景化根因分析](./docs/rca.md)
 
 # 许可证
 

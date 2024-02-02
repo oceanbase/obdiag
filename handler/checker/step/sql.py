@@ -65,7 +65,7 @@ class StepSQLHandler:
                 data = data[0][0]
             if data is None:
                 data = ""
-            logger.info("sql result:{0}".format(convert_to_number(data)))
+            logger.info("sql result:{0}".format(convert_to_number(str(data))))
             if "result" in self.step and "set_value" in self.step["result"]:
                 logger.info("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], convert_to_number(data)))
                 self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(data)

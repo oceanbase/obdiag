@@ -141,7 +141,7 @@ task:
         set_value: parameter
         report_type: warning
         verify: "[ 327680  -le  ${parameter}  ] && [ ${parameter}  -le  1000000 ]"
-        err_msg: 'vm.max_map_count : #{parameter} , which is not recommended. Set it within the range of  327680 ≤ value ≤ 1000000 '
+        err_msg: 'vm.max_map_count : #{parameter} , which is not recommended.Unreasonable vm.max_map_count configuration may cause serious memory leaks. Set it within the range of  327680 ≤ value ≤ 1000000 '
     - type: get_system_parameter
       parameter: vm.overcommit_memory
       result:
@@ -191,81 +191,5 @@ task:
         report_type: warning
         verify: "[ 0 -eq  ${parameter} ]"
         err_msg: 'fs.pipe-user-pages-soft : #{parameter} is a non recommended value, recommended value  is 0'
-    - type: get_system_parameter
-      parameter: net.ipv4.tcp_rmem
-      result:
-        set_value: tcp_rmem
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $1}'"
-      result:
-        set_value: tcp_rmem_min
-        report_type: warning
-        verify_type: between
-        verify: "[4096,8192]"
-        err_msg: 'net.ipv4.tcp_rmem_min : #{tcp_rmem_min} is a non recommended value, recommended value is 4096 ≤ min ≤ 8192'
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $2}'"
-      result:
-        set_value: tcp_rmem_default
-        report_type: warning
-        verify_type: between
-        verify: "[65536,131072]"
-        err_msg: 'net.ipv4.tcp_rmem_default : #{tcp_rmem_default} is a non recommended value, recommended value :is 65536 ≤ default≤ 131072'
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $3}'"
-      result:
-        set_value: tcp_rmem_max
-        report_type: warning
-        verify_type: between
-        verify: "[8388608,16777216]"
-        err_msg: 'net.ipv4.tcp_rmem_max : #{tcp_rmem_max} is a non recommended value, recommended value is 65536 ≤ max≤ 131072'
-    - type: get_system_parameter
-      parameter: net.ipv4.tcp_wmem
-      result:
-        set_value: tcp_rmem
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $1}'"
-      result:
-        set_value: tcp_rmem_min
-        report_type: warning
-        verify_type: between
-        verify: "[4096,8192]"
-        err_msg: 'net.ipv4.tcp_wmem_min : #{tcp_rmem_min} is a non recommended value, recommended value is 4096 ≤ min ≤ 8192'
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $2}'"
-      result:
-        set_value: tcp_rmem_default
-        report_type: warning
-        verify_type: between
-        verify: "[65536,131072]"
-        err_msg: 'net.ipv4.tcp_wmem_default : #{tcp_rmem_default} is a non recommended value, recommended value :is 65536 ≤ default≤ 131072'
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $3}'"
-      result:
-        set_value: tcp_rmem_max
-        report_type: warning
-        verify_type: between
-        verify: "[8388608,16777216]"
-        err_msg: 'net.ipv4.tcp_wmem_max : #{tcp_rmem_max} is a non recommended value, recommended value is 65536 ≤ max≤ 131072'
-    - type: get_system_parameter
-      parameter: net.ipv4.ip_local_port_range
-      result:
-        set_value: ip_local_port_range
-    - type: ssh
-      ssh: "echo \"#{ip_local_port_range}\" | awk '{print $1}'"
-      result:
-        set_value: ip_local_port_range_min
-        report_type: warning
-        verify_type: equal
-        verify: 3500
-        err_msg: 'ip_local_port_range_min : #{tcp_rmem_min} is a non recommended value, recommended value is 3500'
-    - type: ssh
-      ssh: "echo \"#{tcp_rmem}\" | awk '{print $2}'"
-      result:
-        set_value: ip_local_port_range_max
-        report_type: warning
-        verify_type: equal
-        verify: 65535
-        err_msg: 'ip_local_port_range_max : #{ip_local_port_range_max} is a non recommended value, recommended value is 65535'
 
 

@@ -26,6 +26,10 @@ class StringMergeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, " ".join(values))
 
+class ParserAction(object):
+    def add_attribute_to_namespace(args, attr_name, attr_value):
+        setattr(args, attr_name, attr_value)
+        return args
 
 class ArgParser(object):
     def __new__(cls, *args, **kwargs):
@@ -197,6 +201,7 @@ class ArgParser(object):
         gather_plan_monitor_arguments.set_defaults(gather_plan_monitor=self.client.handle_gather_plan_monitor)
         gather_plan_monitor_arguments.add_argument("--trace_id", metavar="trace_id", required=True,
                                                    nargs=1, help=" sql trace id")
+        gather_plan_monitor_arguments.add_argument("--env", metavar="env", type=str, help='env, eg: "{env1=xxx, env2=xxx}"')
 
         # gather 子命令 clog
         gather_clog_arguments = subparsers_gather.add_parser(
@@ -289,6 +294,33 @@ class ArgParser(object):
         gather_all_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain for log")
 
+
+        gather_scene = subparsers_gather.add_parser(
+            "scene", help="Gather scene info",
+            conflict_handler='resolve',
+            description="gather scene")
+        # gather scene list
+        subparsers_gather_scene = gather_scene.add_subparsers()
+        gather_scene_arguments = subparsers_gather_scene.add_parser(
+            "run", 
+            help="Gather scene run",
+            parents=[parents_time_arguments, parents_common_arguments],
+            epilog="Example: obdiag gather scene run --scene=xxx",
+            conflict_handler='resolve',
+            description="gather scene run")
+        gather_scene_arguments.set_defaults(gather_scene=self.client.handle_gather_scene_command)
+        gather_scene_arguments.add_argument("--scene", metavar="scene", nargs=1, required=True, help="specify scene")
+        gather_scene_arguments.add_argument("--env", metavar="env", type=str, help='env, eg: "{env1=xxx, env2=xxx}"')
+
+        # gather scene list
+        gather_scene_list_arguments = subparsers_gather_scene.add_parser(
+            "list", 
+            help="Gather scene list",
+            epilog="Example: obdiag gather scene list",
+            conflict_handler='resolve',
+            description="gather scene list")
+        gather_scene_list_arguments.set_defaults(gather_scene_list=self.client.handle_gather_scene_list_command)
+
         # analyze
         parser_analyze = subparsers.add_parser("analyze", help="analyze logs and other information", )
         subparsers_analyze = parser_analyze.add_subparsers()
@@ -333,12 +365,11 @@ class ArgParser(object):
         analyze_flt_trace_arguments.add_argument("--recursion", metavar="recursion", nargs=1, help="Maximum number of recursion")
         analyze_flt_trace_arguments.add_argument("--output", metavar="output", nargs=1, help="Print the result to the maximum output line on the screen")
 
-
         # 定义巡检参数check arguments
 
         check_arguments = subparsers.add_parser("check", help="do check",
-                                                epilog="Example: ./obdiag check \n\n"
-                                                       "Example: ./obdiag check --cases= system\n\n",
+                                                epilog="Example: obdiag check \n\n"
+                                                       "Example: obdiag check --cases= system\n\n",
                                                 conflict_handler='resolve', )
         check_arguments.set_defaults(check=self.client.handle_check_command)
         check_arguments.add_argument("--cases", metavar="cases", nargs=1,
@@ -348,6 +379,30 @@ class ArgParser(object):
 
         check_arguments.add_argument("--report-path", metavar="report_path", nargs=1,
                                      help="report path", required=False)
+        check_arguments.add_argument("-c", metavar="config", help="obdiag custom config")
+
+
+        # 定义根因分析参数rca arguments
+        rca_arguments = subparsers.add_parser("rca", help="root cause analysis",
+                                              epilog="Example: obdiag rca run --scene=disconnection\n\n"
+                                                     "Example: obdiag rca list",
+                                              conflict_handler='resolve', )
+        subparsers_rca = rca_arguments.add_subparsers()
+        rca_list_arguments = subparsers_rca.add_parser(
+            "list", help="show list of rca list",
+            epilog="Example: obdiag rca list\n\n",)
+        rca_list_arguments.set_defaults(rca_list=self.client.handle_rca_list_command)
+
+        rca_run_arguments = subparsers_rca.add_parser(
+            "run", help="Filter and analyze observer trace log",
+            epilog="Example: obdiag rca run --scene=disconnection\n\n",
+            conflict_handler='resolve',
+            description="According to the input parameters, rca run")
+        rca_run_arguments.set_defaults(rca_run=self.client.handle_rca_run_command)
+        rca_run_arguments.add_argument("--scene", metavar="scene", nargs=1,help="scene name. The argument is required.", required=True)
+        rca_run_arguments.add_argument("--parameters", metavar="parameters", nargs=1,help="Other parameters required for the scene, input in JSON format.",required=False)
+        rca_run_arguments.add_argument("--result-path", metavar="result_path", nargs=1,required=False)
+        rca_run_arguments.add_argument("-c", metavar="config", help="obdiag custom config")
 
         # parse args
         args = parser.parse_args(args=argv)

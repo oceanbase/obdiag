@@ -21,8 +21,7 @@ English | [中文版](README-CN.md)
     </a>
 </p>
 
-
-# Oceanbase Diagnostic Tool (obdiag)
+# OceanBase Diagnostic Tool (obdiag)
 OceanBase Diagnostic Tool (obdiag) is is a quick diagnostic tool for open-source OceanBase software. The features include gather\analyze\check OceanBase Diagnostic information. It can be executed with one click in different deployment modes of OceanBase clusters (OCP, OBD, or manually deployed by users according to documentation).
 
 # Install obdiag
@@ -64,6 +63,9 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ## obdiag check Fuctions
 - [check](./docs/check.md)
 
+## obdiag gather scene Fuctions
+- [gather scene](./docs/gather_scene.md)
+
 ## obdiag gather Fuctions
 
 - [gather log](./docs/gather_ob_log.md)
@@ -79,6 +81,9 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ## obdiag analyze Fuctions
 - [analyze log](./docs/analyze_ob_log.md)
 - [analyze flt trace log](./docs/analyze_flt_trace.md)
+
+## obdiag rca Fuctions
+- [rca](./docs/rca.md)
 
 # Licencing
 OceanBase Database is under MulanPubL - 2.0 license. You can freely copy and use the source code. When you modify or

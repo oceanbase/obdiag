@@ -15,17 +15,12 @@
 @file: utils.py
 @desc:
 """
-import datetime
 import decimal
-import json
-import os
+import ast
 import re
 import sys
 import subprocess
 import socket
-
-from prettytable import PrettyTable
-
 from common.logger import logger
 
 
@@ -168,6 +163,18 @@ def build_str_on_expr_by_dict(expr, variable_dict):
     return re.sub(r'#\{(\w+)\}', replacer, s)
 
 
+def build_str_on_expr_by_dict_2(expr, variable_dict):
+    s = expr
+    d = variable_dict
+
+    def replacer(match):
+        key = match.group(1)
+        value = str(d.get(key, match.group(0)))
+        return f"'{value}'"
+
+    return re.sub(r'\$\{(\w+)\}', replacer, s)
+
+
 def display_trace(uuid):
     print("If you want to view detailed obdiag logs, please run:' obdiag display-trace --trace_id {0} '".format(uuid))
 
@@ -197,3 +204,17 @@ def split_ip(ip_str):
     pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
     result = re.findall(pattern, ip_str)
     return result
+
+
+def parse_env_string_to_dict(env_string):
+    env_string = env_string.replace(';', ',')
+    env_dict = ast.literal_eval(f"{{{env_string}}}")
+    return env_dict
+
+def is_chinese(s):
+    try:
+        s.encode('ascii')
+    except UnicodeEncodeError:
+        return True
+    else:
+        return False
