@@ -52,7 +52,8 @@ class GetSystemParameterHandler:
 
     def get_parameter(self, parameter_name):
         try:
-            parameter_value = self.ssh_helper.ssh_exec_cmd("sysctl -n " + parameter_name).strip()
+            parameter_name = parameter_name.replace(".", "/")
+            parameter_value = self.ssh_helper.ssh_exec_cmd("cat /proc/sys/" + parameter_name).strip()
             self.ssh_helper.ssh_close()
         except Exception as e:
             logger.warning(
