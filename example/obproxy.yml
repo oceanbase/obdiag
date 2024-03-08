@@ -4,19 +4,19 @@ obproxy:
     nodes:
       - ip: 192.168.1.4
         ssh_username: admin4
-        ssh_password: admin4
+        ssh_password: ''
         home_path: /root/obproxy4
       - ip: 192.168.1.5
         ssh_username: admin4
-        ssh_password: admin4
+        ssh_password: ''
         home_path: /root/obproxy4
       - ip: 192.168.1.6
         ssh_username: admin4
-        ssh_password: admin4
+        ssh_password: ''
         home_path: /root/obproxy4
     global:
       # ssh_username: admin # your username
-      # ssh_password: admin # password if need
+      # ssh_password: '' # password if need
       ssh_port: 22 # your ssh port, default 22
       # ssh_key_file: "" # your ssh-key file path if need
       # ssh_type: remote # ssh_type choice [remote, docker, kube] default remote

@@ -9,19 +9,19 @@ obcluster:
     nodes:
       - ip: 192.168.1.1
         ssh_username: admin1
-        ssh_password: admin1
+        ssh_password: ''
         home_path: /root/observer1
         data_dir: /root/observer/store1
         redo_dir: /root/observer/store1
       - ip: 192.168.1.2
         ssh_username: admin2
-        ssh_password: admin2
+        ssh_password: ''
         home_path: /root/observer2
         data_dir: /root/observer/store2
         redo_dir: /root/observer/store2
       - ip: 192.168.1.3
         ssh_username: admin3
-        ssh_password: admin3
+        ssh_password: ''
         home_path: /root/observer3
         data_dir: /root/observer/store3
         redo_dir: /root/observer/store3
