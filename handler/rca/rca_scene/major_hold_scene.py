@@ -305,7 +305,7 @@ class MajorHoldScene(scene_base):
         if "schedule medium failed" in diagnose_info:
             node = None
             for observer_node in self.observer_nodes:
-                if svr_ip == node.get("ip"):
+                if svr_ip == observer_node.get("ip"):
                     node = observer_node
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
@@ -348,7 +348,7 @@ class MajorHoldScene(scene_base):
                         err_no, err_trace, table_id, tenant_id, compaction_scn, global_broadcast_scn))
                 node = None
                 for observer_node in self.observer_nodes:
-                    if svr_ip == node.get("ip"):
+                    if svr_ip == observer_node.get("ip"):
                         node = observer_node
                 if node is None:
                     raise RCAExecuteException(
@@ -368,7 +368,7 @@ class MajorHoldScene(scene_base):
                 ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
             node = None
             for observer_node in self.observer_nodes:
-                if svr_ip == node.get("ip"):
+                if svr_ip == observer_node.get("ip"):
                     node = observer_node
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
@@ -454,7 +454,7 @@ class MajorHoldScene(scene_base):
                 "result:{0}".format(str(all_virtual_tablet_compaction_info)))
             node = None
             for observer_node in self.observer_nodes:
-                if svr_ip == node.get("ip"):
+                if svr_ip == observer_node.get("ip"):
                     node = observer_node
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))

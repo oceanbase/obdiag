@@ -44,8 +44,8 @@ CHECK:
   report:
     report_path: "./check_report/"
     export_type: table
-  package_file: "~/.obdiag/check_package.yaml"
-  tasks_base_path: "~/.obdiag/tasks/"
+  package_file: "~/.obdiag/check/check_package.yaml"
+  tasks_base_path: "~/.obdiag/check/tasks/"
 ```
 ignore_version表示是否需要在执行巡检项时跳过版本匹配
 report下主要是对报告的参数进行配置
@@ -70,7 +70,7 @@ task会包含一些用于巡检的前置声明，用于实现对ob进行更为�
 
 ```ssh script
 #先进入${CHECK.tasks_base_path} ,然后创建一个文件夹test,并创建我们的示例文件test.yaml(以observer为测试目标)
-cd ~/.obdiag/tasks/observer
+cd ~/.obdiag/check/tasks/observer
 mkdir test
 cd test
 touch test.yaml

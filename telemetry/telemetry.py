@@ -21,16 +21,12 @@ import json
 import threading
 import time
 import hashlib
-import socket
-
-import requests
 from io import open
 from common.constant import const
 from common.ob_connector import OBConnector
 from utils.network_utils import network_connectivity
 from utils.time_utils import DateTimeEncoder
 from utils.version_utils import get_obdiag_version
-
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 class Telemetry():
@@ -63,7 +59,7 @@ class Telemetry():
                                                 password=obcluster.get("tenant_sys").get("password"),
                                                 timeout=10000)
                 self.threads.append(threading.Thread(None, self.get_cluster_info()))
-                self.threads.append(threading.Thread(None, self.get_tenant_info()))
+               # self.threads.append(threading.Thread(None, self.get_tenant_info()))
                 for thread in self.threads:
                     thread.start()
             except Exception as e:

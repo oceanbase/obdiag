@@ -9,6 +9,8 @@ FROM oceanbase.DBA_OB_TENANTS
 WHERE TENANT_TYPE='USER' limit 1;"
       result:
         set_value: tenant_id
+        verify: '[ -n "${tenant_id}" ]'
+        err_msg: "the tenant_id of TENANT_TYPE='USER' is null. Please check your TENANT."
     - type: sql
       sql: 'SELECT ROUND(t3.MEMORY_SIZE/1024/1024/1024) FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4
 where t1.tenant_id = t4.tenant_id
@@ -16,7 +18,6 @@ where t1.tenant_id = t4.tenant_id
   AND t4.resource_pool_id=t2.resource_pool_id
   AND t4.unit_config_id=t3.unit_config_id
  and t2.svr_ip="#{remote_ip}"
-
 ORDER BY t1.tenant_name limit 1;'
       result:
         set_value: memory_size
@@ -32,7 +33,6 @@ ORDER BY t1.tenant_name limit 1;'
       sql: 'select ROUND(SUM(used/1024/1024/1024)) from oceanbase.__all_virtual_memory_info  where tenant_id=#{tenant_id} and svr_ip="#{remote_ip}"'
       result:
         set_value: memory_used
-
         verify: "(( memory_used * 100 / memory_size < 90 ))"
         report_type: warning
         err_msg: "tenant memory is not enough. memory_used is #{memory_used}. memory_size is #{memory_size}"

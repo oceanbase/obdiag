@@ -87,8 +87,8 @@ const.OBDIAG_CHECK_DEFAULT_CONFIG = {
       "report_path": "./check_report/",
       "export_type": "table"
     },
-    "package_file": "~/.obdiag/check_package.yaml",
-    "tasks_base_path": "~/.obdiag/tasks/"
+    "package_file": "~/.obdiag/check/check_package.yaml",
+    "tasks_base_path": "~/.obdiag/check/tasks/"
   }
 }
 
@@ -107,3 +107,6 @@ const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemet
 const.TELEMETRY_CONTENT_REPORTER = "obdiag"
 const.TELEMETRY_URL = "openwebapi.oceanbase.com"
 const.TELEMETRY_PATH = "/api/web/oceanbase/report"
+const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
+const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
+const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'

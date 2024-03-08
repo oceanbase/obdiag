@@ -26,10 +26,12 @@ class StringMergeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, " ".join(values))
 
+
 class ParserAction(object):
     def add_attribute_to_namespace(args, attr_name, attr_value):
         setattr(args, attr_name, attr_value)
         return args
+
 
 class ArgParser(object):
     def __new__(cls, *args, **kwargs):
@@ -201,7 +203,8 @@ class ArgParser(object):
         gather_plan_monitor_arguments.set_defaults(gather_plan_monitor=self.client.handle_gather_plan_monitor)
         gather_plan_monitor_arguments.add_argument("--trace_id", metavar="trace_id", required=True,
                                                    nargs=1, help=" sql trace id")
-        gather_plan_monitor_arguments.add_argument("--env", metavar="env", type=str, help='env, eg: "{env1=xxx, env2=xxx}"')
+        gather_plan_monitor_arguments.add_argument("--env", metavar="env", type=str,
+                                                   help='env, eg: "{env1=xxx, env2=xxx}"')
 
         # gather 子命令 clog
         gather_clog_arguments = subparsers_gather.add_parser(
@@ -294,7 +297,6 @@ class ArgParser(object):
         gather_all_arguments.add_argument("--grep", metavar="grep", nargs='+',
                                           help="specify keywords constrain for log")
 
-
         gather_scene = subparsers_gather.add_parser(
             "scene", help="Gather scene info",
             conflict_handler='resolve',
@@ -302,7 +304,7 @@ class ArgParser(object):
         # gather scene list
         subparsers_gather_scene = gather_scene.add_subparsers()
         gather_scene_arguments = subparsers_gather_scene.add_parser(
-            "run", 
+            "run",
             help="Gather scene run",
             parents=[parents_time_arguments, parents_common_arguments],
             epilog="Example: obdiag gather scene run --scene=xxx",
@@ -311,10 +313,11 @@ class ArgParser(object):
         gather_scene_arguments.set_defaults(gather_scene=self.client.handle_gather_scene_command)
         gather_scene_arguments.add_argument("--scene", metavar="scene", nargs=1, required=True, help="specify scene")
         gather_scene_arguments.add_argument("--env", metavar="env", type=str, help='env, eg: "{env1=xxx, env2=xxx}"')
+        gather_scene_arguments.add_argument("--dis_update",type=bool, metavar="dis_update", nargs=1,help="The type is bool. --dis_update is assigned any value representing true",required=False)
 
         # gather scene list
         gather_scene_list_arguments = subparsers_gather_scene.add_parser(
-            "list", 
+            "list",
             help="Gather scene list",
             epilog="Example: obdiag gather scene list",
             conflict_handler='resolve',
@@ -359,30 +362,38 @@ class ArgParser(object):
             description="According to the input parameters, analyze observer logs")
         analyze_flt_trace_arguments.set_defaults(analyze_flt_trace=self.client.handle_analyze_flt_trace_command)
         analyze_flt_trace_arguments.add_argument("--files", metavar="files", nargs='+',
-                                           help="specify file")
-        analyze_flt_trace_arguments.add_argument("--flt_trace_id", metavar="flt_trace_id", nargs=1, required=True, help="flt trace id")
+                                                 help="specify file")
+        analyze_flt_trace_arguments.add_argument("--flt_trace_id", metavar="flt_trace_id", nargs=1, required=True,
+                                                 help="flt trace id")
         analyze_flt_trace_arguments.add_argument("--top", metavar="top", nargs=1, help="top leaf span")
-        analyze_flt_trace_arguments.add_argument("--recursion", metavar="recursion", nargs=1, help="Maximum number of recursion")
-        analyze_flt_trace_arguments.add_argument("--output", metavar="output", nargs=1, help="Print the result to the maximum output line on the screen")
+        analyze_flt_trace_arguments.add_argument("--recursion", metavar="recursion", nargs=1,
+                                                 help="Maximum number of recursion")
+        analyze_flt_trace_arguments.add_argument("--output", metavar="output", nargs=1,
+                                                 help="Print the result to the maximum output line on the screen")
 
         # 定义巡检参数check arguments
-
         check_arguments = subparsers.add_parser("check", help="do check",
-                                                epilog="Example: obdiag check \n\n"
-                                                       "Example: obdiag check --cases= system\n\n",
+                                                epilog="Example: obdiag check list\n\n"
+                                                       "Example: obdiag check --cases=ad\n\n",
                                                 conflict_handler='resolve', )
         check_arguments.set_defaults(check=self.client.handle_check_command)
-        check_arguments.add_argument("--cases", metavar="cases", nargs=1,
-                                     help="check cases on package_file", required=False)
-        check_arguments.add_argument("--obproxy-cases", metavar="obproxy_cases", nargs=1,
-                                     help="check obproxy's cases on package_file", required=False)
 
-        check_arguments.add_argument("--report-path", metavar="report_path", nargs=1,
+        subparsers_check = check_arguments.add_subparsers()
+        check_arguments.set_defaults(check=self.client.handle_check_command)
+        check_arguments.add_argument("--cases", metavar="cases", nargs=1,
+                                     help="check observer's cases on package_file", required=False)
+        check_arguments.add_argument("--obproxy_cases", metavar="obproxy_cases", nargs=1,
+                                     help="check obproxy's cases on package_file", required=False)
+        check_arguments.add_argument("--store_dir", metavar="store_dir", nargs=1,
                                      help="report path", required=False)
         check_arguments.add_argument("-c", metavar="config", help="obdiag custom config")
+        check_arguments.add_argument("--dis_update",type=bool, metavar="dis_update", nargs=1,help="The type is bool. --dis_updata is assigned any value representing true",required=False)
+        check_list_arguments = subparsers_check.add_parser(
+            "list", help="show list of check list",
+            epilog="Example: obdiag check list\n\n", )
+        check_list_arguments.set_defaults(check=self.client.handle_check_list_command)
 
-
-        # 定义根因分析参数rca arguments
+        # rca arguments
         rca_arguments = subparsers.add_parser("rca", help="root cause analysis",
                                               epilog="Example: obdiag rca run --scene=disconnection\n\n"
                                                      "Example: obdiag rca list",
@@ -401,9 +412,16 @@ class ArgParser(object):
         rca_run_arguments.set_defaults(rca_run=self.client.handle_rca_run_command)
         rca_run_arguments.add_argument("--scene", metavar="scene", nargs=1,help="scene name. The argument is required.", required=True)
         rca_run_arguments.add_argument("--parameters", metavar="parameters", nargs=1,help="Other parameters required for the scene, input in JSON format.",required=False)
-        rca_run_arguments.add_argument("--result-path", metavar="result_path", nargs=1,required=False)
+        rca_run_arguments.add_argument("--store_dir", metavar="store_dir", nargs=1,help="result path",required=False)
         rca_run_arguments.add_argument("-c", metavar="config", help="obdiag custom config")
 
+        # 定义升级参数update arguments
+        update_arguments = subparsers.add_parser("update", help="Update cheat files",
+                                                epilog="Example: obdiag update\n\n",
+                                                conflict_handler='resolve', )
+        update_arguments.set_defaults(check=self.client.handle_update_command)
+        update_arguments.add_argument("--file", metavar="file", help="obdiag update cheat file path. Please note that you need to ensure the reliability of the files on your own")
+        update_arguments.add_argument("--force",type=bool, metavar="force", nargs=1,help="Force Update",required=False)
         # parse args
         args = parser.parse_args(args=argv)
         return args

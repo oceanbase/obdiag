@@ -13,11 +13,12 @@ obdiag:
     stdout_handler_log_level: INFO
 check:
   ignore_version: false
+  work_path: "~/.obdiag/check"
   report:
     report_path: "./check_report/"
     export_type: table
-  package_file: "~/.obdiag/check_package.yaml"
-  tasks_base_path: "~/.obdiag/tasks/"
+  package_file: "~/.obdiag/check/check_package.yaml"
+  tasks_base_path: "~/.obdiag/check/tasks/"
 gather:
   scenes_base_path: "~/.obdiag/gather/tasks"
 rca:

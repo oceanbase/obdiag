@@ -2,7 +2,7 @@ ocp:
   login:
     url: http://xx.xx.xx.xx:xx
     user: admin
-    password: ''
+    password: admin
 obcluster:
   ob_cluster_name: test
   db_host: 192.168.1.1
@@ -16,8 +16,8 @@ obcluster:
       - ip: 192.168.1.2
       - ip: 192.168.1.3
     global:
-      ssh_username: '' # your username
-      ssh_password: '' # password if need
+      ssh_username: admin # your username
+      ssh_password: admin # password if need
       # ssh_port: 22 # your ssh port, default 22
       # ssh_key_file: "" # your ssh-key file path if need
       # ssh_type: remote # ssh_type choice [remote, docker, kube] default remote
@@ -37,7 +37,7 @@ obproxy:
       - ip: 192.168.1.6
     global:
       ssh_username: admin # your username
-      ssh_password: '' # password if need
+      ssh_password: admin # password if need
       # ssh_port: 22 # your ssh port, default 22
       # ssh_key_file: "" # your ssh-key file path if need
       # ssh_type: remote # ssh_type choice [remote, docker, kube] default remote

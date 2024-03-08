@@ -16,11 +16,12 @@
 @desc:
 """
 import functools
+import hashlib
 import os
 import io
 import shutil
+import tarfile
 import threading
-
 import tabulate
 
 
@@ -173,7 +174,7 @@ def show_file_size_tabulate(ip, file_size):
     field_names = ["Node", "LogSize"]
     summary_tab.append((ip, format_file_size))
     return "\nZipFileInfo:\n" + \
-           tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
 
 def show_file_list_tabulate(ip, file_list):
@@ -186,7 +187,7 @@ def show_file_list_tabulate(ip, file_list):
     field_names = ["Node", "LogList"]
     summary_tab.append((ip, file_list))
     return "\nFileListInfo:\n" + \
-           tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
 
 def find_all_file(base):
@@ -208,3 +209,39 @@ def write_data_append(output_file, results):
         for row in results:
             line_to_write = ','.join(str(item) for item in row)
             f.write(line_to_write + '\n')
+
+
+def calculate_sha256(filepath):  # sha1sum
+    """
+    Calculate sha256
+    :param args: file path
+    :return: the hexadecimal hash value
+    """
+    sha256 = hashlib.sha256()
+    try:
+        filepath = os.path.expanduser(filepath)
+        with open(filepath, 'rb') as file:
+            while True:
+                data = file.read(8192)  # Read fixed large and small blocks of files
+                if not data:
+                    break
+                sha256.update(data)  # Update the SHA-1 hash object
+        return sha256.hexdigest()  # Return the hexadecimal hash value
+    except Exception as e:
+        return ""
+
+
+def extract_tar(tar_path, output_path):
+    """
+      Extract all files from the tar file to the specified directory
+
+      Args:
+          tar_path (str): Path of tar file
+          output_path (str): Output directory for extracting files
+      Returns:
+          None
+      """
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    with tarfile.open(tar_path, 'r') as tar:
+        tar.extractall(path=output_path)

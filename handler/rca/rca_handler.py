@@ -55,8 +55,8 @@ class RCAHandler:
     def handle(self, args):
         if getattr(args, "parameters"):
             self.rca_scene_parameters = getattr(args, "parameters", "")[0].strip()
-        if getattr(args, "result_path"):
-            self.result_path = getattr(args, "result_path", "./rca/")[0].strip()
+        if getattr(args, "store_dir"):
+            self.result_path = getattr(args, "store_dir", "./rca/")[0].strip()
 
         if getattr(args, "scene") and scene_exist(getattr(args, "scene")[0]):
             self.rca_scene = rca_map[getattr(args, "scene")[0]]

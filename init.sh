@@ -15,13 +15,10 @@ else
 fi
 
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
-
+mkdir -p ${OBDIAG_HOME}/check
 if [ -d "${WORK_DIR}/tasks" ]; then
-    cp -rf ${WORK_DIR}/tasks  ${OBDIAG_HOME}/
-elif [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
-    cp -rf ${WORK_DIR}/handler/checker/tasks ${OBDIAG_HOME}/
+    cp -rf ${WORK_DIR}/tasks  ${OBDIAG_HOME}/check/
 fi
-
 if [ -d "${WORK_DIR}/gather" ]; then
     cp -rf ${WORK_DIR}/gather  ${OBDIAG_HOME}/
 fi
@@ -30,7 +27,7 @@ if [ -d "${WORK_DIR}/example" ]; then
     cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
 fi
 
-cp -rf ${WORK_DIR}/*check_package.yaml ${OBDIAG_HOME}/
+cp -rf ${WORK_DIR}/*check_package.yaml ${OBDIAG_HOME}/check/
 
 ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
 if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
@@ -40,4 +37,7 @@ fi
 
 source  ${WORK_DIR}/init_obdiag_cmd.sh
 
+if [ -d "${OBDIAG_HOME}/check_package.yaml" ]; then
+    echo "${OBDIAG_HOME}/*check_package.yaml and ${OBDIAG_HOME}/tasks  has been discarded. If you have made any changes to these files on your own, please transfer the relevant data to *check_package.yaml in ${OBDIAG_HOME}/check/"
+fi
 echo "Init obdiag finished"
