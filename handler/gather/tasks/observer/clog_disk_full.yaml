@@ -14,10 +14,22 @@ task:
         sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
         global: true
       - type: sql
-        sql: "SELECT id,svr_ip,svr_port,zone,inner_port,with_rootserver,status,start_service_time,last_offline_time FROM  oceanbase.__all_server;"
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
         global: true
       - type: sql
         sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
         global: true
       - type: sql
         sql: "show parameters like '%clog_disk_usage_limit_percentage%';"
@@ -30,6 +42,9 @@ task:
         global: true
       - type: sql
         sql: "select * from oceanbase.__all_virtual_tenant_memstore_info where (active_memstore_used > major_freeze_trigger) or (total_memstore_used > memstore_limit);"
+        global: true
+      - type: sql
+        sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t,cdb_ob_table_locations t1,cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
         global: true
       - type: sql
         sql: "select svr_ip,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;  "
@@ -67,6 +82,12 @@ task:
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
         global: true
       - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
         sql: "show parameters like '%clog%';"
         global: true
       - type: sql
@@ -84,6 +105,9 @@ task:
       - type: sql
         sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where event like '%migrat%' and name6 like '%fail%' and value6=1;"
         global: true
+      - type: ssh
+        ssh: "df -h"
+        global: false
       - type: log
         global: false
         grep: ""

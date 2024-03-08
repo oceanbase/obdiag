@@ -62,7 +62,7 @@ class SceneBase(object):
             return "Unadapted by version.SKIP"
         logger.info("filter_by_version is return {0}".format(steps_nu))
         if len(nodes)==0:
-            logger.error("node is not exist")
+            logger.warn("node is not exist")
             return
         node_number = 0
         for node in nodes:

@@ -14,13 +14,31 @@ task:
         sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
         global: true
       - type: sql
-        sql: "SELECT id,svr_ip,svr_port,zone,inner_port,with_rootserver,status,start_service_time,last_offline_time FROM  oceanbase.__all_server;"
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
         global: true
       - type: sql
         sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
         global: true
       - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
+        global: true
+      - type: sql
         sql: "select * from oceanbase.__all_virtual_tenant_memstore_info where (active_memstore_used > major_freeze_trigger) or (total_memstore_used > memstore_limit);"
+        global: true
+      - type: sql # 查看内存占用最大的 20 个模块
+        sql: "select `CONTEXT`, ROUND(USED / 1024 / 1024 / 1024, 2) as USED_GB from oceanbase.gv$memory group by `CONTEXT` ORDER BY USED DESC  limit 20;"
+        global: true
+      - type: sql # 查看内存状态
+        sql: "select  /*+ READ_CONSISTENCY(WEAK), query_timeout (100000000) */ TENANT_ID, round(ACTIVE / 1024 / 1024 / 1024, 2) ACTIVE_GB, round(TOTAL / 1024 / 1024 / 1024, 2) TOTAL_GB, round(FREEZE_TRIGGER / 1024 / 1024 / 1024, 2) FREEZE_TRIGGER_GB, round(TOTAL / FREEZE_TRIGGER * 100, 2) percent_trigger, round(MEM_LIMIT / 1024 / 1024 / 1024, 2) MEM_LIMIT_GB from oceanbase.gv$memstore where tenant_id > 1000 or TENANT_ID = 1 order by tenant_id, TOTAL_GB desc;"
         global: true
       - type: sql
         sql: "SELECT * FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action<=2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
@@ -70,8 +88,17 @@ task:
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.GV$OB_MEMSTORE limit 5"
+        sql: "show parameters like '%syslog_level%';"
         global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.GV$OB_MEMSTORE limit 20"
+        global: true
+      - type: ssh # 可看到租户的规格、线程、队列及请求统计等信息，且这条日志每个租户每 30s 打印一次
+        ssh: "grep 'dump tenant info.tenant=' ${observer_data_dir}/log/observer.log | sed 's/,/,\n/g'"
+        global: false
       - type: log
         grep: ""
         global: false

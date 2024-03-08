@@ -1,6 +1,6 @@
-info_en: "[suspend transaction]"
-info_cn: "[悬挂事务]"
-command: obdiag gather scene run --scene=observer.suspend_transaction
+info_en: "[io problem]"
+info_cn: "[io问题]"
+command: obdiag gather scene run --scene=observer.io
 task:
   - version: "[2.0.0.0, 4.0.0.0]"
     steps:
@@ -31,12 +31,21 @@ task:
       - type: sql
         sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
         global: true
-      - type: sql
-        sql: "SELECT * FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action > 2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
-        global: true
-      - type: log
-        grep: ""
+      - type: ssh
+        ssh: "df -h"
         global: false
+      - type: ssh
+        ssh: "cat /proc/sys/fs/aio-nr"
+        global: false
+      - type: ssh
+        ssh: "cat /proc/sys/fs/aio-max-nr"
+        global: false
+      - type: log
+        global: false
+        grep: "IO"
+      - type: sysstat
+        global: false
+        sysstat: ""
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
@@ -73,14 +82,20 @@ task:
         sql: "show parameters like '%syslog_io_bandwidth_limit%';"
         global: true
       - type: sql
-        sql: "SHOW VARIABLES LIKE 'ob_trx_idle_timeout';"
+        sql: "select * from __all_virtual_io_quota limit 20"
         global: true
-      - type: sql
-        sql: "SHOW VARIABLES LIKE 'ob_trx_timeout';"
-        global: true
-      - type: sql
-        sql: "SELECT count(1) FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE CTX_CREATE_TIME < date_sub(now(), INTERVAL 600 SECOND) AND (STATE = 'PREPARE' OR STATE = 'REDO COMPLETE' OR STATE ='PRECOMMIT');"
-        global: true
-      - type: log
-        grep: ""
+      - type: ssh
+        ssh: "df -h"
         global: false
+      - type: ssh
+        ssh: "cat /proc/sys/fs/aio-nr"
+        global: false
+      - type: ssh
+        ssh: "cat /proc/sys/fs/aio-max-nr"
+        global: false
+      - type: log
+        global: false
+        grep: "IO"
+      - type: sysstat
+        global: false
+        sysstat: ""
