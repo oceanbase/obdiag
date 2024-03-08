@@ -72,7 +72,7 @@ class AnalyzeFltTraceHandler(object):
             for node in self.nodes:
                 handle_from_node(node)
         else:
-            local_ip = get_localhost_inner_ip()
+            local_ip = '127.0.0.1'
             node = self.nodes[0]
             node["ip"] = local_ip
             handle_from_node(node)
@@ -93,7 +93,7 @@ class AnalyzeFltTraceHandler(object):
             "skip": False,
             "error": ""
         }
-        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
+        remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         remote_user = node.get("user")
         remote_password = node.get("password")
         remote_port = node.get("port")

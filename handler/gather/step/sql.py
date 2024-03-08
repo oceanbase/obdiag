@@ -55,8 +55,7 @@ class StepSQLHandler:
             columns, data = self.ob_connector.execute_sql_return_columns_and_data(sql)
             if data is None or len(data) == 0:
                 logger.warning("excute sql: {0},  result is None".format(sql))
-            else:
-                self.report(sql, columns, data)
+            self.report(sql, columns, data)
         except Exception as e:
             logger.error("StepSQLHandler execute Exception: {0}".format(e).strip())
 

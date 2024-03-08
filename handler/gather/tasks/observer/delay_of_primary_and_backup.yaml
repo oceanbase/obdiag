@@ -14,10 +14,22 @@ task:
         sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
         global: true
       - type: sql
-        sql: "SELECT id,svr_ip,svr_port,zone,inner_port,with_rootserver,status,start_service_time,last_offline_time FROM  oceanbase.__all_server;"
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
         global: true
       - type: sql
         sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
         global: true
       - type: sql
         sql: "select * from oceanbase.__all_failover_info;"
@@ -128,6 +140,12 @@ task:
         global: true
       - type: sql
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
         global: true
       - type: sql
         sql: "show parameters like '%backup%';"
