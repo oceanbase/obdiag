@@ -1,0 +1,42 @@
+ad:
+  info_en: "Test and inspection tasks"
+  info_cn: "测试巡检任务"
+  tasks:
+    - system.parameter
+build_before:
+  info_en: "Deployment environment check"
+  info_cn: "部署环境检查"
+  tasks:
+    - cluster.data_path_settings
+    - system.parameter
+    - system.aio
+    - system.dependent_software
+    - system.ulimit_parameter
+sysbench_run:
+  info_en: "Collection of inspection tasks when executing sysbench"
+  info_cn: "执行sysbench时的巡检任务集合"
+  tasks:
+    - sysbench.sysbench_run_test_tenant_cpu_used
+    - sysbench.sysbench_run_test_tenant_memory_used
+sysbench_free:
+  info_en: "Collection of inspection tasks before executing sysbench"
+  info_cn: "执行sysbench前的巡检任务集合"
+  tasks:
+    - sysbench.sysbench_free_test_cpu_count
+    - sysbench.sysbench_free_test_memory_limit
+    - sysbench.sysbench_free_test_network_speed
+    - sysbench.sysbench_test_cluster_datafile_size
+    - sysbench.sysbench_test_cluster_log_disk_size
+    - sysbench.sysbench_test_cluster_parameters
+    - sysbench.sysbench_test_cpu_quota_concurrency
+    - sysbench.sysbench_test_log_level
+    - sysbench.sysbench_test_sql_net_thread_count
+    - sysbench.sysbench_test_tenant_cpu_parameters
+    - sysbench.sysbench_test_tenant_log_disk_size
+    - sysbench.sysbench_test_tenant_primary_zone
+
+filter:
+  info_en: "Inspection that needs to be ignored"
+  info_cn: "需要忽略的检查"
+  tasks:
+    - sysbench.*

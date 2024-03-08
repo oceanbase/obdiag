@@ -1,3 +1,6 @@
 # for obproxy or oms ,cases'name 
 proxy:
-  - version.bad_version
+  info_en: "obproxy version check"
+  info_cn: "obproxy 版本检查"
+  tasks:
+    - version.bad_version

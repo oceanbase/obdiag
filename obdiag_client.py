@@ -23,6 +23,7 @@ from common.constant import const
 from handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from handler.analyzer.analyze_log import AnalyzeLogHandler
 from handler.checker.check_handler import CheckHandler
+from handler.checker.check_list import CheckListHandler
 from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
@@ -41,6 +42,7 @@ import sys
 from common.logger import logger
 from handler.rca.rca_handler import RCAHandler
 from telemetry.telemetry import telemetry
+from update.update import UpdateHandler
 from utils.time_utils import get_current_us_timestamp
 from utils.utils import display_trace
 from utils.yaml_utils import read_yaml_data
@@ -64,6 +66,7 @@ class OBDIAGClient(object):
         return cls._inst
 
     def __init__(self):
+
         if not self._inited:
             self.config_file = const.DEFAULT_CONFIG_PATH
             self.inner_config_file = INNER_CONFIG_FILE
@@ -98,6 +101,7 @@ class OBDIAGClient(object):
             self.handle_gather_scene_handler = None
             self.handle_gather_scene_list_handler = None
             self.handle_rca_scenes_list_handler = None
+            self.handle_check_list_handler = None
             # analyze handler
             self.analyze_log_handler = None
             self.analyze_flt_trace_handler = None
@@ -114,6 +118,7 @@ class OBDIAGClient(object):
                 const.OBDIAG_BASE_DEFAULT_CONFIG["obdiag"]["logger"]["log_filename"])
             # obdiag rca
             self.rca_result_path = None
+            self.handle_update_handler = None
 
     def init(self, args):
         if "c" in args and (getattr(args, "c") is not None):
@@ -306,9 +311,8 @@ class OBDIAGClient(object):
                 check_config = const.OBDIAG_CHECK_DEFAULT_CONFIG
             self.check_report_path = check_config["report"]["report_path"]
             self.check_report_type = check_config["report"]["export_type"]
-            self.check_case_package_file = check_config["package_file"]
-            self.check_tasks_base_path = check_config["tasks_base_path"]
             self.check_ignore_version = check_config["ignore_version"]
+            self.check_work_path = check_config["work_path"]
             return True
         except Exception as e:
             logger.error("checker config init Failed, error:{0}".format(e))
@@ -324,7 +328,6 @@ class OBDIAGClient(object):
         except Exception as e:
             logger.error("gather scene config init Failed, error:{0}".format(e))
             return False
-
 
     def init_rca_config(self):
         try:
@@ -440,7 +443,15 @@ class OBDIAGClient(object):
         return self.gather_plan_monitor_handler.handle(args)
 
     def handle_gather_scene_command(self, args):
-        self.handle_gather_scene_handler = GatherSceneHandler(self.obproxy_cluster, self.obproxy_nodes, self.ob_cluster, self.observer_nodes, self.default_collect_pack_dir, self.gather_timestamp, self.gather_scene_base_path)
+        if getattr(args,"dis_update") is not None and getattr(args,"dis_update")[0] == True:
+            logger.info("You can update the latest file by not adding --dis_update=Ture")
+        else:
+            self.handle_update_handler = UpdateHandler()
+            self.handle_update_handler.execute("")
+            logger.info("If you do not want automatic updates. You can adding --dis_update=Ture")
+        self.handle_gather_scene_handler = GatherSceneHandler(self.obproxy_cluster, self.obproxy_nodes, self.ob_cluster,
+                                                              self.observer_nodes, self.default_collect_pack_dir,
+                                                              self.gather_timestamp, self.gather_scene_base_path)
         return self.handle_gather_scene_handler.handle(args)
 
     def handle_gather_scene_list_command(self, args):
@@ -474,6 +485,12 @@ class OBDIAGClient(object):
         return self.analyze_flt_trace_handler.handle(args)
 
     def handle_check_command(self, args):
+        if getattr(args,"dis_update") is not None and getattr(args,"dis_update")[0] == True:
+            logger.info("You can update the latest file by not adding --dis_update=Ture")
+        else:
+            self.handle_update_handler = UpdateHandler()
+            self.handle_update_handler.execute("")
+            logger.info("If you do not want automatic updates. You can adding --dis_update=Ture")
         obproxy_check_handler = None
         observer_check_handler = None
         if self.obproxy_cluster is not None:
@@ -481,8 +498,7 @@ class OBDIAGClient(object):
                                                  nodes=self.obproxy_nodes,
                                                  export_report_path=self.check_report_path,
                                                  export_report_type=self.check_report_type,
-                                                 case_package_file=self.check_case_package_file,
-                                                 tasks_base_path=self.check_tasks_base_path,
+                                                 work_path=self.check_work_path,
                                                  check_target_type="obproxy")
             obproxy_check_handler.handle(args)
             obproxy_check_handler.execute()
@@ -491,8 +507,8 @@ class OBDIAGClient(object):
                                                   nodes=self.observer_nodes,
                                                   export_report_path=self.check_report_path,
                                                   export_report_type=self.check_report_type,
-                                                  case_package_file=self.check_case_package_file,
-                                                  tasks_base_path=self.check_tasks_base_path)
+                                                  work_path=self.check_work_path,
+                                                  check_target_type="observer")
             observer_check_handler.handle(args)
             observer_check_handler.execute()
         if obproxy_check_handler is not None:
@@ -503,6 +519,10 @@ class OBDIAGClient(object):
                 observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
 
         return
+
+    def handle_check_list_command(self, args):
+        self.handle_check_list_handler = CheckListHandler(self.check_work_path)
+        return self.handle_check_list_handler.handle()
 
     def handle_rca_run_command(self, args):
         try:
@@ -521,9 +541,15 @@ class OBDIAGClient(object):
 
         return
 
-    def handle_rca_list_command(self,args):
+    def handle_rca_list_command(self, args):
         self.handle_rca_scenes_list_handler = RcaScenesListHandler()
         return self.handle_rca_scenes_list_handler.handle(args)
+
+    def handle_update_command(self, args):
+        self.handle_update_handler = UpdateHandler()
+        if getattr(args, 'force'):
+            return self.handle_update_handler.execute(getattr(args, 'file'),force=True)
+        return self.handle_update_handler.execute(getattr(args, 'file'),force=False)
 
 
 def get_conf_data_str(value, dafult_value):

@@ -174,7 +174,12 @@ def rca_list(args):
             args.rca_list(args)
     except AttributeError as e:
         logger.debug("object has no attribute 'rca_list' pass rca list\n")
-
+def update(args):
+    try:
+        if args.rca_list:
+            args.rca_list(args)
+    except AttributeError as e:
+        logger.debug("object has no attribute 'rca_list' pass rca list\n")
 
 if __name__ == '__main__':
     obdiag = OBDIAGClient()

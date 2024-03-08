@@ -328,7 +328,8 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
     if ob_version_info is not None:
         ob_version = re.findall(r'[(]OceanBase.(.+?)[)]', ob_version_info)
         if len(ob_version) > 0:
-            return ob_version[0]
+            result = re.sub(r'[a-zA-Z]', '', ob_version[0])
+            return result.strip()
         else:
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(
                 ob_install_dir=ob_install_dir)
@@ -339,8 +340,9 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir):
             logger.info("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
             if "REVISION" not in ob_version_info:
                 raise Exception("Please check conf about observer,{0}".format(ob_version_info))
-            ob_version = re.findall(r'[(]OceanBase.CE\s(.+?)[)]', ob_version_info)[0]
-            return ob_version
+            ob_version = re.findall(r'[(]OceanBase.*\s(.+?)[)]', ob_version_info)
+            result = re.sub(r'[a-zA-Z]', '', ob_version[0])
+            return result.strip()
 
 
 def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir):
@@ -375,7 +377,13 @@ def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir):
             if match:
                 obproxy_version_info = match.group(1)
                 obproxy_version_info = obproxy_version_info.split()[0]
+            else:
+                pattern = r"(\d+\.\d+\.\d+)"
+                match = re.search(pattern, obproxy_version_info)
+                obproxy_version_info = match.group(1)
+                obproxy_version_info = obproxy_version_info.split()[0]
             return obproxy_version_info
+# Only applicable to the community version
 
 def get_observer_version_by_sql(ob_cluster):
     logger.debug("start get_observer_version_by_sql . input: {0}".format(ob_cluster))
