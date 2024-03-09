@@ -292,7 +292,7 @@ class GatherLogHandler(BaseShellHandler):
             self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
 
         if hasattr(args, "grep") and args.grep is not None:
-            self.grep_args = getattr(args, "grep")
+            self.grep_args = getattr(args, "grep")[0]
         if hasattr(args, "scope") and args.scope is not None:
             self.scope = getattr(args, "scope")[0]
         if hasattr(args, "encrypt") and args.encrypt[0] == "true":
