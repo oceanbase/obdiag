@@ -22,7 +22,12 @@ English | [中文版](README-CN.md)
 </p>
 
 # OceanBase Diagnostic Tool (obdiag)
-OceanBase Diagnostic Tool (obdiag) is is a quick diagnostic tool for open-source OceanBase software. The features include gather\analyze\check OceanBase Diagnostic information. It can be executed with one click in different deployment modes of OceanBase clusters (OCP, OBD, or manually deployed by users according to documentation).
+
+## Overview
+OceanBase Diagnostic Tool (obdiag) is a quick diagnostic tool for open-source OceanBase software. The features include gather\analyze\check OceanBase Diagnostic information. It can be executed with one click in different deployment modes of OceanBase clusters (OCP, OBD, or manually deployed by users according to documentation).
+
+## Project Value & Vision
+[Project Value](./images/obdiag_en.png)
 
 # Install obdiag
 You can install obdiag by using these methods:
