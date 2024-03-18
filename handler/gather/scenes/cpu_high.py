@@ -21,6 +21,7 @@ from common.logger import logger
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 from utils.parser_utils import ParserAction
+from handler.gather.gather_log import GatherLogHandler
 
 class CPUHighScene(object):
     def __init__(self, nodes, cluster, report_path, task_variable_dict=None, args=None, env={}):
@@ -34,11 +35,13 @@ class CPUHighScene(object):
         self.args = args
         self.env = env
         self.is_ssh = True
+        self.ob_nodes = nodes
 
     def execute(self):
         self.__gather_obstack()
         self.__gather_perf()
         self.__gather_current_clocksource()
+        self.__gather_log()
 
     def __gather_obstack(self):
         logger.info("gather obstack start")
@@ -66,6 +69,17 @@ class CPUHighScene(object):
             logger.info("gather current_clocksource end")
         except Exception as e:
             logger.error("SshHandler init fail. Please check the node conf. Exception : {0} .".format(e))
+
+    def __gather_log(self):
+        try:
+            logger.info("gather observer log start")
+            handler = GatherLogHandler(nodes=self.ob_nodes, gather_pack_dir=self.report_path, is_scene=True)
+            self.args = ParserAction.add_attribute_to_namespace(self.args, 'grep', None)
+            handler.handle(self.args)
+            logger.info("gather observer log end")
+        except Exception as e:
+            logger.error("gather observer log failed, error: {0}".format(e))
+            raise Exception("gather observer log failed, error: {0}".format(e))
 
     def report(self, file_path, command, data):
         try:

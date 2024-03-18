@@ -131,12 +131,9 @@ class GatherPerfHandler(BaseShellHandler):
                     self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
                 elif self.scope == "flame":
                     self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
-                elif self.scope == "pstack":
-                    self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
                 else:
                     self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
                     self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
-                    self.__gather_pstack(ssh_helper, remote_dir_full_path, pid_observer)
                 self.__gather_top(ssh_helper, remote_dir_full_path, pid_observer)
 
             zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name)
@@ -180,15 +177,6 @@ class GatherPerfHandler(BaseShellHandler):
             SshClient().run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
         except:
             logger.error("generate perf data on server [{0}] failed".format(ssh_helper.get_name()))
-
-    def __gather_pstack(self, ssh_helper, gather_path, pid_observer):
-        try:
-            pstack_cmd = "cd {gather_path} && pstack {pid} > pstack.viz".format(
-            gather_path=gather_path, pid=pid_observer)
-            logger.info("gather pstack, run cmd = [{0}]".format(pstack_cmd))
-            SshClient().run(ssh_helper, pstack_cmd) if self.is_ssh else LocalClient().run(pstack_cmd)
-        except:
-            logger.error("gather pstack on server failed [{0}]".format(ssh_helper.get_name()))
 
     def __gather_top(self, ssh_helper, gather_path, pid_observer):
         try:
