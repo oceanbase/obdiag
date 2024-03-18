@@ -51,7 +51,7 @@ class SQLProblemScene(object):
         try:
             logger.info("gather observer log start")
             handler = GatherLogHandler(nodes=self.ob_nodes, gather_pack_dir=self.report_path, is_scene=True)
-            self.args = ParserAction.add_attribute_to_namespace(self.args, 'grep', "")
+            self.args = ParserAction.add_attribute_to_namespace(self.args, 'grep', None)
             handler.handle(self.args)
             logger.info("gather observer log end")
         except Exception as e:

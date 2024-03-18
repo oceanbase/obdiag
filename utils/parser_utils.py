@@ -185,10 +185,10 @@ class ArgParser(object):
                         "compress and pack, and transmit to the specified path of the obdiag machine.")
         gather_perf_arguments.set_defaults(gather_sysstat=self.client.handle_gather_perf_command)
         gather_perf_arguments.add_argument("--scope", metavar="scope", nargs=1,
-                                           choices=["sample", "flame", "pstack", "all"],
+                                           choices=["sample", "flame", "all"],
                                            default="all",
                                            help="perf type constrains, "
-                                                "choices=[sample, flame, pstack, all], "
+                                                "choices=[sample, flame, all], "
                                                 "default=all")
 
         # gather 子命令 plan_monitor
