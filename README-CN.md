@@ -26,7 +26,7 @@ OceanBase Diagnostic Tool (obdiag) 是一款专门OceanBase打造的敏捷诊断
 
 ## 项目价值 & 愿景
 
-[项目价值](./images/obdiag_cn.png)
+![项目价值](./images/obdiag_cn.png)
 
 # 安装 obdiag
 
