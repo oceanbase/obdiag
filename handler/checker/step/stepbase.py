@@ -18,16 +18,18 @@
 
 from handler.checker.check_exception import StepResultFailException, StepExecuteFailException, \
     ResultFalseException, ResultFailException, StepResultFalseException
+from handler.checker.step.data_size import DataSizeHandler
 from handler.checker.step.get_system_parameter import GetSystemParameterHandler
 from handler.checker.result.result import CheckResult
 from handler.checker.step.ssh import SshHandler
 from handler.checker.step.sql import StepSQLHandler
-from common.logger import logger
 import docker
 
 
 class StepBase(object):
-    def __init__(self, step, node, cluster, task_variable_dict):
+    def __init__(self, context, step, node, cluster, task_variable_dict):
+        self.context = context
+        self.stdio = context.stdio
         self.step = step
         self.node = node
         self.cluster = cluster
@@ -43,27 +45,29 @@ class StepBase(object):
             if "ip" in self.node:
                 self.task_variable_dict["remote_ip"] = self.node["ip"]
             elif "ssh_type" in self.node and self.node["ssh_type"] == "docker":
-                logger.debug("execute ssh_type is docker")
+                self.stdio.verbose("execute ssh_type is docker")
                 self.task_variable_dict["remote_ip"] = \
-                docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks'][
-                    'bridge']["IPAddress"]
+                    docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks'][
+                        'bridge']["IPAddress"]
             for key in self.node:
-                self.task_variable_dict["remote_{0}".format(key)]=self.node[key]
+                self.task_variable_dict["remote_{0}".format(key)] = self.node[key]
 
             if "type" not in self.step:
                 raise StepExecuteFailException("Missing field :type")
             if self.step["type"] == "get_system_parameter":
-                handler = GetSystemParameterHandler(self.step, self.node, self.task_variable_dict)
+                handler = GetSystemParameterHandler(self.context, self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "ssh":
-                handler = SshHandler(self.step, self.node, self.task_variable_dict)
+                handler = SshHandler(self.context, self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "sql":
-                handler = StepSQLHandler(self.step, self.cluster, self.task_variable_dict)
+                handler = StepSQLHandler(self.context, self.step, self.cluster, self.task_variable_dict)
+            elif self.step["type"] == "data_size":
+                handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict)
             else:
                 raise StepExecuteFailException("the type not support: {0}".format(self.step["type"]))
-            logger.debug("task execute and result")
+            self.stdio.verbose("task execute and result")
             handler.execute()
         except Exception as e:
-            logger.error("StepBase handler.execute fail {0}".format(e))
+            self.stdio.error("StepBase handler.execute fail {0}".format(e))
             if self.step["type"] == "sql":
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
                     "obproxy_cluster_name") or no_cluster_name_msg, e), "fail")
@@ -75,17 +79,17 @@ class StepBase(object):
 
         try:
             self.task_variable_dict = handler.update_step_variable_dict()
-            logger.debug("self.task_variable_dict: {0}".format(self.task_variable_dict))
+            self.stdio.verbose("self.task_variable_dict: {0}".format(self.task_variable_dict))
             if self.step["type"] == "get_system_parameter" and "result" in self.step and "set_value" in self.step[
                 "result"] and self.task_variable_dict[self.step["result"]["set_value"]] == "":
                 return
 
             if "result" in self.step:
-                logger.debug("result execute ")
-                result = CheckResult(self.step["result"], self.task_variable_dict)
+                self.stdio.verbose("result execute ")
+                result = CheckResult(self.context, self.step["result"], self.task_variable_dict)
                 result.execute()
                 if "report_type" in self.step["result"] and self.step["result"]["report_type"] == "execution":
-                    logger.debug("report_type stop this step")
+                    self.stdio.verbose("report_type stop this step")
                     return
 
         except ResultFalseException as resultException:
@@ -94,12 +98,12 @@ class StepBase(object):
             # When result.type is execution, if this step is executed successfully, subsequent steps will not be
             # executed.
 
-            logger.warning("step_base ResultFalseException:{0}".format(resultException))
+            self.stdio.warn("step_base ResultFalseException:{0}".format(resultException))
             level = "critical"
-            logger.debug("step_base ResultFalseException self.step.result:{0}".format(self.step["result"]))
+            self.stdio.verbose("step_base ResultFalseException self.step.result:{0}".format(self.step["result"]))
             if "result" in self.step:
                 if "report_type" in self.step["result"]:
-                    logger.info("report_type use is  {0}".format(self.step["result"]["report_type"]))
+                    self.stdio.verbose("report_type use is  {0}".format(self.step["result"]["report_type"]))
                     level = self.step["result"]["report_type"]
 
             if level == "execution":
@@ -117,7 +121,7 @@ class StepBase(object):
 
         except ResultFailException as resultFailException:
             # 验证失败，属于fail类型，一般是verify阶段出现异常,需要马上修正
-            logger.error("step_base ResultFailException:{0}".format(resultFailException))
+            self.stdio.error("step_base ResultFailException:{0}".format(resultFailException))
             if self.step["type"] == "sql":
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get(
                     "obproxy_cluster_name") or no_cluster_name_msg, resultFailException), "fail")
@@ -128,7 +132,7 @@ class StepBase(object):
             raise StepResultFailException(resultFailException)
 
         except Exception as e:
-            logger.error("step_base Exception {0}".format(e))
+            self.stdio.error("step_base Exception {0}".format(e))
             raise StepExecuteFailException(e)
 
     def update_task_variable_dict(self):

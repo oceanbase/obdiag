@@ -11,16 +11,8 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2023/12/22
+@time: 2024/03/08
 @file: __init__.py
 @desc:
 """
-from handler.rca.rca_scene.disconnection_scene import DisconnectionScene
-from handler.rca.rca_scene.lock_conflict_scene import LockConflictScene
-from handler.rca.rca_scene.major_hold_scene import MajorHoldScene
-
-rca_map = {}
-rca_map["major_hold"] = MajorHoldScene()
-rca_map["lock_conflict"] = LockConflictScene()
-rca_map["disconnection"] = DisconnectionScene()
 

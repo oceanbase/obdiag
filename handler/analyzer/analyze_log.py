@@ -18,38 +18,33 @@
 import datetime
 import os
 import re
-import threading
-import uuid
 import tabulate
 
 from handler.base_shell_handler import BaseShellHandler
-from common.logger import logger
 from common.obdiag_exception import OBDIAGFormatException
-from common.obdiag_exception import OBDIAGInvalidArgs
 from common.constant import const
-from common.command import LocalClient, SshClient, delete_file
+from common.command import LocalClient, SshClient
 from common.ob_log_level import OBLogLevel
 from handler.meta.ob_error import OB_RET_DICT
-from utils.file_utils import mkdir_if_not_exist, parse_size, find_all_file
-from utils.file_utils import write_result_append_to_file, show_file_list_tabulate
-from common.command import download_file, get_logfile_name_list, mkdir
-from utils.shell_utils import SshHelper
-from utils.time_utils import parse_time_str
-from utils.time_utils import parse_time_length_to_sec
-from utils.time_utils import timestamp_to_filename_time
-from utils.time_utils import datetime_to_timestamp
-from utils.utils import display_trace, get_localhost_inner_ip
+from common.command import download_file, get_logfile_name_list, mkdir, delete_file
+from common.ssh import SshHelper
+from common.tool import Util
+from common.tool import DirectoryUtil
+from common.tool import FileUtil
+from common.tool import TimeUtils
 
 
 class AnalyzeLogHandler(BaseShellHandler):
-    def __init__(self, nodes, gather_pack_dir, gather_timestamp, common_config):
-        super(AnalyzeLogHandler, self).__init__(nodes)
+    def __init__(self, context):
+        super(AnalyzeLogHandler, self).__init__()
+        self.context = context
+        self.stdio = context.stdio
         self.directly_analyze_files = False
         self.analyze_files_list = []
         self.is_ssh = True
-        self.gather_timestamp = gather_timestamp
+        self.gather_timestamp = None
         self.gather_ob_log_temporary_dir = const.GATHER_LOG_TEMPORARY_DIR_DEFAULT
-        self.gather_pack_dir = gather_pack_dir
+        self.gather_pack_dir = None
         self.ob_log_dir = None
         self.from_time_str = None
         self.to_time_str = None
@@ -58,20 +53,85 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.log_level = OBLogLevel.WARN
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if common_config is None:
-            self.file_number_limit = 20
-            self.file_size_limit = 2 * 1024 * 1024
-        else:
-            self.file_number_limit = int(common_config["file_number_limit"])
-            self.file_size_limit = int(parse_size(common_config["file_size_limit"]))
 
-    def handle(self, args):
-        if not self.__check_valid_and_parse_args(args):
-            return
+    def init_config(self):
+        self.nodes = self.context.cluster_config['servers']
+        self.inner_config = self.context.inner_config
+        if self.inner_config is None:
+            self.file_number_limit = 20
+            self.file_size_limit = 2 * 1024 * 1024 * 1024
+        else:
+            basic_config = self.inner_config['obdiag']['basic']
+            self.file_number_limit = int(basic_config["file_number_limit"])
+            self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
+            self.config_path = basic_config['config_path']
+        return True
+
+    def init_option(self):
+        options = self.context.options
+        from_option = Util.get_option(options, 'from')
+        to_option = Util.get_option(options, 'to')
+        since_option = Util.get_option(options, 'since')
+        store_dir_option = Util.get_option(options, 'store_dir')
+        grep_option = Util.get_option(options, 'grep')
+        scope_option = Util.get_option(options, 'scope')
+        log_level_option = Util.get_option(options, 'log_level')
+        files_option = Util.get_option(options, 'files')
+        if files_option:
+            self.is_ssh = False
+            self.directly_analyze_files = True
+            self.analyze_files_list = files_option
+        if from_option is not None and to_option is not None:
+            try:
+                from_timestamp = TimeUtils.parse_time_str(from_option)
+                to_timestamp = TimeUtils.parse_time_str(to_option)
+                self.from_time_str = from_option
+                self.to_time_str = to_option
+            except OBDIAGFormatException:
+                self.stdio.exception('Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}'.format(from_option, to_option))
+                return False
+            if to_timestamp <= from_timestamp:
+                self.stdio.exception('Error: from datetime is larger than to datetime, please check.')
+                return False
+        elif (from_option is None or to_option is None) and since_option is not None:
+            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
+            now_time = datetime.datetime.now()
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
+            self.stdio.print('analyze log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+        else:
+            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
+            now_time = datetime.datetime.now()
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            if since_option is not None:
+                self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
+            self.stdio.print('analyze log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+        if store_dir_option is not None:
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.gather_pack_dir = os.path.abspath(store_dir_option)
+        if grep_option is not None:
+            self.grep_args = grep_option
+        if scope_option:
+            self.scope = scope_option
+        if log_level_option:
+            self.log_level = OBLogLevel().get_log_level(scope_option)
+        return True
+
+    def handle(self):
+        if not self.init_option():
+            self.stdio.error('init option failed')
+            return False
+        if not self.init_config():
+            self.stdio.error('init config failed')
+            return False
         local_store_parent_dir = os.path.join(self.gather_pack_dir,
-                                              "analyze_pack_{0}".format(timestamp_to_filename_time(
-                                                  self.gather_timestamp)))
-        logger.info("Use {0} as pack dir.".format(local_store_parent_dir))
+                                              "analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(
+                                                  TimeUtils.get_current_us_timestamp())))
+        self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
 
         def handle_from_node(node):
@@ -87,19 +147,20 @@ class AnalyzeLogHandler(BaseShellHandler):
             node["ip"] = local_ip
             handle_from_node(node)
 
+        self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
-        print(title)
-        print(table)
-        write_result_append_to_file(os.path.join(local_store_parent_dir, "result_details.txt"), title + str(table) + "\n\nDetails:\n\n")
+        self.stdio.stop_loading('analyze result sucess')
+        self.stdio.print(title)
+        self.stdio.print(table)
+        FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), title + str(table) + "\n\nDetails:\n\n")
         
         for m in range(len(summary_details_list)):
             for n in range(len(field_names)):
                 extend = "\n\n" if n == len(field_names) -1 else "\n"
-                write_result_append_to_file(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
+                FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
-        print(last_info)
-        display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+        self.stdio.print(last_info)
         return analyze_tuples
 
     def __handle_from_node(self, node, local_store_parent_dir):
@@ -109,24 +170,24 @@ class AnalyzeLogHandler(BaseShellHandler):
         }
         node_results = []
         remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
-        remote_user = node.get("user")
-        remote_password = node.get("password")
-        remote_port = node.get("port")
-        remote_private_key = node.get("private_key")
+        remote_user = node.get("ssh_username")
+        remote_password = node.get("ssh_password")
+        remote_port = node.get("ssh_port")
+        remote_private_key = node.get("ssh_key_file")
         remote_home_path = node.get("home_path")
-        logger.info("Sending Collect Shell Command to node {0} ...".format(remote_ip))
-        mkdir_if_not_exist(local_store_parent_dir)
+        self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
+        DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
         if "ssh_type" in node and node["ssh_type"]=="docker":
             local_store_dir= "{0}/docker_{1}".format(local_store_parent_dir, node["container_name"])
         else:
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip.replace(".", "_"))
-        mkdir_if_not_exist(local_store_dir)
+        DirectoryUtil.mkdir(path=local_store_dir,stdio=self.stdio)
         ssh_failed = False
         ssh = None
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node)
+            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node, self.stdio)
         except Exception as e:
-            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
+            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
                 self.config_path))
@@ -134,16 +195,16 @@ class AnalyzeLogHandler(BaseShellHandler):
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
         if not ssh_failed:
-            from_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.from_time_str))
-            to_datetime_timestamp = timestamp_to_filename_time(datetime_to_timestamp(self.to_time_str))
+            from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
+            to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
             gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
             gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-            mkdir(self.is_ssh, ssh, gather_dir_full_path)
+            mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
 
             log_list, resp = self.__handle_log_list(ssh, node, resp)
             if resp["skip"]:
                 return resp, node_results
-            print(show_file_list_tabulate(remote_ip, log_list))
+            self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
             for log_name in log_list:
                 if self.directly_analyze_files:
                     self.__pharse_offline_log_file(ssh_helper=ssh, log_name=log_name, local_store_dir=local_store_dir)
@@ -153,9 +214,11 @@ class AnalyzeLogHandler(BaseShellHandler):
                                         gather_path=gather_dir_full_path,
                                         local_store_dir=local_store_dir)
                     analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
+                self.stdio.start_loading('analyze log start')
                 file_result = self.__parse_log_lines(analyze_log_full_path)
+                self.stdio.stop_loading('analyze log sucess')
                 node_results.append(file_result)
-            delete_file(self.is_ssh, ssh, gather_dir_full_path)
+            delete_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
             ssh.ssh_close()
         return resp, node_results
 
@@ -165,7 +228,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         else:
             log_list = self.__get_log_name_list(ssh, node)
         if len(log_list) > self.file_number_limit:
-            logger.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list),
+            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list),
                                                                                           self.file_number_limit))
             resp["skip"] = True,
             resp["error"] = "Too many files {0} > {1}, Please adjust the analyze time range".format(len(log_list),
@@ -176,7 +239,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                                                                                     self.file_number_limit)
             return log_list, resp
         elif len(log_list) == 0:
-            logger.warn(
+            self.stdio.warn(
                 "{0} The number of log files is {1}, No files found, "
                 "Please adjust the query limit".format(node.get("ip"), len(log_list)))
             resp["skip"] = True,
@@ -197,12 +260,12 @@ class AnalyzeLogHandler(BaseShellHandler):
             get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
                         (log_path, log_path, log_path)
         log_name_list = []
-        log_files = SshClient().run(ssh_helper, get_oblog) if self.is_ssh else LocalClient().run(get_oblog)
+        log_files = SshClient(self.stdio).run(ssh_helper, get_oblog) if self.is_ssh else LocalClient(self.stdio).run(get_oblog)
         if log_files:
             log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str,
-                                              log_path, log_files)
+                                              log_path, log_files, self.stdio)
         else:
-            logger.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
+            self.stdio.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
         return log_name_list
 
     def __get_log_name_list_offline(self):
@@ -217,10 +280,10 @@ class AnalyzeLogHandler(BaseShellHandler):
                     if os.path.isfile(path):
                         log_name_list.append(path)
                     else:
-                        log_names = find_all_file(path)
+                        log_names = FileUtil.find_all_file(path)
                         if len(log_names) > 0:
                             log_name_list.extend(log_names)
-        logger.info("get log list {}".format(log_name_list))
+        self.stdio.verbose("get log list {}".format(log_name_list))
         return log_name_list
 
     def __pharse_log_file(self, ssh_helper, node, log_name, gather_path, local_store_dir):
@@ -237,13 +300,13 @@ class AnalyzeLogHandler(BaseShellHandler):
                 gather_path=gather_path,
                 log_name=log_name,
                 log_dir=log_path)
-            logger.debug("grep files, run cmd = [{0}]".format(grep_cmd))
-            SshClient().run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient().run(grep_cmd)
+            self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
+            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
             log_full_path = "{gather_path}/{log_name}".format(
                 log_name=log_name,
                 gather_path=gather_path
             )
-            download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path)
+            download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
         else:
             real_time_logs = ["observer.log", "rootservice.log", "election.log", "trace.log", "observer.log.wf", "rootservice.log.wf", "election.log.wf", "trace.log.wf"]
             if log_name in real_time_logs:
@@ -251,13 +314,13 @@ class AnalyzeLogHandler(BaseShellHandler):
                     gather_path=gather_path,
                     log_name=log_name,
                     log_dir=log_path)
-                logger.debug("copy files, run cmd = [{0}]".format(cp_cmd))
-                SshClient().run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient().run(cp_cmd)
+                self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
+                SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
                 log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
-                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path)
+                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
             else:
                 log_full_path = "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
-                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path)
+                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
 
     def __pharse_offline_log_file(self, ssh_helper, log_name, local_store_dir):
         """
@@ -270,10 +333,10 @@ class AnalyzeLogHandler(BaseShellHandler):
                 grep_args=self.grep_args,
                 log_name=log_name,
                 local_store_path=local_store_path)
-            logger.info("grep files, run cmd = [{0}]".format(grep_cmd))
-            SshClient().run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient().run(grep_cmd)
+            self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
+            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
         else:
-            download_file(self.is_ssh, ssh_helper, log_name, local_store_path)
+            download_file(self.is_ssh, ssh_helper, log_name, local_store_path, self.stdio)
 
     def __get_observer_ret_code(self, log_line):
         """
@@ -303,7 +366,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         :return: error_dict
         """
         error_dict = {}
-        logger.info("start parse log {0}".format(file_full_path))
+        self.stdio.verbose("start parse log {0}".format(file_full_path))
         with open(file_full_path, 'r', encoding='utf8', errors='ignore') as file:
             line_num = 0
             for line in file:
@@ -343,7 +406,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                                 "last_found_time": last_found_time,
                                 "trace_id_list": trace_id_list
                             }
-        logger.info("complete parse log {0}".format(file_full_path))
+        self.stdio.verbose("complete parse log {0}".format(file_full_path))
         return error_dict
 
     def __get_time_from_ob_log_line(self, log_line):
@@ -384,54 +447,6 @@ class AnalyzeLogHandler(BaseShellHandler):
             if idx != -1:
                 return OBLogLevel().get_log_level(level.rstrip())
         return 0
-
-
-    def __check_valid_and_parse_args(self, args):
-        """
-        chech whether command args are valid. If invalid, stop processing and print the error to the user
-        :param args: command args
-        :return: boolean. True if valid, False if invalid.
-        """
-        if getattr(args, "files") is not None:
-            self.directly_analyze_files = True
-            self.analyze_files_list = getattr(args, "files")
-            self.is_ssh = False
-        # to timestamp must be larger than from timestamp, and be valid
-        if getattr(args, "from") is not None and getattr(args, "to") is not None:
-            try:
-                from_timestamp = parse_time_str(getattr(args, "from"))
-                to_timestamp = parse_time_str(getattr(args, "to"))
-                self.from_time_str = getattr(args, "from")
-                self.to_time_str = getattr(args, "to")
-            except OBDIAGFormatException:
-                logger.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. " \
-                             "from_datetime={0}, to_datetime={1}".format(getattr(args, "from"), getattr(args, "to")))
-                return False
-            if to_timestamp <= from_timestamp:
-                logger.error("Error: from datetime is larger than to datetime, please check.")
-                return False
-        else:
-            now_time = datetime.datetime.now()
-            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            if args.since is not None:
-                self.from_time_str = (now_time - datetime.timedelta(
-                    seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-        # 2: store_dir must exist, else create directory.
-        if getattr(args, "store_dir") is not None:
-            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
-                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
-            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
-
-        if getattr(args, "grep") is not None:
-            self.grep_args = ' '.join(getattr(args, "grep"))
-        if getattr(args, "scope") is not None:
-            self.scope = getattr(args, "scope")[0]
-        if getattr(args, "log_level") is not None:
-            self.log_level = OBLogLevel().get_log_level(getattr(args, "log_level")[0])
-        return True
 
     @staticmethod
     def __get_overall_summary(node_summary_tuples, is_files=False):

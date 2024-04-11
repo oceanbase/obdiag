@@ -22,24 +22,23 @@ obdiag config -h192.168.1.1 -uroot@sys -p***** -P2881
 
 ### Step 3: 执行全链路诊断命令
 ```shell script
-$obdiag analyze flt_trace -h
-usage: obdiag analyze flt_trace [-h] [--store_dir store_dir] [-c config] [--files files [files ...]] --flt_trace_id flt_trace_id [--top top] [--recursion recursion] [--output output]
+$ obdiag analyze flt_trace -h
+Usage: obdiag analyze flt_trace [options]
 
-According to the input parameters, analyze observer logs
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-  --files files [files ...]
-                        specify file
-  --flt_trace_id flt_trace_id
-                        flt trace id
-  --top top             top leaf span
-  --recursion recursion
+Options:
+  --flt_trace_id=FLT_TRACE_ID
+                        flt trace id, . format: xxxxxxxx-xxxx-xxxx-xxxx-
+                        xxxxxxxxxxxx
+  --files=FILES         specify files
+  --top=TOP             top leaf span
+  --recursion=RECURSION
                         Maximum number of recursion
-  --output output       Print the result to the maximum output line on the screen
-
-Example1: obdiag analyze flt_trace --flt_trace_id <flt_trace_id>
+  --output=OUTPUT       Print the result to the maximum output line on the
+                        screen
+  --store_dir=STORE_DIR
+                        the dir to store gather result, current dir by
+                        default.
+  -c C                  obdiag custom config
+  -h, --help            Show help and exit.
+  -v, --verbose         Activate verbose output.
 ```

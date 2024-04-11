@@ -17,14 +17,16 @@
 """
 
 from handler.checker.check_exception import StepExecuteFailException
-from common.logger import logger
 from common.ob_connector import OBConnector
-from utils.utils import build_str_on_expr_by_dict, convert_to_number
+from common.tool import StringUtils
+from common.tool import Util
 
 
 class StepSQLHandler:
-    def __init__(self, step, ob_cluster, task_variable_dict):
+    def __init__(self,context, step, ob_cluster, task_variable_dict):
         try:
+            self.context = context
+            self.stdio = context.stdio
             self.ob_cluster = ob_cluster
             self.ob_cluster_name = ob_cluster.get("cluster_name")
             self.tenant_mode = None
@@ -34,9 +36,10 @@ class StepSQLHandler:
                                         port=ob_cluster.get("db_port"),
                                         username=ob_cluster.get("tenant_sys").get("user"),
                                         password=ob_cluster.get("tenant_sys").get("password"),
+                                        stdio=self.stdio,
                                         timeout=10000)
         except Exception as e:
-            logger.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
             raise Exception("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
@@ -53,24 +56,24 @@ class StepSQLHandler:
         try:
             if "sql" not in self.step:
                 raise StepExecuteFailException("StepSQLHandler execute sql is not set")
-            sql = build_str_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
-            logger.info("StepSQLHandler execute: {0}".format(sql))
+            sql = StringUtils.build_str_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
+            self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             data = self.ob_connector.execute_sql(sql)
             if data is None:
-                logger.warning("sql result is None: {0}".format(self.step["sql"]))
-            logger.info("execute_sql result:{0}".format(data))
+                self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
+            self.stdio.verbose("execute_sql result:{0}".format(data))
             if len(data) == 0:
-                logger.warning("sql result is None: {0}".format(self.step["sql"]))
+                self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
             else:
                 data = data[0][0]
             if data is None:
                 data = ""
-            logger.info("sql result:{0}".format(convert_to_number(str(data))))
+            self.stdio.verbose("sql result:{0}".format(Util.convert_to_number(str(data))))
             if "result" in self.step and "set_value" in self.step["result"]:
-                logger.info("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], convert_to_number(data)))
-                self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(data)
+                self.stdio.verbose("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], Util.convert_to_number(data)))
+                self.task_variable_dict[self.step["result"]["set_value"]] = Util.convert_to_number(data)
         except Exception as e:
-            logger.error("StepSQLHandler execute Exception: {0}".format(e).strip())
+            self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
             raise StepExecuteFailException("StepSQLHandler execute Exception: {0}".format(e).strip())
 
     def update_step_variable_dict(self):

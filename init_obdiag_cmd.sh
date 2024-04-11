@@ -5,14 +5,14 @@ _obdiag_completion() {
 
     case "${COMP_CWORD}" in
         1)
-            type_list="version display-trace config gather analyze check rca update"
+            type_list="--version display-trace config gather analyze check rca update"
             COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))
             ;;
         2)
             case "${COMP_WORDS[1]}" in
                 gather)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log clog slog plan_monitor stack perf obproxy_log all scene"
+                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene"
                     elif [ "${COMP_WORDS[2]}" = "scene" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="list run"
                     fi

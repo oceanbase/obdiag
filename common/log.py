@@ -11,7 +11,20 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2022/6/20
-@file: __init__.py
+@file: log.py
 @desc:
 """
+
+from __future__ import absolute_import, division, print_function
+import logging
+
+
+class Logger(logging.Logger):
+
+    def __init__(self, name, level=logging.DEBUG):
+        super(Logger, self).__init__(name, level)
+        self.buffer = []
+        self.buffer_size = 0
+
+    def _log(self, level, msg, args, end='\n', **kwargs):
+        return super(Logger, self)._log(level, msg, args, **kwargs)

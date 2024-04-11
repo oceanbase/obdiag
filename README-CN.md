@@ -40,19 +40,19 @@ sudo yum install -y oceanbase-diagnostic-tool
 sh /usr/local/oceanbase-diagnostic-tool/init.sh
 ```
 
-## 方式二：源码编译安装
+## 方式二：源码安装
 源码编译环境确保有如下依赖
 - gcc
 - wget
 - python-devel
 - mysql-devel
 
-源码编译需要在python >= 3.8的环境下进行
+源码安装需要在python >= 3.8的环境下进行
 
 ```shell
-pip install -r requirements3.txt
-cd rpm && sh build.sh build_obdiag
-sh init.sh
+pip3 install -r requirements3.txt
+sh dev_init.sh
+source ~/.bashrc
 ```
 
 # obdiag config

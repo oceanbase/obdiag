@@ -16,8 +16,7 @@
 @desc:
 """
 import time
-
-from utils.time_utils import datetime_to_timestamp
+from common.tool import TimeUtils
 
 
 def find_field_end(data, end_chs=",)}({|][", start=0, end=-1):
@@ -129,7 +128,7 @@ class LogEntry(object):
                 raise Exception()
         time_slice[1] += (time.time()-st)
         st = time.time()
-        self.timestamp_us = datetime_to_timestamp(in_brac_elems[0])
+        self.timestamp_us = TimeUtils.datetime_to_timestamp(in_brac_elems[0])
         self.log_level = bare_elems[0]
         self.component = in_brac_elems[1]
         location = bare_elems[1].strip()

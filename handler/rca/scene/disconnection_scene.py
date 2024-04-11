@@ -11,95 +11,94 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2023/12/22
-@file: disconnection_scene.py
+@time: 2024/03/11
+@file: disconnectionScene.py
 @desc:
 """
 import re
-import time
-import datetime
+from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
+from common.tool import StringUtils
 
-from common.command import get_obproxy_version
-from common.logger import logger
-from handler.rca.rca_scene.scene_base import scene_base, Result, RCA_ResultRecord
-from utils.shell_utils import SshHelper
-from utils.version_utils import compare_versions_greater
-
-
-class DisconnectionScene(scene_base):
+class DisconnectionScene(RcaScene):
     def __init__(self):
         super().__init__()
 
-    def init(self, cluster, nodes, obproxy_nodes, env, result_path):
-        super().init(cluster, nodes, obproxy_nodes, env, result_path)
+    def init(self, context):
+        super().init(context)
+        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
+            raise Exception("obproxy_nodes is empty")
 
-        for node in obproxy_nodes:
+        for node in self.obproxy_nodes:
             if "home_path" not in node or len(node["home_path"].strip()) == 0:
+                self.stdio.warn("obproxy_node home_path is empty")
                 raise Exception("obproxy_node home_path is empty")
-            try:
-                is_ssh = True
-                ssh_helper = SshHelper(is_ssh, node.get("ip"),
-                                       node.get("user"),
-                                       node.get("password"),
-                                       node.get("port"),
-                                       node.get("private_key"),
-                                       node)
-            except Exception as e:
-                logger.error(
-                    "SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
-                raise Exception(
-                    "SshHandler init fail. Please check the NODES conf node: {0}  Exception : {1} .".format(node, e))
-            obproxy_version = get_obproxy_version(True, ssh_helper, node.get("home_path"))
-            if obproxy_version is None:
+            ssh_helper = node["ssher"]
+            if ssh_helper is None:
+                raise Exception("obproxy_node:{0} ssher is None".format(node["ip"]))
+            obproxy_version = self.obproxy_version
+            if obproxy_version is None or len(obproxy_version.strip()) == 0:
                 raise Exception("obproxy version is None. Please check the NODES conf.")
 
-            if not (obproxy_version == "4.2.2.0" or compare_versions_greater(obproxy_version, "4.2.2.0")):
-                raise Exception("obproxy version must be greater than 4.2.2.0. Please check the NODES conf.")
+            if not (obproxy_version == "4.2.2.0" or StringUtils.compare_versions_greater(obproxy_version, "4.2.2.0")):
+                raise Exception("DisconnectionScene's obproxy version must be greater than 4.2.2.0. Please check the NODES conf.")
 
     def execute(self):
         for node in self.obproxy_nodes:
             self.__execute_obproxy_one_node(node)
-        logger.info("end disconnectionScene execute all nodes")
+        self.stdio.verbose("end disconnectionScene execute all nodes")
 
     def export_result(self):
         return self.Result.export()
 
+    def get_scene_info(self):
+        # 设定场景分析的返回场景使用说明，需要的参数等等
+        return {"name": "disconnection",
+                "info_en": "root cause analysis of disconnection",
+                "info_cn": "针对断链接场景的根因分析",
+                }
+
     def __execute_obproxy_one_node(self, node):
-        ssh = SshHelper(True, node.get("ip"),
-                        node.get("user"),
-                        node.get("password"),
-                        node.get("port"),
-                        node.get("private_key"),
-                        node)
-        all_log = ssh.ssh_exec_cmd(
-            'grep "CONNECTION](trace_type" -m 100 $(ls  {0}/log/obproxy_diagnosis.log*  | head -10 ) '.format(
-                node['home_path'])
-        )
-
-        log_list = all_log.strip().split('\n')
-        for line in log_list:
-            try:
-                record = RCA_ResultRecord()
-                record.add_record(
-                    "node:{1} obproxy_diagnosis_log:{0}".format(line,  node.get("ip")))
-                log_check = DisconnectionLog(line, record)
-                suggest = log_check.execute()
-                record.add_suggest(suggest)
-                logger.debug("suggest:{0}".format(suggest))
-
-                # self.Result.suggest += "obproxy_diagnosis_log:{0}\nsuggest:{1}\n\n".format(line, suggest)
-                self.Result.records.append(record)
-            except Exception as e:
-                logger.warning("line in log_list is error, log: {0} ,err:{1}".format(line, e))
-                continue
+        self.gather_log.grep("CONNECTION](trace_type")
+        self.gather_log.set_parameters("nodes_list", [node])
+        self.gather_log.set_parameters("target", "obproxy")
+        self.gather_log.set_parameters("scope", "obproxy_diagnosis")
+        if self.input_parameters.get("since") is not None:
+            since=self.input_parameters.get("since")
+            self.gather_log.set_parameters("since", since)
+        self.work_path = self.store_dir
+        logs_name=self.gather_log.execute()
+        if len(logs_name)==0:
+            self.stdio.warn("not found log about disconnection. On node: {0}".format(node["ip"]))
+            return
+        self.stdio.verbose("logs_name:{0}".format(logs_name))
+        # read the log file
+        for name in logs_name:
+            self.stdio.verbose("read the log file: {0}".format(name))
+            with open(name, 'r') as f:
+                log_list = f.read().strip().split('\n')
+                for line in log_list:
+                    try:
+                        record = RCA_ResultRecord()
+                        record.add_record(
+                            "node:{1} obproxy_diagnosis_log:{0}".format(line, node.get("ip")))
+                        log_check = DisconnectionLog(self.context,line, record)
+                        suggest = log_check.execute()
+                        record.add_suggest(suggest)
+                        self.stdio.verbose("suggest:{0}".format(suggest))
+                        self.Result.records.append(record)
+                    except Exception as e:
+                        self.stdio.warn("line in log_list is error, log: {0} ,err:{1}".format(line, e))
+                        continue
 
 
 class DisconnectionLog:
-    def __init__(self, log, record):
+    def __init__(self,context, log, record):
+        self.context = context
+        self.stdio = context.stdio
         self.record = record
-        logger.debug("DisconnectionLog base:{0}".format(log))
+        self.stdio.verbose("DisconnectionLog base:{0}".format(log))
         if log is None or len(log.strip()) == 0:
-            logger.debug("log is None or len(log.strip()) == 0")
+            self.stdio.verbose("log is None or len(log.strip()) == 0")
             raise Exception("log is None or len(log.strip()) == 0")
 
         self.timeout_event = ""
@@ -139,12 +138,12 @@ class DisconnectionLog:
                 record.add_record("cs_id:{0}, server_session_id:{1}".format(cs_id, server_session_id))
 
         except Exception as e:
-            logger.error("DisconnectionLog err: {0}".format(e))
+            self.stdio.error("DisconnectionLog err: {0}".format(e))
 
     def execute(self):
         # self.get_suggest()
         try:
-            suggest = get_disconnectionSuggest(self.trace_type, self.error_code, self.error_msg, self.record)
+            suggest = get_disconnectionSuggest(self.context,self.trace_type, self.error_code, self.error_msg, self.record)
             return suggest
         except Exception as e:
             raise Exception("DisconnectionLog execute err: {0}".format(e))
@@ -255,7 +254,8 @@ DisconnectionAllSuggest = {
 }
 
 
-def get_disconnectionSuggest(trace_type, error_code, error_msg, record):
+def get_disconnectionSuggest(context,trace_type, error_code, error_msg, record):
+    stdio=context.stdio
     if trace_type == "" or error_code == "" or error_msg == "":
         raise Exception(
             "not find the suggest. Please contact the community and upload the exception information.. trace_type:{0}, error_code:{1}, error_msg:{2}".format(
@@ -271,13 +271,13 @@ def get_disconnectionSuggest(trace_type, error_code, error_msg, record):
             for suggest_error_msg in error_msgs:
                 # 子串
                 if suggest_error_msg in error_msg:
-                    logger.info(
+                    stdio.verbose(
                         "find the suggest. trace_type:{0}, error_code:{1}, error_msg:{2}".format(trace_type, error_code,
                                                                                                  error_msg))
                     suggest += "\n"
                     suggest += Suggest_error_code.get(suggest_error_msg)
             if suggest.strip() != "":
-                logger.info(
+                stdio.verbose(
                     "find the suggest. trace_type:{0}, error_code:{1}, error_msg:{2}, suggest:{3}".format(trace_type,
                                                                                                           error_code,
                                                                                                           error_msg,
@@ -287,12 +287,13 @@ def get_disconnectionSuggest(trace_type, error_code, error_msg, record):
 
                 suggest = "not find the suggest. Please contact the community and upload the exception information.. trace_type:{0}, error_code:{1}, error_msg:{2}. The suggestions are as follows. You can try using the following suggestions or submit the logs to the Oceanbase community.".format(
                     trace_type, error_code, error_msg)
-                suggest +="\n"
+                suggest += "\n"
 
                 for error_msg_by_Suggest_error_code in Suggest_error_code:
-                    suggest += Suggest_error_code.get(error_msg_by_Suggest_error_code)+"\n"
+                    suggest += Suggest_error_code.get(error_msg_by_Suggest_error_code) + "\n"
                 return suggest
         else:
             raise Exception("the disconnection error_code :{0} ,not support.".format(error_code))
     else:
         raise Exception("the disconnection trace_type :{0} ,not support.".format(trace_type))
+disconnection=DisconnectionScene()

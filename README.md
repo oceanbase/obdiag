@@ -52,9 +52,9 @@ Before you install obdiag by using the source code, make sure that you have inst
 To install obdiag on Python3.8, run these commands:
 
 ```shell
-pip install -r requirements3.txt
-cd rpm && sh build.sh build_obdiag
-sh init.sh
+pip3 install -r requirements3.txt
+sh dev_init.sh
+source ~/.bashrc
 ```
 
 # obdiag config

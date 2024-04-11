@@ -17,51 +17,53 @@
 """
 
 import os
-import uuid
 import yaml
-from common.logger import logger
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
 from common.scene import get_version
 import re
-from utils.utils import display_trace, node_cut_passwd_for_log
-from utils.yaml_utils import read_yaml_data
+from common.tool import Util
+from common.tool import YamlUtils
+from common.tool import StringUtils
 
 
 class CheckHandler:
 
-    def __init__(self, ignore_version, cluster, nodes, export_report_path, export_report_type,
-                 check_target_type="observer",
-                 tasks_base_path="~/.obdiag/check/tasks/",
-                 work_path="~/.obdiag/check"):
+    def __init__(self, context,  check_target_type="observer"):
+        self.context = context
+        self.stdio = context.stdio
         # init input parameters
         self.report = None
         self.tasks = None
-        self.export_report_path = export_report_path
-        self.export_report_type = export_report_type
-        self.ignore_version = ignore_version
-        self.cluster = cluster
-        self.nodes = nodes
-        self.tasks_base_path = tasks_base_path
+        self.work_path = os.path.expanduser(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
+        self.export_report_path=os.path.expanduser(self.context.inner_config["check"]["report"]["report_path"] or "./check_report/")
+        self.export_report_type = self.context.inner_config["check"]["report"]["export_type"] or "table"
+        self.ignore_version = self.context.inner_config["check"]["ignore_version"] or False
+        self.cluster = self.context.cluster_config
+        if check_target_type=="observer":
+            self.nodes =self.context.cluster_config.get("servers")
+        if check_target_type == "obproxy":
+            self.nodes = self.context.obproxy_config.get("servers")
+        self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
 
-        logger.debug("CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
-                     "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
-                     " tasks_base_path is {6}.".format(ignore_version,
-                                                       cluster.get(
-                                                           "ob_cluster_name") or cluster.get(
-                                                           "obproxy_cluster_name"),
-                                                       node_cut_passwd_for_log(nodes),
-                                                       export_report_path,
-                                                       export_report_type,
-                                                       check_target_type,
-                                                       tasks_base_path))
+        self.stdio.verbose("CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
+                           "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
+                           " tasks_base_path is {6}.".format(self.ignore_version,
+                                                             self.cluster.get(
+                                                                 "ob_cluster_name") or self.cluster.get(
+                                                                 "obproxy_cluster_name"),
+                                                             StringUtils.node_cut_passwd_for_log(self.nodes),
+                                                             self.export_report_path,
+                                                             self.export_report_type,
+                                                             self.check_target_type,
+                                                             self.tasks_base_path))
 
         # case_package_file
         # build case_package_file
         if check_target_type is not None:
-            case_package_file = work_path + "/" + check_target_type + "_check_package.yaml"
+            case_package_file = self.work_path + "/" + check_target_type + "_check_package.yaml"
         else:
             raise CheckException("check_target_type is null. Please check the conf")
         case_package_file = os.path.expanduser(case_package_file)
@@ -69,11 +71,11 @@ class CheckHandler:
             self.package_file_name = case_package_file
         else:
             raise CheckException("case_package_file {0} is not exist".format(case_package_file))
-        logger.info("case_package_file is " + self.package_file_name)
+        self.stdio.verbose("case_package_file is " + self.package_file_name)
         # checker tasks_base_path
         # build tasks_base_path
         if check_target_type is not None:
-            tasks_base_path = tasks_base_path + "/" + check_target_type
+            tasks_base_path = self.tasks_base_path + "/" + check_target_type
         else:
             raise CheckException("check_target_type is null. Please check the conf")
         tasks_base_path = os.path.expanduser(tasks_base_path)
@@ -81,40 +83,31 @@ class CheckHandler:
             self.tasks_base_path = tasks_base_path
         else:
             raise CheckException("tasks_base_path {0} is not exist".format(tasks_base_path))
-        logger.info("tasks_base_path is " + self.tasks_base_path)
+        self.stdio.verbose("tasks_base_path is " + self.tasks_base_path)
+        # input_param
+        self.options=self.context.options
 
-        # checker export_report_path
-        self.export_report_path = export_report_path
-
-    def handle(self, args):
+    def handle(self):
         try:
             package_name = None
-            if self.check_target_type == "obproxy" and getattr(args, "obproxy_cases"):
-                obproxy_cases = getattr(args, "obproxy_cases")
-                if isinstance(obproxy_cases, list):
-                    package_name = obproxy_cases[0]
-                else:
-                    package_name = getattr(args, "obproxy_cases")
+            if self.check_target_type == "obproxy" and Util.get_option(self.options, 'obproxy_cases'):
+                package_name = Util.get_option(self.options, 'obproxy_cases')
 
-            if self.check_target_type == "observer" and getattr(args, "cases"):
-                package_name = getattr(args, "cases")
-                if isinstance(package_name, list):
-                    package_name = package_name[0]
-                else:
-                    package_name = getattr(args, "cases")
-            if getattr(args, "store_dir"):
-                self.export_report_path = getattr(args, "store_dir")[0]
-                logger.info("export_report_path change to " + self.export_report_path)
+            if self.check_target_type == "observer" and Util.get_option(self.options, 'cases'):
+                package_name = Util.get_option(self.options, 'cases')
+            if Util.get_option(self.options, 'store_dir'):
+                self.export_report_path = Util.get_option(self.options, 'store_dir')
+                self.stdio.verbose("export_report_path change to " + self.export_report_path)
             self.export_report_path = os.path.expanduser(self.export_report_path)
             if not os.path.exists(self.export_report_path):
-                logger.warning("{0} not exists. mkdir it!".format(self.export_report_path))
+                self.stdio.warn("{0} not exists. mkdir it!".format(self.export_report_path))
                 os.mkdir(self.export_report_path)
-            logger.info("export_report_path is " + self.export_report_path)
+            self.stdio.verbose("export_report_path is " + self.export_report_path)
 
-            logger.info("package_name is {0}".format(package_name))
             # get package's by package_name
             self.tasks = {}
             if package_name:
+                self.stdio.verbose("package_name is {0}".format(package_name))
                 package_tasks_by_name = self.get_package_tasks(package_name)
                 self.get_all_tasks()
                 end_tasks = {}
@@ -126,7 +119,7 @@ class CheckHandler:
                             end_tasks[package_task] = self.tasks[task_name]
                 self.tasks = end_tasks
             else:
-                logger.debug("tasks_package is all")
+                self.stdio.verbose("tasks_package is all")
                 self.get_all_tasks()
                 filter_tasks = self.get_package_tasks("filter")
                 if len(filter_tasks) > 0:
@@ -138,9 +131,9 @@ class CheckHandler:
                             if re.match(filter_task.strip(), task_name.strip()) is None:
                                 new_tasks[task_name] = task_value
                     self.tasks = new_tasks
-            logger.info("tasks is {0}".format(self.tasks.keys()))
+            self.stdio.verbose("tasks is {0}".format(self.tasks.keys()))
         except Exception as e:
-            logger.error(e)
+            self.stdio.error(e)
 
     # get all tasks
     def get_all_tasks(self):
@@ -151,7 +144,7 @@ class CheckHandler:
                 if file.endswith('.yaml'):
                     folder_name = os.path.basename(root)
                     task_name = "{}.{}".format(folder_name, file.split('.')[0])
-                    task_data = read_yaml_data(os.path.join(root, file))
+                    task_data = YamlUtils.read_yaml_data(os.path.join(root, file))
                     tasks[task_name] = task_data
         if len(tasks) == 0:
             raise Exception("the len of tasks is 0")
@@ -168,7 +161,7 @@ class CheckHandler:
                 return []
             else:
                 raise CheckException("no cases name is {0}".format(package_name))
-        logger.debug("by cases name: {0} , get cases: {1}".format(package_name, packege_tasks[package_name]))
+        self.stdio.verbose("by cases name: {0} , get cases: {1}".format(package_name, packege_tasks[package_name]))
         if packege_tasks[package_name].get("tasks") is None:
             return []
         return packege_tasks[package_name].get("tasks")
@@ -176,32 +169,33 @@ class CheckHandler:
     # execute task
     def execute_one(self, task_name):
         try:
-            logger.info("execute tasks is {0}".format(task_name))
+            self.stdio.verbose("execute tasks is {0}".format(task_name))
             # Verify if the version is within a reasonable range
-            report = TaskReport(task_name)
+            report = TaskReport(self.context,task_name)
             if not self.ignore_version:
-                version = get_version(self.nodes, self.check_target_type)
+                version = get_version(self.nodes, self.check_target_type, self.stdio)
                 if version:
                     self.cluster["version"] = version
-                    logger.info("cluster.version is {0}".format(self.cluster["version"]))
-                    task = TaskBase(self.tasks[task_name]["task"], self.nodes, self.cluster, report)
-                    logger.info("{0} execute!".format(task_name))
+                    self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
+                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report)
+                    self.stdio.verbose("{0} execute!".format(task_name))
                     task.execute()
-                    logger.info("execute tasks end : {0}".format(task_name))
+                    self.stdio.verbose("execute tasks end : {0}".format(task_name))
                     return report
                 else:
-                    logger.error("can't get version")
+                    self.stdio.error("can't get version")
             else:
-                logger.info("ignore version")
+                self.stdio.verbose("ignore version")
         except Exception as e:
-            logger.error("execute_one Exception : {0}".format(e))
+            self.stdio.error("execute_one Exception : {0}".format(e))
             raise CheckException("execute_one Exception : {0}".format(e))
 
     def execute(self):
         try:
-            logger.info("execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()),
-                                                                                             self.tasks.keys()))
-            self.report = CheckReport(export_report_path=self.export_report_path,
+            self.stdio.verbose(
+                "execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()),
+                                                                                     self.tasks.keys()))
+            self.report = CheckReport(self.context, export_report_path=self.export_report_path,
                                       export_report_type=self.export_report_type,
                                       report_target=self.check_target_type)
             # one of tasks to execute
@@ -210,8 +204,6 @@ class CheckHandler:
                 self.report.add_task_report(t_report)
             self.report.export_report()
         except CheckrReportException as e:
-            logger.error("Report error :{0}".format(e))
+            self.stdio.error("Report error :{0}".format(e))
         except Exception as e:
-            logger.error("Internal error :{0}".format(e))
-        finally:
-            display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+            self.stdio.error("Internal error :{0}".format(e))

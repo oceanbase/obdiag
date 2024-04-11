@@ -15,52 +15,27 @@
 @file: lock_conflict_scene.py
 @desc:
 """
-from common.command import get_observer_version
-from common.logger import logger
-from common.ob_connector import OBConnector
 from handler.rca.rca_exception import RCAInitException, RCANotNeedExecuteException
-from handler.rca.rca_scene.scene_base import scene_base, Result, RCA_ResultRecord
-from utils.shell_utils import SshHelper
-from utils.version_utils import compare_versions_greater
+from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
+from common.tool import StringUtils
 
 
-class LockConflictScene(scene_base):
+class LockConflictScene(RcaScene):
     def __init__(self):
         super().__init__()
-        self.ob_connector = None
-        self.observer_nodes = None
-        self.ob_cluster = None
-        self.observer_version = None
-        self.default_node = None
 
-    def init(self, cluster, nodes, obproxy_nodes, env, result_path):
+    def init(self, context):
         try:
-            super().init(cluster, nodes, obproxy_nodes, env, result_path)
-            self.default_node = self.observer_nodes[0]
-
-            ssh = SshHelper(True, self.default_node.get("ip"),
-                            self.default_node.get("user"),
-                            self.default_node.get("password"),
-                            self.default_node.get("port"),
-                            self.default_node.get("private_key"),
-                            self.default_node)
-            self.observer_version = get_observer_version(True, ssh, self.default_node["home_path"])
-
-            self.ob_connector = OBConnector(ip=self.ob_cluster.get("db_host"),
-                                            port=self.ob_cluster.get("db_port"),
-                                            username=self.ob_cluster.get("tenant_sys").get("user"),
-                                            password=self.ob_cluster.get("tenant_sys").get("password"),
-                                            timeout=10000)
-
+            super().init(context)
+            if self.observer_version is None or len(self.observer_version.strip()) == 0 or self.observer_version == "":
+                raise Exception("observer version is None. Please check the NODES conf.")
         except Exception as e:
             raise RCAInitException("LockConflictScene RCAInitException: ", e)
 
     def execute(self):
-        if self.observer_version is None or len(self.observer_version) == 0:
-            raise Exception("observer version is None. Please check the NODES conf.")
-        if self.observer_version == "4.2.0.0" or compare_versions_greater(self.observer_version, "4.2.0.0"):
+        if self.observer_version == "4.2.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.2.0.0"):
             self.__execute_4_2()
-        elif compare_versions_greater("4.2.2.0", self.observer_version):
+        elif StringUtils.compare_versions_greater("4.2.2.0", self.observer_version):
             self.__execute_old()
         else:
             raise Exception("observer version is {0}. Not support".format(self.observer_version))
@@ -76,36 +51,41 @@ class LockConflictScene(scene_base):
             first_record.add_suggest("No block lock found. Not Need Execute")
             self.Result.records.append(first_record)
             raise RCANotNeedExecuteException("No block lock found.")
-        first_record.add_record("by select * from oceanbase.GV$OB_LOCKS where BLOCK=1; the len is {0}".format(len(data)))
+        first_record.add_record(
+            "by select * from oceanbase.GV$OB_LOCKS where BLOCK=1; the len is {0}".format(len(data)))
         for OB_LOCKS_data in data:
             trans_record = RCA_ResultRecord()
             first_record_records = first_record.records.copy()
             trans_record.records.extend(first_record_records)
             self.Result.records.append(trans_record)
             try:
-                if OB_LOCKS_data.get('TRANS_ID') is None:
-                    trans_record.add_record("trans_id is null")
-                    trans_record.add_suggest("trans_id is null. can not do next")
+                if OB_LOCKS_data.get('ID1') is None:# Holding lock session id
+                    trans_record.add_record("Holding lock trans_id is null")
+                    trans_record.add_suggest("Holding lock trans_id is null. can not do next")
                     continue
                 else:
-                    trans_id = OB_LOCKS_data['TRANS_ID']
-                    trans_record.add_record("trans_id is {0}".format(trans_id))
+                    trans_id = OB_LOCKS_data['ID1']
+                    trans_record.add_record("holding lock trans_id is {0}".format(trans_id))
+                    wait_lock_trans_id=OB_LOCKS_data['TRANS_ID']
                     cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary(
-                        'select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(trans_id))
+                        'select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(wait_lock_trans_id))
+                    self.stdio.verbose("get SESSION_ID by trans_id:{0}".format(trans_id))
+                    trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
                     session_datas = cursor_by_trans_id.fetchall()
                     trans_record.add_record(
-                        "get SESSION_ID by trans_id:{0}. get data:{0}".format(trans_id, session_datas))
+                        "get SESSION_ID by wait_lock_trans_id:{0}. get data:{0}".format(trans_id, session_datas))
                     if len(session_datas) != 1:
-                        trans_record.add_suggest(
-                            "get SESSION_ID by trans_id:{0}. Maybe the lock is not exist".format(trans_id))
+                        trans_record.add_suggest("wait_lock_session_id is not get. The holding lock trans_id is {0}. You can resolve lock conflicts by killing this locked session, but this may cause business exceptions. Please use with caution.".format(trans_id))
                         continue
                     if session_datas[0].get("SESSION_ID") is not None:
                         trans_record.add_record("get SESSION_ID:{0}".format(session_datas[0].get("SESSION_ID")))
                         trans_record.add_suggest("Sessions corresponding to lock transactions. The ID is {0}, "
                                                  "which may be a lock conflict issue.You can be accessed through kill "
-                                                 "session_ Roll back the corresponding transaction with ID. Please "
+                                                 "session to rollback the corresponding transaction with ID. Please "
                                                  "note that this will result in corresponding transaction regression! "
                                                  "".format(session_datas[0].get("SESSION_ID")))
+                    else:
+                        trans_record.add_record("wait_lock_session_id is not get. The holding lock trans_id is {0}. You can resolve lock conflicts by killing this locked session, but this may cause business exceptions. Please use with caution.".format(trans_id))
 
             except Exception as e:
                 trans_record.add_record("get SESSION_ID panic. OB_LOCKS_data:{0} error: {1}".format(OB_LOCKS_data, e))
@@ -128,7 +108,6 @@ class LockConflictScene(scene_base):
                 len(virtual_lock_wait_stat_datas)))
 
         for trans_lock_data in virtual_lock_wait_stat_datas:
-
             trans_id = trans_lock_data["block_session_id"]
             trans_record = RCA_ResultRecord()
             first_record_records = first_record.records.copy()
@@ -144,5 +123,14 @@ class LockConflictScene(scene_base):
 
         return
 
+    def get_scene_info(self):
+        return {"name": "lock_conflict",
+                "info_en": "root cause analysis of lock conflict",
+                "info_cn": "针对锁冲突的根因分析",
+                }
+
     def export_result(self):
         return self.Result.export()
+
+
+lock_conflict = LockConflictScene()

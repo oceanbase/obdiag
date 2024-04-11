@@ -17,7 +17,7 @@
 """
 import heapq
 from typing import List, Dict, Union
-from utils.time_utils import trans_time
+from common.tool import TimeUtils
 from prettytable import PrettyTable
 
 
@@ -61,7 +61,7 @@ class Node:
     @property
     def elapsed_time(self):
         if self.value:
-            return trans_time(self.value['trace_data']['end_ts'] - self.value['trace_data']['start_ts'])
+            return TimeUtils.trans_time(self.value['trace_data']['end_ts'] - self.value['trace_data']['start_ts'])
         return '-'
 
     @property
@@ -203,7 +203,7 @@ class TreeMeta:
         st = node.value['trace_data'].get('start_ts') if node.value else None
         et = node.value['trace_data'].get('end_ts') if node.value else None
         if st and et:
-            time_str = 'Elapsed: {}'.format(trans_time(et - st))
+            time_str = 'Elapsed: {}'.format(TimeUtils.trans_time(et - st))
         else:
             time_str = ''
         return '{} - {}  {} {}' \

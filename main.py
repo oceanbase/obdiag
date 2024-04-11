@@ -11,20 +11,27 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2022/6/28
-@file: parser_utils.py
+@file: main.py
 @desc:
 """
 
-from random import choice
-import string
+import sys
+from cmd import MainCommand
+from stdio import IO
 
+ROOT_IO = IO(1)
 
-def gen_password(length=8, chars=string.ascii_letters + string.digits):
-    """
-    简短地生成随机密码，包括大小写字母、数字，可以指定密码长度
-    :param length:
-    :param chars:
-    :return:
-    """
-    return ''.join([choice(chars) for i in range(length)])
+if __name__ == '__main__':
+    defaultencoding = 'utf-8'
+    if sys.getdefaultencoding() != defaultencoding:
+        try:
+            from imp import reload
+        except:
+            pass
+        reload(sys)
+        sys.setdefaultencoding(defaultencoding)
+    ROOT_IO.track_limit += 2
+    if MainCommand().init(sys.argv[0], sys.argv[1:]).do_command():
+        ROOT_IO.exit(0)
+    else:
+        ROOT_IO.exit(1)

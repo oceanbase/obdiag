@@ -16,14 +16,16 @@
 @desc:
 """
 import os
-from common.logger import logger
+from stdio import SafeStdio
 from common.ob_connector import OBConnector
 from tabulate import tabulate
-from utils.utils import build_str_on_expr_by_dict_2, convert_to_number
+from common.tool import StringUtils
 
 
-class StepSQLHandler:
-    def __init__(self, step, ob_cluster, report_path, task_variable_dict):
+class StepSQLHandler(SafeStdio):
+    def __init__(self, context, step, ob_cluster, report_path, task_variable_dict):
+        self.context = context
+        self.stdio=context.stdio
         try:
             self.ob_cluster = ob_cluster
             self.ob_cluster_name = ob_cluster.get("cluster_name")
@@ -34,9 +36,10 @@ class StepSQLHandler:
                                         port=ob_cluster.get("db_port"),
                                         username=ob_cluster.get("tenant_sys").get("user"),
                                         password=ob_cluster.get("tenant_sys").get("password"),
+                                        stdio=self.stdio,
                                         timeout=10000)
         except Exception as e:
-            logger.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.enable_fast_dump = False
@@ -48,16 +51,16 @@ class StepSQLHandler:
     def execute(self):
         try:
             if "sql" not in self.step:
-                logger.error("StepSQLHandler execute sql is not set")
+                self.stdio.error("StepSQLHandler execute sql is not set")
                 return
-            sql = build_str_on_expr_by_dict_2(self.step["sql"], self.task_variable_dict)
-            logger.info("StepSQLHandler execute: {0}".format(sql))
+            sql = StringUtils.build_str_on_expr_by_dict_2(self.step["sql"], self.task_variable_dict)
+            self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             columns, data = self.ob_connector.execute_sql_return_columns_and_data(sql)
             if data is None or len(data) == 0:
-                logger.warning("excute sql: {0},  result is None".format(sql))
+                self.stdio.verbose("excute sql: {0},  result is None".format(sql))
             self.report(sql, columns, data)
         except Exception as e:
-            logger.error("StepSQLHandler execute Exception: {0}".format(e).strip())
+            self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
 
     def update_step_variable_dict(self):
         return self.task_variable_dict
@@ -70,4 +73,4 @@ class StepSQLHandler:
                 f.write('\n\n' + 'obclient > ' + sql + '\n')
                 f.write(formatted_table)
         except Exception as e:
-            logger.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))
+            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))

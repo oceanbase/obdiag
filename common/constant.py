@@ -110,3 +110,4 @@ const.TELEMETRY_PATH = "/api/web/oceanbase/report"
 const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
 const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
 const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'
+const.RCA_WORK_PATH= '~/.obdiag/rca'

@@ -15,14 +15,11 @@
 @file: scene.py
 @desc:
 """
-
-
-from common.logger import logger
-from utils.shell_utils import SshHelper
-from utils.version_utils import compare_versions_greater
+from common.ssh import SshHelper
+from common.tool import StringUtils
 from common.command import get_observer_version, get_obproxy_version
 
-def filter_by_version(scene, cluster):
+def filter_by_version(scene, cluster, stdio=None):
     try:
         steps = scene
         steps_nu = 0
@@ -33,10 +30,10 @@ def filter_by_version(scene, cluster):
             if "version" in now_steps:
                 steps_versions = now_steps["version"]
                 if not isinstance(steps_versions, str):
-                    logger.error("filter_by_version steps_version Exception : {0}".format("the type of version is not string"))
+                    stdio.exception("filter_by_version steps_version Exception : {0}".format("the type of version is not string"))
                     raise Exception("filter_by_version steps_version Exception : {0}".format("the type of version is not string"))
                 version_real = cluster["version"]
-                logger.info("version_int is {0} steps_versions is {1}".format(version_real, steps_versions))
+                stdio.verbose("version_int is {0} steps_versions is {1}".format(version_real, steps_versions))
 
                 steps_versions = steps_versions.replace(" ", "")
                 steps_versions = steps_versions[1:-1]
@@ -48,53 +45,53 @@ def filter_by_version(scene, cluster):
                     minVersion = "-1"
                 if maxVersion == "*":
                     maxVersion = "999"
-                if compare_versions_greater(version_real, minVersion) and compare_versions_greater(maxVersion, version_real):
+                if StringUtils.compare_versions_greater(version_real, minVersion) and StringUtils.compare_versions_greater(maxVersion, version_real):
                     break
             else:
-                logger.info("not version in now_steps")
+                stdio.verbose("not version in now_steps")
                 break
             steps_nu = steps_nu + 1
         if steps_nu > len(steps) - 1:
-            logger.warning("not version in this scene")
+            stdio.warn("not version in this scene")
             return -1
         return steps_nu
     except Exception as e:
-        logger.error("filter_by_version Exception : {0}".format(e))
+        stdio.exception("filter_by_version Exception : {0}".format(e))
         raise Exception("filter_by_version Exception : {0}".format(e))
 
-def get_version(nodes, type):
+def get_version(nodes, type, stdio=None):
     try:
         if len(nodes) < 1:
             raise Exception("input nodes is empty, please check your config")
         node = nodes[0]
-        ssh = SshHelper(True, node.get("ip"), node.get("user"), node.get("password"), node.get("port"), node.get("private_key"), node)
+        ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
         if type == "observer":
-            version = get_observer_version(True, ssh, nodes[0]["home_path"])
+            version = get_observer_version(True, ssh, nodes[0]["home_path"], stdio)
         elif type == "obproxy":
-            version = get_obproxy_version(True, ssh, nodes[0]["home_path"])
+            version = get_obproxy_version(True, ssh, nodes[0]["home_path"], stdio)
         return version
     except Exception as e:
-        logger.error("can't get version, Exception: {0}".format(e))
+        stdio.exception("can't get version, Exception: {0}".format(e))
         raise Exception("can't get version, Exception: {0}".format(e))
 
-def get_obproxy_and_ob_version(obproxy_nodes, nodes, type):
+def get_obproxy_and_ob_version(obproxy_nodes, nodes, type, stdio=None):
     try:
         if type == "observer" or type == "other":
             if len(nodes) < 1:
                 raise Exception("input nodes is empty, please check your config")
             node = nodes[0]
-            ssh = SshHelper(True, node.get("ip"), node.get("user"), node.get("password"), node.get("port"), node.get("private_key"), node)
-            version = get_observer_version(True, ssh, nodes[0]["home_path"])
+            ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+            version = get_observer_version(True, ssh, nodes[0]["home_path"], stdio)
         elif type == "obproxy":
             if len(nodes) < 1:
                 raise Exception("input obproxy nodes is empty, please check your config")
             node = obproxy_nodes[0]
-            ssh = SshHelper(True, node.get("ip"), node.get("user"), node.get("password"), node.get("port"), node.get("private_key"), node)
-            version = get_obproxy_version(True, ssh, nodes[0]["home_path"])
+            ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+            version = get_obproxy_version(True, ssh, nodes[0]["home_path"], stdio)
         else:
             raise Exception(
                 "type is {0} . No func to get the version".format(type))
         return version
     except Exception as e:
-        logger.error("can't get version, Exception: {0}".format(e))
+        stdio.exception("can't get version, Exception: {0}".format(e))
         raise Exception("can't get version, Exception: {0}".format(e))

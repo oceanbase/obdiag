@@ -20,7 +20,7 @@ import logging
 import time
 import requests
 
-from ocp import ocp_api
+from common.ocp import ocp_api
 
 logger = logging.getLogger("run")
 

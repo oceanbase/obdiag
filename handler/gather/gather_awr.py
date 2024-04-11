@@ -21,46 +21,45 @@ import time
 import datetime
 import tabulate
 import requests
-
-from handler.base_http_handler import BaseHttpHandler
-from common.obdiag_exception import OBDIAGInvalidArgs, OBDIAGArgsNotFoundException
 from common.obdiag_exception import OBDIAGFormatException
-from common.logger import logger
-from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file
-from utils.time_utils import datetime_to_timestamp
-from utils.time_utils import trans_datetime_utc_to_local
-from utils.time_utils import timestamp_to_filename_time
-from utils.time_utils import parse_time_length_to_sec
-from utils.time_utils import get_time_rounding
-from utils.time_utils import parse_time_str
-from ocp import ocp_api
-from ocp import ocp_task
-from ocp import ocp_cluster
-from ocp import ocp_base
+from common.tool import DirectoryUtil
+from common.tool import FileUtil
+from common.tool import Util
+from common.tool import TimeUtils
+from common.ocp import ocp_task, ocp_api
 
 
-class GatherAwrHandler(BaseHttpHandler):
-    def __init__(self, ocp, gather_pack_dir, gather_timestamp):
-        super(GatherAwrHandler, self).__init__(ocp)
-        self.ocp = ocp
+class GatherAwrHandler(object):
+    def __init__(self, context, gather_pack_dir='./'):
+        self.context = context
+        self.stdio = context.stdio
         self.gather_pack_dir = gather_pack_dir
-        self.gather_timestamp = gather_timestamp
+        if self.context.get_variable("gather_timestamp", None) :
+            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        else:
+            self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
-    def handle(self, args):
-        """
-        the overall handler for the gather command
-        :param args: command args
-        :return: the summary should be displayed
-        """
-        # check args first
-        if not self.__check_valid_and_parse_args(args):
-            return
+    def init_config(self):
+        ocp = self.context['ocp']
+        self.ocp_user = ocp["login"]["user"]
+        self.ocp_password = ocp["login"]["password"]
+        self.ocp_url = ocp["login"]["url"]
+        self.auth = (self.ocp_user, self.ocp_password)
+        return True
+
+    def handle(self):
+        if not self.init_option():
+            self.stdio.error('init option failed')
+            return False
+        if not self.init_config():
+            self.stdio.error('init config failed')
+            return False
         # example of the format of pack dir for this command: (gather_pack_dir)/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir,
-                                             "gather_pack_{0}".format(timestamp_to_filename_time(
+                                             "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(
                                                  self.gather_timestamp)))
-        logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
-        mkdir_if_not_exist(pack_dir_this_command)
+        self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
+        DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         gather_tuples = []
         gather_pack_path_dict = {}
 
@@ -95,9 +94,9 @@ class GatherAwrHandler(BaseHttpHandler):
         list(map(lambda x: x.start(), ocp_threads))
         list(map(lambda x: x.join(), ocp_threads))
         summary_tuples = self.__get_overall_summary(gather_tuples)
-        print(summary_tuples)
+        self.stdio.print(summary_tuples)
         # 将汇总结果持久化记录到文件中
-        write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
+        FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
         return gather_tuples, gather_pack_path_dict
 
@@ -113,13 +112,13 @@ class GatherAwrHandler(BaseHttpHandler):
             "error": False,
         }
 
-        logger.info(
+        self.stdio.verbose(
             "Sending Status Request to cluster {0} ...".format(self.cluster_name))
 
         path = ocp_api.cluster + "/%s/performance/workload/reports/%s" % (self.cluster_id, report_id)
         save_path = os.path.join(store_path, name + ".html")
         pack_path = self.download(self.ocp_url + path, save_path, self.auth)
-        logger.info(
+        self.stdio.verbose(
             "cluster {0} response. analysing...".format(self.cluster_name))
 
         resp["gather_pack_path"] = pack_path
@@ -127,13 +126,13 @@ class GatherAwrHandler(BaseHttpHandler):
             return resp
         return resp
 
-    def __generate_awr_report(self, args):
+    def __generate_awr_report(self):
         """
         call OCP API to generate awr report
         :param args: command args
         :return: awr report name
         """
-        snapshot_list = self.__get_snapshot_list(args)
+        snapshot_list = self.__get_snapshot_list()
         if len(snapshot_list) <= 1:
             raise Exception("AWR report at least need 2 snapshot, cluster now only have %s", len(snapshot_list))
         else:
@@ -142,9 +141,9 @@ class GatherAwrHandler(BaseHttpHandler):
 
         path = ocp_api.cluster + "/%s/performance/workload/reports" % self.cluster_id
 
-        start_time = datetime.datetime.strptime(trans_datetime_utc_to_local(start_time.split(".")[0]),
+        start_time = datetime.datetime.strptime(TimeUtils.trans_datetime_utc_to_local(start_time.split(".")[0]),
                                                 "%Y-%m-%d %H:%M:%S")
-        end_time = datetime.datetime.strptime(trans_datetime_utc_to_local(end_time.split(".")[0]),
+        end_time = datetime.datetime.strptime(TimeUtils.trans_datetime_utc_to_local(end_time.split(".")[0]),
                                               "%Y-%m-%d %H:%M:%S")
         params = {
             "name": "OBAWR_obcluster_%s_%s_%s" % (
@@ -161,7 +160,7 @@ class GatherAwrHandler(BaseHttpHandler):
         ocp_task.Task.wait_done(task_instance)
         return response.json()["data"]["name"]
 
-    def __get_snapshot_list(self, args):
+    def __get_snapshot_list(self):
         """
         get snapshot list from ocp
         :param args: command args
@@ -170,23 +169,23 @@ class GatherAwrHandler(BaseHttpHandler):
         snapshot_id_list = []
         path = ocp_api.cluster + "/%s/performance/workload/snapshots" % self.cluster_id
         response = requests.get(self.ocp_url + path, auth=self.auth)
-        from_datetime_timestamp = datetime_to_timestamp(self.from_time_str)
-        to_datetime_timestamp = datetime_to_timestamp(self.to_time_str)
+        from_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.from_time_str)
+        to_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.to_time_str)
         # 如果用户给定的时间间隔不足一个小时，为了能够获取到snapshot，需要将时间进行调整
         if from_datetime_timestamp + 3600000000 >= to_datetime_timestamp:
             # 起始时间取整点
-            from_datetime_timestamp = datetime_to_timestamp(get_time_rounding(dt=parse_time_str(self.from_time_str), step=0, rounding_level="hour"))
+            from_datetime_timestamp = TimeUtils.datetime_to_timestamp(TimeUtils.get_time_rounding(dt=TimeUtils.parse_time_str(self.from_time_str), step=0, rounding_level="hour"))
             # 结束时间在起始时间的基础上增加一个小时零三分钟(三分钟是给的偏移量，确保能够获取到快照)
             to_datetime_timestamp = from_datetime_timestamp + 3600000000 + 3*60000000
         for info in response.json()["data"]["contents"]:
             try:
-                snapshot_time = datetime_to_timestamp(
-                    trans_datetime_utc_to_local(str(info["snapshotTime"]).split(".")[0]))
+                snapshot_time = TimeUtils.datetime_to_timestamp(
+                    TimeUtils.trans_datetime_utc_to_local(str(info["snapshotTime"]).split(".")[0]))
                 if from_datetime_timestamp <= snapshot_time <= to_datetime_timestamp:
                     snapshot_id_list.append((info["snapshotId"], info["snapshotTime"]))
             except:
-                logger.error("get snapshot failed, pass")
-        logger.info("get snapshot list {0}".format(snapshot_id_list))
+                self.stdio.error("get snapshot failed, pass")
+        self.stdio.verbose("get snapshot list {0}".format(snapshot_id_list))
         return snapshot_id_list
 
     def __get_awr_report_id(self, report_name):
@@ -202,31 +201,32 @@ class GatherAwrHandler(BaseHttpHandler):
                 return info["id"]
         return 0
 
-    def __check_valid_and_parse_args(self, args):
-        """
-        chech whether command args are valid. If invalid, stop processing and print the error to the user
-        :param args: command args
-        :return: boolean. True if valid, False if invalid.
-        """
-        if getattr(args, "from") is not None and getattr(args, "to") is not None:
+    def init_option(self):
+        options = self.context.options
+        store_dir_option = Util.get_option(options, 'store_dir')
+        from_option = Util.get_option(options, 'from')
+        to_option = Util.get_option(options, 'to')
+        since_option = Util.get_option(options, 'since')
+        if from_option is not None and to_option is not None:
             try:
-                self.from_time_str = getattr(args, "from")
-                self.to_time_str = getattr(args, "to")
-                from_timestamp = datetime_to_timestamp(getattr(args, "from"))
-                to_timestamp = datetime_to_timestamp(getattr(args, "to"))
+                self.from_time_str = from_option
+                self.to_time_str = to_option
+                from_timestamp = TimeUtils.datetime_to_timestamp(from_option)
+                to_timestamp = TimeUtils.datetime_to_timestamp(to_option)
             except OBDIAGFormatException:
-                logger.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. " \
+                self.stdio.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. " \
                              "from_datetime={0}, to_datetime={1}".format(getattr(args, "from"), args.to))
                 return False
             if to_timestamp <= from_timestamp:
-                logger.error("Error: from datetime is larger than to datetime, please check.")
+                self.stdio.error("Error: from datetime is larger than to datetime, please check.")
                 return False
-        elif (getattr(args, "from") is None or getattr(args, "to") is None) and args.since is not None:
+        elif (from_option is None or to_option is None) and since_option is not None:
+            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
             # the format of since must be 'n'<m|h|d>
             try:
-                since_to_seconds = parse_time_length_to_sec(args.since)
+                since_to_seconds = TimeUtils.parse_time_length_to_sec(since_option)
             except ValueError:
-                logger.error("Error: the format of since must be 'n'<m|h|d>")
+                self.stdio.error("Error: the format of since must be 'n'<m|h|d>")
                 return False
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
@@ -234,13 +234,13 @@ class GatherAwrHandler(BaseHttpHandler):
                 since_to_seconds = 3600
             self.from_time_str = (now_time - datetime.timedelta(seconds=since_to_seconds)).strftime('%Y-%m-%d %H:%M:%S')
         else:
-            logger.error("Invalid args, you need input since or from and to datetime, args={0}".format(args))
-        # store_dir must exist, else create directory.
-        if getattr(args, "store_dir") is not None:
-            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
-                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
-            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
+            self.stdio.error("Invalid args, you need input since or from and to datetime")
+            return False
+        if store_dir_option and store_dir_option != "./":
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True
 
     @staticmethod
@@ -258,7 +258,7 @@ class GatherAwrHandler(BaseHttpHandler):
             file_size = tup[3]
             consume_time = tup[4]
             pack_path = tup[5]
-            format_file_size = size_format(file_size, output_str=True)
+            format_file_size = FileUtil.size_format(num=file_size, output_str=True)
             summary_tab.append((cluster, "Error" if is_err else "Completed",
                                 format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather AWR Summary:\n" + \

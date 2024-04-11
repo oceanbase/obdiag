@@ -21,7 +21,6 @@
 # first level is task_name. If all tasks are passed, it will be marked as 'pass'. If any task is not passed,
 # it will generate separate reports for each step at the second level. The dimension of the second level is step,
 # and generally, only the steps with exceptions will be summarized, but it can also handle them as needed.
-from common.logger import logger
 from prettytable import PrettyTable
 import datetime
 import os
@@ -35,14 +34,17 @@ from telemetry.telemetry import telemetry
 
 
 class CheckReport:
-    def __init__(self, report_target="observer", export_report_path="./check_report/", export_report_type="table"):
+    def __init__(self, context, report_target="observer", export_report_path="./check_report/",
+                 export_report_type="table"):
+        self.context = context
+        self.stdio = context.stdio
         self.tasks = []
         self.export_report_path = export_report_path
         try:
             if not os.path.exists(export_report_path):
                 os.makedirs(export_report_path)
         except Exception as e:
-            logger.error("init check_report {0}".format(e))
+            self.stdio.error("init check_report {0}".format(e))
             raise CheckrReportException("int check_report {0}".format(e))
         self.export_report_type = export_report_type
 
@@ -54,13 +56,14 @@ class CheckReport:
 
         report_path = self.export_report_path + file_name
         self.report_path = report_path
-        logger.info("export report to {0}".format(report_path))
+        self.stdio.verbose("export report to {0}".format(report_path))
 
     def add_task_report(self, task_report):
         self.tasks.append(task_report)
 
     def export_report(self):
-        logger.info("export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
+        self.stdio.verbose(
+            "export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
         try:
             if self.export_report_type == "table":
                 self.export_report_table()
@@ -74,7 +77,7 @@ class CheckReport:
                 raise CheckrReportException("export_report_type: {0} is not support".format(self.export_report_type))
             self.export_report_path = self.export_report_path + "." + self.export_report_type
         except Exception as e:
-            logger.error("export_report Exception : {0}".format(e))
+            self.stdio.error("export_report Exception : {0}".format(e))
             raise CheckrReportException(e)
 
     def get_report_path(self):
@@ -97,7 +100,7 @@ class CheckReport:
 
     def export_report_json(self):
         allMap = self.report_tobeMap()
-        logger.debug("export_report_json allMap: {0}".format(allMap))
+        self.stdio.verbose("export_report_json allMap: {0}".format(allMap))
         with open(self.report_path + ".json", 'w', encoding="utf8") as f:
             # for python2 and python3
             try:
@@ -126,7 +129,8 @@ class CheckReport:
         allMap["warning"] = warningMap
         allMap["all"] = allInfoMap
         telemetry.push_check_info(self.report_target,
-            {"fail_cases": list(failMap), "critical_cases": list(criticalMap), "warning_cases": list(warningMap)})
+                                  {"fail_cases": list(failMap), "critical_cases": list(criticalMap),
+                                   "warning_cases": list(warningMap)})
         return allMap
 
     def export_report_table(self):
@@ -146,10 +150,10 @@ class CheckReport:
             report_all_tb = PrettyTable(["task", "task_report"])
             report_all_tb.align["task_report"] = "l"
             report_all_tb.title = "all-tasks-report"
-            logger.debug("export report start")
-            failMap=[]
-            criticalMap=[]
-            warningMap=[]
+            self.stdio.verbose("export report start")
+            failMap = []
+            criticalMap = []
+            warningMap = []
 
             for task in self.tasks:
                 if len(task.all_fail()) != 0:
@@ -166,30 +170,33 @@ class CheckReport:
                 if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_tb.add_row([task.name, "all pass"])
             telemetry.push_check_info(self.report_target,
-            {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases":  list(set(warningMap))})
+                                      {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)),
+                                       "warning_cases": list(set(warningMap))})
 
             fp = open(self.report_path + ".table", 'a+', encoding="utf8")
 
             if len(report_fail_tb._rows) != 0:
-                logger.debug(report_fail_tb)
+                self.stdio.verbose(report_fail_tb)
                 fp.write(report_fail_tb.get_string() + "\n")
             if len(report_critical_tb._rows) != 0:
-                logger.debug(report_critical_tb)
+                self.stdio.verbose(report_critical_tb)
                 fp.write(report_critical_tb.get_string() + "\n")
             if len(report_warning_tb._rows) != 0:
-                logger.debug(report_warning_tb)
+                self.stdio.verbose(report_warning_tb)
                 fp.write(report_warning_tb.get_string() + "\n")
             if len(report_all_tb._rows) != 0:
-                logger.debug(report_all_tb)
+                self.stdio.verbose(report_all_tb)
                 fp.write(report_all_tb.get_string() + "\n")
             fp.close()
-            logger.debug("export report end")
+            self.stdio.verbose("export report end")
         except Exception as e:
             raise CheckrReportException("export report {0}".format(e))
 
 
 class TaskReport:
-    def __init__(self, task_name, level="normal"):
+    def __init__(self, context, task_name, level="normal"):
+        self.context = context
+        self.stdio = context.stdio
         self.steps = []
         self.name = task_name
         self.level = level
@@ -204,7 +211,7 @@ class TaskReport:
         self.fail = []
 
     def add(self, info, level="normal"):
-        logger.debug("add task_report {0} ,{1}".format(info, level))
+        self.stdio.verbose("add task_report {0} ,{1}".format(info, level))
         if level == "normal":
             self.add_normal(info)
         elif level == "warning":
@@ -214,7 +221,7 @@ class TaskReport:
         elif level == "fail":
             self.add_fail(info)
         else:
-            logger.warning("report level is not support: " + str(level))
+            self.stdio.warn("report level is not support: " + str(level))
             self.add_normal(info)
 
     def add_normal(self, normal):

@@ -22,48 +22,56 @@ from collections import OrderedDict
 
 from common.command import get_observer_version_by_sql
 from common.constant import const
-from common.logger import logger
 from common.ob_connector import OBConnector
-from utils.file_utils import mkdir_if_not_exist
-from utils.time_utils import timestamp_to_filename_time
-from utils.utils import split_ip
-from utils.yaml_utils import write_yaml_data, read_yaml_data, write_yaml_data_append
+from common.tool import DirectoryUtil
+from common.tool import TimeUtils
+from common.tool import StringUtils
+from common.tool import YamlUtils
+from common.tool import Util
 
 
 class ConfigHelper(object):
-    def __init__(self, sys_tenant_user, sys_tenant_password, db_host, db_port):
-        self.sys_tenant_user = sys_tenant_user
-        self.sys_tenant_password = sys_tenant_password
-        self.db_host = db_host
-        self.db_port = db_port
+    def __init__(self, context):
+        self.context = context
+        self.stdio = context.stdio
+        options = self.context.options
+        self.sys_tenant_user = Util.get_option(options, 'u')
+        self.sys_tenant_password = Util.get_option(options, 'p')
+        self.db_host = Util.get_option(options, 'h')
+        self.db_port = Util.get_option(options, 'P')
+        self.config_path = os.path.expanduser('~/.obdiag/config.yml')
+        self.inner_config = self.context.inner_config
+        self.ob_cluster = {"db_host": self.db_host, "db_port": self.db_port, "tenant_sys": {"password": self.sys_tenant_password, "user": self.sys_tenant_user, }}
 
     def get_cluster_name(self):
-        ob_cluster = {"host": self.db_host, "port": self.db_port, "user": self.sys_tenant_user,
-                      "password": self.sys_tenant_password}
-        ob_version = get_observer_version_by_sql(ob_cluster)
-        obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user,
-                                  password=self.sys_tenant_password, timeout=100)
+        ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+        obConnetcor = OBConnector(
+            ip=self.db_host, 
+            port=self.db_port, 
+            username=self.sys_tenant_user,
+            password=self.sys_tenant_password, 
+            stdio=self.stdio,
+            timeout=100)
         if ob_version.startswith("3") or ob_version.startswith("2"):
             sql = "select cluster_name from oceanbase.v$ob_cluster"
             res = obConnetcor.execute_sql(sql)
             if len(res) == 0:
-                logger.error("Failed to get cluster name, please check whether the cluster config correct!!!")
+                self.stdio.error("Failed to get cluster name, please check whether the cluster config correct!!!")
             else:
                 return res[0][0]
         else:
             return "obcluster"
 
-    def get_host_info_list_by_cluster(self, args):
-        ob_cluster = {"host": self.db_host, "port": self.db_port, "user": self.sys_tenant_user,
-                      "password": self.sys_tenant_password}
-        ob_version = get_observer_version_by_sql(ob_cluster)
+    def get_host_info_list_by_cluster(self):
+        ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         obConnetcor = OBConnector(ip=self.db_host,
                                   port=self.db_port,
                                   username=self.sys_tenant_user,
                                   password=self.sys_tenant_password,
+                                  stdio=self.stdio,
                                   timeout=100)
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
-        if ob_version.startswith("3"):
+        if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
             sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
         res = obConnetcor.execute_sql(sql)
         if len(res) == 0:
@@ -73,14 +81,14 @@ class ConfigHelper(object):
         for row in res:
             host_info = OrderedDict()
             host_info["ip"] = row[0]
-            logger.debug("get host info: %s", host_info)
+            self.stdio.verbose("get host info: %s", host_info)
             host_info_list.append(host_info)
         return host_info_list
 
-    def build_configuration(self, args, path, inner_path):
-        logger.info("Getting all the node information of the cluster, please wait a moment ...")
-        all_host_info_list = self.get_host_info_list_by_cluster(args)
-        logger.debug("get node list %s", all_host_info_list)
+    def build_configuration(self):
+        self.stdio.verbose("Getting all the node information of the cluster, please wait a moment ...")
+        all_host_info_list = self.get_host_info_list_by_cluster()
+        self.stdio.verbose("get node list %s", all_host_info_list)
         all_host_ip_list = []
         for host in all_host_info_list:
             all_host_ip_list.append(host["ip"])
@@ -89,10 +97,9 @@ class ConfigHelper(object):
         nodes_config = []
         for i in all_host_ip_list:
             nodes_config.append({"ip": i})
-        old_config = self.get_old_configuration(path)
-        inner_config = self.get_old_configuration(inner_path)
+        old_config = self.get_old_configuration(self.config_path)
         # backup old config
-        self.save_old_configuration(old_config, inner_config)
+        self.save_old_configuration(old_config)
         # rewrite config
         ob_cluster_name = self.get_cluster_name()
         print("\033[33mPlease enter the following configuration !!!\033[0m")
@@ -123,17 +130,15 @@ class ConfigHelper(object):
                     "nodes": nodes_config,
                     "global": global_config
                 }}}
-        write_yaml_data(new_config, path)
+        YamlUtils.write_yaml_data(new_config, self.config_path)
         need_config_obproxy = self.input_choice_default("need config obproxy [y/N]", "N")
         if need_config_obproxy:
-            self.build_obproxy_configuration(path)
-        logger.info(
-            "Node information has been rewritten to the configuration file {0}, and you can enjoy the journey !".format(
-                path))
+            self.build_obproxy_configuration(self.config_path)
+        self.stdio.verbose("Node information has been rewritten to the configuration file {0}, and you can enjoy the journey !".format(self.config_path))
 
     def build_obproxy_configuration(self, path):
         obproxy_servers = self.input_with_default("obproxy server eg:'192.168.1.1;192.168.1.2;192.168.1.3'", "")
-        obproxy_server_list = split_ip(obproxy_servers)
+        obproxy_server_list = StringUtils.split_ip(obproxy_servers)
         if len(obproxy_server_list) > 0:
             nodes_config = []
             for server in obproxy_server_list:
@@ -156,21 +161,21 @@ class ConfigHelper(object):
                         "nodes": nodes_config,
                         "global": global_config
                     }}}
-            write_yaml_data_append(new_config, path)
+            YamlUtils.write_yaml_data_append(new_config, path)
 
     def get_old_configuration(self, path):
         try:
-            data = read_yaml_data(path)
+            data = YamlUtils.read_yaml_data(path)
             return data
         except:
             pass
 
-    def save_old_configuration(self, config, inner_config):
-        backup_config_dir = os.path.expanduser(inner_config["obdiag"]["basic"]["config_backup_dir"])
-        filename = "config_backup_{0}.yml".format(timestamp_to_filename_time(int(round(time.time() * 1000000))))
+    def save_old_configuration(self, config):
+        backup_config_dir = os.path.expanduser(self.inner_config["obdiag"]["basic"]["config_backup_dir"])
+        filename = "config_backup_{0}.yml".format(TimeUtils.timestamp_to_filename_time(int(round(time.time() * 1000000))))
         backup_config_path = os.path.join(backup_config_dir, filename)
-        mkdir_if_not_exist(backup_config_dir)
-        write_yaml_data(config, backup_config_path)
+        DirectoryUtil.mkdir(path=backup_config_dir)
+        YamlUtils.write_yaml_data(config, backup_config_path)
 
     def input_with_default(self, prompt, default):
         value = input("\033[32mEnter your {0} (default:'{1}'): \033[0m".format(prompt, default)).strip()

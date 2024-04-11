@@ -14,8 +14,8 @@ task:
       result:
         set_value: parameter
         report_type: warning
-        verify: "[ 'unlimited' == ${parameter} ]"
-        err_msg: 'On ip : #{remote_ip}, ulimit -u is #{parameter} . It is a non recommended value, and the recommended value is unlimited. Please refer to the official website document for the configuration method'
+        verify: "[ '655360' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -u is #{parameter} . It is a non recommended value, and the recommended value is 655360. Please refer to the official website document for the configuration method'
     - type: ssh
       ssh: ulimit -s
       result:

@@ -17,7 +17,6 @@
 """
 from handler.checker.check_exception import ResultFalseException, ResultFailException, VerifyFailException
 from handler.checker.result.verify import VerifyResult
-from common.logger import logger
 import re
 
 
@@ -26,7 +25,9 @@ import re
 # report_type)
 
 class CheckResult:
-    def __init__(self, step_result_info, variable_dict):
+    def __init__(self,context, step_result_info, variable_dict):
+        self.context = context
+        self.stdio = context.stdio
         self.step_result_info = step_result_info
         self.variable_dict = variable_dict
         self.result = False
@@ -36,22 +37,22 @@ class CheckResult:
         self.result = False
         if "verify_type" in self.step_result_info:
             verify_type = self.step_result_info["verify_type"]
-            logger.info("verify_type is {0}".format(verify_type))
+            self.stdio.verbose("verify_type is {0}".format(verify_type))
 
         # if verify in step.result[]
         if "verify" in self.step_result_info:
             try:
-                verify = VerifyResult(self.step_result_info["verify"],
+                verify = VerifyResult(self.context,self.step_result_info["verify"],
                                       self.variable_dict, self.step_result_info["set_value"], verify_type)
                 result = verify.execute()
-                logger.info("verify.execute end. and result is {0}".format(result))
+                self.stdio.verbose("verify.execute end. and result is {0}".format(result))
 
             except Exception as e:
-                logger.error("check_result execute VerifyFailException :{0}".format(e))
+                self.stdio.error("check_result execute VerifyFailException :{0}".format(e))
                 raise ResultFailException(e)
             if not result:
                 err_msg = self.build_msg()
-                logger.info(
+                self.stdio.verbose(
                     "verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
                 raise ResultFalseException(err_msg)
 

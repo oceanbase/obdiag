@@ -97,7 +97,7 @@ task:
         sql: "select * from oceanbase.GV$OB_MEMSTORE limit 20"
         global: true
       - type: ssh # 可看到租户的规格、线程、队列及请求统计等信息，且这条日志每个租户每 30s 打印一次
-        ssh: "grep 'dump tenant info.tenant=' ${observer_data_dir}/log/observer.log | sed 's/,/,\n/g'"
+        ssh: "grep 'dump tenant info.tenant=' ${observer_data_dir}/log/observer.log | sed 's/,/,/g'"
         global: false
       - type: log
         grep: ""

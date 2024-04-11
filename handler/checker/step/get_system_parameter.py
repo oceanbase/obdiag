@@ -17,15 +17,16 @@
 """
 
 from handler.checker.check_exception import StepExecuteFailException
-from utils.shell_utils import SshHelper
+from common.ssh import SshHelper
 from handler.checker.check_report import TaskReport
-from common.logger import logger
-from utils.utils import convert_to_number, get_localhost_inner_ip
+from common.tool import Util
 
 
 class GetSystemParameterHandler:
-    def __init__(self, step, node, task_variable_dict):
-        logger.debug("init GetSystemParameterHandler")
+    def __init__(self,context, step, node, task_variable_dict):
+        self.context = context
+        self.stdio = context.stdio
+        self.stdio.verbose("init GetSystemParameterHandler")
         self.ssh_helper = None
         self.parameters = None
         self.step = step
@@ -35,13 +36,13 @@ class GetSystemParameterHandler:
         try:
             is_ssh = True
             self.ssh_helper = SshHelper(is_ssh, node.get("ip"),
-                                        node.get("user"),
-                                        node.get("password"),
-                                        node.get("port"),
-                                        node.get("private_key"),
+                                        node.get("ssh_username"),
+                                        node.get("ssh_password"),
+                                        node.get("ssh_port"),
+                                        node.get("ssh_key_file"),
                                         node)
         except Exception as e:
-            logger.error(
+            self.stdio.error(
                 "GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
             raise Exception(
                 "GetSystemParameterHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))
@@ -56,8 +57,8 @@ class GetSystemParameterHandler:
             parameter_value = self.ssh_helper.ssh_exec_cmd("cat /proc/sys/" + parameter_name).strip()
             self.ssh_helper.ssh_close()
         except Exception as e:
-            logger.warning(
-                "get {0} fail:{1} .please check，the parameter_value will be set -1".format(parameter_name, e))
+            self.stdio.warn(
+                "get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))
             parameter_value = str("-1")
         return parameter_value
 
@@ -66,7 +67,7 @@ class GetSystemParameterHandler:
         try:
             if "parameter" not in self.step:
                 raise StepExecuteFailException("GetSystemParameterHandler execute parameter is not set")
-            logger.info("GetSystemParameterHandler execute: {0}".format(self.step["parameter"]))
+            self.stdio.verbose("GetSystemParameterHandler execute: {0}".format(self.step["parameter"]))
             s = self.step["parameter"]
             if '.' in s:
                 last_substring = s.rsplit('.', 1)
@@ -75,7 +76,7 @@ class GetSystemParameterHandler:
                 s = self.step["parameter"]
             # SystemParameter exist?
             if self.ssh_helper.ssh_exec_cmd('find /proc/sys/ -name "{0}"'.format(s)) == "":
-                logger.warning("{0} is not exist".format(self.step["parameter"]))
+                self.stdio.warn("{0} is not exist".format(self.step["parameter"]))
                 if "result" in self.step and "set_value" in self.step["result"]:
                     self.task_variable_dict[self.step["result"]["set_value"]] = ""
                 return
@@ -84,10 +85,10 @@ class GetSystemParameterHandler:
             if "result" in self.step and "set_value" in self.step["result"]:
                 if len(parameter_value) > 0:
                     parameter_value = parameter_value.strip()
-                logger.info("GetSystemParameterHandler get value : {0}".format(parameter_value))
-                self.task_variable_dict[self.step["result"]["set_value"]] = convert_to_number(parameter_value)
+                self.stdio.verbose("GetSystemParameterHandler get value : {0}".format(parameter_value))
+                self.task_variable_dict[self.step["result"]["set_value"]] = Util.convert_to_number(parameter_value)
         except Exception as e:
-            logger.error("get_parameter execute: {0}".format(e).strip())
+            self.stdio.error("get_parameter execute: {0}".format(e).strip())
             raise StepExecuteFailException("get_parameter execute: {0}".format(e).strip())
 
     def get_report(self):

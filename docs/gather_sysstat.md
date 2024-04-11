@@ -3,17 +3,15 @@
 收集主机dmesg信息、主机cpu\内存信息
 ```
 $ obdiag gather sysstat -h
-usage: obdiag gather sysstat [-h] [--store_dir store_dir] [-c config]
+Usage: obdiag gather sysstat [options]
 
-According to the input parameters, gather the os info compress and pack, and transmit to the specified path of the obdiag machine.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-
-Example: obdiag gather sysstat
+Options:
+  --store_dir=STORE_DIR
+                        the dir to store gather result, current dir by
+                        default.
+  -c C                  obdiag custom config
+  -h, --help            Show help and exit.
+  -v, --verbose         Activate verbose output.
 ```
 
 执行结果：
