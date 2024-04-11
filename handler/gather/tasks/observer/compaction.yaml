@@ -148,7 +148,7 @@ task:
         sql: "show parameters like 'freeze_trigger_percentage';"
         global: true
       - type: sql
-        sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t,cdb_ob_table_locations t1,cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
+        sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t, oceanbase.cdb_ob_table_locations t1, oceanbase.cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
         global: true
       - type: log
         global: false

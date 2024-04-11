@@ -2,35 +2,32 @@
 通过 gather obproxy_log命令，可以指定时间范围的来去搜集目标主机上的ObProxy日志。
 ```
 $ obdiag gather obproxy_log -h
-usage: obdiag gather obproxy_log [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir]
-                                 [-c config] [--scope scope] [--grep grep [grep ...]] [--encrypt encrypt]
+Usage: obdiag gather obproxy_log [options]
 
-According to the input parameters, gather the logs of the specified range (whether it is time range), compress and pack, and transmit to
-the specified path of the obdiag machine.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --from datetime datetime
-                        specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --to datetime datetime
-                        specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
+Options:
+  --from=FROM           specify the start of the time range. 'format: yyyy-mm-
+                        dd hh:mm:ss'
+  --to=TO               specify the end of the time range. 'format: yyyy-mm-dd
+                        hh:mm:ss'
+  --since=SINCE         Specify time range that from 'n' [d]ays, 'n' [h]ours
+                        or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
                         example: 1h.
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-  --scope scope         log type constrains, choices=[obproxy, obproxy_digest, obproxy_stat, obproxy_slow, obproxy_limit, all],
-                        default=all
-  --grep grep [grep ...]
-                        specify keywords constrain
-  --encrypt encrypt     Whether the returned results need to be encrypted, choices=[true, false], default=false
-
-Example: obdiag gather obproxy_log --scope obproxy --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00
+  --scope=SCOPE         log type constrains, choices=[observer, election,
+                        rootservice, all]
+  --grep=GREP           specify keywords constrain
+  --encrypt=ENCRYPT     Whether the returned results need to be encrypted,
+                        choices=[true, false]
+  --store_dir=STORE_DIR
+                        the dir to store gather result, current dir by
+                        default.
+  -c C                  obdiag custom config
+  -h, --help            Show help and exit.
+  -v, --verbose         Activate verbose output.
 ```
 
 例子：
 ```shell script
-$ obdiag gather obproxy_log --scope obproxy --from 2022-06-25 10:25:00 --to 2022-06-25 18:30:00 --encrypt true
+$ obdiag gather obproxy_log --scope obproxy --from "2022-06-25 10:25:00" --to "2022-06-25 18:30:00" --encrypt true
 
 ...
 ZipFileInfo:

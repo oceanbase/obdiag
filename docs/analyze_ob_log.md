@@ -2,39 +2,35 @@
 'obdiag analyze log' can specify a time range to analyze the OceanBase logs on the target host and the log files passing OceanBase for analysis.
 ```
 $ obdiag analyze log -h
-usage: obdiag analyze log [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir]
-                          [-c config] [--scope scope] [--log_level log_level] [--files files [files ...]] [--grep grep [grep ...]]
+Usage: obdiag analyze log [options]
 
-According to the input parameters, analyze observer logs
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --from datetime datetime
-                        specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --to datetime datetime
-                        specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
+Options:
+  --from=FROM           specify the start of the time range. 'format: yyyy-mm-
+                        dd hh:mm:ss'
+  --to=TO               specify the end of the time range. 'format: yyyy-mm-dd
+                        hh:mm:ss'
+  --since=SINCE         Specify time range that from 'n' [d]ays, 'n' [h]ours
+                        or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
                         example: 1h.
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-  --scope scope         log type constrains, choices=[observer, election, rootservice, all], default=all
-  --log_level log_level
-                        log level constrains, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR], default=WARN
-  --files files [files ...]
-                        specify file
-  --grep grep [grep ...]
-                        specify keywords constrain
-
-Example1: obdiag analyze log --scope observer --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00 
-Example2: obdiag analyze log --scope observer --since 1h --grep STORAGE 
-Example3: obdiag analyze log --files observer.log.20230831142211247 
-Example4: obdiag analyze log --files ./log/
+  --scope=SCOPE         log type constrains, choices=[observer, election,
+                        rootservice, all]
+  --grep=GREP           specify keywords constrain
+  --log_level=LOG_LEVEL
+                        oceanbase logs greater than or equal to this level
+                        will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG,
+                        WARN, EDIAG, ERROR]
+  --files=FILES         specify files
+  --store_dir=STORE_DIR
+                        the dir to store gather result, current dir by
+                        default.
+  -c C                  obdiag custom config
+  -h, --help            Show help and exit.
+  -v, --verbose         Activate verbose output.
 ```
 
 Example：
 ```shell script
-$ obdiag analyze log --scope observer --from 2023-10-08 10:25:00 --to 2023-10-08 11:30:00
+$ obdiag analyze log --scope observer --from "2023-10-08 10:25:00" --to "2023-10-08 11:30:00"
 
 ...
 FileListInfo:

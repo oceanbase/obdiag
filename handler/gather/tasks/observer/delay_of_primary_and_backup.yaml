@@ -151,7 +151,7 @@ task:
         sql: "show parameters like '%backup%';"
         global: true
       - type: sql
-        sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, SCN_TO_TIMESTAMP(SYNC_SCN) FROM oceanbase.DBA_OB_TENANTS WHERE TENANT_NAME = 'standby_tenant';;"
+        sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, SCN_TO_TIMESTAMP(SYNC_SCN) FROM oceanbase.DBA_OB_TENANTS WHERE TENANT_NAME = 'standby_tenant';"
         global: true
       - type: sql
         sql: "SELECT LS_ID, SCN_TO_TIMESTAMP(END_SCN) FROM oceanbase.GV$OB_LOG_STAT WHERE ROLE = 'LEADER';"

@@ -16,13 +16,15 @@
 @desc:
 """
 import os
-from utils.shell_utils import SshHelper
-from common.logger import logger
-from utils.utils import build_str_on_expr_by_dict_2
+from stdio import SafeStdio
+from common.ssh import SshHelper
+from common.tool import StringUtils
 
 
-class SshHandler:
-    def __init__(self, step, node, report_path, task_variable_dict):
+class SshHandler(SafeStdio):
+    def __init__(self, context, step, node, report_path, task_variable_dict):
+        self.context = context
+        self.stdio=context.stdio
         self.ssh_report_value = None
         self.parameters = None
         self.step = step
@@ -30,9 +32,9 @@ class SshHandler:
         self.report_path = report_path
         try:
             is_ssh = True
-            self.ssh_helper = SshHelper(is_ssh, node.get("ip"), node.get("user"), node.get("password"), node.get("port"), node.get("private_key"), node)
+            self.ssh_helper = SshHelper(is_ssh, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
         except Exception as e:
-            logger.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
+            self.stdio.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
         self.task_variable_dict = task_variable_dict
         self.parameter = []
         self.report_file_path = os.path.join(self.report_path, "shell_result.txt")
@@ -40,10 +42,10 @@ class SshHandler:
     def execute(self):
         try:
             if "ssh" not in self.step:
-                logger.error("SshHandler execute ssh is not set")
+                self.stdio.error("SshHandler execute ssh is not set")
                 return
-            ssh_cmd = build_str_on_expr_by_dict_2(self.step["ssh"], self.task_variable_dict)
-            logger.info("step SshHandler execute :{0} ".format(ssh_cmd))
+            ssh_cmd = StringUtils.build_str_on_expr_by_dict_2(self.step["ssh"], self.task_variable_dict)
+            self.stdio.verbose("step SshHandler execute :{0} ".format(ssh_cmd))
             ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
             if ssh_report_value is None:
                 ssh_report_value = ""
@@ -51,10 +53,10 @@ class SshHandler:
                 ssh_report_value = ssh_report_value.strip()
                 self.report(ssh_cmd, ssh_report_value)
         except Exception as e:
-            logger.error("ssh execute Exception:{0}".format(e).strip())
+            self.stdio.error("ssh execute Exception:{0}".format(e).strip())
         finally:
             self.ssh_helper.ssh_close()
-        logger.debug("gather step SshHandler ssh_report_value:{0}".format(ssh_report_value))
+        self.stdio.verbose("gather step SshHandler ssh_report_value:{0}".format(self.ssh_report_value))
 
     def update_step_variable_dict(self):
         return self.task_variable_dict
@@ -65,4 +67,4 @@ class SshHandler:
                 f.write('\n\n' + 'shell > ' + command + '\n')
                 f.write(data + '\n')
         except Exception as e:
-            logger.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))
+            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))

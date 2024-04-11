@@ -24,9 +24,9 @@ import hashlib
 from io import open
 from common.constant import const
 from common.ob_connector import OBConnector
-from utils.network_utils import network_connectivity
-from utils.time_utils import DateTimeEncoder
-from utils.version_utils import get_obdiag_version
+from common.tool import NetUtils
+from common.tool import DateTimeEncoder
+from common.version import get_obdiag_version
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 class Telemetry():
@@ -43,28 +43,32 @@ class Telemetry():
         self.version = get_obdiag_version()
 
     def set_cluster_conn(self, obcluster):
-        if not self.work_tag:
-            return
-        if self.work_tag:
-            self.work_tag = network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
-        if not self.work_tag:
-            return
+        try:
+            if not self.work_tag:
+                return
+            if self.work_tag:
+                self.work_tag = NetUtils.network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
+            if not self.work_tag:
+                return
 
-        if obcluster is not None:
-            try:
+            if obcluster is not None:
+                try:
 
-                self.cluster_conn = OBConnector(ip=obcluster.get("db_host"),
-                                                port=obcluster.get("db_port"),
-                                                username=obcluster.get("tenant_sys").get("user"),
-                                                password=obcluster.get("tenant_sys").get("password"),
-                                                timeout=10000)
-                self.threads.append(threading.Thread(None, self.get_cluster_info()))
-               # self.threads.append(threading.Thread(None, self.get_tenant_info()))
-                for thread in self.threads:
-                    thread.start()
-            except Exception as e:
-                pass
-        return
+                    self.cluster_conn = OBConnector(ip=obcluster.get("db_host"),
+                                                    port=obcluster.get("db_port"),
+                                                    username=obcluster.get("tenant_sys").get("user"),
+                                                    password=obcluster.get("tenant_sys").get("password"),
+                                                    stdio=self.stdio,
+                                                    timeout=10000)
+                    self.threads.append(threading.Thread(None, self.get_cluster_info()))
+                   # self.threads.append(threading.Thread(None, self.get_tenant_info()))
+                    for thread in self.threads:
+                        thread.start()
+                except Exception as e:
+                    pass
+        except Exception as e:
+            pass
+
 
     def get_cluster_info(self):
         if self.cluster_conn is not None:
@@ -181,6 +185,11 @@ key="********"
 def ip_mix_by_sha256(ip):
     ip = ip.encode('utf-8')
     return hmac.new(key.encode('utf-8'), ip, digestmod=hashlib.sha256).hexdigest().upper()
+def ip_mix_by_sha1(ip=""):
+    sha1 = hashlib.sha1()
+    sha1.update(ip.encode())
+    return sha1.hexdigest()
+
 
 telemetry = Telemetry()
 

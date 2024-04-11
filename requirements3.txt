@@ -30,3 +30,7 @@ pyinstaller>=4.3
 colorama==0.4.6
 PyMySQL==1.0.2
 sqlparse==0.4.4
+ruamel.yaml==0.17.4
+progressbar==2.5
+halo==0.0.31
+inspect2==0.1.2

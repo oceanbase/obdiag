@@ -17,28 +17,27 @@
 """
 from prettytable import from_db_cursor
 import pymysql as mysql
-from common.logger import logger
 
 
 class OBConnector(object):
-    def __init__(self, ip, port, username, password=None, timeout=10):
+    def __init__(self, ip, port, username, password=None, stdio=None, timeout=10,):
         self.ip = str(ip)
         self.port = int(port)
         self.username = str(username)
         self.password = str(password)
         self.timeout = timeout
         self.conn = None
+        self.stdio = stdio
         self.init()
 
     def init(self):
         try:
             self._connect_db()
         except Exception as e:
-            logger.exception(e)
+            self.stdio.verbose(e)
 
     def _connect_db(self):
         try:
-            logger.debug("connect OB: {0}:{1} with user {2}".format(self.ip, self.port, self.username))
             self.conn = mysql.connect(
                 host=self.ip,
                 port=self.port,
@@ -46,9 +45,9 @@ class OBConnector(object):
                 passwd=self.password,
                 connect_timeout=30,
             )
-            logger.debug("connect databse ...")
+            self.stdio.verbose("connect databse ...")
         except mysql.Error as e:
-            logger.error("connect OB: {0}:{1} with user {2} failed, error:{3}".format(self.ip, self.port, self.username, e))
+            self.stdio.error("connect OB: {0}:{1} with user {2} failed, error:{3}".format(self.ip, self.port, self.username, e))
 
     def execute_sql(self, sql):
         if self.conn is None:

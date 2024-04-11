@@ -3,27 +3,34 @@
 该命令用户收集性能报告报告
 ```
 $ obdiag gather awr -h
-usage: obdiag gather awr [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir]
-                         [-c config] --cluster_name cluster_name
+Usage: obdiag gather <command> [options]
 
-According to the input parameters, gather the awr of the specified range (whether it is time range), compress and pack, and transmit to
-the specified path of the obdiag machine.
+Available commands:
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --from datetime datetime
-                        specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --to datetime datetime
-                        specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
-                        example: 1h.
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-  --cluster_name cluster_name
-                        cluster name.
+all          Gather oceanbase diagnostic info
 
-Example: obdiag gather awr --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00
+clog         Gather clog
+
+log          Gather oceanbase logs from oceanbase machines
+
+obproxy_log  Gather obproxy log from obproxy machines
+
+perf         Gather perf
+
+plan_monitor Gather ParalleSQL information
+
+scene        Gather scene diagnostic info
+
+slog         Gather slog
+
+stack        Gather stack
+
+sysstat      Gather Host information
+
+
+Options:
+  -h, --help     Show help and exit.
+  -v, --verbose  Activate verbose output.
 
 ```
 

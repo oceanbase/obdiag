@@ -17,53 +17,28 @@
 """
 import json
 import re
-
-from common.command import get_observer_version
-from common.logger import logger
-from common.ob_connector import OBConnector
 from handler.rca.rca_exception import RCAInitException, RCAExecuteException, RCANotNeedExecuteException
-from handler.rca.rca_scene.scene_base import scene_base, Result, RCA_ResultRecord
-from utils.shell_utils import SshHelper
-from utils.time_utils import DateTimeEncoder
-from utils.version_utils import compare_versions_greater
+from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
+from common.tool import DateTimeEncoder
+from common.tool import StringUtils
 
 
-class MajorHoldScene(scene_base):
+class MajorHoldScene(RcaScene):
     def __init__(self):
         super().__init__()
-        self.local_path = None
-        self.ob_cluster = None
-        self.observer_nodes = []
-        self.observer_version = ""
-        self.ob_connector = None
-        self.Result = Result()
+        self.local_path = ""
 
-    def init(self, cluster, nodes, obproxy_nodes, env, result_path):
+    def init(self, context):
         try:
-            super().__init__()
-            self.Result.set_save_path(result_path)
-            self.ob_cluster = cluster
-            self.observer_nodes = nodes
-            self.local_path = result_path
-            node = self.observer_nodes[0]
-            ssh = SshHelper(True, node.get("ip"),
-                            node.get("user"),
-                            node.get("password"),
-                            node.get("port"),
-                            node.get("private_key"),
-                            node)
-            self.observer_version = get_observer_version(True, ssh, node["home_path"])
+            super().init(context)
+            self.local_path = context.get_variable('result_path')
+
             if self.observer_version is None:
                 raise Exception("obproxy version is None. Please check the NODES conf.")
 
-            if not (self.observer_version == "4.0.0.0" or compare_versions_greater(self.observer_version, "4.0.0.0")):
+            if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
                 raise Exception("observer version must be greater than 4.0.0.0. Please check the NODES conf.")
 
-            self.ob_connector = OBConnector(ip=self.ob_cluster.get("db_host"),
-                                            port=self.ob_cluster.get("db_port"),
-                                            username=self.ob_cluster.get("tenant_sys").get("user"),
-                                            password=self.ob_cluster.get("tenant_sys").get("password"),
-                                            timeout=10000)
         except Exception as e:
             raise RCAInitException("MajorHoldScene RCAInitException: {0}".format(e))
 
@@ -89,7 +64,7 @@ class MajorHoldScene(scene_base):
                 err_tenant_ids.extend(CDB_OB_MAJOR_COMPACTION_err_tenant_ids)
 
         except Exception as e:
-            logger.warning("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
+            self.stdio.warn("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
             raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
         # __all_virtual_compaction_diagnose_info里存在status=FAILED的记录
         try:
@@ -108,7 +83,7 @@ class MajorHoldScene(scene_base):
                         __all_virtual_compaction_diagnose_info_err_tenant_ids))
                 err_tenant_ids.extend(__all_virtual_compaction_diagnose_info_err_tenant_ids)
         except Exception as e:
-            logger.error("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
+            self.stdio.error("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
             raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
         # GV$OB_COMPACTION_PROGRESS表中，根据上一次合并记录中的data_size/(estimated_finish_time-start_time)与当前合并版本记录中(data_size-unfinished_data_size)/(当前时间-start_time)相比，如果差距过大（当前合并比上一次合并慢很多，以5倍为指标）
         try:
@@ -125,11 +100,12 @@ class MajorHoldScene(scene_base):
                 first_record.add_record(
                     "merge tasks that have not ended beyond the expected time,the tenant_id is {0}".format(
                         time_out_merge_err_tenant_ids))
-                logger.info("merge tasks that have not ended beyond the expected time,the tenant_id is {0}".format(
-                    time_out_merge_err_tenant_ids))
+                self.stdio.verbose(
+                    "merge tasks that have not ended beyond the expected time,the tenant_id is {0}".format(
+                        time_out_merge_err_tenant_ids))
                 err_tenant_ids.extend(time_out_merge_err_tenant_ids)
         except Exception as e:
-            logger.error("MajorHoldScene execute GV$OB_COMPACTION_PROGRESS panic:  {0}".format(e))
+            self.stdio.error("MajorHoldScene execute GV$OB_COMPACTION_PROGRESS panic:  {0}".format(e))
             raise RCAExecuteException("MajorHoldScene execute GV$OB_COMPACTION_PROGRESS panic:  {0}".format(e))
         if not need_tag:
             first_record.add_suggest("major merge abnormal situation not need execute")
@@ -138,14 +114,14 @@ class MajorHoldScene(scene_base):
         else:
             err_tenant_ids = list(set(err_tenant_ids))
             first_record.add_suggest("some tenants need execute MajorHoldScene. :{0}".format(err_tenant_ids))
-        logger.info("On CDB_OB_MAJOR_COMPACTION")
+        self.stdio.verbose("On CDB_OB_MAJOR_COMPACTION")
 
         # execute record need more
         for err_tenant_id in err_tenant_ids:
             tenant_record = RCA_ResultRecord()
-            first_record_records=first_record.records.copy()
+            first_record_records = first_record.records.copy()
             tenant_record.records.extend(first_record_records)
-            logger.info("tenant_id is {0}".format(err_tenant_id))
+            self.stdio.verbose("tenant_id is {0}".format(err_tenant_id))
             tenant_record.add_record("tenant_id is {0}".format(err_tenant_id))
             # 1
             try:
@@ -165,7 +141,7 @@ class MajorHoldScene(scene_base):
 
             except Exception as e:
                 tenant_record.add_record("#1 on CDB_OB_MAJOR_COMPACTION get data failed")
-                logger.warning("MajorHoldScene execute exception: {0}".format(e))
+                self.stdio.warn("MajorHoldScene execute exception: {0}".format(e))
                 pass
             # 2
             try:
@@ -185,7 +161,7 @@ class MajorHoldScene(scene_base):
 
             except Exception as e:
                 tenant_record.add_record("#2&3 on __all_virtual_compaction_diagnose_info get data failed")
-                logger.warning("#2&3 MajorHoldScene execute exception: {0}".format(e))
+                self.stdio.warn("#2&3 MajorHoldScene execute exception: {0}".format(e))
                 pass
 
             # 4
@@ -231,20 +207,17 @@ class MajorHoldScene(scene_base):
                     svr_ip = svrs[0][4]
                     svr_port = svrs[0][5]
                     node = None
+                    ssh_helper = None
                     for observer_node in self.observer_nodes:
                         if observer_node["ip"] == svr_ip and observer_node["port"] == svr_port:
                             node = observer_node
+                            ssh_helper = observer_node["ssher"]
                     if node == None:
-                        logger.error(
+                        self.stdio.error(
                             "can not find ls_svr by TENANT_ID:{2} ip:{0},port:{1}".format(svr_ip, svr_port,
                                                                                           err_tenant_id))
                         break
-                    ssh_helper = SshHelper(True, node.get("ip"),
-                                           node.get("user"),
-                                           node.get("password"),
-                                           node.get("port"),
-                                           node.get("private_key"),
-                                           node)
+
                     log_name = "/tmp/major_hold_scene_4_major_merge_progress_checker_{0}.log".format(err_tenant_id)
                     ssh_helper.ssh_exec_cmd(
                         'grep "major_merge_progress_checker" {0}/log/rootservice.log* | grep T{1} -m500 >{2}'.format(
@@ -253,7 +226,7 @@ class MajorHoldScene(scene_base):
                     tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
                     ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
             except Exception as e:
-                logger.error("MajorHoldScene execute 4 exception: {0}".format(e))
+                self.stdio.error("MajorHoldScene execute 4 exception: {0}".format(e))
                 raise RCAExecuteException("MajorHoldScene execute 4 exception: {0}".format(e))
 
             # 5
@@ -272,7 +245,7 @@ class MajorHoldScene(scene_base):
                                                                                             file_name))
 
             except Exception as e:
-                logger.warning("MajorHoldScene execute 5 exception: {0}".format(e))
+                self.stdio.warn("MajorHoldScene execute 5 exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
             self.Result.records.append(tenant_record)
 
@@ -304,17 +277,14 @@ class MajorHoldScene(scene_base):
         diagnose_info = sql_data[8]
         if "schedule medium failed" in diagnose_info:
             node = None
+            ssh_helper = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
+                    ssh_helper = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-            ssh_helper = SshHelper(True, node.get("ip"),
-                                   node.get("user"),
-                                   node.get("password"),
-                                   node.get("port"),
-                                   node.get("private_key"),
-                                   node)
+
             log_name = "/tmp/rca_major_hold_schedule_medium_failed_{1}_{2}_{0}.txt".format(tenant_id, svr_ip,
                                                                                            svr_port)
             tenant_record.add_record(
@@ -347,18 +317,15 @@ class MajorHoldScene(scene_base):
                     "diagnose_info type is error_no. error_no: {0}, err_trace:{1}, table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn<global_broadcast_scn".format(
                         err_no, err_trace, table_id, tenant_id, compaction_scn, global_broadcast_scn))
                 node = None
+                ssh_helper = None
                 for observer_node in self.observer_nodes:
                     if svr_ip == observer_node.get("ip"):
                         node = observer_node
+                        ssh_helper = observer_node["ssher"]
                 if node is None:
                     raise RCAExecuteException(
                         "can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-                ssh_helper = SshHelper(True, node.get("ip"),
-                                       node.get("user"),
-                                       node.get("password"),
-                                       node.get("port"),
-                                       node.get("private_key"),
-                                       node)
+
                 log_name = "/tmp/rca_error_no_{1}_{2}_{0}.txt".format(tenant_id, svr_ip,
                                                                       svr_port)
                 ssh_helper.ssh_exec_cmd(
@@ -367,17 +334,14 @@ class MajorHoldScene(scene_base):
                 tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
                 ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
             node = None
+            ssh_helper = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
+                    ssh_helper = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-            ssh_helper = SshHelper(True, node.get("ip"),
-                                   node.get("user"),
-                                   node.get("password"),
-                                   node.get("port"),
-                                   node.get("private_key"),
-                                   node)
+
             tenant_record.add_record(
                 "diagnose_info type is 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(
                     create_time, svr_ip, svr_port, log_name))
@@ -453,17 +417,13 @@ class MajorHoldScene(scene_base):
                     svr_ip, svr_port, tenant_id, ls_id, table_id) +
                 "result:{0}".format(str(all_virtual_tablet_compaction_info)))
             node = None
+            ssh_helper = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
+                    ssh_helper = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-            ssh_helper = SshHelper(True, node.get("ip"),
-                                   node.get("user"),
-                                   node.get("password"),
-                                   node.get("port"),
-                                   node.get("private_key"),
-                                   node)
 
             log_name = "/tmp/rca_major_hold_major_not_schedule_for_long_time_{1}_{2}_{0}.txt".format(create_time,
                                                                                                      svr_ip,
@@ -485,3 +445,11 @@ class MajorHoldScene(scene_base):
 
     def export_result(self):
         return self.Result.export()
+    def get_scene_info(self):
+        return {"name": "major_hold",
+                "info_en": "root cause analysis of major hold",
+                "info_cn": "针对卡合并场景的根因分析",
+                }
+
+
+major_hold = MajorHoldScene()

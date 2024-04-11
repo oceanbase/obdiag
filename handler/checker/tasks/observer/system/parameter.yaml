@@ -154,8 +154,8 @@ task:
       result:
         set_value: parameter
         report_type: warning
-        verify: "[ ${parameter} -eq 1 ]"
-        err_msg: 'vm.nr_hugepages : #{parameter} , which is not recommended. Set it within the range of  1 '
+        verify: "[ ${parameter} -eq 0 ]"
+        err_msg: 'vm.nr_hugepages : #{parameter} , which is not recommended. Set it within the range of  0 '
     - type: get_system_parameter
       parameter: fs.aio-max-nr
       result:

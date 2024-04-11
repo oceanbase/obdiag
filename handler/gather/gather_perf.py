@@ -16,48 +16,79 @@
 @desc:
 """
 import os
-import threading
 import time
 import datetime
 
 import tabulate
-import uuid
 
 from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
-from common.logger import logger
 from common.command import LocalClient, SshClient
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
-from utils.file_utils import mkdir_if_not_exist, size_format, write_result_append_to_file, parse_size
-from utils.shell_utils import SshHelper
-from utils.time_utils import timestamp_to_filename_time
-from utils.utils import get_localhost_inner_ip, display_trace
+from common.ssh import SshHelper
+from common.tool import Util
+from common.tool import DirectoryUtil
+from common.tool import FileUtil
+from common.tool import NetUtils
+from common.tool import TimeUtils
 
 
 class GatherPerfHandler(BaseShellHandler):
-    def __init__(self, nodes, gather_pack_dir, gather_timestamp=None, common_config=None, is_scene=False):
-        super(GatherPerfHandler, self).__init__(nodes)
+    def __init__(self, context, gather_pack_dir='./', is_scene=False):
+        super(GatherPerfHandler, self).__init__()
+        self.context = context
+        self.stdio = context.stdio
         self.is_ssh = True
-        self.gather_timestamp = gather_timestamp
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
         self.ob_install_dir = None
         self.is_scene = is_scene
         self.scope = "all"
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if common_config is None:
-            self.file_size_limit = 2 * 1024 * 1024
+        if self.context.get_variable("gather_timestamp", None) :
+            self.gather_timestamp=self.context.get_variable("gather_timestamp")
         else:
-            self.file_size_limit = int(parse_size(common_config["file_size_limit"]))
+            self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
-    def handle(self, args):
-        if not self.__check_valid_args(args):
-            return
+    def init_config(self):
+        self.nodes = self.context.cluster_config['servers']
+        new_nodes = Util.get_nodes_list(self.context, self.nodes, self.stdio)
+        if new_nodes:
+            self.nodes = new_nodes
+        self.inner_config = self.context.inner_config
+        if self.inner_config is None:
+            self.file_number_limit = 20
+            self.file_size_limit = 2 * 1024 * 1024 * 1024
+        else:
+            basic_config = self.inner_config['obdiag']['basic']
+            self.file_number_limit = int(basic_config["file_number_limit"])
+            self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
+            self.config_path = basic_config['config_path']
+        return True
+
+    def init_option(self):
+        options = self.context.options
+        store_dir_option = Util.get_option(options, 'store_dir')
+        if store_dir_option and store_dir_option != './':
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.local_stored_path = os.path.abspath(store_dir_option)
+        self.scope_option = Util.get_option(options, 'scope')
+        return True
+
+    def handle(self):
+        if not self.init_option():
+            self.stdio.error('init option failed')
+            return False
+        if not self.init_config():
+            self.stdio.error('init config failed')
+            return False
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
-        logger.info("Use {0} as pack dir.".format(pack_dir_this_command))
+            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+        self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
         def handle_from_node(node):
@@ -75,19 +106,17 @@ class GatherPerfHandler(BaseShellHandler):
             for node in self.nodes:
                 handle_from_node(node)
         else:
-            local_ip = get_localhost_inner_ip()
+            local_ip = NetUtils.get_inner_ip(self.stdio)
             node = self.nodes[0]
             node["ip"] = local_ip
             for node in self.nodes:
                 handle_from_node(node)
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
-        print(summary_tuples)
-        display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+        self.stdio.print(summary_tuples)
         # Persist the summary results to a file
-        write_result_append_to_file(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
+        FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
-        print(last_info)
 
     def __handle_from_node(self, node, local_stored_path):
         resp = {
@@ -95,24 +124,22 @@ class GatherPerfHandler(BaseShellHandler):
             "error": "",
             "gather_pack_path": ""
         }
-        remote_ip = node.get("ip") if self.is_ssh else get_localhost_inner_ip()
-        remote_user = node.get("user")
-        remote_password = node.get("password")
-        remote_port = node.get("port")
-        remote_private_key = node.get("private_key")
-        remote_home_path = node.get("home_path")
-        logger.info(
-            "Sending Collect Shell Command to node {0} ...".format(remote_ip))
-        mkdir_if_not_exist(local_stored_path)
+        remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
+        remote_user = node.get("ssh_username")
+        remote_password = node.get("ssh_password")
+        remote_port = node.get("ssh_port")
+        remote_private_key = node.get("ssh_key_file")
+        self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
+        DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         remote_dir_name = "perf_{0}_{1}".format(node.get("ip"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         try:
             ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port,
-                                   remote_private_key, node)
+                                   remote_private_key, node, self.stdio)
         except Exception as e:
-            logger.error("ssh {0}@{1}: failed, Please check the {2}".format(
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(
                 remote_user, 
                 remote_ip, 
                 self.config_path))
@@ -120,9 +147,9 @@ class GatherPerfHandler(BaseShellHandler):
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
         if not ssh_failed:
-            mkdir(self.is_ssh, ssh_helper, remote_dir_full_path)
+            mkdir(self.is_ssh, ssh_helper, remote_dir_full_path, self.stdio)
 
-            pid_observer_list = get_observer_pid(self.is_ssh, ssh_helper, node.get("home_path"))
+            pid_observer_list = get_observer_pid(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
             if len(pid_observer_list) == 0:
                 resp["error"] = "can't find observer"
                 return resp
@@ -136,16 +163,16 @@ class GatherPerfHandler(BaseShellHandler):
                     self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
                 self.__gather_top(ssh_helper, remote_dir_full_path, pid_observer)
 
-            zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name)
+            zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name, self.stdio)
             remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
-            file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path)
+            file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
                 local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                download_file(self.is_ssh,ssh_helper, remote_file_full_path, local_file_path)
+                download_file(self.is_ssh,ssh_helper, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
-            delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path)
+            delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
             ssh_helper.ssh_close()
             resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
         return resp
@@ -154,55 +181,38 @@ class GatherPerfHandler(BaseShellHandler):
         try:
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
-            logger.info("gather perf sample, run cmd = [{0}]".format(cmd))
-            SshClient().run_ignore_err(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
+            self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
+            SshClient(self.stdio).run_ignore_err(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
 
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(
             gather_path=gather_path)
-            logger.info("generate perf sample data, run cmd = [{0}]".format(generate_data))
-            SshClient().run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
+            self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
+            SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
         except:
-            logger.error("generate perf sample data on server [{0}] failed".format(ssh_helper.get_name()))
+            self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_helper.get_name()))
 
     def __gather_perf_flame(self, ssh_helper, gather_path, pid_observer):
         try:
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(
             gather_path=gather_path, pid=pid_observer)
-            logger.info("gather perf, run cmd = [{0}]".format(perf_cmd))
-            SshClient().run_ignore_err(ssh_helper, perf_cmd) if self.is_ssh else LocalClient().run(perf_cmd)
+            self.stdio.verbose("gather perf, run cmd = [{0}]".format(perf_cmd))
+            SshClient(self.stdio).run_ignore_err(ssh_helper, perf_cmd) if self.is_ssh else LocalClient(self.stdio).run(perf_cmd)
 
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(
             gather_path=gather_path)
-            logger.info("generate perf data, run cmd = [{0}]".format(generate_data))
-            SshClient().run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient().run(generate_data)
+            self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
+            SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
         except:
-            logger.error("generate perf data on server [{0}] failed".format(ssh_helper.get_name()))
+            self.stdio.error("generate perf data on server [{0}] failed".format(ssh_helper.get_name()))
 
     def __gather_top(self, ssh_helper, gather_path, pid_observer):
         try:
             cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(
             gather_path=gather_path, pid=pid_observer)
-            logger.info("gather top, run cmd = [{0}]".format(cmd))
-            SshClient().run(ssh_helper, cmd) if self.is_ssh else LocalClient().run(cmd)
+            self.stdio.verbose("gather top, run cmd = [{0}]".format(cmd))
+            SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
         except:
-            logger.error("gather top on server failed [{0}]".format(ssh_helper.get_name()))
-
-
-    def __check_valid_args(self, args):
-        """
-        chech whether command args are valid. If invalid, stop processing and print the error to the user
-        :param args: command args
-        :return: boolean. True if valid, False if invalid.
-        """
-        # 1: store_dir must exist, else create directory.
-        if getattr(args, "store_dir") is not None:
-            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
-                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
-            self.local_stored_path = os.path.abspath(getattr(args, "store_dir"))
-        if getattr(args, "scope") is not None:
-            self.scope = getattr(args, "scope")[0]
-        return True
+            self.stdio.error("gather top on server failed [{0}]".format(ssh_helper.get_name()))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
@@ -215,9 +225,9 @@ class GatherPerfHandler(BaseShellHandler):
             consume_time = tup[4]
             pack_path = tup[5]
             try:
-                format_file_size = size_format(file_size, output_str=True)
+                format_file_size = FileUtil.size_format(num=file_size, output_str=True)
             except:
-                format_file_size = size_format(0, output_str=True)
+                format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
                                 format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Perf Summary:\n" + \

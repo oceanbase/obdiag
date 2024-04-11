@@ -25,7 +25,7 @@ task:
         verify: '[ "${data_dir_disk}" != "${log_dir_disk}" ]'
         err_msg: "ip:#{remote_ip} ,data_dir and log_dir_disk are on the same disk."
     - type: ssh
-      ssh: "df -T  #{data_dir_path} | awk 'NR==2 && $2==\"xfs\" {used=$3/(1024^4); exit !(used > 16)}' && echo 0 || echo 1"
+      ssh: "df -T  #{data_dir_path} | grep \"/\"|awk '{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}'"
       result:
         set_value:  file_system
         verify_type: equal
@@ -39,7 +39,7 @@ task:
         verify: '[ "${file_system}" == "xfs" ] || [ "${file_system}" == "ext4" ] || [ "${file_system}" == "xfs" ]'
         err_msg: "ip:#{remote_ip} ,log_dir_path: #{log_dir_path} file_system is not xfs or ext4."
     - type: ssh
-      ssh: "df -T  #{log_dir_path} | awk 'NR==2 && $2==\"xfs\" {used=$3/(1024^4); exit !(used > 16)}' && echo 0 || echo 1"
+      ssh: "df -T  #{log_dir_path} | grep \"/\"|awk '{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}'"
       result:
         set_value:  file_system
         verify_type: equal

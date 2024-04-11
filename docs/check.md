@@ -39,20 +39,22 @@ obdiag check --cases=ad --obproxy_cases=proxy
 
 check功能所关联的配置项在"CHECK"下，基本上的参数均无需变更或更改频率较低
 ```yaml script
-CHECK:
+check:
   ignore_version: false
+  work_path: "~/.obdiag/check"
   report:
     report_path: "./check_report/"
     export_type: table
   package_file: "~/.obdiag/check/check_package.yaml"
   tasks_base_path: "~/.obdiag/check/tasks/"
 ```
-ignore_version表示是否需要在执行巡检项时跳过版本匹配
-report下主要是对报告的参数进行配置
-- report_path表示输出报告的路径
-- export_type表示输出报告的类型，目前支持table 、json 、xml后续需要支持的可以提交issue
-package_file表示巡检项集合的保存路径
-tasks_base_path表示巡检项所保存的头路径,下面存储了不同check_target的巡检项目文件
+ignore_version: 表示是否需要在执行巡检项时跳过版本匹配
+work_path: 巡检场景的存储目录
+report: 下主要是对报告的参数进行配置
+- report_path: 表示输出报告的路径
+- export_type: 表示输出报告的类型，目前支持table 、json 、xml后续需要支持的可以提交issue
+package_file: 表示巡检项集合的保存路径
+tasks_base_path: 表示巡检项所保存的头路径,下面存储了不同check_target的巡检项目文件
 
   
 

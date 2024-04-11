@@ -18,46 +18,56 @@
 
 import os
 import re
-import uuid
+from stdio import SafeStdio
 import datetime
-from common.logger import logger
 from handler.gather.scenes.base import SceneBase
-from utils.utils import display_trace
 from common.obdiag_exception import OBDIAGFormatException
-from utils.time_utils import parse_time_str
-from utils.time_utils import parse_time_length_to_sec
-from utils.time_utils import timestamp_to_filename_time
-from utils.utils import display_trace
 from handler.gather.scenes.list import GatherScenesListHandler
-from utils.file_utils import mkdir_if_not_exist
-from utils.string_utils import parse_custom_env_string
+from common.tool import DirectoryUtil
+from common.tool import StringUtils
 from common.scene import get_obproxy_and_ob_version
 from colorama import Fore, Style
+from common.tool import Util
+from common.tool import TimeUtils
 
 
-class GatherSceneHandler:
+class GatherSceneHandler(SafeStdio):
 
-    def __init__(self, obproxy_cluster, obproxy_nodes, ob_cluster, ob_nodes, gather_pack_dir, gather_timestamp, tasks_base_path="./handler/gather/tasks/", task_type="observer"):
+    def __init__(self, context, gather_pack_dir='./', tasks_base_path="~/.obdiag/gather/tasks/", task_type="observer"):
+        self.context = context
+        self.stdio = context.stdio
         self.is_ssh = True
         self.report = None
-        self.gather_timestamp = gather_timestamp
         self.gather_pack_dir = gather_pack_dir
         self.report_path = None
         self.yaml_tasks = {}
         self.code_tasks = []
         self.env = {}
         self.scene = None
-        self.obproxy_cluster = obproxy_cluster
-        self.obproxy_nodes = obproxy_nodes
-        self.cluster = ob_cluster
-        self.ob_nodes = ob_nodes
         self.tasks_base_path = tasks_base_path
         self.task_type = task_type
         self.variables = {}
+        if self.context.get_variable("gather_timestamp", None) :
+            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        else:
+            self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
-    def handle(self, args):
-        if not self.__check_valid_and_parse_args(args):
-            return
+    def init_config(self):
+        self.cluster = self.context.cluster_config
+        self.obproxy_nodes = self.context.obproxy_config['servers']
+        self.ob_nodes = self.context.cluster_config['servers']
+        new_nodes = Util.get_nodes_list(self.context, self.ob_nodes, self.stdio)
+        if new_nodes:
+            self.nodes = new_nodes
+        return True
+
+    def handle(self):
+        if not self.init_option():
+            self.stdio.error('init option failed')
+            return False
+        if not self.init_config():
+            self.stdio.error('init config failed')
+            return False
         self.__init_variables()
         self.__init_report_path()
         self.__init_task_names()
@@ -66,51 +76,49 @@ class GatherSceneHandler:
 
     def execute(self):
         try:
-            logger.info("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
+            self.stdio.verbose("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
                 self.__execute_yaml_task_one(key, value)
             for task in self.code_tasks:
                 self.__execute_code_task_one(task)
         except Exception as e:
-            logger.error("Internal error :{0}".format(e))
-        finally:
-            display_trace(uuid.uuid3(uuid.NAMESPACE_DNS, str(os.getpid())))
+            self.stdio.error("Internal error :{0}".format(e))
 
     # execute yaml task
     def __execute_yaml_task_one(self, task_name, task_data):
         try:
-            logger.info("execute tasks is {0}".format(task_name))
+            self.stdio.print("execute tasks: {0}".format(task_name))
             task_type = self.__get_task_type(task_name)
-            version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type)
+            version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type, self.stdio)
             if version:
                 self.cluster["version"] = re.findall(r'\d+\.\d+\.\d+\.\d+', version)[0]
-                logger.info("cluster.version is {0}".format(self.cluster["version"]))
-                task = SceneBase(scene=task_data["task"], obproxy_nodes=self.obproxy_nodes, ob_nodes=self.ob_nodes, cluster=self.cluster, report_dir=self.report_path, args=self.args, env=self.env, scene_variable_dict=self.variables, task_type=task_type)
-                logger.info("{0} execute!".format(task_name))
+                self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
+                task = SceneBase(context=self.context, scene=task_data["task"], report_dir=self.report_path, env=self.env, scene_variable_dict=self.variables, task_type=task_type)
+                self.stdio.verbose("{0} execute!".format(task_name))
                 task.execute()
-                logger.info("execute tasks end : {0}".format(task_name))
+                self.stdio.verbose("execute tasks end : {0}".format(task_name))
             else:
-                logger.error("can't get version")
+                self.stdio.error("can't get version")
         except Exception as e:
-            logger.error("__execute_yaml_task_one Exception : {0}".format(e))
+            self.stdio.error("__execute_yaml_task_one Exception : {0}".format(e))
 
     # execute code task
     def __execute_code_task_one(self, task_name):
         try:
-            logger.info("execute tasks is {0}".format(task_name))
+            self.stdio.verbose("execute tasks is {0}".format(task_name))
             scene = {"name": task_name}
-            task = SceneBase(scene=scene, obproxy_nodes=self.obproxy_nodes, ob_nodes=self.ob_nodes, cluster=self.cluster, report_dir=self.report_path, args=self.args, env=self.env, mode='code', task_type=task_name)
-            logger.info("{0} execute!".format(task_name))
+            task = SceneBase(context=self.context, scene=scene, report_dir=self.report_path, env=self.env, mode='code', task_type=task_name)
+            self.stdio.verbose("{0} execute!".format(task_name))
             task.execute()
-            logger.info("execute tasks end : {0}".format(task_name))
+            self.stdio.verbose("execute tasks end : {0}".format(task_name))
         except Exception as e:
-            logger.error("__execute_code_task_one Exception : {0}".format(e))
+            self.stdio.error("__execute_code_task_one Exception : {0}".format(e))
 
     def __init_task_names(self):
         if self.scene:
             new = re.sub(r'\{|\}', '', self.scene)
             items = re.split(r'[;,]', new)
-            scene = GatherScenesListHandler(self.tasks_base_path)
+            scene = GatherScenesListHandler(self.context)
             for item in items:
                 yaml_task_data = scene.get_one_yaml_task(item)
                 is_code_task = scene.is_code_task(item)
@@ -120,30 +128,29 @@ class GatherSceneHandler:
                     if yaml_task_data:
                         self.yaml_tasks[item] = yaml_task_data
                     else:
-                        logger.error("Invalid Task :{0}".format(item))
+                        self.stdio.error("Invalid Task :{0}".format(item))
         else:
-            logger.error("get task name failed")
+            self.stdio.error("get task name failed")
 
     def __init_report_path(self):
         try:
-            self.report_path = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(timestamp_to_filename_time(self.gather_timestamp)))
-            logger.info("Use {0} as pack dir.".format(self.report_path))
-            mkdir_if_not_exist(self.report_path)
+            self.report_path = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp), self.stdio))
+            self.stdio.verbose("Use {0} as pack dir.".format(self.report_path))
+            DirectoryUtil.mkdir(path=self.report_path, stdio=self.stdio)
         except Exception as e:
-            logger.error("init_report_path failed, error:{0}".format(e))
+            self.stdio.error("init_report_path failed, error:{0}".format(e))
 
     def __init_variables(self):
         try:
-
             self.variables = {
                 "observer_data_dir": self.ob_nodes[0].get("home_path") if self.ob_nodes and self.ob_nodes[0].get("home_path") else "",
                 "obproxy_data_dir": self.obproxy_nodes[0].get("home_path") if self.obproxy_nodes and self.obproxy_nodes[0].get("home_path") else "",
                 "from_time": self.from_time_str,
                 "to_time": self.to_time_str
             }
-            logger.info("gather scene variables: {0}".format(self.variables))
+            self.stdio.verbose("gather scene variables: {0}".format(self.variables))
         except Exception as e:
-            logger.error("init gather scene variables failed, error: {0}".format(e))
+            self.stdio.error("init gather scene variables failed, error: {0}".format(e))
 
     def __get_task_type(self, s):
         trimmed_str = s.strip()
@@ -153,48 +160,54 @@ class GatherSceneHandler:
         else:
             return None
 
-    def __check_valid_and_parse_args(self, args):
-        """
-        chech whether command args are valid. If invalid, stop processing and print the error to the user
-        :param args: command args
-        :return: boolean. True if valid, False if invalid.
-        """
-        self.args = args
-        # 1: to timestamp must be larger than from timestamp, and be valid
-        if getattr(args, "from") is not None and getattr(args, "to") is not None:
+    def init_option(self):
+        options = self.context.options
+        from_option = Util.get_option(options, 'from')
+        to_option = Util.get_option(options, 'to')
+        since_option = Util.get_option(options, 'since')
+        store_dir_option = Util.get_option(options, 'store_dir')
+        env_option = Util.get_option(options, 'env')
+        scene_option = Util.get_option(options, 'scene')
+        if from_option is not None and to_option is not None:
             try:
-                from_timestamp = parse_time_str(getattr(args, "from"))
-                to_timestamp = parse_time_str(getattr(args, "to"))
-                self.from_time_str = getattr(args, "from")
-                self.to_time_str = getattr(args, "to")
+                from_timestamp = TimeUtils.parse_time_str(from_option)
+                to_timestamp = TimeUtils.parse_time_str(to_option)
+                self.from_time_str = from_option
+                self.to_time_str = to_option
             except OBDIAGFormatException:
-                logger.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}".format(getattr(args, "from"), getattr(args, "to")))
+                self.stdio.exception('Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}'.format(from_option, to_option))
                 return False
             if to_timestamp <= from_timestamp:
-                logger.error("Error: from datetime is larger than to datetime, please check.")
+                self.stdio.exception('Error: from datetime is larger than to datetime, please check.')
                 return False
-        else:
+        elif (from_option is None or to_option is None) and since_option is not None:
+            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            if args.since is not None:
-                self.from_time_str = (now_time - datetime.timedelta(
-                    seconds=parse_time_length_to_sec(args.since))).strftime('%Y-%m-%d %H:%M:%S')
+            self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
+            self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+        else:
+            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
+            now_time = datetime.datetime.now()
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            if since_option:
+                self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-        # 2: store_dir must exist, else create directory.
-        if getattr(args, "store_dir") is not None:
-            if not os.path.exists(os.path.abspath(getattr(args, "store_dir"))):
-                logger.warn("Error: args --store_dir [{0}] incorrect: No such directory, Now create it".format(os.path.abspath(getattr(args, "store_dir"))))
-                os.makedirs(os.path.abspath(getattr(args, "store_dir")))
-            self.gather_pack_dir = os.path.abspath(getattr(args, "store_dir"))
-        if getattr(args, "scene") is not None:
-            self.scene = ' '.join(getattr(args, "scene"))
+            self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+        if store_dir_option:
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.gather_pack_dir = os.path.abspath(store_dir_option)
+        if scene_option:
+            self.scene = scene_option
         else:
             return False
-        if getattr(args, "env") is not None:
-            env_dict = parse_custom_env_string(getattr(args, "env"))
+        if env_option:
+            env_dict = StringUtils.parse_env(env_option)
             self.env = env_dict
         return True
 
     def __print_result(self):
-        print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
+        self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)

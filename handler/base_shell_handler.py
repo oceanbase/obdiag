@@ -21,5 +21,10 @@
 
 
 class BaseShellHandler(object):
-    def __init__(self, nodes):
-        self.nodes = nodes
+    def __init__(self) -> None:
+        self._stdio_func = None
+
+    def _call_stdio(self, func, msg, *arg, **kwarg):
+        if func not in self._stdio_func:
+            return None
+        return self._stdio_func[func](msg, *arg, **kwarg)

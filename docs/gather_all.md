@@ -5,33 +5,33 @@
 例子：
 ```shell script
  $ obdiag gather all -h
-usage: obdiag gather all [-h] [--from datetime datetime] [--to datetime datetime] [--since 'n'<m|h|d>] [--store_dir store_dir] [-c config] [--scope scope]
-                           [--encrypt encrypt] [--grep grep [grep ...]]
+Usage: obdiag gather all [options]
 
-According to the input parameters, gather all reports
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --from datetime datetime
-                        specify the start of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --to datetime datetime
-                        specify the end of the time range. format: yyyy-mm-dd hh:mm:ss.
-  --since 'n'<m|h|d>    Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.
-  --store_dir store_dir
-                        the dir to store gather result, current dir by default.
-  -c config             obdiag custom config
-  --scope scope         log type constrains, choices=[observer, election, rootservice, all], default=all
-  --encrypt encrypt     Whether the returned results need to be encrypted, choices=[true, false], default=false
-  --grep grep [grep ...]
-                        specify keywords constrain for log
-
-Example: obdiag gather all --from 2022-06-16 18:25:00 --to 2022-06-16 18:30:00
+Options:
+  --from=FROM           specify the start of the time range. 'format: yyyy-mm-
+                        dd hh:mm:ss'
+  --to=TO               specify the end of the time range. 'format: yyyy-mm-dd
+                        hh:mm:ss'
+  --since=SINCE         Specify time range that from 'n' [d]ays, 'n' [h]ours
+                        or 'n' [m]inutes. before to now. format: <n> <m|h|d>.
+                        example: 1h.
+  --scope=SCOPE         log type constrains, choices=[observer, election,
+                        rootservice, all]
+  --grep=GREP           specify keywords constrain
+  --encrypt=ENCRYPT     Whether the returned results need to be encrypted,
+                        choices=[true, false]
+  --store_dir=STORE_DIR
+                        the dir to store gather result, current dir by
+                        default.
+  -c C                  obdiag custom config
+  -h, --help            Show help and exit.
+  -v, --verbose         Activate verbose output.
 ```
 
 例子：
 ```shell script
 
- $ obdiag gather all --from 2022-07-28 16:25:00 --to 2022-07-28 18:30:00 --cluster_name test --encrypt true
+ $ obdiag gather all --from "2022-07-28 16:25:00" --to "2022-07-28 18:30:00" --encrypt true
 
 ...
 ZipFileInfo:

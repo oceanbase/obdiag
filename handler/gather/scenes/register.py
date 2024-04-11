@@ -17,6 +17,7 @@
 """
 
 from dataclasses import dataclass
+import datetime
 
 @dataclass
 class RegisteredHardCodeScene:
@@ -28,6 +29,7 @@ class RegisteredHardCodeScene:
 # 对于不适合通过yaml编排的复杂场景可以用这个类注册，注册后通过代码实现采集逻辑
 db_connect = '-hxx -Pxx -uxx -pxx -Dxx'
 trace_id = 'xx'
+estimated_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 hardcode_scene_list = [
     RegisteredHardCodeScene(
@@ -43,4 +45,10 @@ hardcode_scene_list = [
         '[SQL 执行出错]'
     ),
     RegisteredHardCodeScene('observer.cpu_high', 'obdiag gather scene run --scene=observer.cpu_high', '[High CPU]', '[CPU高]'),
+    RegisteredHardCodeScene(
+        'observer.px_collect_log',
+        f'''obdiag gather scene run --scene=observer.px_collect_log --env "{{trace_id='{trace_id}', estimated_time='{estimated_time}'}}"''',
+        '[Collect error source node logs for SQL PX]',
+        '[SQL PX 收集报错源节点日志]'
+    ),
 ]

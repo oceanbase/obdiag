@@ -82,7 +82,7 @@ task:
         sql: "show parameters like '%syslog_io_bandwidth_limit%';"
         global: true
       - type: sql
-        sql: "select * from __all_virtual_io_quota limit 20"
+        sql: "select * from oceanbase.__all_virtual_io_quota limit 20"
         global: true
       - type: ssh
         ssh: "df -h"
