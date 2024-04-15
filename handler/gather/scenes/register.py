@@ -27,8 +27,8 @@ class RegisteredHardCodeScene:
     info_cn: str
 
 # 对于不适合通过yaml编排的复杂场景可以用这个类注册，注册后通过代码实现采集逻辑
-db_connect = '-hxx -Pxx -uxx -pxx -Dxx'
-trace_id = 'xx'
+db_connect = '-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
+trace_id = 'Yxx'
 estimated_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 hardcode_scene_list = [

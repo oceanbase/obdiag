@@ -91,8 +91,12 @@ class GatherSceneHandler(SafeStdio):
             task_type = self.__get_task_type(task_name)
             version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type, self.stdio)
             if version:
-                self.cluster["version"] = re.findall(r'\d+\.\d+\.\d+\.\d+', version)[0]
-                self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
+                match = re.search(r'\d+(\.\d+){2}(?:\.\d+)?', version)
+                if match:
+                    self.cluster["version"] = match.group(0)
+                else:
+                    self.stdio.erroe("get cluster.version failed")
+                    return
                 task = SceneBase(context=self.context, scene=task_data["task"], report_dir=self.report_path, env=self.env, scene_variable_dict=self.variables, task_type=task_type)
                 self.stdio.verbose("{0} execute!".format(task_name))
                 task.execute()
@@ -181,7 +185,6 @@ class GatherSceneHandler(SafeStdio):
                 self.stdio.exception('Error: from datetime is larger than to datetime, please check.')
                 return False
         elif (from_option is None or to_option is None) and since_option is not None:
-            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')

@@ -21,6 +21,7 @@ from common.tool import Util
 import os
 import sys
 import textwrap
+import re
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
 from core import ObdiagHome
@@ -168,7 +169,46 @@ class ObdiagOriginCommand(BaseCommand):
     def enable_log(self):
         return True
 
+    def is_valid_time_format(self, time_string):
+        time_pattern = r'^\d{2}:\d{2}:\d{2}$'
+        return bool(re.match(time_pattern, time_string))
+
+    def preprocess_argv(self, argv):
+        """
+        Preprocesses the command line arguments to ensure that date-time strings for --from and --to
+        options are properly quoted, even if they are originally provided without quotes.
+        """
+        processed_argv = []
+        from_index = None
+        to_index = None
+        for i, arg in enumerate(argv):
+            if arg == '--from':
+                from_index = i + 1
+            elif arg == '--to':
+                to_index = i + 1
+
+            if from_index is not None and i == from_index:
+                next_arg = argv[i + 1] if i + 1 < len(argv) else None
+                if next_arg and self.is_valid_time_format(next_arg):
+                    processed_argv.append(argv[i] + ' ' + next_arg)
+                    from_index = None
+                    i += 1
+                else:
+                    processed_argv.append(arg)
+            elif to_index is not None and i == to_index:
+                next_arg = argv[i + 1] if i + 1 < len(argv) else None
+                if next_arg and self.is_valid_time_format(next_arg):
+                    processed_argv.append(argv[i] + ' ' +  next_arg)
+                    to_index = None
+                    i += 1
+                else:
+                    processed_argv.append(arg)
+            else:
+                processed_argv.append(arg)
+        return processed_argv
+
     def parse_command(self):
+        self.args = self.preprocess_argv(self.args)
         return super(ObdiagOriginCommand, self).parse_command()
 
     def do_command(self):
@@ -297,8 +337,8 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherAllCommand, self).__init__('all', 'Gather oceanbase diagnostic info')
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
@@ -319,8 +359,8 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherLogCommand, self).__init__('log', 'Gather oceanbase logs from oceanbase machines')  
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
@@ -335,7 +375,6 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         return obdiag.gather_function('gather_log', self.opts)
-
 
 class ObdiagGatherSysStatCommand(ObdiagOriginCommand):
 
@@ -392,8 +431,8 @@ class ObdiagGatherSlogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherSlogCommand, self).__init__('slog', 'Gather slog')
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--encrypt', type='string', help="Whether the returned results need to be encrypted, choices=[true, false]", default="false")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
@@ -412,8 +451,8 @@ class ObdiagGatherClogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherClogCommand, self).__init__('clog', 'Gather clog')
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--encrypt', type='string', help="Whether the returned results need to be encrypted, choices=[true, false]", default="false")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
@@ -427,6 +466,26 @@ class ObdiagGatherClogCommand(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         return obdiag.gather_function('gather_clog', self.opts)
 
+class ObdiagGatherAwrCommand(ObdiagOriginCommand):
+    
+    def __init__(self):
+        super(ObdiagGatherAwrCommand, self).__init__('awr', 'Gather ParalleSQL information')    
+        self.parser.add_option('--cluster_name', type='string', help='cluster_name from ocp')
+        self.parser.add_option('--cluster_id', type='string', help='cluster_id from ocp')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherAwrCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_awr', self.opts)
+
 
 class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
 
@@ -434,7 +493,7 @@ class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
         super(ObdiagGatherPlanMonitorCommand, self).__init__('plan_monitor', 'Gather ParalleSQL information')    
         self.parser.add_option('--trace_id', type='string', help='sql trace id')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('--env', type='string', help='env, eg: "{env1=xxx, env2=xxx}"')
+        self.parser.add_option('--env', type='string', help='''env, eg: "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}"''')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
@@ -450,8 +509,8 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherObproxyLogCommand, self).__init__('obproxy_log', 'Gather obproxy log from obproxy machines')  
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
@@ -486,8 +545,8 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherSceneRunCommand, self).__init__('run', 'gather scene run')
         self.parser.add_option('--scene', type='string', help="Specify the scene to be gather")
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string',  help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.",default='30m')
         self.parser.add_option('--env', type='string', help='env, eg: "{env1=xxx, env2=xxx}"')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
@@ -505,8 +564,8 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')       
-        self.parser.add_option('--from', type='string', help="specify the start of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. 'format: yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
@@ -649,6 +708,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherSlogCommand())
         self.register_command(ObdiagGatherClogCommand())
         self.register_command(ObdiagGatherPlanMonitorCommand())
+        self.register_command(ObdiagGatherAwrCommand())
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
 
