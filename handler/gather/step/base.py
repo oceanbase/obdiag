@@ -52,7 +52,7 @@ class Base(SafeStdio):
 
             if "type" not in self.step:
                 self.stdio.error("Missing field :type")
-            if (self.node_number > 1) and self.step.get("global") and (self.step.get("global") == "true"):
+            if (self.node_number > 1) and self.step.get("global") and (self.step.get("global") is True):
                 self.stdio.verbose("step sets the value of the global is true and it is processing the {0} node, skipping gather".format(self.node_number))
             else:
                 if self.step["type"] == "ssh":

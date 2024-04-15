@@ -92,7 +92,6 @@ class GatherObAdminHandler(BaseShellHandler):
                 self.stdio.exception('Error: from datetime is larger than to datetime, please check.')
                 return False
         elif (from_option is None or to_option is None) and since_option is not None:
-            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option, self.stdio))).strftime('%Y-%m-%d %H:%M:%S')

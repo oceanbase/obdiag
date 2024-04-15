@@ -132,7 +132,7 @@ def delete_file_in_folder(is_ssh, ssh_helper, file_path, stdio):
     :param args: is_ssh, ssh helper, file_name
     :return:
     """
-    if (file_path is None) or (not file_path.startswith('gather_pack')):
+    if (file_path is None) or (not 'gather_pack' in file_path):
         raise Exception("Please check file path, {0}".format(file_path))
     cmd = "rm -rf {file_path}/*".format(file_path=file_path)
     if is_ssh:

@@ -34,16 +34,18 @@ class GatherAwrHandler(object):
         self.context = context
         self.stdio = context.stdio
         self.gather_pack_dir = gather_pack_dir
+        self.cluster_name = None
+        self.cluster_id = None
         if self.context.get_variable("gather_timestamp", None) :
             self.gather_timestamp=self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
     def init_config(self):
-        ocp = self.context['ocp']
-        self.ocp_user = ocp["login"]["user"]
-        self.ocp_password = ocp["login"]["password"]
-        self.ocp_url = ocp["login"]["url"]
+        ocp = self.context.ocp_config
+        self.ocp_user = ocp["user"]
+        self.ocp_password = ocp["password"]
+        self.ocp_url = ocp["url"]
         self.auth = (self.ocp_user, self.ocp_password)
         return True
 
@@ -63,7 +65,7 @@ class GatherAwrHandler(object):
         gather_tuples = []
         gather_pack_path_dict = {}
 
-        def handle_awr_from_ocp(ocp_url, cluster_name, arg):
+        def handle_awr_from_ocp(ocp_url, cluster_name):
             """
             handler awr from ocp
             :param args: ocp url, ob cluster name, command args
@@ -71,7 +73,13 @@ class GatherAwrHandler(object):
             """
             st = time.time()
             # step 1: generate awr report
-            report_name = self.__generate_awr_report(arg)
+            self.stdio.start_loading('generate awr report')
+            report_name = self.__generate_awr_report()
+            if report_name:
+                self.stdio.stop_loading('generate awr report sucess')
+            else:
+                self.stdio.stop_loading('generate awr failed')
+                return
 
             # step 2: get awr report_id
             report_id = self.__get_awr_report_id(report_name)
@@ -90,7 +98,7 @@ class GatherAwrHandler(object):
                                   os.path.getsize(resp["gather_pack_path"]),
                                   int(time.time() - st), resp["gather_pack_path"]))
 
-        ocp_threads = [threading.Thread(None, handle_awr_from_ocp(self.ocp_url, self.cluster_name, args), args=())]
+        ocp_threads = [threading.Thread(None, handle_awr_from_ocp(self.ocp_url, self.cluster_name), args=())]
         list(map(lambda x: x.start(), ocp_threads))
         list(map(lambda x: x.join(), ocp_threads))
         summary_tuples = self.__get_overall_summary(gather_tuples)
@@ -117,7 +125,9 @@ class GatherAwrHandler(object):
 
         path = ocp_api.cluster + "/%s/performance/workload/reports/%s" % (self.cluster_id, report_id)
         save_path = os.path.join(store_path, name + ".html")
+        self.stdio.start_loading('download AWR report')
         pack_path = self.download(self.ocp_url + path, save_path, self.auth)
+        self.stdio.stop_loading('download AWR report')
         self.stdio.verbose(
             "cluster {0} response. analysing...".format(self.cluster_name))
 
@@ -125,6 +135,11 @@ class GatherAwrHandler(object):
         if resp["error"]:
             return resp
         return resp
+
+    def download(self, url, as_file_path, auth, timeout=300):
+        with open(as_file_path, "wb") as write_fd:
+            write_fd.write(requests.get(url, auth=auth, timeout=timeout).content)
+        return as_file_path
 
     def __generate_awr_report(self):
         """
@@ -134,7 +149,8 @@ class GatherAwrHandler(object):
         """
         snapshot_list = self.__get_snapshot_list()
         if len(snapshot_list) <= 1:
-            raise Exception("AWR report at least need 2 snapshot, cluster now only have %s", len(snapshot_list))
+            self.stdio.warn("AWR report at least need 2 snapshot, cluster now only have %s, please adjusted to --from/to or --since", len(snapshot_list))
+            return None
         else:
             start_sid, start_time = snapshot_list[0]
             end_sid, end_time = snapshot_list[-1]
@@ -162,30 +178,47 @@ class GatherAwrHandler(object):
 
     def __get_snapshot_list(self):
         """
-        get snapshot list from ocp
-        :param args: command args
-        :return: list
+        Retrieves the snapshot list from the OCP (OpenShift Container Platform).
+        :return: A list containing snapshot IDs and their corresponding timestamps.
         """
         snapshot_id_list = []
         path = ocp_api.cluster + "/%s/performance/workload/snapshots" % self.cluster_id
-        response = requests.get(self.ocp_url + path, auth=self.auth)
-        from_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.from_time_str)
-        to_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.to_time_str)
-        # 如果用户给定的时间间隔不足一个小时，为了能够获取到snapshot，需要将时间进行调整
-        if from_datetime_timestamp + 3600000000 >= to_datetime_timestamp:
-            # 起始时间取整点
-            from_datetime_timestamp = TimeUtils.datetime_to_timestamp(TimeUtils.get_time_rounding(dt=TimeUtils.parse_time_str(self.from_time_str), step=0, rounding_level="hour"))
-            # 结束时间在起始时间的基础上增加一个小时零三分钟(三分钟是给的偏移量，确保能够获取到快照)
-            to_datetime_timestamp = from_datetime_timestamp + 3600000000 + 3*60000000
-        for info in response.json()["data"]["contents"]:
-            try:
-                snapshot_time = TimeUtils.datetime_to_timestamp(
-                    TimeUtils.trans_datetime_utc_to_local(str(info["snapshotTime"]).split(".")[0]))
-                if from_datetime_timestamp <= snapshot_time <= to_datetime_timestamp:
-                    snapshot_id_list.append((info["snapshotId"], info["snapshotTime"]))
-            except:
-                self.stdio.error("get snapshot failed, pass")
-        self.stdio.verbose("get snapshot list {0}".format(snapshot_id_list))
+        try:
+            response = requests.get(self.ocp_url + path, auth=self.auth)
+            # Validate the response status code
+            response.raise_for_status()
+            from_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.from_time_str)
+            to_datetime_timestamp = TimeUtils.datetime_to_timestamp(self.to_time_str)
+
+            # If the user-specified time interval is less than one hour,
+            # adjust the times to ensure snapshots can be retrieved.
+            if from_datetime_timestamp + 3 * 3600000000 >= to_datetime_timestamp:
+                # Round the start time to the nearest hour
+                from_datetime_timestamp = TimeUtils.datetime_to_timestamp(
+                    TimeUtils.get_time_rounding(dt=TimeUtils.parse_time_str(self.from_time_str), step=0, rounding_level="hour"))
+
+                # Set the end time to one hour and three minutes after the rounded start time
+                # (the three-minute offset ensures snapshots can be obtained)
+                to_datetime_timestamp = from_datetime_timestamp + 3 * 3600000000 + 3 * 60000000
+
+            if "data" not in response.json() or "contents" not in response.json()["data"]:
+                raise ValueError("Invalid response structure. Missing 'data' or 'contents' key.")
+
+            for info in response.json()["data"]["contents"]:
+                try:
+                    snapshot_time = TimeUtils.datetime_to_timestamp(
+                        TimeUtils.trans_datetime_utc_to_local(str(info["snapshotTime"]).split(".")[0]))
+                    if from_datetime_timestamp <= snapshot_time <= to_datetime_timestamp:
+                        snapshot_id_list.append((info["snapshotId"], info["snapshotTime"]))
+                except KeyError:
+                    self.stdio.error(f"Malformed snapshot data: {info}")
+                    continue
+                except Exception as e:
+                    continue
+        except requests.exceptions.RequestException as e:
+            self.stdio.error(f"Failed to fetch snapshot list from OCP: {e}")
+            return []
+        self.stdio.verbose(f"Retrieved snapshot list: {snapshot_id_list}")
         return snapshot_id_list
 
     def __get_awr_report_id(self, report_name):
@@ -207,6 +240,18 @@ class GatherAwrHandler(object):
         from_option = Util.get_option(options, 'from')
         to_option = Util.get_option(options, 'to')
         since_option = Util.get_option(options, 'since')
+        cluster_name_option = Util.get_option(options, 'cluster_name')
+        if cluster_name_option:
+            self.cluster_name = cluster_name_option
+        else:
+            self.stdio.error("--cluster_name option need provided")
+            return False
+        cluster_id_option = Util.get_option(options, 'cluster_id')
+        if cluster_id_option:
+            self.cluster_id = cluster_id_option
+        else:
+            self.stdio.error("--cluster_id option need provided")
+            return False
         if from_option is not None and to_option is not None:
             try:
                 self.from_time_str = from_option
@@ -215,13 +260,13 @@ class GatherAwrHandler(object):
                 to_timestamp = TimeUtils.datetime_to_timestamp(to_option)
             except OBDIAGFormatException:
                 self.stdio.error("Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. " \
-                             "from_datetime={0}, to_datetime={1}".format(getattr(args, "from"), args.to))
+                             "from_datetime={0}, to_datetime={1}".format(from_option, to_option))
                 return False
             if to_timestamp <= from_timestamp:
                 self.stdio.error("Error: from datetime is larger than to datetime, please check.")
                 return False
+            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         elif (from_option is None or to_option is None) and since_option is not None:
-            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
             # the format of since must be 'n'<m|h|d>
             try:
                 since_to_seconds = TimeUtils.parse_time_length_to_sec(since_option)
@@ -230,12 +275,17 @@ class GatherAwrHandler(object):
                 return False
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            if since_to_seconds < 3600:
-                since_to_seconds = 3600
+            if since_to_seconds < 3 * 3600:
+                self.stdio.warn('The --since requires a value greater than 3h. your provided is less than 3h, adjusted to 3h.')
+                since_to_seconds = 3 * 3600
             self.from_time_str = (now_time - datetime.timedelta(seconds=since_to_seconds)).strftime('%Y-%m-%d %H:%M:%S')
+            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         else:
-            self.stdio.error("Invalid args, you need input since or from and to datetime")
-            return False
+            self.stdio.warn('No time option provided, default processing is based on the last 3 h')
+            now_time = datetime.datetime.now()
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            self.from_time_str = (now_time - datetime.timedelta(seconds=3 * 3600)).strftime('%Y-%m-%d %H:%M:%S')
+            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
                 self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))

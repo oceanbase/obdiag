@@ -82,8 +82,9 @@ class SQLProblemScene(SafeStdio):
     def __gather_sql_info(self):
         try:
             self.stdio.verbose("gather sql info start")
-            handler = GatherPlanMonitorHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
+            self.stdio.verbose("gather sql info set_variable, key: gather_plan_monitor_trace_id, value:{0}".format(self.trace_id))
             self.context.set_variable('gather_plan_monitor_trace_id', self.trace_id)
+            handler = GatherPlanMonitorHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
             handler.handle()
             self.stdio.verbose("gather sql info end")
         except Exception as e:
@@ -100,6 +101,7 @@ class SQLProblemScene(SafeStdio):
             trace_id = self.env.get("trace_id")
             if trace_id:
                 self.trace_id = self.env.get("trace_id")
+                return True
             else:
                 self.stdio.error("option env [--trace_id] not found, please run 'obdiag gather scene list' to check usage")
                 return False 

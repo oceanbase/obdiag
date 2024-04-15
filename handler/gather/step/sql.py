@@ -53,7 +53,7 @@ class StepSQLHandler(SafeStdio):
             if "sql" not in self.step:
                 self.stdio.error("StepSQLHandler execute sql is not set")
                 return
-            sql = StringUtils.build_str_on_expr_by_dict_2(self.step["sql"], self.task_variable_dict)
+            sql = StringUtils.build_sql_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
             self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             columns, data = self.ob_connector.execute_sql_return_columns_and_data(sql)
             if data is None or len(data) == 0:

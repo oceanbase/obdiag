@@ -1159,6 +1159,16 @@ class StringUtils(object):
         return re.sub(r'\$\{(\w+)\}', replacer, s)
 
     @staticmethod
+    def build_sql_on_expr_by_dict(expr, variable_dict, stdio=None):
+        s = expr
+        d = variable_dict
+        def replacer(match):
+            key = match.group(1)
+            value = str(d.get(key, match.group(0)))
+            return f'"{value}"'
+        return re.sub(r'\$\{(\w+)\}', replacer, s)
+
+    @staticmethod
     def node_cut_passwd_for_log(obj, stdio=None):
         if isinstance(obj, dict):
             new_obj = {}

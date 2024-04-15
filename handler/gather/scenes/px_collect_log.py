@@ -58,6 +58,7 @@ class SQLPXCollectLogScene(object):
                 delete_file_in_folder(False, None, self.report_path, self.stdio)
                 self.stdio.verbose("delete file end")
                 self.__gather_log()
+                uzip_dir_local(self.report_path, self.stdio)
 
     def __gather_log(self):
         try:

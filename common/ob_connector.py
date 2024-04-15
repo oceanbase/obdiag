@@ -20,7 +20,7 @@ import pymysql as mysql
 
 
 class OBConnector(object):
-    def __init__(self, ip, port, username, password=None, stdio=None, timeout=10,):
+    def __init__(self, ip, port, username, password=None, database=None, stdio=None, timeout=10,):
         self.ip = str(ip)
         self.port = int(port)
         self.username = str(username)
@@ -28,6 +28,7 @@ class OBConnector(object):
         self.timeout = timeout
         self.conn = None
         self.stdio = stdio
+        self.database = database
         self.init()
 
     def init(self):
@@ -43,6 +44,7 @@ class OBConnector(object):
                 port=self.port,
                 user=self.username,
                 passwd=self.password,
+                db=self.database,
                 connect_timeout=30,
             )
             self.stdio.verbose("connect databse ...")
