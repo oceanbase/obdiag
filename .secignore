@@ -1,0 +1,38 @@
+BFlow Secret Scan Ignore List              #
+##########################################################
+# Above the segmentation lines there are suspected privacy information #
+# Please use the file name as the first line and the igored information #
+# should be started with tab. #
+# Under the segmentation lines there are the folders which you need to ignore #
+##########################################################
+**
+  http://license.coscl.org.cn/*
+  http://xxx.xxx.xxx.xxx:xxxx
+  https://getbootstrap.com/)
+  https://github.com/twbs/bootstrap/blob/main/LICENSE)
+  http://www.w3.org/2000/svg
+  https://www.oceanbase.com/
+  https://github.com/*
+  https://bootstrap.pypa.io/pip/
+  http://rpm.corp.taobao.com/find.php?q=oceanbase-diagnostic-tool
+  http://opensource.org/licenses/*
+  https://facebook.github.io/*
+  https://www.oceanbase.com/*
+  http://mirrors.aliyun.com/pypi/simple/
+  https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+**/README.md
+  http://xxx.xxx.xxx.xxx:xxxx
+**/init.sh
+  https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+**/dependencies/bin/obstack_x86_64_7
+  http://llvm.org/):
+**/resources/web/bootstrap.min.js
+  https://getbootstrap.com/)
+  https://github.com/twbs/bootstrap/graphs/contributors)
+  https://github.com/twbs/bootstrap/blob/main/LICENSE)
+  https://popper.js.org/)
+  https://popper.js.org/)
+**/common/constant.py
+  openwebapi-pre.oceanbase.com*
+  openwebapi.oceanbase.com*
+  openwebapi-pre.oceanbase.com*
