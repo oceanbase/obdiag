@@ -14,7 +14,6 @@ BFlow Secret Scan Ignore List              #
   https://www.oceanbase.com/
   https://github.com/*
   https://bootstrap.pypa.io/pip/
-  http://rpm.corp.taobao.com/find.php?q=oceanbase-diagnostic-tool
   http://opensource.org/licenses/*
   https://facebook.github.io/*
   https://www.oceanbase.com/*
