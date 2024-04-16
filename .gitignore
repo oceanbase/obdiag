@@ -6,5 +6,4 @@ dependencies/python2/site-packages
 dependencies/python2/libs
 dependencies/python3/site-packages
 dependencies/python3/libs
-dependencies/bin
 gather_pack_*
