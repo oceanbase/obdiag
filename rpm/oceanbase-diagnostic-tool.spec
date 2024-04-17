@@ -27,7 +27,7 @@ else
     CID='UNKNOWN'
     BRANCH='UNKNOWN'
 fi
-DATE=`date '+%b %d %Y %H:%M:%S'`
+DATE=`date`
 VERSION="$RPM_PACKAGE_VERSION"
 
 source py-env-activate py38
