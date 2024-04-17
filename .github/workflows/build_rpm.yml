@@ -40,11 +40,12 @@ jobs:
 
       - name: Convert RPM to DEB
         run: |
-          fakeroot alien --scripts --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          mkdir -p /home/runner/deb
+          fakeroot alien --scripts --to-deb --target /home/runner/deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
 
       - name: Find DEB package
         run: |
-          find /home/runner/rpmbuild -name 'oceanbase-diagnostic-tool_*.deb'
+          find /home/runner/deb -name 'oceanbase-diagnostic-tool_*.deb'
 
       - name: 'Upload Artifacts'
         uses: actions/upload-artifact@v3
@@ -52,6 +53,6 @@ jobs:
           name: obdiag-packages
           path: |
             /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
-            /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool_*.deb
+            /home/runner/deb/oceanbase-diagnostic-tool_*.deb
           retention-days: 3
           debug: true
