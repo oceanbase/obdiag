@@ -40,7 +40,7 @@ jobs:
 
       - name: Convert RPM to DEB
         run: |
-          fakeroot alien --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          fakeroot alien --scripts --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
 
       - name: 'Upload Artifacts'
         uses: actions/upload-artifact@v3
@@ -50,3 +50,4 @@ jobs:
             /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
             /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool_*.deb
           retention-days: 3
+          debug: true
