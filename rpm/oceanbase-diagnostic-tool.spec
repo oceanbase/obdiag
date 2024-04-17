@@ -16,7 +16,7 @@ oceanbase diagnostic tool program
 
 %install
 RPM_DIR=$OLDPWD
-SRC_DIR=$OLDPWD/..
+SRC_DIR=$OLDPWD
 BUILD_DIR=$OLDPWD/rpmbuild
 cd $SRC_DIR/
 rm -rf build.log build dist oceanbase-diagnostic-tool.spec
