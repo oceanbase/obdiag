@@ -28,7 +28,7 @@ jobs:
 
       - name: Set up RPM build env
         run: |
-          sudo apt-get update && sudo apt-get install -y rpm alien
+          sudo apt-get update && sudo apt-get install -y rpm alien fakeroot
 
       - name: Build package
         run: |
@@ -40,7 +40,7 @@ jobs:
 
       - name: Convert RPM to DEB
         run: |
-          alien --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          fakeroot alien --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
 
       - name: 'Upload Artifacts'
         uses: actions/upload-artifact@v3
