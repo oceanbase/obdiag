@@ -40,6 +40,6 @@ jobs:
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: obdiag rpm
+          name: obdiag
           path: /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
