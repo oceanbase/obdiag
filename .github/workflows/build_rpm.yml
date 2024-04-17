@@ -3,10 +3,10 @@ name: build rpm
 on:
   pull_request:
     branches:
-      - master
+      - "*"
   push:
     branches:
-      - master
+      - "*"
 
 jobs:
   build-and-package-x86_64:
@@ -41,7 +41,7 @@ jobs:
       - name: Convert RPM to DEB
         run: |
           mkdir -p /home/runner/artifacts
-          fakeroot alien --scripts --to-deb --target /home/runner/artifacts --architecture amd64 /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          fakeroot alien --scripts --to-deb --target /home/runner/artifacts /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
 
       - name: Find DEB package
         run: |
