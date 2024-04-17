@@ -24,7 +24,7 @@ DATE=`date`
 VERSION="$RPM_PACKAGE_VERSION"
 
 cd $SRC_DIR
-pip install -r requirements3.txt -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+pwd
 cp -f main.py obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
