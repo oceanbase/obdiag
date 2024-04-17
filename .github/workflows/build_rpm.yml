@@ -1,0 +1,37 @@
+name: build rpm
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8.0'
+
+      - name: Set up RPM build env
+        run: |
+          sudo apt-get install -y rpm
+          sudo apt-get install -y rpm-build
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          pip3 install -r requirements3.txt
+
+      - name: Build package
+        run: |
+          pwd
+          rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
