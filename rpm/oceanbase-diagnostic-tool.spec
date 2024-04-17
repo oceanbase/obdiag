@@ -1,6 +1,6 @@
 Name: oceanbase-diagnostic-tool
 Version:2.1.0
-Release: 1%{?dist}
+Release: %(echo $RELEASE)%{?dist}
 Summary: oceanbase diagnostic tool program
 Group: Development/Tools
 Url: git@github.com:oceanbase/oceanbase-diagnostic-tool.git
