@@ -28,7 +28,7 @@ jobs:
 
       - name: Set up RPM build env
         run: |
-          sudo apt-get update && sudo apt-get install -y rpm
+          sudo apt-get update && sudo apt-get install -y rpm alien
 
       - name: Build package
         run: |
@@ -38,9 +38,15 @@ jobs:
           cat ./rpm/oceanbase-diagnostic-tool.spec
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
-      - name: 'Upload Artifact'
+      - name: Convert RPM to DEB
+        run: |
+          alien --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+
+      - name: 'Upload Artifacts'
         uses: actions/upload-artifact@v3
         with:
-          name: obdiag
-          path: /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          name: obdiag-packages
+          path: |
+            /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+            /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool_*.deb
           retention-days: 3
