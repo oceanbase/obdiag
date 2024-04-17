@@ -23,7 +23,6 @@ rm -rf build.log build dist oceanbase-diagnostic-tool.spec
 DATE=`date`
 VERSION="$RPM_PACKAGE_VERSION"
 
-source py-env-activate py38
 cd $SRC_DIR
 pip install -r requirements3.txt -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 cp -f main.py obdiag.py
