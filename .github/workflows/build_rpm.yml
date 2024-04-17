@@ -24,7 +24,6 @@ jobs:
       - name: Set up RPM build env
         run: |
           sudo apt-get install -y rpm
-          sudo apt-get install -y rpm-build
 
       - name: Install dependencies
         run: |
