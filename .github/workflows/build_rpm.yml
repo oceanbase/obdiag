@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  build-and-package:
+  build-and-package-x86_64:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,19 +21,20 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Set up RPM build env
-        run: |
-          sudo apt-get install -y rpm
-
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
 
+      - name: Set up RPM build env
+        run: |
+          sudo apt-get update && sudo apt-get install -y rpm
+
       - name: Build package
         run: |
           pwd
           ls -lh
+          export RELEASE=`date +%Y%m%d%H%M`
           cat ./rpm/oceanbase-diagnostic-tool.spec
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
