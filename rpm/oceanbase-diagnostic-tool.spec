@@ -20,13 +20,6 @@ SRC_DIR=$OLDPWD/..
 BUILD_DIR=$OLDPWD/rpmbuild
 cd $SRC_DIR/
 rm -rf build.log build dist oceanbase-diagnostic-tool.spec
-if [ `git log |head -n1 | awk -F' ' '{print $2}'` ]; then
-    CID=`git log |head -n1 | awk -F' ' '{print $2}'`
-    BRANCH=`git rev-parse --abbrev-ref HEAD`
-else
-    CID='UNKNOWN'
-    BRANCH='UNKNOWN'
-fi
 DATE=`date`
 VERSION="$RPM_PACKAGE_VERSION"
 
