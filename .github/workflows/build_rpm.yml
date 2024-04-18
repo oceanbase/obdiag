@@ -53,6 +53,6 @@ jobs:
           name: obdiag-packages
           path: |
             /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
-            /home/runner/deb/oceanbase-diagnostic-tool_*.deb
+            /home/runner/artifacts/oceanbase-diagnostic-tool_*.deb
           retention-days: 3
           debug: true
