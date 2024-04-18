@@ -43,7 +43,7 @@ class GatherPlanMonitorHandler(object):
         self.tenant_mode = None
         self.sys_database = None
         self.database = None
-        self.enable_dump_db = False
+        self.enable_dump_db = True
         self.trace_id = None
         self.env = {}
         self.STAT_NAME = {}
@@ -725,7 +725,7 @@ class GatherPlanMonitorHandler(object):
 
     # sql audit 细节
     def report_sql_audit_details(self, sql):
-        if not self.enable_dump_db:
+        if self.enable_dump_db:
             full_audit_sql_result = self.sys_connector.execute_sql_pretty(sql)
             self.__report(
                 "<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>" + full_audit_sql_result.get_html_string() + "</div></div>")
