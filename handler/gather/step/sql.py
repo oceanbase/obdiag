@@ -69,8 +69,28 @@ class StepSQLHandler(SafeStdio):
         try:
             table_data = [list(row) for row in data]
             formatted_table = tabulate(table_data, headers=column_names, tablefmt="grid")
+
+            # Check file size and rename if necessary
+            while True:
+                if not os.path.exists(self.report_file_path):
+                    break
+
+                file_size = os.path.getsize(self.report_file_path)
+                if file_size < 200 * 1024 * 1024:  # 200 MB
+                    break
+
+                # Increment file suffix and update self.report_file_path
+                base_name, ext = os.path.splitext(self.report_file_path)
+                parts = base_name.split('_')
+                if len(parts) > 1 and parts[-1].isdigit():  # Check if the last part is a digit
+                    suffix = int(parts[-1]) + 1
+                    new_base_name = '_'.join(parts[:-1]) + '_{}'.format(suffix)
+                else:
+                    new_base_name = base_name + '_1'
+                self.report_file_path = '{}{}'.format(new_base_name, ext)
+
             with open(self.report_file_path, 'a', encoding='utf-8') as f:
                 f.write('\n\n' + 'obclient > ' + sql + '\n')
                 f.write(formatted_table)
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))
+            self.stdio.error("report sql result to file: {0} failed, error: {1}".format(self.report_file_path, str(e)))
