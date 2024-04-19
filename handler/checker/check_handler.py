@@ -18,6 +18,9 @@
 
 import os
 import yaml
+
+from common.ob_connector import OBConnector
+from common.ssh import SshHelper
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
@@ -86,6 +89,41 @@ class CheckHandler:
         self.stdio.verbose("tasks_base_path is " + self.tasks_base_path)
         # input_param
         self.options=self.context.options
+
+        # add ssher
+        new_node=[]
+        for node in self.nodes:
+            # add ssher
+            ssher = None
+            try:
+                ssher = SshHelper(True, node.get("ip"),
+                                  node.get("ssh_username"),
+                                  node.get("ssh_password"),
+                                  node.get("ssh_port"),
+                                  node.get("ssh_key_file"),
+                                  node)
+            except Exception as e:
+                self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
+            node["ssher"] = ssher
+            new_node.append(node)
+        self.nodes=new_node
+        self.version=get_version(self.nodes, self.check_target_type,self.cluster, self.stdio)
+
+        # add OBConnector
+        obConnector = None
+        try:
+            if self.cluster is not None:
+                obConnector=OBConnector(ip=self.cluster.get("db_host"),
+                                                   port=self.cluster.get("db_port"),
+                                                   username=self.cluster.get("tenant_sys").get("user"),
+                                                   password=self.cluster.get("tenant_sys").get("password"),
+                                                   stdio=self.stdio,
+                                                   timeout=10000)
+        except Exception as e:
+            self.stdio.warn("obConnector init error. Error info is {0}".format(e))
+        finally:
+            self.context.set_variable('check_obConnector', obConnector)
+
 
     def handle(self):
         try:
@@ -173,7 +211,7 @@ class CheckHandler:
             # Verify if the version is within a reasonable range
             report = TaskReport(self.context,task_name)
             if not self.ignore_version:
-                version = get_version(self.nodes, self.check_target_type, self.stdio)
+                version = self.version
                 if version:
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))

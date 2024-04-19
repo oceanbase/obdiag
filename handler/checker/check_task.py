@@ -15,7 +15,6 @@
 @file: check_task.py
 @desc:
 """
-
 from handler.checker.check_exception import StepResultFailException, \
     StepExecuteFailException, StepResultFalseException, TaskException
 from handler.checker.step.stepbase import StepBase
@@ -40,13 +39,15 @@ class TaskBase(object):
         self.stdio.verbose("task_base execute")
         steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
-            self.stdio.warn("Unadapted by version. SKIP")
+            self.stdio.warn("{0} Unadapted by version. SKIP".format(self.task['name']))
             self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
             raise Exception("node is not exist")
+
         for node in self.nodes:
+
             self.stdio.verbose("run task in node: {0}".format(StringUtils.node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
             nu = 1

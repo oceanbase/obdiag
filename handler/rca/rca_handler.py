@@ -293,6 +293,8 @@ class RCA_ResultRecord:
 
     def add_suggest(self, suggest):
         self.suggest += suggest
+    def suggest_is_empty(self):
+        return self.suggest == "The suggest: "
 
     def export_suggest(self):
         return self.suggest

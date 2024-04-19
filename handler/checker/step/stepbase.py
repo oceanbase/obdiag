@@ -49,9 +49,8 @@ class StepBase(object):
                 self.task_variable_dict["remote_ip"] = \
                     docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks'][
                         'bridge']["IPAddress"]
-            for key in self.node:
-                self.task_variable_dict["remote_{0}".format(key)] = self.node[key]
-
+            for node in self.node:
+                self.task_variable_dict["remote_{0}".format(node)] = self.node[node]
             if "type" not in self.step:
                 raise StepExecuteFailException("Missing field :type")
             if self.step["type"] == "get_system_parameter":
@@ -59,7 +58,7 @@ class StepBase(object):
             elif self.step["type"] == "ssh":
                 handler = SshHandler(self.context, self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "sql":
-                handler = StepSQLHandler(self.context, self.step, self.cluster, self.task_variable_dict)
+                handler = StepSQLHandler(self.context, self.step, task_variable_dict=self.task_variable_dict)
             elif self.step["type"] == "data_size":
                 handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict)
             else:
