@@ -83,7 +83,7 @@ obdiag envisions an open community. We welcome your contributions in any form:
 
 # Roadmap Ahead
 
-| Version | Date | Function | 
+| Version | Iteration Period | Function | 
 |---------|---------------|---------|
 |1.6.0| 2024.01| <ul><li> Scenario based fault information collection </li><li> Scenario based root cause analysis </li></ul> |
 |2.0.0|2024.03| <ul><li> Context Transformation, Enhanced Scene Expansion Capabilities</li><li> Support online updating of inspection and gather tasks </li><li>Root Cause Analysis Phase II Transformation </li></ul>|
