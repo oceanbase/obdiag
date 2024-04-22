@@ -71,10 +71,6 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 # 参与贡献
 
 obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，您可以：
-
-- 向我们提出一个[issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)。
-- 提交请求。
-
 - 通过 [Issues](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues) 提交 bug。
 - 通过 [Discussion](https://github.com/oceanbase/oceanbase-diagnostic-tool/discussions) 参与或发起讨论。
 - 通过 [Pull requests](https://github.com/oceanbase/oceanbase-diagnostic-tool/pulls) 提交问题修复或者功能特性。
