@@ -62,45 +62,45 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ```
 
 # obdiag 功能
+- 一键集群巡检
+- 一键诊断分析
+- 一键根因分析
+- 一键信息采集
 
-## obdiag 巡检功能
-- [一键巡检](./docs/check.md)
 
-## obdiag 一键场景化信息采集功能
-- [一键场景化信息采集](./docs/gather_scene.md)
+# 参与贡献
 
-## obdiag 一键信息采集功能
+obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，您可以：
 
-- [一键收集OB日志](./docs/gather_ob_log.md)
-- [一键收集AWR报告](./docs/gather_awr.md)
-- [一键收集主机信息](./docs/gather_sysstat.md)
-- [一键收集slog/clog日志](./docs/gather_admin.md)
-- [一键收集火焰图信息](./docs/gather_perf.md)
-- [一键收集OB堆栈信息](./docs/gather_ob_stack.md)
-- [一键收集并行SQL的执行详情信息](./docs/gather_sql_plan_monitor.md)
-- [一键收集OBPROXY日志](./docs/gather_obproxy_log.md)
-- [一键收集AWR报告](./docs/gather_awr.md)
-- [一键收集全部诊断信息](./docs/gather_all.md)
+- 向我们提出一个[issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)。
+- 提交请求。
 
-## obdiag 一键分析功能说明
-- [一键分析OB日志](./docs/analyze_ob_log.md)
-- [一键全链路诊断](./docs/analyze_flt_trace.md)
+- 通过 [Issues](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues) 提交 bug。
+- 通过 [Discussion](https://github.com/oceanbase/oceanbase-diagnostic-tool/discussions) 参与或发起讨论。
+- 通过 [Pull requests](https://github.com/oceanbase/oceanbase-diagnostic-tool/pulls) 提交问题修复或者功能特性。
+- 加入 obdiag [SIG（兴趣小组)](https://oceanbase.yuque.com/org-wiki-obtech-vh7w9r/imzr6c/ixh8wb9d356at3hm)
 
-## obdiag 一键场景化根因分析功能
-- [一键场景化根因分析](./docs/rca.md)
+# Roadmap Ahead
+
+| 版本 | 迭代周期 | Function | 
+|---------|---------------|---------|
+|1.6.0| 2024.01| <ul><li> 场景化信息采集 </li><li> 场景化根因分析 </li></ul> |
+|2.0.0|2024.03| <ul><li> context改造，场景化扩展能力增强 </li><li> 支持在线更新巡检、采集的task </li><li> 根因分析二期 </li></ul>|
+|2.1.0|2024.04| <ul><li> 根因分析场景扩展 </li><li> 新增 tabledump 采集 </li></ul>|
+|2.2.0|2024.05| <ul><li> 根因分析场景扩展 </li></ul>|
+|2.3.0|2024.06| <ul><li> 根因分析场景扩展 </li><li> 支持 SQL 诊断 </li></ul>|
+|2.4.0|2024.07| <ul><li> 根因分析场景扩展 </li><li> 适配两款内核的诊断工具 </li></ul>|
+|2.5.0|2024.08| <ul><li> 根因分析场景扩展 </li><li> 支持 OMS 诊断 </li></ul>|
+|3.0.0|2024.09| <ul><li> 根因分析场景扩展 </li><li> 服务化改造 </li></ul>|
+|3.1.0|2024.10| <ul><li> 根因分析场景扩展 </li><li> 支持巡检报告比对 </li></ul>|
+|3.2.0|2024.11| <ul><li> 根因分析场景扩展 </li><li> SQL 诊断二期，支持SQL问题的根因分析 </li></ul>|
+|3.3.0|2024.12| <ul><li> AI 化探索 </li></ul>|
+
 
 # 许可证
 
 OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
 您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
-
-
-## 贡献
-
-我们热烈欢迎并高度赞赏您的贡献。您可以通过以下几种方式做出贡献：
-
-- 向我们提出一个[issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)。
-- 提交请求。
 
 ## 支持
 
@@ -108,3 +108,4 @@ OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/Mu
 
 - [GitHub Issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
 - [官方网站](https://www.oceanbase.com/docs/obdiag-cn)
+- obdiag SIG 微信号: obdiagsig
