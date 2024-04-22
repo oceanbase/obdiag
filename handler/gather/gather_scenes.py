@@ -133,6 +133,10 @@ class GatherSceneHandler(SafeStdio):
                         self.yaml_tasks[item] = yaml_task_data
                     else:
                         self.stdio.error("Invalid Task :{0}".format(item))
+            # hard code add gather observer.base
+            if len(self.code_tasks) > 0:
+                yaml_task_base = scene.get_one_yaml_task("observer.base")
+                self.yaml_tasks["observer.base"] = yaml_task_base
         else:
             self.stdio.error("get task name failed")
 
