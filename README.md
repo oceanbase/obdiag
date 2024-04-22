@@ -78,7 +78,6 @@ obdiag envisions an open community. We welcome your contributions in any form:
 - Report bugs through [Issues](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues).
 - Participate in or initiate discussions via [Discussion](https://github.com/oceanbase/oceanbase-diagnostic-tool/discussions).
 - Contribute bug fixes or new features through [Pull requests](https://github.com/oceanbase/oceanbase-diagnostic-tool/pulls).
-- Join the obdiag [SIG（Special Interest Group)](https://oceanbase.yuque.com/org-wiki-obtech-vh7w9r/imzr6c/ixh8wb9d356at3hm)
 
 
 

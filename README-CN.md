@@ -78,7 +78,6 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 - 通过 [Issues](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues) 提交 bug。
 - 通过 [Discussion](https://github.com/oceanbase/oceanbase-diagnostic-tool/discussions) 参与或发起讨论。
 - 通过 [Pull requests](https://github.com/oceanbase/oceanbase-diagnostic-tool/pulls) 提交问题修复或者功能特性。
-- 加入 obdiag [SIG（兴趣小组)](https://oceanbase.yuque.com/org-wiki-obtech-vh7w9r/imzr6c/ixh8wb9d356at3hm)
 
 # Roadmap Ahead
 
