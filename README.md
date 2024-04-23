@@ -41,15 +41,7 @@ sh /usr/local/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## Method 2: Install obdiag by using the source code
-
-Before you install obdiag by using the source code, make sure that you have installed these dependencies:
-
-- gcc
-- wget
-- python-devel
-- mysql-devel
-
-To install obdiag on Python3.8, run these commands:
+To install obdiag on Python >= 3.8, run these commands:
 
 ```shell
 pip3 install -r requirements3.txt

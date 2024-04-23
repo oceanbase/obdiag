@@ -41,12 +41,6 @@ sh /usr/local/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## 方式二：源码安装
-源码编译环境确保有如下依赖
-- gcc
-- wget
-- python-devel
-- mysql-devel
-
 源码安装需要在python >= 3.8的环境下进行
 
 ```shell
