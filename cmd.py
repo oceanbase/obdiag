@@ -322,6 +322,8 @@ class MajorCommand(BaseCommand):
             return False
         cmd = '%s %s' % (self.prev_cmd, base)
         ROOT_IO.track_limit += 1
+        if "main.py" in cmd:
+            telemetry.work_tag=False
         telemetry.push_cmd_info("cmd: {0}. args:{1}".format(cmd,args))
         return self.commands[base].init(cmd, args).do_command()
 

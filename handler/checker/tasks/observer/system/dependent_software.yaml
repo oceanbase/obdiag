@@ -36,10 +36,3 @@ task:
         report_type: warning
         verify: '[ -n "${transparent_hugepage_switch}" ]'
         err_msg: 'transparent_hugepage need retrun "[never]". Now , it is null.'
-    - type: ssh
-      ssh: "python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2"
-      result:
-        set_value: python_version
-        report_type: warning
-        verify: '[ "2.7" == ${python_version} ]'
-        err_msg: 'python version need retrun 2.7.x'

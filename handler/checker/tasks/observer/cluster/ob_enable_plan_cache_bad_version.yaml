@@ -6,6 +6,6 @@ task:
       sql: 'select name from oceanbase.__all_virtual_tenant_parameter_stat where name like "%ob_enable_plan_cache%" and value like "%true%";'
       result:
         set_value: ob_enable_plan_cache
-        verify: '[ -z "ob_enable_plan_cache" ]'
+        verify: '[ -z "$ob_enable_plan_cache" ]'
         err_msg: 'On this version, ob_enable_plan_cache suggestion to close'
 

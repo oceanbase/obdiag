@@ -12,7 +12,7 @@
 
 """
 @time: 2024/04/16
-@file: no_leader_scene.py
+@file: log_error_scene.py
 @desc:
 """
 import os
@@ -39,8 +39,6 @@ class LogErrorScene(RcaScene):
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
             self.stdio.error("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
             raise RCAInitException("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
-        # if self.ob_connector is None:
-        #     raise RCAInitException("ob_connector is None. Please check the NODES conf.")
         self.verbose("observer version is {0}.".format(observer_version))
         if self.ob_connector is None:
             raise RCAInitException("ob_connector is None. Please check the NODES conf.")
@@ -120,7 +118,6 @@ class LogErrorScene(RcaScene):
             if step_next_tag is False:
                 self.verbose("step_next_tag is false")
                 return
-            record.add_record("start step3")
             return
 
 
