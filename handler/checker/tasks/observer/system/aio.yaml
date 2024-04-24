@@ -11,11 +11,11 @@ task:
           set_value: aio_max_nr
           report_type: warning
           verify: "[ ${aio_max_nr} -ge 1048576 ]"
-          err_msg: 'fs.aio-max-nr : #{aio_max_nr} is a non recommended value, recommended value  need  >1048576'
+          err_msg: 'fs.aio-max-nr : #{aio_max_nr} . recommended: >1048576'
       - type: get_system_parameter
         parameter: fs.aio-nr
         result:
           set_value: aio_nr
           report_type: warning
           verify: "[ $((aio_max_nr - aio_nr)) -ge $((20000*${observer_nu})) ]"
-          err_msg: 'fs.aio-nr : #{aio_nr} is a non recommended value, recommended value  need  aio-max-nr - aio-nr>20000 * observer_num'
+          err_msg: 'fs.aio-nr : #{aio_nr} . recommended:  aio-max-nr - aio-nr>20000 * observer_num'

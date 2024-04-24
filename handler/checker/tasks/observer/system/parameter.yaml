@@ -10,7 +10,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[2048,16384]"
-        err_msg: 'net.core.somaxconn : #{parameter} , which is not recommended. Set it within the range of  2048 ≤ value ≤ 16384'
+        err_msg: 'net.core.somaxconn : #{parameter}. recommended: 2048 ≤ value ≤ 16384.'
     - type: get_system_parameter
       parameter: net.core.netdev_max_backlog
       result:
@@ -18,7 +18,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[ 500 ,10000 ]"
-        err_msg: 'net.core.netdev_max_backlog  : #{parameter} , which is not recommended. Set it within the range of  500 ≤ value ≤ 10000'
+        err_msg: 'net.core.netdev_max_backlog: #{parameter}. recommended: 500 ≤ value ≤ 10000.'
     - type: get_system_parameter
       parameter: net.core.rmem_default
       result:
@@ -26,7 +26,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[ 65536 ,16777216 ]"
-        err_msg: 'net.core.rmem_default  : #{parameter} , which is not recommended. Set it within the range of  65536 ≤ value ≤ 16777216'
+        err_msg: 'net.core.rmem_default: #{parameter}. recommended: 65536 ≤ value ≤ 16777216.'
     - type: get_system_parameter
       parameter: net.core.wmem_default
       result:
@@ -34,7 +34,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[ 65536,16777216 ]"
-        err_msg: 'net.core.wmem_default  : #{parameter} , which is not recommended. Set it within the range of  65536 ≤ value ≤ 16777216'
+        err_msg: 'net.core.wmem_default: #{parameter}. recommended: 65536 ≤ value ≤ 16777216.'
     - type: get_system_parameter
       parameter: net.core.rmem_max
       result:
@@ -42,7 +42,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[ 8388608 ,16777216 ]"
-        err_msg: 'net.core.rmem_max : #{parameter} , which is not recommended. Set it within the range of  8388608 ≤ value ≤ 16777216'
+        err_msg: 'net.core.rmem_max : #{parameter}. recommended: 8388608 ≤ value ≤ 16777216.'
     - type: get_system_parameter
       parameter: net.core.wmem_max
       result:
@@ -50,7 +50,7 @@ task:
         report_type: warning
         verify_type: between
         verify: "[ 8388608,16777216 ]"
-        err_msg: 'net.core.wmem_max  : #{parameter} , which is not recommended. Set it within the range of  8388608 ≤ value ≤ 16777216'
+        err_msg: 'net.core.wmem_max: #{parameter}. recommended: 8388608 ≤ value ≤ 16777216.'
     - type: get_system_parameter
       parameter: net.ipv4.ip_forward
       result:
@@ -58,7 +58,7 @@ task:
         report_type: warning
         verify_type: equal
         verify: 0
-        err_msg: 'net.ipv4.ip_forward : #{parameter} , which is not recommended. Set it within the range of  0'
+        err_msg: 'net.ipv4.ip_forward : #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_tw_recycle
       result:
@@ -66,7 +66,7 @@ task:
         report_type: warning
         verify_type: equal
         verify: 1
-        err_msg: 'net.ipv4.tcp_tw_recycle : #{parameter} , which is not recommended. Set it within the range of  1'
+        err_msg: 'net.ipv4.tcp_tw_recycle : #{parameter}. recommended: 1.'
 
     - type: get_system_parameter
       parameter: net.ipv4.conf.default.rp_filter
@@ -75,7 +75,7 @@ task:
         report_type: warning
         verify_type: equal
         verify: 1
-        err_msg: 'net.ipv4.conf.default.rp_filter : #{parameter} , which is not recommended. Set it within the range of  1'
+        err_msg: 'net.ipv4.conf.default.rp_filter : #{parameter}. recommended: 1.'
     - type: get_system_parameter
       parameter: net.ipv4.conf.default.accept_source_route
       result:
@@ -83,7 +83,7 @@ task:
         report_type: warning
         verify_type: equal
         verify: 0
-        err_msg: 'net.ipv4.conf.default.accept_source_route  : #{parameter} , which is not recommended. Set it within the range of  0'
+        err_msg: 'net.ipv4.conf.default.accept_source_route: #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_syncookies
       result:
@@ -91,7 +91,7 @@ task:
         report_type: warning
         verify_type: equal
         verify: 1
-        err_msg: 'net.ipv4.tcp_syncookies  : #{parameter} , which is not recommended. Set it within the range of  1'
+        err_msg: 'net.ipv4.tcp_syncookies: #{parameter}. recommended: 1.'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_max_syn_backlog
       result:
@@ -99,97 +99,97 @@ task:
         report_type: warning
         verify_type: between
         verify: "[1024,16384]"
-        err_msg: 'net.ipv4.tcp_max_syn_backlog : #{parameter} , which is not recommended. Set it within the range of  1024 ≤ value ≤ 16384'
+        err_msg: 'net.ipv4.tcp_max_syn_backlog : #{parameter}. recommended: 1024 ≤ value ≤ 16384.'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_fin_timeout
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 15 -le  ${parameter}  ] && [ ${parameter} -le 60 ]"
-        err_msg: 'net.ipv4.tcp_fin_timeout : #{parameter} , which is not recommended. Set it within the range of  15 ≤ value ≤ 60'
+        err_msg: 'net.ipv4.tcp_fin_timeout : #{parameter}. recommended: 15 ≤ value ≤ 60.'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_tw_reuse
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 1 ]"
-        err_msg: 'net.ipv4.tcp_tw_reuse  : #{parameter} , which is not recommended. Set it within the range of  1'
+        err_msg: 'net.ipv4.tcp_tw_reuse: #{parameter}. recommended: 1'
     - type: get_system_parameter
       parameter: net.ipv4.tcp_slow_start_after_idle
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'net.ipv4.tcp_slow_start_after_idle  : #{parameter} , which is not recommended. Set it within the range of  0'
+        err_msg: 'net.ipv4.tcp_slow_start_after_idle: #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: vm.swappiness
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'vm.swappiness : #{parameter} , which is not recommended. Set it within the range of  0'
+        err_msg: 'vm.swappiness : #{parameter}. recommended: 0'
     - type: get_system_parameter
       parameter: vm.min_free_kbytes
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 32768 -le  ${parameter}  ] && [ ${parameter} -le 2097152 ]"
-        err_msg: 'vm.min_free_kbytes : #{parameter} , which is not recommended. Set it within the range of  32768 ≤ value ≤ 2097152'
+        err_msg: 'vm.min_free_kbytes : #{parameter}. recommended: 32768 ≤ value ≤ 2097152.'
     - type: get_system_parameter
       parameter: vm.max_map_count
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 327680  -le  ${parameter}  ] && [ ${parameter}  -le  1000000 ]"
-        err_msg: 'vm.max_map_count : #{parameter} , which is not recommended.Unreasonable vm.max_map_count configuration may cause serious memory leaks. Set it within the range of  327680 ≤ value ≤ 1000000 '
+        err_msg: 'vm.max_map_count : #{parameter}. recommended:327680 ≤ value ≤ 1000000.'
     - type: get_system_parameter
       parameter: vm.overcommit_memory
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'vm.overcommit_memory : #{parameter} , which is not recommended. Set it within the range of  0 '
+        err_msg: 'vm.overcommit_memory : #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: vm.nr_hugepages
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'vm.nr_hugepages : #{parameter} , which is not recommended. Set it within the range of  0 '
+        err_msg: 'vm.nr_hugepages : #{parameter}. recommended: 0'
     - type: get_system_parameter
       parameter: fs.aio-max-nr
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 1048576  -le  ${parameter} ]"
-        err_msg: 'fs.aio-max-nr : #{parameter} is a non recommended value, recommended value : #{parameter} is ≥ 1048576'
+        err_msg: 'fs.aio-max-nr : #{parameter}. recommended: #{parameter} is ≥ 1048576.'
     - type: get_system_parameter
       parameter: kernel.numa_balancing
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'kernel.numa_balancing : #{parameter} , which is not recommended. Set it within the range of  0 '
+        err_msg: 'kernel.numa_balancing : #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: vm.zone_reclaim_mode
       result:
         set_value: parameter
         report_type: warning
         verify: "[ ${parameter} -eq 0 ]"
-        err_msg: 'vm.zone_reclaim_mode : #{parameter} , which is not recommended. Set it within the range of  0 '
+        err_msg: 'vm.zone_reclaim_mode : #{parameter}. recommended: 0.'
     - type: get_system_parameter
       parameter: fs.file-max
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 6573688  -le  ${parameter} ]"
-        err_msg: 'fs.file-max: #{parameter} is a non recommended value, recommended value : #{parameter} is ≥ 6573688'
+        err_msg: 'fs.file-max: #{parameter}. recommended: #{parameter} is ≥ 6573688.'
     - type: get_system_parameter
       parameter: fs.pipe-user-pages-soft
       result:
         set_value: parameter
         report_type: warning
         verify: "[ 0 -eq  ${parameter} ]"
-        err_msg: 'fs.pipe-user-pages-soft : #{parameter} is a non recommended value, recommended value  is 0'
+        err_msg: 'fs.pipe-user-pages-soft : #{parameter}. recommended: 0.'
 
 

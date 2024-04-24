@@ -252,6 +252,15 @@ class RcaScene:
         raise Exception("rca ({0})  scene.get_scene_info() undefined".format(type(self).__name__))
     def export_result(self):
         return self.Result.export()
+    def get_all_tenants_id(self):
+        try:
+            if self.ob_connector is None:
+                raise Exception("ob_connector is None")
+            all_tenant_id_data=self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant;")[0]
+            return all_tenant_id_data
+        except Exception as e:
+            raise Exception("run rca's get_all_tenants_id. Exception: {0}".format(e))
+
 
 class Result:
 
