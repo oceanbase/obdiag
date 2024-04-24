@@ -1,0 +1,11 @@
+info: 'Check  kernel.core_pattern'
+task:
+  - steps:
+      - type: get_system_parameter
+        parameter: kernel.core_pattern
+        result:
+          set_value: core_pattern
+          verify: "[[ $core_pattern == *" "* ]]"
+          err_msg: 'clock_source: #{clock_source}. recommended: tsc. Uneven CPU utilization during pressure testing resulted in low TPS during pressure testing'
+
+
