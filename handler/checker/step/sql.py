@@ -32,7 +32,9 @@ class StepSQLHandler:
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector=obConnector
+            self.ob_connector_pool=self.context.get_variable('check_obConnector_pool',None)
+            if self.ob_connector_pool is not None:
+                self.ob_connector=self.ob_connector_pool.get_connection()
             if self.ob_connector is None:
                 raise Exception("self.ob_connector is None.")
         except Exception as e:
@@ -72,6 +74,8 @@ class StepSQLHandler:
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e))
             raise StepExecuteFailException("StepSQLHandler execute Exception: {0}".format(e))
+        finally:
+            self.ob_connector_pool.release_connection(self.ob_connector)
 
     def update_step_variable_dict(self):
         return self.task_variable_dict

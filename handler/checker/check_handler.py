@@ -17,6 +17,7 @@
 """
 
 import os
+import queue
 import time
 
 import yaml
@@ -111,20 +112,15 @@ class CheckHandler:
         self.nodes=new_node
         self.version=get_version(self.nodes, self.check_target_type,self.cluster, self.stdio)
 
-        # add OBConnector
-        obConnector = None
+        # add OBConnectorPool
+        OBConnectorPool = None
         try:
-            if self.cluster is not None:
-                obConnector=OBConnector(ip=self.cluster.get("db_host"),
-                                                   port=self.cluster.get("db_port"),
-                                                   username=self.cluster.get("tenant_sys").get("user"),
-                                                   password=self.cluster.get("tenant_sys").get("password"),
-                                                   stdio=self.stdio,
-                                                   timeout=10000)
+            OBConnectorPool=checkOBConnectorPool(context,2,self.cluster)
+
         except Exception as e:
             self.stdio.warn("obConnector init error. Error info is {0}".format(e))
         finally:
-            self.context.set_variable('check_obConnector', obConnector)
+            self.context.set_variable('check_obConnector_pool', OBConnectorPool)
 
 
     def handle(self):
@@ -250,3 +246,36 @@ class CheckHandler:
             self.stdio.error("Internal error :{0}".format(e))
         end_time = time.time()
         print("Total cost time is {0} s".format((end_time - start_time)))
+class checkOBConnectorPool:
+    def __init__(self,context, max_size, cluster):
+        self.max_size = max_size
+        self.cluster=cluster
+        self.connections = queue.Queue(maxsize=max_size)
+        self.stdio=context.stdio
+
+    def get_connection(self):
+        try:
+            if self.connections.qsize() == 0:
+                if self.connections.qsize() < self.max_size:
+                    conn = OBConnector(
+                        ip=self.cluster.get("db_host"),
+                        port=self.cluster.get("db_port"),
+                        username=self.cluster.get("tenant_sys").get("user"),
+                        password=self.cluster.get("tenant_sys").get("password"),
+                        stdio=self.stdio,
+                        timeout=10000
+                    )
+                    self.connections.put(conn)
+                else:
+                    conn = self.connections.get()
+            else:
+                conn = self.connections.get()
+            return conn
+        except Exception as e:
+            return None
+
+    def release_connection(self, conn):
+        if conn is not None:
+            self.connections.put(conn)
+        return
+
