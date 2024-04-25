@@ -6,9 +6,8 @@ task:
       sql: 'SELECT value FROM  oceanbase.__all_virtual_sys_parameter_stat where name  like "%syslog_level%";'
       result:
         set_value: sys_log_level
-        verify_type: equal
         report_type: warning
-        verify: '[[ ${sys_log_level} == "WDIAG"]]'
+        verify: '[[ $sys_log_level == "WDIAG" ]]'
         err_msg: "on 4.x, the recommended value for sys_log_level is WDIAG"
 
   - version: "[3.0.0,4.0.0.0)"
@@ -17,7 +16,6 @@ task:
       sql: 'SELECT value FROM  oceanbase.__all_virtual_sys_parameter_stat where name  like "%syslog_level%";'
       result:
         set_value: sys_log_level
-        verify_type: equal
         report_type: warning
-        verify: '[[ ${sys_log_level} == "INFO"]]'
+        verify: '[[ $sys_log_level == "INFO" ]]'
         err_msg: "on 3.x, the recommended value for sys_log_level is INFO"
