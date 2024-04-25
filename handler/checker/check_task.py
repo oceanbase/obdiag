@@ -15,6 +15,9 @@
 @file: check_task.py
 @desc:
 """
+import threading
+
+from common.ob_connector import OBConnector
 from handler.checker.check_exception import StepResultFailException, \
     StepExecuteFailException, StepResultFalseException, TaskException
 from handler.checker.step.stepbase import StepBase
@@ -39,15 +42,30 @@ class TaskBase(object):
         self.stdio.verbose("task_base execute")
         steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
-            self.stdio.warn("{0} Unadapted by version. SKIP".format(self.task['name']))
+            self.stdio.warn("Unadapted by version. SKIP")
             self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
             raise Exception("node is not exist")
-
+        # TODO: 这里的逻辑需要优化，如果一个节点执行失败了，那么后续的步骤就不会被执行了。
+        work_threads = []
         for node in self.nodes:
+            obConnector = OBConnector(ip=self.cluster.get("db_host"),
+                                      port=self.cluster.get("db_port"),
+                                      username=self.cluster.get("tenant_sys").get("user"),
+                                      password=self.cluster.get("tenant_sys").get("password"),
+                                      stdio=self.stdio,
+                                      timeout=10000)
+            t = threading.Thread(target=self.execute_one_node, args=(steps_nu,node,obConnector))
+            work_threads.append(t)
+            t.start()
+        for t in work_threads:
+            t.join()
 
+        self.stdio.verbose("task execute end")
+    def execute_one_node(self,steps_nu,node,obConnector):
+        try:
             self.stdio.verbose("run task in node: {0}".format(StringUtils.node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
             nu = 1
@@ -56,7 +74,7 @@ class TaskBase(object):
                     self.stdio.verbose("step nu: {0}".format(nu))
                     if len(self.cluster) == 0:
                         raise Exception("cluster is not exist")
-                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict)
+                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict,obConnector)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
                     self.task_variable_dict = step_run.update_task_variable_dict()
@@ -78,4 +96,8 @@ class TaskBase(object):
 
                 self.stdio.verbose("step nu: {0} execute end ".format(nu))
                 nu = nu + 1
-        self.stdio.verbose("task execute end")
+        except Exception as e:
+            self.stdio.error("TaskBase execute Exception: {0}".format(e))
+            raise e
+
+

@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class SshHandler:
-    def __init__(self,context, step, node, task_variable_dict):
+    def __init__(self,context, step, node, task_variable_dict,obConnector):
         self.context = context
         self.stdio = context.stdio
         self.ssh_report_value = None

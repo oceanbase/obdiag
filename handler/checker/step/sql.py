@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class StepSQLHandler:
-    def __init__(self,context, step, task_variable_dict):
+    def __init__(self,context, step, task_variable_dict,obConnector):
         try:
             self.context = context
             self.stdio = context.stdio
@@ -32,7 +32,7 @@ class StepSQLHandler:
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector=self.context.get_variable('check_obConnector')
+            self.ob_connector=obConnector
             if self.ob_connector is None:
                 raise Exception("self.ob_connector is None.")
         except Exception as e:
