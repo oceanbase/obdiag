@@ -1,20 +1,20 @@
 English | [中文版](README-CN.md)
 
 <p align="center">
-    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool/blob/master/LICENSE">
+    <a href="https://github.com/oceanbase/obdiag/blob/master/LICENSE">
         <img alt="license" src="https://img.shields.io/badge/license-MulanPubL--2.0-blue" />
     </a>
-    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool/releases/latest">
-        <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool%2Freleases%2Flatest" />
+    <a href="https://github.com/oceanbase/obdiag/releases/latest">
+        <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag%2Freleases%2Flatest" />
     </a>
     <a href="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg">
         <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg" />
     </a>
-    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool">
-        <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool" />
+    <a href="https://github.com/oceanbase/obdiag">
+        <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag" />
     </a>
-    <a href="https://github.com/oceanbase/oceanbase-diagnostic-tool">
-        <img alt="forks" src="https://img.shields.io/badge/dynamic/json?color=blue&label=forks&query=forks&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase-diagnostic-tool" />
+    <a href="https://github.com/oceanbase/obdiag">
+        <img alt="forks" src="https://img.shields.io/badge/dynamic/json?color=blue&label=forks&query=forks&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag" />
     </a>
     <a href="https://www.oceanbase.com/docs/obdiag-cn">
         <img alt="Chinese doc" src="https://img.shields.io/badge/文档-简体中文-blue" />
@@ -67,9 +67,9 @@ For more details, please refer to [Official docs](https://www.oceanbase.com/docs
 
 obdiag envisions an open community. We welcome your contributions in any form:
 
-- Report bugs through [Issues](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues).
-- Participate in or initiate discussions via [Discussion](https://github.com/oceanbase/oceanbase-diagnostic-tool/discussions).
-- Contribute bug fixes or new features through [Pull requests](https://github.com/oceanbase/oceanbase-diagnostic-tool/pulls).
+- Report bugs through [Issues](https://github.com/oceanbase/obdiag/issues).
+- Participate in or initiate discussions via [Discussion](https://github.com/oceanbase/obdiag/discussions).
+- Contribute bug fixes or new features through [Pull requests](https://github.com/oceanbase/obdiag/pulls).
 
 
 
@@ -97,7 +97,7 @@ distribute the source code, please obey the MulanPubL - 2.0 license.
 
 In case you have any problems when using obdiag, welcome reach out for help:
 
-- [GitHub Issue](https://github.com/oceanbase/oceanbase-diagnostic-tool/issues)
+- [GitHub Issue](https://github.com/oceanbase/obdiag/issues)
 - [Official Website](https://www.oceanbase.com/docs/obdiag-cn)
 - obdiag SIG WeChat: obdiagsig
 
