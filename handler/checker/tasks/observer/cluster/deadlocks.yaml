@@ -1,7 +1,6 @@
 info: "Check whether there is a deadlock."
 task:
   - version: "[4.0.0.0,*]"
-    execute_type: "one_node"
     steps:
     - type: sql
       sql: 'select count(0) from oceanbase.DBA_OB_DEADLOCK_EVENT_HISTORY;'

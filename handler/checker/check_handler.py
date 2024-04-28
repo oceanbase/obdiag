@@ -225,7 +225,6 @@ class CheckHandler:
             raise CheckException("execute_one Exception : {0}".format(e))
 
     def execute(self):
-        start_time = time.time()
         try:
             self.stdio.verbose(
                 "execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()),
@@ -242,8 +241,7 @@ class CheckHandler:
             self.stdio.error("Report error :{0}".format(e))
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
-        end_time = time.time()
-        print("Total cost time is {0} s".format((end_time - start_time)))
+
 class checkOBConnectorPool:
     def __init__(self,context, max_size, cluster):
         self.max_size = max_size
