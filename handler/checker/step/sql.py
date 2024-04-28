@@ -61,8 +61,9 @@ class StepSQLHandler:
             if data is None:
                 self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
             self.stdio.verbose("execute_sql result:{0}".format(data))
-            if len(data) == 0:
+            if len(data) == 0 or data is None:
                 self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
+                data=""
             else:
                 data = data[0][0]
             if data is None:
