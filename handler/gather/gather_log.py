@@ -35,6 +35,7 @@ from common.tool import NetUtils
 class GatherLogHandler(BaseShellHandler):
     def __init__(self, context, gather_pack_dir='./', is_scene=False):
         super(GatherLogHandler, self).__init__()
+        self.pack_dir_this_command = ""
         self.context = context
         self.stdio = context.stdio
         self.is_ssh = True
@@ -168,6 +169,7 @@ class GatherLogHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
+        self.pack_dir_this_command=pack_dir_this_command
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
@@ -333,6 +335,7 @@ class GatherLogHandler(BaseShellHandler):
         """
         log_path = os.path.join(home_path, "log")
         if self.grep_options is not None:
+            grep_cmd=""
             if type(self.grep_options) == str:
                 grep_cmd = "grep -e '{grep_options}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
                     grep_options=self.grep_options,

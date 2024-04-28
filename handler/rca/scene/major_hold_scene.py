@@ -12,7 +12,7 @@
 
 """
 @time: 2024/1/2
-@file: major_hold.py
+@file: major_hold_scene.py
 @desc:
 """
 import json

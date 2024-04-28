@@ -12,7 +12,7 @@
 
 """
 @time: 2024/04/01
-@file: ddl_disk_full.py
+@file: ddl_disk_full_scene.py
 @desc:
 """
 import re
@@ -69,6 +69,9 @@ class DDlDiskFullScene(RcaScene):
 
         tenant_data = self.ob_connector.execute_sql(
             "select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
+        if len(tenant_data) == 0:
+            raise RCAInitException(
+                "can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
         self.tenant_id = tenant_data[0][0]
         if self.tenant_id is None:
             raise RCAInitException(
@@ -76,6 +79,9 @@ class DDlDiskFullScene(RcaScene):
 
         table_id_data = self.ob_connector.execute_sql(
             "select table_id from oceanbase.__all_virtual_table where table_name = '{0}';".format(table_name))
+        if len(table_id_data) == 0:
+            raise RCAInitException(
+                "can not find table id by table name: {0}. Please check the table name.".format(table_name))
         self.table_id = table_id_data[0][0]
         if self.table_id is None:
             raise RCAInitException(

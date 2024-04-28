@@ -23,24 +23,23 @@ from common.tool import Util
 
 
 class StepSQLHandler:
-    def __init__(self,context, step, ob_cluster, task_variable_dict):
+    def __init__(self,context, step, task_variable_dict):
         try:
             self.context = context
             self.stdio = context.stdio
-            self.ob_cluster = ob_cluster
-            self.ob_cluster_name = ob_cluster.get("cluster_name")
+            self.ob_cluster = self.context.cluster_config
+            self.ob_cluster_name = self.ob_cluster.get("cluster_name")
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
-                                        port=ob_cluster.get("db_port"),
-                                        username=ob_cluster.get("tenant_sys").get("user"),
-                                        password=ob_cluster.get("tenant_sys").get("password"),
-                                        stdio=self.stdio,
-                                        timeout=10000)
+            self.ob_connector_pool=self.context.get_variable('check_obConnector_pool',None)
+            if self.ob_connector_pool is not None:
+                self.ob_connector=self.ob_connector_pool.get_connection()
+            if self.ob_connector is None:
+                raise Exception("self.ob_connector is None.")
         except Exception as e:
-            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
-            raise Exception("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. Exception : {0} .".format(e))
+            raise Exception("StepSQLHandler init fail. Please check the OBCLUSTER conf. Exception : {0} .".format(e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.trace_id = None
@@ -62,8 +61,9 @@ class StepSQLHandler:
             if data is None:
                 self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
             self.stdio.verbose("execute_sql result:{0}".format(data))
-            if len(data) == 0:
+            if len(data) == 0 or data is None:
                 self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
+                data=""
             else:
                 data = data[0][0]
             if data is None:
@@ -73,8 +73,10 @@ class StepSQLHandler:
                 self.stdio.verbose("sql execute update task_variable_dict: {0} = {1}".format(self.step["result"]["set_value"], Util.convert_to_number(data)))
                 self.task_variable_dict[self.step["result"]["set_value"]] = Util.convert_to_number(data)
         except Exception as e:
-            self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
-            raise StepExecuteFailException("StepSQLHandler execute Exception: {0}".format(e).strip())
+            self.stdio.error("StepSQLHandler execute Exception: {0}".format(e))
+            raise StepExecuteFailException("StepSQLHandler execute Exception: {0}".format(e))
+        finally:
+            self.ob_connector_pool.release_connection(self.ob_connector)
 
     def update_step_variable_dict(self):
         return self.task_variable_dict

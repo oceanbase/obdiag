@@ -1,0 +1,19 @@
+info: "Check the number of tenant"
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select count(0)/2 from oceanbase.__all_tenant where tenant_id>1000;'
+      result:
+        set_value: tenant_nu
+        verify_type: max
+        verify: 100
+        err_msg: "The number of tenants: #{tenant_nu}.recommended: tenant_nu<50"
+    - type: sql
+      sql: 'select count(0)/2 from oceanbase.__all_tenant where tenant_id>1000;'
+      result:
+        set_value: tenant_nu
+        verify_type: max
+        report_type: warning
+        verify: 50
+        err_msg: "The number of tenants: #{tenant_nu}.recommended: tenant_nu<50"
