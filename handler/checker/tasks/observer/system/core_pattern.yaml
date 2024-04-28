@@ -5,5 +5,5 @@ task:
         parameter: kernel.core_pattern
         result:
           set_value: core_pattern
-          verify: '[[ $core_pattern == *" "* ]]'
-          err_msg: 'clock_source: #{clock_source}. recommended: tsc. Uneven CPU utilization during pressure testing resulted in low TPS during pressure testing'
+          verify: '[[ $core_pattern != *" "* ]]'
+          err_msg: 'kernel.core_pattern: #{core_pattern} , is not recommended for configuring functions other than the specified core path'

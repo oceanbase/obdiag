@@ -33,7 +33,6 @@ from common.tool import Util
 from common.tool import YamlUtils
 from common.tool import StringUtils
 
-
 class CheckHandler:
 
     def __init__(self, context,  check_target_type="observer"):
@@ -113,8 +112,8 @@ class CheckHandler:
         self.version=get_version(self.nodes, self.check_target_type,self.cluster, self.stdio)
 
         # add OBConnectorPool
-        OBConnectorPool = None
         try:
+            global OBConnectorPool
             OBConnectorPool=checkOBConnectorPool(context,2,self.cluster)
 
         except Exception as e:
@@ -252,29 +251,32 @@ class checkOBConnectorPool:
         self.cluster=cluster
         self.connections = queue.Queue(maxsize=max_size)
         self.stdio=context.stdio
+        self.stdio.verbose("obConnectorPool init success!")
+        try:
+            for i in range(max_size):
+                conn = OBConnector(
+                    ip=self.cluster.get("db_host"),
+                    port=self.cluster.get("db_port"),
+                    username=self.cluster.get("tenant_sys").get("user"),
+                    password=self.cluster.get("tenant_sys").get("password"),
+                    stdio=self.stdio,
+                    timeout=10000
+                )
+                self.connections.put(conn)
+            self.stdio.verbose("obConnectorPool init success!")
+        except Exception as e:
+            self.stdio.error("obConnectorPool init fail! err:".format(e))
+
 
     def get_connection(self):
         try:
-            if self.connections.qsize() == 0:
-                if self.connections.qsize() < self.max_size:
-                    conn = OBConnector(
-                        ip=self.cluster.get("db_host"),
-                        port=self.cluster.get("db_port"),
-                        username=self.cluster.get("tenant_sys").get("user"),
-                        password=self.cluster.get("tenant_sys").get("password"),
-                        stdio=self.stdio,
-                        timeout=10000
-                    )
-                    self.connections.put(conn)
-                else:
-                    conn = self.connections.get()
-            else:
-                conn = self.connections.get()
-            return conn
+            return self.connections.get()
         except Exception as e:
+            self.stdio.error("get connection fail! err:".format(e))
             return None
 
     def release_connection(self, conn):
+
         if conn is not None:
             self.connections.put(conn)
         return

@@ -55,13 +55,13 @@ class StepBase(object):
             if "type" not in self.step:
                 raise StepExecuteFailException("Missing field :type")
             if self.step["type"] == "get_system_parameter":
-                handler = GetSystemParameterHandler(self.context, self.step, self.node, self.task_variable_dict,self.obConnector)
+                handler = GetSystemParameterHandler(self.context, self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "ssh":
-                handler = SshHandler(self.context, self.step, self.node, self.task_variable_dict,self.obConnector)
+                handler = SshHandler(self.context, self.step, self.node, self.task_variable_dict)
             elif self.step["type"] == "sql":
-                handler = StepSQLHandler(self.context, self.step, task_variable_dict=self.task_variable_dict,obConnector=self.obConnector)
+                handler = StepSQLHandler(self.context, self.step, task_variable_dict=self.task_variable_dict)
             elif self.step["type"] == "data_size":
-                handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict,self.obConnector)
+                handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict)
             else:
                 raise StepExecuteFailException("the type not support: {0}".format(self.step["type"]))
             self.stdio.verbose("task execute and result")

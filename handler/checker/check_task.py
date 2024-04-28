@@ -51,20 +51,14 @@ class TaskBase(object):
         # TODO: 这里的逻辑需要优化，如果一个节点执行失败了，那么后续的步骤就不会被执行了。
         work_threads = []
         for node in self.nodes:
-            obConnector = OBConnector(ip=self.cluster.get("db_host"),
-                                      port=self.cluster.get("db_port"),
-                                      username=self.cluster.get("tenant_sys").get("user"),
-                                      password=self.cluster.get("tenant_sys").get("password"),
-                                      stdio=self.stdio,
-                                      timeout=10000)
-            t = threading.Thread(target=self.execute_one_node, args=(steps_nu,node,obConnector))
+            t = threading.Thread(target=self.execute_one_node, args=(steps_nu,node))
             work_threads.append(t)
             t.start()
         for t in work_threads:
             t.join()
 
         self.stdio.verbose("task execute end")
-    def execute_one_node(self,steps_nu,node,obConnector):
+    def execute_one_node(self,steps_nu,node):
         try:
             self.stdio.verbose("run task in node: {0}".format(StringUtils.node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
@@ -74,7 +68,7 @@ class TaskBase(object):
                     self.stdio.verbose("step nu: {0}".format(nu))
                     if len(self.cluster) == 0:
                         raise Exception("cluster is not exist")
-                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict,obConnector)
+                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
                     self.task_variable_dict = step_run.update_task_variable_dict()

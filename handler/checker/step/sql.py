@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class StepSQLHandler:
-    def __init__(self,context, step, task_variable_dict,obConnector):
+    def __init__(self,context, step, task_variable_dict):
         try:
             self.context = context
             self.stdio = context.stdio

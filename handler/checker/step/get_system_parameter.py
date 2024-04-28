@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class GetSystemParameterHandler:
-    def __init__(self,context, step, node, task_variable_dict,obConnector):
+    def __init__(self,context, step, node, task_variable_dict):
         self.context = context
         self.stdio = context.stdio
         self.stdio.verbose("init GetSystemParameterHandler")
