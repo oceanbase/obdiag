@@ -113,13 +113,12 @@ class CheckHandler:
 
         # add OBConnectorPool
         try:
-            global OBConnectorPool
-            OBConnectorPool=checkOBConnectorPool(context,2,self.cluster)
+            obConnectorPool=checkOBConnectorPool(context,2,self.cluster)
 
         except Exception as e:
             self.stdio.warn("obConnector init error. Error info is {0}".format(e))
         finally:
-            self.context.set_variable('check_obConnector_pool', OBConnectorPool)
+            self.context.set_variable('check_obConnector_pool', obConnectorPool)
 
 
     def handle(self):

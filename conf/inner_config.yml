@@ -17,7 +17,6 @@ check:
   report:
     report_path: "./check_report/"
     export_type: table
-  package_file: "~/.obdiag/check/check_package.yaml"
   tasks_base_path: "~/.obdiag/check/tasks/"
 gather:
   scenes_base_path: "~/.obdiag/gather/tasks"

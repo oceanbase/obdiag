@@ -27,7 +27,7 @@ import docker
 
 
 class StepBase(object):
-    def __init__(self, context, step, node, cluster, task_variable_dict,obConnector):
+    def __init__(self, context, step, node, cluster, task_variable_dict):
         self.context = context
         self.stdio = context.stdio
         self.step = step
@@ -35,7 +35,6 @@ class StepBase(object):
         self.cluster = cluster
         self.task_variable_dict = {}
         self.task_variable_dict = task_variable_dict
-        self.obConnector=obConnector
 
     def execute(self, report):
         no_cluster_name_msg = "(Please set ob_cluster_name or obproxy_cluster_name)"
