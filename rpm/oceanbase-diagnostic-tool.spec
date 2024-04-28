@@ -25,6 +25,7 @@ VERSION="$RPM_PACKAGE_VERSION"
 
 cd $SRC_DIR
 pwd
+pip install -r requirements3.txt
 cp -f main.py obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
@@ -79,5 +80,6 @@ find /usr/local/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
 ln -sf /usr/local/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /usr/local/oceanbase-diagnostic-tool/obdiag
 cp -rf /usr/local/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
+sh /usr/local/oceanbase-diagnostic-tool/init.sh
 echo -e 'Please execute the following command to init obdiag:\n'
-echo -e '\033[32m source /usr/local/oceanbase-diagnostic-tool/init.sh \n \033[0m'
+echo -e '\033[32m source ~/.bashrc \n \033[0m'
