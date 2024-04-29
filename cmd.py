@@ -562,24 +562,23 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         return obdiag.gather_function('gather_scenes_run', self.opts)
 
 
-class ObdiagGatherAshReportRunCommand(ObdiagOriginCommand):
+class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherAshReportRunCommand, self).__init__('run', 'gather ash report')
-        self.parser.add_option('--trace_id', type='string', help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
-        self.parser.add_option('--sql_id', type='string', help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
-        #WAIT_CLASS
+        super(ObdiagGatherAshReportCommand, self).__init__('ash', 'gather ash report')
+        self.parser.add_option('--trace_id', type='string',
+                               help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
+        self.parser.add_option('--sql_id', type='string',
+                               help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
+        # WAIT_CLASS
         self.parser.add_option('--wait_class', type='string',
-                               help='Report type.',default='TEXT')
-        self.parser.add_option('--report_type', type='string',
                                help='Event types to be sampled.')
+        self.parser.add_option('--report_type', type='string',
+                               help='Report type, currently only supports text type.', default='TEXT')
         self.parser.add_option('--from', type='string',
                                help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string',
                                help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--since', type='string',
-                               help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.",
-                               default='30m')
         self.parser.add_option('--store_dir', type='string',
                                help='the dir to store gather result, current dir by default.', default='./')
 
@@ -587,7 +586,7 @@ class ObdiagGatherAshReportRunCommand(ObdiagOriginCommand):
                                default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
-        super(ObdiagGatherAshReportRunCommand, self).init(cmd, args)
+        super(ObdiagGatherAshReportCommand, self).init(cmd, args)
         return self
 
     def _do_command(self, obdiag):
@@ -600,7 +599,6 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')       
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--log_level', type='string', help="oceanbase logs greater than or equal to this level will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR]")
@@ -745,6 +743,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherAwrCommand())
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
+        self.register_command(ObdiagGatherAshReportCommand())
 
 
 class ObdiagGatherSceneCommand(MajorCommand):
