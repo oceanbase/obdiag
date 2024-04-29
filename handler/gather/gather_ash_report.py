@@ -28,6 +28,7 @@ from colorama import Fore, Style
 class GatherAshReportHandler(SafeStdio):
     def __init__(self, context, gather_pack_dir='./'):
         super().__init__()
+        self.result_summary_file_name = None
         self.report_type = None
         self.wait_class = None
         self.sql_id = None
@@ -83,12 +84,15 @@ class GatherAshReportHandler(SafeStdio):
             # save ash_report_data
             self.ash_report_file_name = "ash_report_{0}.txt".format(
                 TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
-            self.ash_report_file_name=os.path.join(self.report_path, "result_summary.txt")
-
-            self.stdio.verbose("save ash report file name: {0}".format(self.ash_report_file_name))
+            self.ash_report_file_name=os.path.join(self.report_path, self.ash_report_file_name)
 
             with open(self.ash_report_file_name, 'w+') as f:
                 f.write(ash_report)
+            self.stdio.print("save ash report file name:"+ Fore.YELLOW +"{0}".format(self.ash_report_file_name)+Style.RESET_ALL)
+            self.result_summary_file_name = os.path.join(self.report_path, "result_summary.txt")
+            with open(self.ash_report_file_name, 'w+') as f:
+                f.write(self.ash_report_file_name)
+
         except Exception as e:
             self.stdio.error("ash report gather failed, error message: {0}".format(e))
 
@@ -174,6 +178,6 @@ class GatherAshReportHandler(SafeStdio):
         return True
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}".format(
-           self.ash_report_file_name) + Style.RESET_ALL)
+        self.stdio.print(Fore.YELLOW + "\nGather ash_report results stored in this directory: {0}".format(
+           self.report_path) + Style.RESET_ALL)
         self.stdio.print("")

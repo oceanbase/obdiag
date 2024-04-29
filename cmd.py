@@ -565,7 +565,7 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
 class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherAshReportCommand, self).__init__('ash', 'gather ash report')
+        super(ObdiagGatherAshReportCommand, self).__init__('ash', 'Gather ash report')
         self.parser.add_option('--trace_id', type='string',
                                help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
         self.parser.add_option('--sql_id', type='string',
