@@ -21,9 +21,10 @@ import os
 from optparse import Values
 from copy import copy
 
+from handler.gather.gather_ash_report import GatherAshReportHandler
 from handler.rca.rca_handler import RCAHandler
 from handler.rca.rca_list import RcaScenesListHandler
-from common.ssh import SshClient, SshConfig
+from common.ssh import SshClient, SshConfig, dis_rsa_algorithms
 from context import HandlerContextNamespace, HandlerContext
 from config import ConfigManager, InnerConfigManager
 from err import CheckStatus, SUG_SSH_FAILED
@@ -67,6 +68,10 @@ class ObdiagHome(object):
                 "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get(
                 "telemetry") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False:
             telemetry.work_tag = False
+        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get(
+                "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms") is not None :
+            disable_rsa_algorithms=self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms")
+            dis_rsa_algorithms(disable_rsa_algorithms)
 
     def fork(self, cmds=None, options=None, stdio=None):
         new_obdiag = copy(self)
@@ -235,6 +240,9 @@ class ObdiagHome(object):
                 return handler.handle()
             elif function_type == 'gather_scenes_run':
                 handler = GatherSceneHandler(self.context)
+                return handler.handle()
+            elif function_type == 'gather_ash_report':
+                handler =GatherAshReportHandler(self.context)
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
