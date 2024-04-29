@@ -64,6 +64,7 @@ DEFAULT_INNER_CONFIG = {
                 'config_backup_dir': '~/.obdiag/backup_conf',
                 'file_number_limit': 20,
                 'file_size_limit': '2G',
+                'dis_rsa_algorithms':0,
             },
             'logger': {
                 'log_dir': '~/.obdiag/log',
