@@ -18,9 +18,10 @@
 import datetime
 import os
 
+from common.command import get_observer_version, get_observer_version_by_sql
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
-from common.tool import DirectoryUtil, TimeUtils, Util
+from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
 from stdio import SafeStdio
 from colorama import Fore, Style
 
@@ -45,6 +46,8 @@ class GatherAshReportHandler(SafeStdio):
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
         self.cluster = self.context.cluster_config
+
+        self.observer_nodes = self.context.cluster_config.get("servers")
         try:
             self.obconn = OBConnector(
                 ip=self.cluster.get("db_host"),
@@ -60,12 +63,31 @@ class GatherAshReportHandler(SafeStdio):
             raise OBDIAGFormatException("Failed to connect to database: {0}".format(e))
 
     def handle(self):
+        if not self.version_check():
+            self.stdio.error('version check failed')
+            return False
         if not self.init_option():
             self.stdio.error('init option failed')
             return False
         self.__init_report_path()
         self.execute()
         self.__print_result()
+    def version_check(self):
+        observer_version = ""
+        try:
+            observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+        except Exception as e:
+            if len(self.observer_nodes) > 0:
+                observer_version = get_observer_version(True, self.observer_nodes[0]["ssher"],
+                                                            self.observer_nodes[0]["home_path"],self.stdio)
+            else:
+                self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+        self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
+
+        if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
+            self.stdio.error("observer version: {0}, must greater than 4.0.0.0".format(observer_version))
+            return False
+        return True
 
     def execute(self):
         try:
