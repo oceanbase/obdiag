@@ -562,19 +562,50 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         return obdiag.gather_function('gather_scenes_run', self.opts)
 
 
+class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherAshReportCommand, self).__init__('ash', 'Gather ash report')
+        self.parser.add_option('--trace_id', type='string',
+                               help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
+        self.parser.add_option('--sql_id', type='string',
+                               help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
+        # WAIT_CLASS
+        self.parser.add_option('--wait_class', type='string',
+                               help='Event types to be sampled.')
+        self.parser.add_option('--report_type', type='string',
+                               help='Report type, currently only supports text type.', default='TEXT')
+        self.parser.add_option('--from', type='string',
+                               help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string',
+                               help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--store_dir', type='string',
+                               help='the dir to store gather result, current dir by default.', default='./')
+
+        self.parser.add_option('-c', type='string', help='obdiag custom config',
+                               default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherAshReportCommand, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_ash_report', self.opts)
+
+
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')       
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--log_level', type='string', help="oceanbase logs greater than or equal to this level will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR]")
         self.parser.add_option('--files', action="append", type='string', help="specify files")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--since', type='string',help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.",default='30m')
 
     def init(self, cmd, args):
         super(ObdiagAnalyzeLogCommand, self).init(cmd, args)
@@ -713,6 +744,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherAwrCommand())
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
+        self.register_command(ObdiagGatherAshReportCommand())
 
 
 class ObdiagGatherSceneCommand(MajorCommand):

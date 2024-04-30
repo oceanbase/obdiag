@@ -114,3 +114,13 @@ class OBConnector(object):
         ret = from_db_cursor(cursor)
         cursor.close()
         return ret
+
+    def callproc(self, procname, args=()):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor()
+        cursor.callproc(procname, args)
+        ret = cursor.fetchall()
+        return ret
