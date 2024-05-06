@@ -21,6 +21,7 @@ import os
 from common.command import get_observer_version, get_observer_version_by_sql
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
+from common.ssh import SshHelper
 from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
 from stdio import SafeStdio
 from colorama import Fore, Style
@@ -41,6 +42,7 @@ class GatherAshReportHandler(SafeStdio):
         self.context = context
         self.stdio = self.context.stdio
         self.gather_pack_dir = gather_pack_dir
+        self.ob_cluster = self.context.cluster_config
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -78,7 +80,8 @@ class GatherAshReportHandler(SafeStdio):
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
             if len(self.observer_nodes) > 0:
-                observer_version = get_observer_version(True, self.observer_nodes[0]["ssher"],
+                ssher=SshHelper(self.observer_nodes[0]["ip"], self.observer_nodes[0]["ssh_port"], self.observer_nodes[0]["ssh_username"], self.observer_nodes[0]["ssh_password"])
+                observer_version = get_observer_version(True, ssher,
                                                             self.observer_nodes[0]["home_path"],self.stdio)
             else:
                 self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
@@ -110,9 +113,9 @@ class GatherAshReportHandler(SafeStdio):
 
             with open(self.ash_report_file_name, 'w+') as f:
                 f.write(ash_report)
-            self.stdio.print("save ash report file name:"+ Fore.YELLOW +"{0}".format(self.ash_report_file_name)+Style.RESET_ALL)
+            self.stdio.print("save ash report file name: "+ Fore.YELLOW +"{0}".format(self.ash_report_file_name)+Style.RESET_ALL)
             self.result_summary_file_name = os.path.join(self.report_path, "result_summary.txt")
-            with open(self.ash_report_file_name, 'w+') as f:
+            with open(self.result_summary_file_name, 'w+') as f:
                 f.write(self.ash_report_file_name)
 
         except Exception as e:
