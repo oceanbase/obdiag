@@ -31,7 +31,7 @@ class MajorHoldScene(RcaScene):
     def init(self, context):
         try:
             super().init(context)
-            self.local_path = context.get_variable('result_path')
+            self.local_path = context.get_variable('store_dir')
 
             if self.observer_version is None:
                 raise Exception("obproxy version is None. Please check the NODES conf.")
@@ -52,7 +52,7 @@ class MajorHoldScene(RcaScene):
             COMPACTING_data = self.ob_connector.execute_sql(
                 'select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";')
             if len(COMPACTING_data) == 0:
-                first_record.add_record("CDB_OB_MAJOR_COMPACTION is not exist IS_ERROR='YES'")
+                first_record.add_record("ON CDB_OB_MAJOR_COMPACTION WHERE IS_ERROR='YES', data is not exist")
             else:
                 need_tag = True
                 CDB_OB_MAJOR_COMPACTION_err_tenant_ids = []
@@ -177,22 +177,26 @@ class MajorHoldScene(RcaScene):
 
                 sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(
                     err_tenant_id, global_broadcast_scn)
-                OB_COMPACTION_PROGRESS_data_global_broadcast_scn = self.ob_connector.execute_sql(sql)
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_global_broadcast_scn".format(
+                cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+                OB_COMPACTION_PROGRESS_data_global_broadcast_scn_data = cursor.fetchall()
+                OB_COMPACTION_PROGRESS_data_global_broadcast_scn_json_data = json.dumps(OB_COMPACTION_PROGRESS_data_global_broadcast_scn_data, cls=DateTimeEncoder)
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_global_broadcast_scn.json".format(
                     self.local_path, err_tenant_id)
-                with open(file_name, 'w') as f:
-                    f.write(str(OB_COMPACTION_PROGRESS_data_global_broadcast_scn))
+                with open(file_name, 'w+') as f:
+                    f.write(str(OB_COMPACTION_PROGRESS_data_global_broadcast_scn_json_data))
                 tenant_record.add_record(
                     "tenant_id:{0} OB_COMPACTION_PROGRESS_data_global_broadcast_scn save on {1}".format(err_tenant_id,
                                                                                                         file_name))
 
                 sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(
                     err_tenant_id, last_scn)
-                OB_COMPACTION_PROGRESS_data_last_scn = self.ob_connector.execute_sql(sql)
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_last_scn".format(
+                cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+                OB_COMPACTION_PROGRESS_data_last_scn_data = cursor.fetchall()
+                OB_COMPACTION_PROGRESS_data_last_scn_json_data = json.dumps(OB_COMPACTION_PROGRESS_data_last_scn_data, cls=DateTimeEncoder)
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_last_scn.json".format(
                     self.local_path, err_tenant_id)
-                with open(file_name, 'w') as f:
-                    f.write(str(OB_COMPACTION_PROGRESS_data_last_scn))
+                with open(file_name, 'w+') as f:
+                    f.write(str(OB_COMPACTION_PROGRESS_data_last_scn_json_data))
                 tenant_record.add_record(
                     "tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id,
                                                                                             file_name))
@@ -233,19 +237,31 @@ class MajorHoldScene(RcaScene):
             try:
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
                     'select * from oceanbase.GV$OB_COMPACTION_SUGGESTIONS where tenant_id="{0}";'.format(err_tenant_id))
-                columns = [column[0] for column in cursor.description]
                 OB_COMPACTION_SUGGESTIONS_data = cursor.fetchall()
                 OB_COMPACTION_SUGGESTIONS_info = json.dumps(OB_COMPACTION_SUGGESTIONS_data, cls=DateTimeEncoder)
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info".format(
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info.json".format(
                     self.local_path, err_tenant_id)
-                with open(file_name, 'w') as f:
+                with open(file_name, 'w+') as f:
                     f.write(str(OB_COMPACTION_SUGGESTIONS_info))
                 tenant_record.add_record(
                     "tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id,
                                                                                             file_name))
 
             except Exception as e:
-                self.stdio.warn("MajorHoldScene execute 5 exception: {0}".format(e))
+                self.stdio.error("MajorHoldScene execute 5 exception: {0}".format(e))
+            #6
+            try:
+                # get oceanbase.__all_virtual_dag_warning_history status="RETRYED" type like "%MERGE%"
+                cursor=self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.__all_virtual_dag_warning_history WHERE tenant_id="{0}" AND status="RETRYED" AND type like "%MERGE%";'.format(err_tenant_id))
+                __all_virtual_dag_warning_history_data = cursor.fetchall()
+                file_name = "{0}/rca_major_hold_{0}_all_virtual_dag_warning_history.json".format(
+                    self.local_path, err_tenant_id)
+                __all_virtual_dag_warning_history_json_data = json.dumps(__all_virtual_dag_warning_history_data, cls=DateTimeEncoder)
+                with open(file_name, 'w+') as f:
+                    f.write(str(__all_virtual_dag_warning_history_json_data))
+                tenant_record.add_record("tenant_id:{0} all_virtual_dag_warning_history save on {1}".format(err_tenant_id,file_name))
+            except Exception as e:
+                self.stdio.error("MajorHoldScene execute 6 exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
             self.Result.records.append(tenant_record)
 
@@ -255,14 +271,14 @@ class MajorHoldScene(RcaScene):
                 "SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE IS_ERROR = 'NO' OR IS_SUSPENDED = 'NO';")
             if len(COMPACTING_datas) == 0:
                 tenant_record.add_record(
-                    "sql:select * from oceanbase.__all_virtual_compaction_diagnose_info; no data")
+                    "ON oceanbase.__all_virtual_compaction_diagnose_info. No data WHERE IS_ERROR = 'NO' OR IS_SUSPENDED = 'NO';")
                 return
             else:
                 tenant_record.add_record(
                     "sql:select * from oceanbase.CDB_OB_MAJOR_COMPACTION where status=COMPACTING; "
                     "result:{0}".format(str(COMPACTING_datas)))
             for index, COMPACTING_data in COMPACTING_datas:
-                self.diagnose_info_switch(COMPACTING_data)
+                self.diagnose_info_switch(COMPACTING_data,tenant_record)
         except Exception as e:
             raise RCAExecuteException(
                 "MajorHoldScene execute get_info__all_virtual_compaction_diagnose_info exception: {0}".format(e))
@@ -288,7 +304,7 @@ class MajorHoldScene(RcaScene):
             log_name = "/tmp/rca_major_hold_schedule_medium_failed_{1}_{2}_{0}.txt".format(tenant_id, svr_ip,
                                                                                            svr_port)
             tenant_record.add_record(
-                "diagnose_info type is 'schedule medium failed'. time is {0},observer is {1}:{2},the log is {3}".format(
+                "diagnose_info type: 'schedule medium failed'. time is {0},observer is {1}:{2},the log is {3}".format(
                     create_time, svr_ip, svr_port, log_name))
             ssh_helper.ssh_exec_cmd(
                 'grep "schedule_medium_failed" {1}/log/observer.log* |grep -P  "\[\d+\]" -m 1 -o >{0}'.format(log_name,
@@ -309,12 +325,12 @@ class MajorHoldScene(RcaScene):
                     table_id, tenant_id))[0][7]
             if compaction_scn > global_broadcast_scn:
                 tenant_record.add_record(
-                    "diagnose_info type is error_no. error_no: {0}, err_trace: {1} , table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn>global_broadcast_scn".format(
+                    "diagnose_info type: error_no. error_no: {0}, err_trace: {1} , table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn>global_broadcast_scn".format(
                         err_no, err_trace, table_id, tenant_id, compaction_scn, global_broadcast_scn))
                 return
             else:
                 tenant_record.add_record(
-                    "diagnose_info type is error_no. error_no: {0}, err_trace:{1}, table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn<global_broadcast_scn".format(
+                    "diagnose_info type: error_no. error_no: {0}, err_trace:{1}, table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn<global_broadcast_scn".format(
                         err_no, err_trace, table_id, tenant_id, compaction_scn, global_broadcast_scn))
                 node = None
                 ssh_helper = None
@@ -343,7 +359,7 @@ class MajorHoldScene(RcaScene):
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
 
             tenant_record.add_record(
-                "diagnose_info type is 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(
+                "diagnose_info type : 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(
                     create_time, svr_ip, svr_port, log_name))
             ssh_helper.ssh_exec_cmd('cat observer.log* |grep "{1}" > /tmp/{0}'.format(log_name, err_trace))
             ssh_helper.download(log_name, local_path=self.local_path)
@@ -354,7 +370,7 @@ class MajorHoldScene(RcaScene):
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
                 "select * from oceanbase.__all_virtual_ls_info where tenant_id='{0}' and ls_id='{1}';".format(tenant_id,
                                                                                                               ls_id))
-            columns = [column[0] for column in cursor.description]
+            
             all_virtual_ls_info_data = cursor.fetchall()
             self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
             tenant_record.add_record(
@@ -363,7 +379,7 @@ class MajorHoldScene(RcaScene):
                 "result:{0}".format(str(self.all_virtual_ls_info)))
             return
         elif "memtable can not create dag successfully" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is memtable can not create dag successfully.")
+            tenant_record.add_record("diagnose_info type: memtable can not create dag successfully.")
 
             global_broadcast_scn = self.ob_connector.execute_sql(
                 "select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(tenant_id))[0][3]
@@ -372,14 +388,14 @@ class MajorHoldScene(RcaScene):
                     table_id, tenant_id))[0][7]
             if compaction_scn > global_broadcast_scn:
                 tenant_record.add_record(
-                    "diagnose_info type is memtable can not create dag successfully.   table_id:{0}, tenant_id:{1}, compaction_scn: {2}, global_broadcast_scn: {3}. compaction_scn>global_broadcast_scn".format(
+                    "diagnose_info type: memtable can not create dag successfully.   table_id:{0}, tenant_id:{1}, compaction_scn: {2}, global_broadcast_scn: {3}. compaction_scn>global_broadcast_scn".format(
                         table_id, tenant_id, compaction_scn, global_broadcast_scn))
                 return
             else:
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
                     "select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(
                         svr_ip, svr_port, tenant_id))
-                columns = [column[0] for column in cursor.description]
+                
                 all_virtual_ls_info_data = cursor.fetchall()
                 self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
                 tenant_record.add_record(
@@ -390,11 +406,11 @@ class MajorHoldScene(RcaScene):
 
             return
         elif "medium wait for freeze" in diagnose_info or "major wait for freeze" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is medium wait for freeze or major wait for freeze.")
+            tenant_record.add_record("diagnose_info type: medium wait for freeze or major wait for freeze.")
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
                 "select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(
                     svr_ip, svr_port, tenant_id))
-            columns = [column[0] for column in cursor.description]
+            
             all_virtual_ls_info_data = cursor.fetchall()
             self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
             tenant_record.add_record(
@@ -404,11 +420,10 @@ class MajorHoldScene(RcaScene):
                 "result:{0}".format(str(self.all_virtual_ls_info)))
             return
         elif "major not schedule for long time" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is major not schedule for long time")
+            tenant_record.add_record("diagnose_info type: ‘major not schedule for long time’")
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
                 "select * from oceanbase.__all_virtual_tablet_compaction_info where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}' and ls_id='{3}' and tablet_id='{4}';".format(
                     svr_ip, svr_port, tenant_id, ls_id, table_id))
-            columns = [column[0] for column in cursor.description]
             all_virtual_ls_info_data = cursor.fetchall()
             all_virtual_tablet_compaction_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
             tenant_record.add_record(
@@ -429,7 +444,7 @@ class MajorHoldScene(RcaScene):
                                                                                                      svr_ip,
                                                                                                      svr_port)
             tenant_record.add_record(
-                "diagnose_info type is 'major not schedule for long time'. time is {0},observer is {1}:{2},the log is {3}".format(
+                "diagnose_info type: 'major not schedule for long time'. time is {0},observer is {1}:{2},the log is {3}".format(
                     create_time, svr_ip, svr_port, log_name))
             thread_id = ssh_helper.ssh_exec_cmd(
                 'cat {0}/log/observer.log* |grep "MediumLoo" -m 1 |grep -P  "\[\d+\]" -m 1 -o | grep -oP "\d+"'.format(
@@ -441,7 +456,7 @@ class MajorHoldScene(RcaScene):
             ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
 
         else:
-            tenant_record.add_record("diagnose_info type is Unknown.")
+            tenant_record.add_record("diagnose_info type: Unknown.")
 
     def export_result(self):
         return self.Result.export()
