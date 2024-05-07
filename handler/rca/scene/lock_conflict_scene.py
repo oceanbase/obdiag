@@ -73,7 +73,7 @@ class LockConflictScene(RcaScene):
                     trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
                     session_datas = cursor_by_trans_id.fetchall()
                     trans_record.add_record(
-                        "get SESSION_ID by wait_lock_trans_id:{0}. get data:{0}".format(trans_id, session_datas))
+                        "get SESSION_ID by wait_lock_trans_id:{0}. get data:{1}".format(trans_id, session_datas))
                     if len(session_datas) != 1:
                         trans_record.add_suggest("wait_lock_session_id is not get. The holding lock trans_id is {0}. You can resolve lock conflicts by killing this locked session, but this may cause business exceptions. Please use with caution.".format(trans_id))
                         continue
