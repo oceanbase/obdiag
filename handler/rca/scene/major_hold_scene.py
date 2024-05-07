@@ -31,7 +31,7 @@ class MajorHoldScene(RcaScene):
     def init(self, context):
         try:
             super().init(context)
-            self.local_path = context.get_variable('result_path')
+            self.local_path = context.get_variable('store_dir')
 
             if self.observer_version is None:
                 raise Exception("obproxy version is None. Please check the NODES conf.")
