@@ -293,20 +293,15 @@ class Result:
 
 
 class RCA_ResultRecord:
-    def __init__(self,stdio=None):
+    def __init__(self):
         self.records = []
         self.suggest = "The suggest: "
-        self.stdio = stdio
 
     def add_record(self, record):
         self.records.append(record)
-        if self.stdio is not None:
-            self.stdio.verbose("add record: {0}".format(record))
 
     def add_suggest(self, suggest):
         self.suggest += suggest
-        if self.stdio is not None:
-            self.stdio.verbose("add suggest: {0}".format(suggest))
     def suggest_is_empty(self):
         return self.suggest == "The suggest: "
 
