@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-package-x86_64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - name: Checkout code
