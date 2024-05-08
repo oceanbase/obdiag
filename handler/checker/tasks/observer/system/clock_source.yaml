@@ -1,0 +1,11 @@
+info: 'Check the type of clock_source is tsc'
+task:
+  - steps:
+      - type: ssh
+        ssh: "cat /sys/devices/system/clocksource/clocksource0/current_clocksource"
+        result:
+          set_value: clock_source
+          verify: "[[ \"${clock_source}\" == \"tsc\" || \"${clock_source}\" == \"arch_sys_counter\" || \"${clock_source}\" == \"kvm-clock\" ]]"
+          err_msg: 'clock_source: #{clock_source}. recommended: tsc. Uneven CPU utilization during pressure testing resulted in low TPS during pressure testing'
+
+

@@ -1,0 +1,21 @@
+info: "Check sys_log_level ."
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'SELECT value FROM  oceanbase.__all_virtual_sys_parameter_stat where name  like "%syslog_level%";'
+      result:
+        set_value: sys_log_level
+        report_type: warning
+        verify: '[[ $sys_log_level == "WDIAG" ]]'
+        err_msg: "on 4.x, the recommended value for sys_log_level is WDIAG"
+
+  - version: "[3.0.0,4.0.0.0)"
+    steps:
+    - type: sql
+      sql: 'SELECT value FROM  oceanbase.__all_virtual_sys_parameter_stat where name  like "%syslog_level%";'
+      result:
+        set_value: sys_log_level
+        report_type: warning
+        verify: '[[ $sys_log_level == "INFO" ]]'
+        err_msg: "on 3.x, the recommended value for sys_log_level is INFO"

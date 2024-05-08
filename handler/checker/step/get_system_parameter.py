@@ -34,13 +34,9 @@ class GetSystemParameterHandler:
         self.task_variable_dict = task_variable_dict
 
         try:
-            is_ssh = True
-            self.ssh_helper = SshHelper(is_ssh, node.get("ip"),
-                                        node.get("ssh_username"),
-                                        node.get("ssh_password"),
-                                        node.get("ssh_port"),
-                                        node.get("ssh_key_file"),
-                                        node)
+            self.ssh_helper=self.node["ssher"]
+            if self.ssh_helper is None:
+                raise Exception("self.ssh_helper is None.")
         except Exception as e:
             self.stdio.error(
                 "GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))

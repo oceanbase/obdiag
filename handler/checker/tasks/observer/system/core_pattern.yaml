@@ -1,0 +1,9 @@
+info: 'Check  kernel.core_pattern'
+task:
+  - steps:
+      - type: get_system_parameter
+        parameter: kernel.core_pattern
+        result:
+          set_value: core_pattern
+          verify: '[[ $core_pattern != *" "* ]]'
+          err_msg: 'kernel.core_pattern: #{core_pattern} , is not recommended for configuring functions other than the specified core path'

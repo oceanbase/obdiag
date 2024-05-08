@@ -252,6 +252,15 @@ class RcaScene:
         raise Exception("rca ({0})  scene.get_scene_info() undefined".format(type(self).__name__))
     def export_result(self):
         return self.Result.export()
+    def get_all_tenants_id(self):
+        try:
+            if self.ob_connector is None:
+                raise Exception("ob_connector is None")
+            all_tenant_id_data=self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant;")[0]
+            return all_tenant_id_data
+        except Exception as e:
+            raise Exception("run rca's get_all_tenants_id. Exception: {0}".format(e))
+
 
 class Result:
 
@@ -284,15 +293,22 @@ class Result:
 
 
 class RCA_ResultRecord:
-    def __init__(self):
+    def __init__(self,stdio=None):
         self.records = []
         self.suggest = "The suggest: "
+        self.stdio = stdio
 
     def add_record(self, record):
         self.records.append(record)
+        if self.stdio is not None:
+            self.stdio.verbose("add record: {0}".format(record))
 
     def add_suggest(self, suggest):
         self.suggest += suggest
+        if self.stdio is not None:
+            self.stdio.verbose("add suggest: {0}".format(suggest))
+    def suggest_is_empty(self):
+        return self.suggest == "The suggest: "
 
     def export_suggest(self):
         return self.suggest

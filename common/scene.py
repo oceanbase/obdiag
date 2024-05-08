@@ -17,7 +17,8 @@
 """
 from common.ssh import SshHelper
 from common.tool import StringUtils
-from common.command import get_observer_version, get_obproxy_version
+from common.command import get_observer_version, get_obproxy_version, get_observer_version_by_sql
+
 
 def filter_by_version(scene, cluster, stdio=None):
     try:
@@ -59,14 +60,19 @@ def filter_by_version(scene, cluster, stdio=None):
         stdio.exception("filter_by_version Exception : {0}".format(e))
         raise Exception("filter_by_version Exception : {0}".format(e))
 
-def get_version(nodes, type, stdio=None):
+def get_version(nodes, type,cluster, stdio=None):
     try:
         if len(nodes) < 1:
             raise Exception("input nodes is empty, please check your config")
         node = nodes[0]
         ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+        version = ""
         if type == "observer":
-            version = get_observer_version(True, ssh, nodes[0]["home_path"], stdio)
+            try:
+                version = get_observer_version_by_sql(cluster,stdio)
+            except Exception as e:
+                stdio.warn("get observer version by sql fail, use node ssher to get. Exception:{0}".format(e))
+                version = get_observer_version(True, ssh, nodes[0]["home_path"], stdio)
         elif type == "obproxy":
             version = get_obproxy_version(True, ssh, nodes[0]["home_path"], stdio)
         return version

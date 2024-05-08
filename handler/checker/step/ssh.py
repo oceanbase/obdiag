@@ -18,7 +18,6 @@
 
 from handler.checker.check_exception import StepExecuteFailException
 from handler.checker.check_report import TaskReport
-from common.ssh import SshHelper
 from common.tool import StringUtils
 from common.tool import Util
 
@@ -32,13 +31,9 @@ class SshHandler:
         self.step = step
         self.node = node
         try:
-            is_ssh = True
-            self.ssh_helper = SshHelper(is_ssh, node.get("ip"),
-                                        node.get("ssh_username"),
-                                        node.get("ssh_password"),
-                                        node.get("ssh_port"),
-                                        node.get("ssh_key_file"),
-                                        node)
+            self.ssh_helper=self.node["ssher"]
+            if self.ssh_helper is None:
+                raise Exception("self.ssh_helper is None.")
         except Exception as e:
             self.stdio.error(
                 "SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))

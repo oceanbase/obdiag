@@ -811,7 +811,14 @@ class SshClient(SafeStdio):
         except:
             stdio.exception("")
             stdio.verbose('Failed to get %s' % remote_dir)
-
+# TODO ENV_DISABLE_RSA_ALGORITHMS need get by context.inner_context
+ENV_DISABLE_RSA_ALGORITHMS=0
+def dis_rsa_algorithms(state=0):
+    """
+    Disable RSA algorithms in OpenSSH server.
+    """
+    global ENV_DISABLE_RSA_ALGORITHMS
+    ENV_DISABLE_RSA_ALGORITHMS=state
 class SshHelper(object):
     def __init__(self, is_ssh=None, host_ip=None, username=None, password=None, ssh_port=None, key_file=None,
                  node=None, stdio=None):
@@ -851,17 +858,21 @@ class SshHelper(object):
             return
 
         if self.is_ssh:
+            self._disabled_rsa_algorithms=None
+            DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
+            if ENV_DISABLE_RSA_ALGORITHMS == 1:
+                self._disabled_rsa_algorithms = DISABLED_ALGORITHMS
             self.ssh_type = "remote"
             if len(self.key_file) > 0:
                 try:
                     self._ssh_fd = paramiko.SSHClient()
                     self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                     self._ssh_fd.load_system_host_keys()
-                    self._ssh_fd.connect(hostname=host_ip, username=username, key_filename=self.key_file, port=ssh_port)
+                    self._ssh_fd.connect(hostname=host_ip, username=username, key_filename=self.key_file, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
                 except AuthenticationException:
                     self.password = input("Authentication failed, Input {0}@{1} password:\n".format(username, host_ip))
                     self.need_password = True
-                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port)
+                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
                 except Exception as e:
                     raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(username, host_ip, e))
             else:
@@ -869,7 +880,7 @@ class SshHelper(object):
                 self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 self._ssh_fd.load_system_host_keys()
                 self.need_password = True
-                self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port)
+                self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
 
     def ssh_exec_cmd(self, cmd):
         if self.ssh_type == "docker":

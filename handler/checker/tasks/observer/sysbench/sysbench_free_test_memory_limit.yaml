@@ -30,7 +30,7 @@ task:
         set_value: result
         verify_type: between
         verify: "[80,100]"
-        err_msg: 'memory_limit/os_memory is #{result}%,is not between 80 and 100'
+        err_msg: 'memory_limit: #{memory_limit}. os_memory: #{os_memory}. memory_limit/os_memory is #{result}%,is not between 80% and 100%'
 
       # memory_size
     - type: sql

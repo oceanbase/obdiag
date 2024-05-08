@@ -4,6 +4,7 @@ obdiag:
     config_backup_dir: ~/.obdiag/backup_conf
     file_number_limit: 20
     file_size_limit: 2G
+    dis_rsa_algorithms: 0
   logger:
     log_dir: ~/.obdiag/log
     log_filename: obdiag.log
@@ -17,7 +18,6 @@ check:
   report:
     report_path: "./check_report/"
     export_type: table
-  package_file: "~/.obdiag/check/check_package.yaml"
   tasks_base_path: "~/.obdiag/check/tasks/"
 gather:
   scenes_base_path: "~/.obdiag/gather/tasks"

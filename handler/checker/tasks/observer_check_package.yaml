@@ -2,7 +2,7 @@ ad:
   info_en: "Test and inspection tasks"
   info_cn: "测试巡检任务"
   tasks:
-    - system.parameter
+    - system.*
 build_before:
   info_en: "Deployment environment check"
   info_cn: "部署环境检查"
