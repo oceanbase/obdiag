@@ -152,8 +152,13 @@ class GatherOsInfoHandler(BaseShellHandler):
 
             self.__gather_dmesg_boot_info(ssh_helper, remote_dir_full_path)
             self.__gather_dmesg_current_info(ssh_helper, remote_dir_full_path)
-            self.__gather_cpu_info(ssh_helper, remote_dir_full_path)
-            self.__gather_mem_info(ssh_helper, remote_dir_full_path)
+            if self.__tsar_exit(ssh_helper):
+                self.__gather_cpu_info(ssh_helper, remote_dir_full_path)
+                self.__gather_mem_info(ssh_helper, remote_dir_full_path)
+                self.__gather_swap_info(ssh_helper, remote_dir_full_path)
+                self.__gather_io_info(ssh_helper, remote_dir_full_path)
+                self.__gather_traffic_info(ssh_helper, remote_dir_full_path)
+                self.__gather_tcp_udp_info(ssh_helper, remote_dir_full_path)
             zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name, self.stdio)
             remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
             file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
@@ -192,6 +197,15 @@ class GatherOsInfoHandler(BaseShellHandler):
         except:
             self.stdio.error("Failed to gather the /var/log/dmesg on server {0}".format(ssh_helper.get_name()))
 
+    def __tsar_exit(self, ssh_helper):
+        try:
+            cmd = "tar --help"
+            exit = SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+            if exit:
+                return True
+        except:
+            self.stdio.warn("tsar not found")
+    
     def __gather_cpu_info(self, ssh_helper, gather_path):
         try:
             tsar_cmd = "tsar --cpu -i 1 > {gather_path}/one_day_cpu_data.txt".format(
@@ -209,6 +223,42 @@ class GatherOsInfoHandler(BaseShellHandler):
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
             self.stdio.error("Failed to gather memory info use tsar on server {0}".format(ssh_helper.get_name()))
+
+    def __gather_swap_info(self, ssh_helper, gather_path):
+        try:
+            tsar_cmd = "tsar  --swap --load > {gather_path}/tsar_swap_data.txt".format(
+                gather_path=gather_path)
+            self.stdio.verbose("gather swap info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
+            SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
+        except:
+            self.stdio.error("Failed to gather swap info use tsar on server {0}".format(ssh_helper.get_name()))
+
+    def __gather_io_info(self, ssh_helper, gather_path):
+        try:
+            tsar_cmd = "tsar --io > {gather_path}/tsar_io_data.txt".format(
+                gather_path=gather_path)
+            self.stdio.verbose("gather io info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
+            SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
+        except:
+            self.stdio.error("Failed to gather io info use tsar on server {0}".format(ssh_helper.get_name()))
+
+    def __gather_traffic_info(self, ssh_helper, gather_path):
+        try:
+            tsar_cmd = "tsar  --traffic > {gather_path}/tsar_traffic_data.txt".format(
+                gather_path=gather_path)
+            self.stdio.verbose("gather traffic info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
+            SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
+        except:
+            self.stdio.error("Failed to gather traffic info use tsar on server {0}".format(ssh_helper.get_name()))
+
+    def __gather_tcp_udp_info(self, ssh_helper, gather_path):
+        try:
+            tsar_cmd = "tsar  --tcp --udp -d 1 > {gather_path}/tsar_tcp_udp_data.txt".format(
+                gather_path=gather_path)
+            self.stdio.verbose("gather tcp and udp info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
+            SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
+        except:
+            self.stdio.error("Failed to gather tcp and udp info use tsar on server {0}".format(ssh_helper.get_name()))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
