@@ -277,7 +277,7 @@ class GatherPlanMonitorHandler(object):
                 for t in valid_words:
                     try:
                         data = self.db_connector.execute_sql("show create table %s" % t)
-                        schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % (data[1])
+                        schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>{0}</pre>".format(data[0][1])
                         self.stdio.verbose("table schema: {0}".format(schemas))
                     except Exception as e:
                         pass
