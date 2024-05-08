@@ -58,11 +58,8 @@ class StepSQLHandler:
             sql = StringUtils.build_str_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
             self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             data = self.ob_connector.execute_sql(sql)
-            if data is None:
-                self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
             self.stdio.verbose("execute_sql result:{0}".format(data))
-            if len(data) == 0 or data is None:
-                self.stdio.warn("sql result is None: {0}".format(self.step["sql"]))
+            if   data is None  or len(data) == 0:
                 data=""
             else:
                 data = data[0][0]
