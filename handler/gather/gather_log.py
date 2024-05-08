@@ -299,8 +299,8 @@ class GatherLogHandler(BaseShellHandler):
             resp["error"] = "Too many files {0} > {1}".format(len(log_list), self.file_number_limit)
             return log_list, resp
         elif len(log_list) <= 0:
-            self.stdio.warn('{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found'
-                "Please adjust the query time limit".format(ip, len(log_list), self.from_time_str, self.to_time_str))
+            self.stdio.warn('{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found.'
+                " Please adjust the query time limit.".format(ip, len(log_list), self.from_time_str, self.to_time_str))
             resp["skip"] = True,
             resp["error"] = "No files found"
             return log_list, resp
