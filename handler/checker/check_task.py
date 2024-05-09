@@ -72,6 +72,7 @@ class TaskBase(object):
                     step_run = StepBase(self.context, step, node, self.cluster, task_variable_dict)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
+                    task_variable_dict=step_run.update_task_variable_dict()
                     if "report_type" in step["result"] and step["result"]["report_type"] == "execution":
                         self.stdio.verbose("report_type stop this step")
                         return
