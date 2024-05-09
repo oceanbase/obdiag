@@ -8,7 +8,7 @@ task:
         set_value: sys_log_level
         report_type: warning
         verify: '[[ $sys_log_level == "WDIAG" ]]'
-        err_msg: "on 4.x, the recommended value for sys_log_level is WDIAG"
+        err_msg: "sys_log_level: #{sys_log_level}. on 4.x, the recommended value for sys_log_level is WDIAG"
 
   - version: "[3.0.0,4.0.0.0)"
     steps:
@@ -18,4 +18,4 @@ task:
         set_value: sys_log_level
         report_type: warning
         verify: '[[ $sys_log_level == "INFO" ]]'
-        err_msg: "on 3.x, the recommended value for sys_log_level is INFO"
+        err_msg: "sys_log_level: #{sys_log_level}. on 3.x, the recommended value for sys_log_level is INFO"
