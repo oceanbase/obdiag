@@ -8,6 +8,7 @@ BFlow Secret Scan Ignore List              #
 **
   http://license.coscl.org.cn/*
   http://xxx.xxx.xxx.xxx:xxxx
+  http://xx.xx.xx.xx:xx
   https://getbootstrap.com/)
   https://github.com/twbs/bootstrap/blob/main/LICENSE)
   http://www.w3.org/2000/svg
@@ -19,6 +20,7 @@ BFlow Secret Scan Ignore List              #
   https://www.oceanbase.com/*
   http://mirrors.aliyun.com/pypi/simple/
   https://mirrors.aliyun.com/oceanbase/OceanBase.repo
+  https://img.shields.io/*
 **/README.md
   http://xxx.xxx.xxx.xxx:xxxx
 **/init.sh
@@ -35,3 +37,4 @@ BFlow Secret Scan Ignore List              #
   openwebapi-pre.oceanbase.com*
   openwebapi.oceanbase.com*
   openwebapi-pre.oceanbase.com*
+  https://obbusiness-private.oss-cn-shanghai.aliyuncs.com*
