@@ -28,9 +28,12 @@ from common.tool import NetUtils
 from common.tool import DateTimeEncoder
 from common.version import get_obdiag_version
 import ssl
+from stdio import IO
+
 ssl._create_default_https_context = ssl._create_unverified_context
 class Telemetry():
     def __init__(self):
+        self.obversion = None
         self.ob_connector = None
         self.reporter = "obdiag"
         self.cluster_info = None
@@ -41,6 +44,7 @@ class Telemetry():
         self.threads = []
         self.work_tag = True
         self.version = get_obdiag_version()
+        self.stdio=IO(1)
 
     def set_cluster_conn(self, obcluster):
         try:
@@ -89,7 +93,7 @@ class Telemetry():
                     data = cursor.fetchall()
                     for data_one in data:
                         data_one["svr_ip"] = ip_mix_by_sha256(data_one["svr_ip"])
-
+                self.obversion=version
                 self.cluster_info = json.dumps(data)
                 self.cluster_info["obversion"] = version
             except Exception as e:
@@ -150,6 +154,8 @@ class Telemetry():
                 report_data["cmd_info"] = self.cmd_info
             if self.check_info is not None:
                 report_data["check_info"] = self.check_info
+            if self.obversion is not None:
+                report_data["obversion"]=self.obversion
 
             re = {"content": report_data,"component":"obdiag"}
 
