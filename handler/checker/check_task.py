@@ -63,15 +63,16 @@ class TaskBase(object):
             self.stdio.verbose("run task in node: {0}".format(StringUtils.node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
             nu = 1
+            task_variable_dict={}
             for step in steps["steps"]:
                 try:
                     self.stdio.verbose("step nu: {0}".format(nu))
                     if len(self.cluster) == 0:
                         raise Exception("cluster is not exist")
-                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict)
+                    step_run = StepBase(self.context, step, node, self.cluster, task_variable_dict)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
-                    self.task_variable_dict=step_run.update_task_variable_dict()
+                    task_variable_dict=step_run.update_task_variable_dict()
                     if "report_type" in step["result"] and step["result"]["report_type"] == "execution":
                         self.stdio.verbose("report_type stop this step")
                         return

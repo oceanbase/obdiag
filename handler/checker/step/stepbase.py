@@ -33,7 +33,6 @@ class StepBase(object):
         self.step = step
         self.node = node
         self.cluster = cluster
-        self.task_variable_dict = {}
         self.task_variable_dict = task_variable_dict
 
     def execute(self, report):
