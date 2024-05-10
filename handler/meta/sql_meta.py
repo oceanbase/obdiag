@@ -61,7 +61,7 @@ sql_dict.set_value(
     svr_ip,
     svr_port
     from oceanbase.##REPLACE_SQL_AUDIT_TABLE_NAME##
-    where query_sql != '' and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
+    where query_sql != '' and is_inner_sql=0 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
     '''
 )
 
