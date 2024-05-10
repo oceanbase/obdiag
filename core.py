@@ -311,7 +311,7 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return False
         else:
-            self.set_context('check_list', 'check_list', config)
+            self.set_offline_context('check_list', 'check_list')
             handler = CheckListHandler(self.context)
             handler.handle()
 
@@ -335,7 +335,7 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return False
         else:
-            self.set_context('rca_list', 'rca_list', config)
+            self.set_offline_context('rca_list', 'rca_list')
             handler = RcaScenesListHandler(context=self.context)
             handler.handle()
 
@@ -356,6 +356,6 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return False
         else:
-            self.set_context('config', 'config', config)
+            self.set_offline_context('config', 'config')
             config_helper = ConfigHelper(context=self.context)
             config_helper.build_configuration()
