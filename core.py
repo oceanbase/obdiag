@@ -260,14 +260,16 @@ class ObdiagHome(object):
             return False
         else:
             self.stdio.print("{0} start ...".format(function_type))
-            self.set_context(function_type, 'analyze', config)
             if function_type == 'analyze_log':
+                self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_log_offline':
+                self.set_offline_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_flt_trace':
+                self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 handler.handle()
             else:
@@ -346,7 +348,7 @@ class ObdiagHome(object):
             return False
         else:
             self.stdio.print("update start ...")
-            self.set_context('update', 'update', config)
+            self.set_offline_context('update', 'update', config)
             handler = UpdateHandler(self.context)
             handler.execute()
 
