@@ -285,7 +285,7 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_log_offline':
-                self.set_offline_context(function_type, 'analyze')
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_flt_trace':
