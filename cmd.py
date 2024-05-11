@@ -526,7 +526,7 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        return obdiag.gather_function('gather_obproxy_log', self.opts)
+        return obdiag.gather_obproxy_log(self.opts)
 
 
 class ObdiagGatherSceneListCommand(ObdiagOriginCommand):

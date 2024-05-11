@@ -117,6 +117,19 @@ class ObdiagHome(object):
         )
         telemetry.set_cluster_conn(config.get_ob_cluster_config)
 
+    def set_context_skip_cluster_conn(self, handler_name, namespace, config):
+        self.context = HandlerContext(
+            handler_name=handler_name,
+            namespace=namespace,
+            cluster_config=config.get_ob_cluster_config,
+            obproxy_config=config.get_obproxy_config,
+            ocp_config=config.get_ocp_config,
+            cmd=self.cmds,
+            options=self.options,
+            stdio=self.stdio,
+            inner_config=self.inner_config_manager.config
+        )
+
     def set_offline_context(self, handler_name, namespace):
         self.context = HandlerContext(
             handler_name=handler_name,
@@ -211,9 +224,6 @@ class ObdiagHome(object):
                 self.context.set_variable('gather_obadmin_mode', 'slog')
                 handler = GatherObAdminHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_obproxy_log':
-                handler = GatherObProxyLogHandler(self.context)
-                return handler.handle()
             elif function_type == 'gather_obstack':
                 handler = GatherObstack2Handler(self.context)
                 return handler.handle()
@@ -248,6 +258,16 @@ class ObdiagHome(object):
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
                 return False
 
+    def gather_obproxy_log(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return False
+        else:
+            self.set_context_skip_cluster_conn('gather_obproxy_log', 'gather', config)
+            handler = GatherObProxyLogHandler(self.context)
+            return handler.handle()
+
     def gather_scenes_list(self, opt):
         self.set_offline_context('gather_scenes_list', 'gather')
         handler = GatherScenesListHandler(self.context)
@@ -265,7 +285,7 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_log_offline':
-                self.set_offline_context(function_type, 'analyze', config)
+                self.set_offline_context(function_type, 'analyze')
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
             elif function_type == 'analyze_flt_trace':
@@ -348,7 +368,7 @@ class ObdiagHome(object):
             return False
         else:
             self.stdio.print("update start ...")
-            self.set_offline_context('update', 'update', config)
+            self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
             handler.execute()
 
