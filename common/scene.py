@@ -53,7 +53,7 @@ def filter_by_version(scene, cluster, stdio=None):
                 break
             steps_nu = steps_nu + 1
         if steps_nu > len(steps) - 1:
-            stdio.warn("not version in this scene")
+            stdio.verbose("not version in this scene")
             return -1
         return steps_nu
     except Exception as e:
