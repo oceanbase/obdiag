@@ -896,7 +896,7 @@ class SafeStdioMeta(type):
     def _init_wrapper_func(func):
         def wrapper(*args, **kwargs):
             setattr(args[0], "_wrapper_func", {})
-            func(*args, **kwargs)
+            safe_stdio_decorator(FAKE_IO)(func)(*args, **kwargs)
             if "stdio" in args[0].__dict__:
                 args[0].__dict__["stdio"] = get_stdio(args[0].__dict__["stdio"])
 
