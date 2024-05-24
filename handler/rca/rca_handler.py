@@ -120,7 +120,6 @@ class RCAHandler:
                     self.stdio.verbose("RCAHandler.init get obproxy version: {0}".format(obproxy_version))
                 else:
                     self.stdio.warn("RCAHandler.init Failed to get obproxy version.")
-                self.stdio.verbose("RCAHandler.init get obproxy version: {0}".format(obproxy_version))
                 self.context.set_variable("obproxy_version", obproxy_version)
 
         self.context.set_variable("ob_cluster", self.ob_cluster)

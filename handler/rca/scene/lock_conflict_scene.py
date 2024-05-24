@@ -76,18 +76,29 @@ class LockConflictScene(RcaScene):
                         'select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(holding_lock_session_id))
                     holding_lock_session_id_datas = cursor_by_trans_id.fetchall()
                     holding_lock_session_id = "not get"
-                    if len(holding_lock_session_id_datas) == 1:
+                    self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id_datas))
+                    if len(holding_lock_session_id_datas) > 0:
                         holding_lock_session_id=holding_lock_session_id_datas[0].get("SESSION_ID")
+                    else:
+                        trans_record.add_record("holding_lock_session_id is {0}".format(holding_lock_session_id_datas))
+                        trans_record.add_suggest("holding_lock_session_id is null. maybe the session is closed")
+                        continue
                     trans_record.add_record("get holding_lock_session_id:{0}".format(holding_lock_session_id))
 
                     wait_lock_trans_id=OB_LOCKS_data['TRANS_ID']
+                    trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
                     cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary(
                         'select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(wait_lock_trans_id))
-                    trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
+
                     wait_lock_session_datas = cursor_by_trans_id.fetchall()
+                    self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id))
                     wait_lock_session_id="not get"
-                    if len(wait_lock_session_datas) == 1:
-                        wait_lock_session_id=wait_lock_session_datas[0].get("SESSION_ID")
+                    if len(wait_lock_session_datas)==0:
+                        trans_record.add_record("wait_lock_session_id is null")
+                        trans_record.add_suggest("wait_lock_session_id is null. maybe the session is closed, you can kill holding_lock_session_id: {0}".format(holding_lock_session_id))
+                        continue
+
+                    wait_lock_session_id=wait_lock_session_datas[0].get("SESSION_ID")
                     trans_record.add_record("get wait_lock_session_id:{0}".format(wait_lock_session_datas[0].get("SESSION_ID")))
                     self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id))
                     # check SQL_AUDIT switch
