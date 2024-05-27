@@ -200,7 +200,7 @@ html_dict.set_value(
       topnode.get(0).innerHTML = table;
     }
     </script>
-    '''
+    ''',
 )
 
 html_dict.set_value(
@@ -235,7 +235,7 @@ html_dict.set_value(
         </script>
         </body>
         </html>
-        '''
+        ''',
 )
 
 html_dict.set_value(
@@ -285,5 +285,5 @@ html_dict.set_value(
         <div id='debug' class="fixed"><a target='_blank' href='https://www.oceanbase.com/'>帮助文档</a> </div>
         </body>
         </html>
-        '''
+        ''',
 )

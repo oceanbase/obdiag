@@ -22,6 +22,7 @@ from common.tool import YamlUtils
 from handler.gather.scenes.register import hardcode_scene_list
 from common.tool import Util
 
+
 class GatherScenesListHandler(SafeStdio):
     def __init__(self, context, yaml_tasks_base_path="~/.obdiag/gather/tasks/"):
         self.context = context
@@ -64,7 +65,7 @@ class GatherScenesListHandler(SafeStdio):
                             self.other_tasks[task_name] = task_data
         except Exception as e:
             self.stdio.error("get all yaml task failed, error: ", e)
-    
+
     def get_all_code_tasks(self):
         try:
             for scene in hardcode_scene_list:
@@ -78,7 +79,12 @@ class GatherScenesListHandler(SafeStdio):
             self.stdio.error("get all hard code task failed, error: ", e)
 
     def __get_hardcode_task(self, scene):
-        return {"name": scene.name, "command": scene.command, "info_en": scene.info_en, "info_cn": scene.info_cn,}
+        return {
+            "name": scene.name,
+            "command": scene.command,
+            "info_en": scene.info_en,
+            "info_cn": scene.info_cn,
+        }
 
     def get_one_yaml_task(self, name):
         try:
@@ -92,7 +98,7 @@ class GatherScenesListHandler(SafeStdio):
                         if name == task_name:
                             task_data = YamlUtils.read_yaml_data(os.path.join(root, file))
                             task_data["name"] = task_name
-            return task_data         
+            return task_data
         except Exception as e:
             self.stdio.error("get one yaml task failed, error: ", e)
 
@@ -125,5 +131,3 @@ class GatherScenesListHandler(SafeStdio):
             sorted_observer_tasks_dict = {k: v for k, v in sorted_observer_tasks}
             Util.print_title("Observer Problem Gather Scenes")
             Util.print_scene(sorted_observer_tasks_dict)
-
-        

@@ -42,8 +42,8 @@ class GatherOsInfoHandler(BaseShellHandler):
         self.remote_stored_path = None
         self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -89,7 +89,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
@@ -99,11 +99,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"],
-                                  file_size,
-                                  int(time.time() - st),
-                                  resp["gather_pack_path"]))
-
+            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
         if self.is_ssh:
             for node in self.nodes:
@@ -121,11 +117,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
     def __handle_from_node(self, node, local_stored_path):
-        resp = {
-            "skip": False,
-            "error": "",
-            "gather_pack_path": ""
-        }
+        resp = {"skip": False, "error": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
@@ -138,12 +130,9 @@ class GatherOsInfoHandler(BaseShellHandler):
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node, self.stdio)
+            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -164,8 +153,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
                 local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                self.stdio.verbose(
-                    "local file path {0}...".format(local_file_path))
+                self.stdio.verbose("local file path {0}...".format(local_file_path))
                 download_file(self.is_ssh, ssh_helper, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
@@ -177,8 +165,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_dmesg_current_info(self, ssh_helper, gather_path):
         try:
-            dmesg_cmd = "dmesg --ctime > {gather_path}/dmesg.human.current".format(
-                gather_path=gather_path)
+            dmesg_cmd = "dmesg --ctime > {gather_path}/dmesg.human.current".format(gather_path=gather_path)
             self.stdio.verbose("gather dmesg current info, run cmd = [{0}]".format(dmesg_cmd))
             SshClient(self.stdio).run(ssh_helper, dmesg_cmd) if self.is_ssh else LocalClient(self.stdio).run(dmesg_cmd)
         except:
@@ -205,11 +192,10 @@ class GatherOsInfoHandler(BaseShellHandler):
                 return True
         except:
             self.stdio.warn("tsar not found")
-    
+
     def __gather_cpu_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar --cpu -i 1 > {gather_path}/one_day_cpu_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar --cpu -i 1 > {gather_path}/one_day_cpu_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather cpu info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -217,8 +203,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_mem_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar --mem -i 1 > {gather_path}/one_day_mem_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar --mem -i 1 > {gather_path}/one_day_mem_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather memory info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -226,8 +211,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_swap_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar  --swap --load > {gather_path}/tsar_swap_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar  --swap --load > {gather_path}/tsar_swap_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather swap info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -235,8 +219,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_io_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar --io > {gather_path}/tsar_io_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar --io > {gather_path}/tsar_io_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather io info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -244,8 +227,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_traffic_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar  --traffic > {gather_path}/tsar_traffic_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar  --traffic > {gather_path}/tsar_traffic_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather traffic info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -253,8 +235,7 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __gather_tcp_udp_info(self, ssh_helper, gather_path):
         try:
-            tsar_cmd = "tsar  --tcp --udp -d 1 > {gather_path}/tsar_tcp_udp_data.txt".format(
-                gather_path=gather_path)
+            tsar_cmd = "tsar  --tcp --udp -d 1 > {gather_path}/tsar_tcp_udp_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather tcp and udp info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), tsar_cmd))
             SshClient(self.stdio).run(ssh_helper, tsar_cmd) if self.is_ssh else LocalClient(self.stdio).run(tsar_cmd)
         except:
@@ -274,7 +255,5 @@ class GatherOsInfoHandler(BaseShellHandler):
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
             except:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
-            summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                format_file_size, "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather Sysstat Summary:\n" + \
-               tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+            summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
+        return "\nGather Sysstat Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

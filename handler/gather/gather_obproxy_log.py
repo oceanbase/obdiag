@@ -25,8 +25,7 @@ from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.command import LocalClient, SshClient
 from common.constant import const
-from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, \
-    rm_rf_file, zip_encrypt_dir, zip_dir
+from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, zip_encrypt_dir, zip_dir
 from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import DirectoryUtil
@@ -52,8 +51,8 @@ class GatherObProxyLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -82,15 +81,15 @@ class GatherObProxyLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         encrypt_option = Util.get_option(options, 'encrypt')
         scope_option = Util.get_option(options, 'scope')
-        if self.context.get_variable("gather_from",None) :
-            from_option=self.context.get_variable("gather_from")
-        if self.context.get_variable("gather_to",None) :
-            to_option=self.context.get_variable("gather_to")
-        if self.context.get_variable("gather_since",None) :
-            since_option=self.context.get_variable("gather_since")
-        if self.context.get_variable("store_dir",None) :
-            store_dir_option=self.context.get_variable("store_dir")
-        if self.context.get_variable("gather_scope",None) :
+        if self.context.get_variable("gather_from", None):
+            from_option = self.context.get_variable("gather_from")
+        if self.context.get_variable("gather_to", None):
+            to_option = self.context.get_variable("gather_to")
+        if self.context.get_variable("gather_since", None):
+            since_option = self.context.get_variable("gather_since")
+        if self.context.get_variable("store_dir", None):
+            store_dir_option = self.context.get_variable("store_dir")
+        if self.context.get_variable("gather_scope", None):
             scope_option = self.context.get_variable("gather_scope")
         if self.context.get_variable("gather_grep", None):
             grep_option = self.context.get_variable("gather_grep")
@@ -170,18 +169,13 @@ class GatherObProxyLogHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
-        self.pack_dir_this_command=pack_dir_this_command
+        self.pack_dir_this_command = pack_dir_this_command
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
         return True
 
     def __handle_from_node(self, node, pack_dir_this_command):
-        resp = {
-            "skip": False,
-            "error": "",
-            "zip_password": "",
-            "gather_pack_path": ""
-        }
+        resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
@@ -192,12 +186,9 @@ class GatherObProxyLogHandler(BaseShellHandler):
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node, self.stdio)
+            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -229,15 +220,13 @@ class GatherObProxyLogHandler(BaseShellHandler):
         log_list = self.__get_log_name(ssh, node)
         ip = node.get("ip")
         if len(log_list) > self.file_number_limit:
-            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}], "
-                "Please adjust the query limit".format(ip, len(log_list), self.file_number_limit))
-            resp["skip"] = True,
+            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}], " "Please adjust the query limit".format(ip, len(log_list), self.file_number_limit))
+            resp["skip"] = (True,)
             resp["error"] = "Too many files {0} > {1}".format(len(log_list), self.file_number_limit)
             return log_list, resp
         elif len(log_list) <= 0:
-            self.stdio.warn("{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found."
-                " Please adjust the query time limit.".format(ip, len(log_list), self.from_time_str, self.to_time_str))
-            resp["skip"] = True,
+            self.stdio.warn("{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found." " Please adjust the query time limit.".format(ip, len(log_list), self.from_time_str, self.to_time_str))
+            resp["skip"] = (True,)
             resp["error"] = "No files found"
             return log_list, resp
         return log_list, resp
@@ -245,11 +234,18 @@ class GatherObProxyLogHandler(BaseShellHandler):
     def __get_log_name(self, ssh_helper, node):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
-        if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or \
-                self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_diagnosis" or self.scope == "obproxy_error":
+        if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_diagnosis" or self.scope == "obproxy_error":
             get_obproxy_log = "ls -1 -F %s/*%s.*log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_error.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* %s/obproxy_diagnosis.*log*| awk -F '/' '{print $NF}'" % (log_path, log_path, log_path, log_path, log_path, log_path,log_path)
+            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_error.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* %s/obproxy_diagnosis.*log*| awk -F '/' '{print $NF}'" % (
+                log_path,
+                log_path,
+                log_path,
+                log_path,
+                log_path,
+                log_path,
+                log_path,
+            )
         if self.is_ssh:
             log_files = SshClient(self.stdio).run(ssh_helper, get_obproxy_log).strip()
         else:
@@ -269,36 +265,25 @@ class GatherObProxyLogHandler(BaseShellHandler):
         """
         log_path = os.path.join(home_path, "log")
         if self.grep_args is not None:
-            grep_cmd=""
+            grep_cmd = ""
             if type(self.grep_args) == str:
-                grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
-                    grep_args=self.grep_args,
-                    gather_path=gather_path,
-                    log_name=log_name,
-                    log_dir=log_path)
-            elif type(self.grep_args) == list and len(self.grep_args)>0:
-                grep_litter_cmd=""
+                grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            elif type(self.grep_args) == list and len(self.grep_args) > 0:
+                grep_litter_cmd = ""
                 for grep_arg in self.grep_args:
-                    if type(grep_arg)!=str:
+                    if type(grep_arg) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_arg)))
                         raise Exception('The grep args must be string or list of strings, but got {0}'.format(type(grep_arg)))
-                    elif  grep_arg == "":
+                    elif grep_arg == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
                     grep_litter_cmd += "| grep -e '{0}'".format(grep_arg)
 
-                grep_cmd = "cat {log_dir}/{log_name} {grep_args} >> {gather_path}/{log_name} ".format(
-                    grep_args=grep_litter_cmd,
-                    gather_path=gather_path,
-                    log_name=log_name,
-                    log_dir=log_path)
+                grep_cmd = "cat {log_dir}/{log_name} {grep_args} >> {gather_path}/{log_name} ".format(grep_args=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
-                gather_path=gather_path,
-                log_name=log_name,
-                log_dir=log_path)
+            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
             SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
 
@@ -352,10 +337,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
             except:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             if is_zip_encrypt:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
             else:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather ObProxy Log Summary:\n" + \
-               tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
+        return "\nGather ObProxy Log Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

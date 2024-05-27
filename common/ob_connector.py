@@ -20,7 +20,16 @@ import pymysql as mysql
 
 
 class OBConnector(object):
-    def __init__(self, ip, port, username, password=None, database=None, stdio=None, timeout=30,):
+    def __init__(
+        self,
+        ip,
+        port,
+        username,
+        password=None,
+        database=None,
+        stdio=None,
+        timeout=30,
+    ):
         self.ip = str(ip)
         self.port = int(port)
         self.username = str(username)
@@ -52,16 +61,15 @@ class OBConnector(object):
             self.stdio.error("connect OB: {0}:{1} with user {2} failed, error:{3}".format(self.ip, self.port, self.username, e))
             return
         try:
-            ob_trx_timeout=self.timeout*1000000
+            ob_trx_timeout = self.timeout * 1000000
             self.execute_sql("SET SESSION ob_trx_timeout={0};".format(ob_trx_timeout))
         except Exception as e:
             self.stdio.warn("set ob_trx_timeout failed, error:{0}".format(e))
         try:
-            ob_query_timeout=self.timeout*1000000
+            ob_query_timeout = self.timeout * 1000000
             self.execute_sql("SET SESSION ob_query_timeout={0};".format(ob_query_timeout))
         except Exception as e:
             self.stdio.warn("set ob_query_timeout failed, error:{0}".format(e))
-
 
     def execute_sql(self, sql):
         if self.conn is None:

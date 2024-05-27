@@ -28,6 +28,8 @@ BUILD_TIME: %s
 Copyright (C) 2022 OceanBase
 License Mulan PSL v2: http://license.coscl.org.cn/MulanPSL2.
 You can use this software according to the terms and conditions of the Mulan PSL v2.
-There is NO WARRANTY, to the extent permitted by law.''' % (OBDIAG_VERSION, OBDIAG_BUILD_TIME)
+There is NO WARRANTY, to the extent permitted by law.''' % (
+        OBDIAG_VERSION,
+        OBDIAG_BUILD_TIME,
+    )
     return version
-

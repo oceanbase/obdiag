@@ -26,7 +26,7 @@ from common.tool import StringUtils
 class SQLProblemScene(SafeStdio):
     def __init__(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         if task_variable_dict is None:
             self.task_variable_dict = {}
         else:
@@ -57,15 +57,14 @@ class SQLProblemScene(SafeStdio):
             self.stdio.error("gather observer log failed, error: {0}".format(e))
             raise Exception("gather observer log failed, error: {0}".format(e))
 
-
     def __gather_obproxy_log(self):
         try:
             self.stdio.verbose("gather obproxy log start")
             handler = GatherObProxyLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
             if self.scene_name:
-                if self.scene_name ==  "observer.sql_err":
+                if self.scene_name == "observer.sql_err":
                     pass
-                elif self.scene_name ==  "observer.perf_sql":
+                elif self.scene_name == "observer.perf_sql":
                     self.context.set_variable('gather_scope', self.trace_id)
                 else:
                     self.stdio.warn("unsupported scene {0}".format(self.scene_name))
@@ -104,7 +103,7 @@ class SQLProblemScene(SafeStdio):
                 return True
             else:
                 self.stdio.error("option env [--trace_id] not found, please run 'obdiag gather scene list' to check usage")
-                return False 
+                return False
         else:
             self.stdio.error("option env not found, please run 'obdiag gather scene list' to check usage")
             return False

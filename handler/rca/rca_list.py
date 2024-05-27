@@ -31,8 +31,7 @@ class RcaScenesListHandler:
         if os.path.exists(os.path.expanduser(work_path)):
             self.work_path = os.path.expanduser(work_path)
         else:
-            self.stdio.warn(
-                "input rca work_path not exists: {0}, use default path {1}".format(work_path, const.RCA_WORK_PATH))
+            self.stdio.warn("input rca work_path not exists: {0}, use default path {1}".format(work_path, const.RCA_WORK_PATH))
             self.work_path = const.RCA_WORK_PATH
 
     def get_all_scenes(self):
@@ -56,17 +55,13 @@ class RcaScenesListHandler:
 
         for scene_name, scene in scene_list.items():
             scene_info = scene.get_scene_info()
-            scene_info_list[scene_name] = {"name": scene_name,
-                                           "command": "obdiag rca run --scene={0}".format(scene_name),
-                                           "info_en": scene_info["info_en"],
-                                           "info_cn": scene_info["info_cn"]
-                                           }
-        return scene_info_list,scene_list
+            scene_info_list[scene_name] = {"name": scene_name, "command": "obdiag rca run --scene={0}".format(scene_name), "info_en": scene_info["info_en"], "info_cn": scene_info["info_cn"]}
+        return scene_info_list, scene_list
 
     def handle(self):
         try:
             self.stdio.verbose("list rca scenes")
-            scene_info_list,scene_itme_list = self.get_all_scenes()
+            scene_info_list, scene_itme_list = self.get_all_scenes()
             Util.print_scene(scene_info_list)
         except Exception as e:
             self.stdio.error("RcaScenesListHandler Exception: {0}".format(e))

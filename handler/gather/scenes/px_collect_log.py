@@ -20,6 +20,7 @@ from common.command import uzip_dir_local, analyze_log_get_sqc_addr, delete_file
 from common.ssh import SshHelper
 import datetime
 
+
 class SQLPXCollectLogScene(object):
     def __init__(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
@@ -48,11 +49,11 @@ class SQLPXCollectLogScene(object):
             self.__gather_log()
             # 3. 分析日志，提取SQC地址
             self.__analyze_log()
-                # 解压日志到一个新的目录
-                # 分析日志，提取关键字地址
+            # 解压日志到一个新的目录
+            # 分析日志，提取关键字地址
             # 4. 收集SQC机器的日志
-                # 如果存在有效地址，则删除本地被解压的日志和压缩包，重新收集并存储于当前地址
-                #    否则不存在，则删除被解压的目录
+            # 如果存在有效地址，则删除本地被解压的日志和压缩包，重新收集并存储于当前地址
+            #    否则不存在，则删除被解压的目录
             if len(self.sql_task_node) != 0:
                 self.stdio.verbose("delete file start")
                 delete_file_in_folder(False, None, self.report_path, self.stdio)
@@ -83,7 +84,7 @@ class SQLPXCollectLogScene(object):
             uzip_dir = self.report_path
             uzip_dir_local(uzip_dir, self.stdio)
             ip_port_str = analyze_log_get_sqc_addr(uzip_dir, self.stdio)
-            if  ip_port_str is None or len(ip_port_str) == 0:
+            if ip_port_str is None or len(ip_port_str) == 0:
                 self.stdio.warn("No logs were found indicating that the SQC interrupted the QC; the error occurred locally in the QC.")
                 self.sql_task_node = []
                 return
@@ -105,7 +106,7 @@ class SQLPXCollectLogScene(object):
         except Exception as e:
             self.stdio.exception("analyze observer log failed, error: {0}".format(e))
             raise Exception("analyze observer log failed, error: {0}".format(e))
-  
+
     def __find_home_path_by_port(self, ip_str, internal_port_str):
         for node in self.ob_nodes:
             if node["ip"] == ip_str:
@@ -117,17 +118,15 @@ class SQLPXCollectLogScene(object):
                 try:
                     ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
                 except Exception as e:
-                    self.stdio.error("ssh {0}@{1}: failed, Please check the config".format(
-                        remote_user, 
-                        remote_ip))
+                    self.stdio.error("ssh {0}@{1}: failed, Please check the config".format(remote_user, remote_ip))
                 return find_home_path_by_port(True, ssh, internal_port_str, self.stdio)
 
     def parse_trace_id(self, trace_id):
         id_ = trace_id.split('-')[0].split('Y')[1]
         uval = int(id_, 16)
-        ip = uval & 0xffffffff
-        port = (uval >> 32) & 0xffff
-        ip_str = "{}.{}.{}.{}".format((ip >> 24) & 0xff, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff)
+        ip = uval & 0xFFFFFFFF
+        port = (uval >> 32) & 0xFFFF
+        ip_str = "{}.{}.{}.{}".format((ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF)
         origin_ip_port = "{}:{}".format(ip_str, port)
         return origin_ip_port
 
@@ -145,8 +144,8 @@ class SQLPXCollectLogScene(object):
         return origin_ip_port2
 
     def analyze_traceid(self, trace_id):
-        if (len(trace_id) < 50):
-            if (trace_id[0] == 'Y'):
+        if len(trace_id) < 50:
+            if trace_id[0] == 'Y':
                 return self.parse_trace_id(trace_id)
             else:
                 return self.parse_trace_id2(trace_id)

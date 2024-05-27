@@ -23,9 +23,7 @@ import re
 import uuid
 import traceback
 
-__all__ = (
-"Moment", "Time", "Capacity", "CapacityWithB", "CapacityMB", "StringList", "Dict", "List", "StringOrKvList", "Double",
-"Boolean", "Integer", "String", "Path", "SafeString", "PathList", "SafeStringList", "DBUrl", "WebUrl", "OBUser")
+__all__ = ("Moment", "Time", "Capacity", "CapacityWithB", "CapacityMB", "StringList", "Dict", "List", "StringOrKvList", "Double", "Boolean", "Integer", "String", "Path", "SafeString", "PathList", "SafeStringList", "DBUrl", "WebUrl", "OBUser")
 
 
 class Null(object):
@@ -113,15 +111,7 @@ class Moment(ConfigItemType):
 
 
 class Time(ConfigItemType):
-    UNITS = {
-        'ns': 0.000000001,
-        'us': 0.000001,
-        'ms': 0.001,
-        's': 1,
-        'm': 60,
-        'h': 3600,
-        'd': 86400
-    }
+    UNITS = {'ns': 0.000000001, 'us': 0.000001, 'ms': 0.001, 's': 1, 'm': 60, 'h': 3600, 'd': 86400}
 
     def _format(self):
         if self._origin:
@@ -157,26 +147,22 @@ class DecimalValue:
 
     def __add__(self, other):
         if isinstance(other, DecimalValue):
-            return DecimalValue(self.value + other.value,
-                                self.precision if self.precision is not None else other.precision)
+            return DecimalValue(self.value + other.value, self.precision if self.precision is not None else other.precision)
         return DecimalValue(self.value + other, self.precision)
 
     def __sub__(self, other):
         if isinstance(other, DecimalValue):
-            return DecimalValue(self.value - other.value,
-                                self.precision if self.precision is not None else other.precision)
+            return DecimalValue(self.value - other.value, self.precision if self.precision is not None else other.precision)
         return DecimalValue(self.value - other, self.precision)
 
     def __mul__(self, other):
         if isinstance(other, DecimalValue):
-            return DecimalValue(self.value * other.value,
-                                self.precision if self.precision is not None else other.precision)
+            return DecimalValue(self.value * other.value, self.precision if self.precision is not None else other.precision)
         return DecimalValue(self.value * other, self.precision)
 
     def __truediv__(self, other):
         if isinstance(other, DecimalValue):
-            return DecimalValue(self.value / other.value,
-                                self.precision if self.precision is not None else other.precision)
+            return DecimalValue(self.value / other.value, self.precision if self.precision is not None else other.precision)
         return DecimalValue(self.value / other, self.precision)
 
 
@@ -408,8 +394,7 @@ class PathList(ConfigItemType):
 
 # this type is used to ensure the parameter is a valid database connection url
 class DBUrl(ConfigItemType):
-    DBURL_PATTERN = re.compile(
-        "^jdbc:(mysql|oceanbase):(\/\/)([a-zA-Z0-9_.-]+)(:[0-9]{1,5})?\/([a-zA-Z0-9_\-]+)(\?[a-zA-Z0-9_&;=.-]*)?$")
+    DBURL_PATTERN = re.compile("^jdbc:(mysql|oceanbase):(\/\/)([a-zA-Z0-9_.-]+)(:[0-9]{1,5})?\/([a-zA-Z0-9_\-]+)(\?[a-zA-Z0-9_&;=.-]*)?$")
 
     def _format(self):
         if not self.DBURL_PATTERN.match(str(self._origin)):

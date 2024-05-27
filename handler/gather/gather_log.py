@@ -49,8 +49,8 @@ class GatherLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -79,18 +79,18 @@ class GatherLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
-        if self.context.get_variable("gather_from",None) :
-            from_option=self.context.get_variable("gather_from")
-        if self.context.get_variable("gather_to",None) :
-            to_option=self.context.get_variable("gather_to")
-        if self.context.get_variable("gather_since",None) :
-            since_option=self.context.get_variable("gather_since")
-        if self.context.get_variable("store_dir",None) :
-            store_dir_option=self.context.get_variable("store_dir")
-        if self.context.get_variable("gather_scope",None) :
-            scope_option=self.context.get_variable("gather_scope")
-        if self.context.get_variable("gather_grep",None) :
-            grep_option=self.context.get_variable("gather_grep")
+        if self.context.get_variable("gather_from", None):
+            from_option = self.context.get_variable("gather_from")
+        if self.context.get_variable("gather_to", None):
+            to_option = self.context.get_variable("gather_to")
+        if self.context.get_variable("gather_since", None):
+            since_option = self.context.get_variable("gather_since")
+        if self.context.get_variable("store_dir", None):
+            store_dir_option = self.context.get_variable("store_dir")
+        if self.context.get_variable("gather_scope", None):
+            scope_option = self.context.get_variable("gather_scope")
+        if self.context.get_variable("gather_grep", None):
+            grep_option = self.context.get_variable("gather_grep")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -151,11 +151,7 @@ class GatherLogHandler(BaseShellHandler):
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"],
-                                  file_size,
-                                  resp["zip_password"],
-                                  int(time.time() - st),
-                                  resp["gather_pack_path"]))
+            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
 
         if self.is_ssh:
             for node in self.nodes:
@@ -169,19 +165,14 @@ class GatherLogHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
-        self.pack_dir_this_command=pack_dir_this_command
+        self.pack_dir_this_command = pack_dir_this_command
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
         return True
 
     def __handle_from_node(self, pack_dir_this_command, node):
-        resp = {
-            "skip": False,
-            "error": "",
-            "zip_password": "",
-            "gather_pack_path": ""
-        }
+        resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
@@ -197,15 +188,12 @@ class GatherLogHandler(BaseShellHandler):
         try:
             ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.exception('ssh {0}@{1}: failed, Please check the {2}'.format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.exception('ssh {0}@{1}: failed, Please check the {2}'.format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
 
-        if not ssh_failed:   
+        if not ssh_failed:
             # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
             from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
             to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
@@ -232,7 +220,7 @@ class GatherLogHandler(BaseShellHandler):
                 self.__handle_zip_file(node.get("ip"), ssh, resp, gather_dir_name, pack_dir_this_command)
             ssh.ssh_close()
         return resp
-    
+
     def __grep_log_until_empty(self, ssh_helper, home_path, log_list, gather_path):
         """
         按时间顺序排序日志，从最新的时间（或者从设置的时间）开始往前找日志，直到grep的结果不为空，再直到grep的结果为空，则停止
@@ -244,7 +232,7 @@ class GatherLogHandler(BaseShellHandler):
         # 理论上只有上述三种日志，other_log_list应该为空
         other_log_list = [log_name for log_name in log_list if not any(log_name.startswith(prefix) for prefix in log_type_list)]
         for log_name in other_log_list:
-                self.__pharse_log(ssh_helper=ssh_helper, log_name=log_name, home_path=home_path, gather_path=gather_path)
+            self.__pharse_log(ssh_helper=ssh_helper, log_name=log_name, home_path=home_path, gather_path=gather_path)
 
         # wf结尾的日志非全量日志，不排查
         # 形如observer.log等日志不方便排序，暂时删除，在后续重新加上
@@ -273,14 +261,8 @@ class GatherLogHandler(BaseShellHandler):
         """
         log_path = os.path.join(home_path, "log")
         if self.grep_options is not None:
-            grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} > {gather_path}/{log_name} ".format(
-                grep_args=self.grep_options,
-                gather_path=gather_path,
-                log_name=log_name,
-                log_dir=log_path)
-            find_file_cmd = "find {gather_path} -type f -name {log_name} ! -empty".format(
-                gather_path=gather_path,
-                log_name=log_name)
+            grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} > {gather_path}/{log_name} ".format(grep_args=self.grep_options, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            find_file_cmd = "find {gather_path} -type f -name {log_name} ! -empty".format(gather_path=gather_path, log_name=log_name)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             self.stdio.verbose("grep files, run cmd = [{0}]".format(find_file_cmd))
             SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
@@ -293,15 +275,13 @@ class GatherLogHandler(BaseShellHandler):
         log_list = self.__get_log_name(ssh, node)
         ip = node.get("ip")
         if len(log_list) > self.file_number_limit:
-            self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], '
-                "Please adjust the query limit".format(ip, len(log_list), self.file_number_limit))
-            resp["skip"] = True,
+            self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(ip, len(log_list), self.file_number_limit))
+            resp["skip"] = (True,)
             resp["error"] = "Too many files {0} > {1}".format(len(log_list), self.file_number_limit)
             return log_list, resp
         elif len(log_list) <= 0:
-            self.stdio.warn('{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found.'
-                " Please adjust the query time limit.".format(ip, len(log_list), self.from_time_str, self.to_time_str))
-            resp["skip"] = True,
+            self.stdio.warn('{0} The number of log files is {1}, The time range for file gather from {2} to {3}, and no eligible files were found.' " Please adjust the query time limit.".format(ip, len(log_list), self.from_time_str, self.to_time_str))
+            resp["skip"] = (True,)
             resp["error"] = "No files found"
             return log_list, resp
         return log_list, resp
@@ -317,8 +297,7 @@ class GatherLogHandler(BaseShellHandler):
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
             get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
-                        (log_path, log_path, log_path)
+            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
         log_name_list = []
         log_files = SshClient(self.stdio).run(ssh_helper, get_oblog) if self.is_ssh else LocalClient(self.stdio).run(get_oblog)
         if log_files:
@@ -335,35 +314,24 @@ class GatherLogHandler(BaseShellHandler):
         """
         log_path = os.path.join(home_path, "log")
         if self.grep_options is not None:
-            grep_cmd=""
+            grep_cmd = ""
             if type(self.grep_options) == str:
-                grep_cmd = "grep -e '{grep_options}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
-                    grep_options=self.grep_options,
-                    gather_path=gather_path,
-                    log_name=log_name,
-                    log_dir=log_path)
-            elif type(self.grep_options) == list and len(self.grep_options)>0:
-                grep_litter_cmd=""
+                grep_cmd = "grep -e '{grep_options}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_options=self.grep_options, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            elif type(self.grep_options) == list and len(self.grep_options) > 0:
+                grep_litter_cmd = ""
                 for grep_option in self.grep_options:
-                    if type(grep_option)!=str:
+                    if type(grep_option) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_option)))
                         raise Exception('The grep args must be string or list of strings, but got {0}'.format(type(grep_option)))
-                    elif  grep_option == "":
+                    elif grep_option == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
                     grep_litter_cmd += "| grep -e '{0}'".format(grep_option)
-                grep_cmd = "cat {log_dir}/{log_name} {grep_options} >> {gather_path}/{log_name} ".format(
-                    grep_options=grep_litter_cmd,
-                    gather_path=gather_path,
-                    log_name=log_name,
-                    log_dir=log_path)
+                grep_cmd = "cat {log_dir}/{log_name} {grep_options} >> {gather_path}/{log_name} ".format(grep_options=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
-                gather_path=gather_path,
-                log_name=log_name,
-                log_dir=log_path)
+            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
 
@@ -419,10 +387,7 @@ class GatherLogHandler(BaseShellHandler):
             except:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             if is_zip_encrypt:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
             else:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather Ob Log Summary:\n" + \
-               tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
+        return "\nGather Ob Log Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

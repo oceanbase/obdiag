@@ -25,7 +25,7 @@ from handler.gather.scenes.px_collect_log import SQLPXCollectLogScene
 
 
 class SceneBase(SafeStdio):
-    def __init__(self,context, scene, report_dir=None, scene_variable_dict={}, env={}, mode="yaml", task_type="observer"):
+    def __init__(self, context, scene, report_dir=None, scene_variable_dict={}, env={}, mode="yaml", task_type="observer"):
         self.context = context
         self.stdio = context.stdio
         self.scene_variable_dict = scene_variable_dict
@@ -50,7 +50,7 @@ class SceneBase(SafeStdio):
                     self.__execute_yaml_mode(self.obproxy_nodes)
             elif self.mode == "code":
                 self.__execute_code_mode()
-            else: 
+            else:
                 self.stdio.error("Unsupported mode. SKIP")
                 raise Exception("Unsupported mode. SKIP")
         except Exception as e:
@@ -62,7 +62,7 @@ class SceneBase(SafeStdio):
             self.stdio.verbose("Unadapted by version. SKIP")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
-        if len(nodes)==0:
+        if len(nodes) == 0:
             self.stdio.warn("node is not exist")
             return
         node_number = 0
@@ -74,7 +74,7 @@ class SceneBase(SafeStdio):
             for step in steps["steps"]:
                 try:
                     self.stdio.verbose("step nu: {0}".format(nu))
-                    if len(self.cluster)==0:
+                    if len(self.cluster) == 0:
                         self.stdio.error("cluster is not exist")
                         return
                     step_run = Base(self.context, step, node, self.cluster, self.report_dir, self.scene_variable_dict, self.env, node_number)
@@ -105,4 +105,3 @@ class SceneBase(SafeStdio):
             self.stdio.verbose("hard code scene {0} execute end".format(self.scene["name"]))
         except Exception as e:
             self.stdio.error("hard code scene execute failed, error :{0}".format(e))
-

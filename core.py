@@ -64,13 +64,15 @@ class ObdiagHome(object):
         self.context = None
         self.inner_config_manager = InnerConfigManager(stdio)
         self.config_manager = ConfigManager(config_path, stdio)
-        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get(
-                "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get(
-                "telemetry") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False:
+        if (
+            self.inner_config_manager.config.get("obdiag") is not None
+            and self.inner_config_manager.config.get("obdiag").get("basic") is not None
+            and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is not None
+            and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False
+        ):
             telemetry.work_tag = False
-        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get(
-                "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms") is not None :
-            disable_rsa_algorithms=self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms")
+        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms") is not None:
+            disable_rsa_algorithms = self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms")
             dis_rsa_algorithms(disable_rsa_algorithms)
 
     def fork(self, cmds=None, options=None, stdio=None):
@@ -99,8 +101,7 @@ class ObdiagHome(object):
         self._stdio_func = {}
         if not self.stdio:
             return
-        for func in ['start_loading', 'stop_loading', 'print', 'confirm', 'verbose', 'warn', 'exception', 'error',
-                     'critical', 'print_list', 'read']:
+        for func in ['start_loading', 'stop_loading', 'print', 'confirm', 'verbose', 'warn', 'exception', 'error', 'critical', 'print_list', 'read']:
             self._stdio_func[func] = getattr(self.stdio, func, _print)
 
     def set_context(self, handler_name, namespace, config):
@@ -113,7 +114,7 @@ class ObdiagHome(object):
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
+            inner_config=self.inner_config_manager.config,
         )
         telemetry.set_cluster_conn(config.get_ob_cluster_config)
 
@@ -127,18 +128,11 @@ class ObdiagHome(object):
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
+            inner_config=self.inner_config_manager.config,
         )
 
     def set_offline_context(self, handler_name, namespace):
-        self.context = HandlerContext(
-            handler_name=handler_name,
-            namespace=namespace,
-            cmd=self.cmds,
-            options=self.options,
-            stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
-        )
+        self.context = HandlerContext(handler_name=handler_name, namespace=namespace, cmd=self.cmds, options=self.options, stdio=self.stdio, inner_config=self.inner_config_manager.config)
 
     def get_namespace(self, spacename):
         if spacename in self.namespaces:
@@ -149,17 +143,7 @@ class ObdiagHome(object):
         return namespace
 
     def call_plugin(self, plugin, spacename=None, target_servers=None, **kwargs):
-        args = {
-            'namespace': spacename,
-            'namespaces': self.namespaces,
-            'cluster_config': None,
-            'obproxy_config': None,
-            'ocp_config': None,
-            'cmd': self.cmds,
-            'options': self.options,
-            'stdio': self.stdio,
-            'target_servers': target_servers
-        }
+        args = {'namespace': spacename, 'namespaces': self.namespaces, 'cluster_config': None, 'obproxy_config': None, 'ocp_config': None, 'cmd': self.cmds, 'options': self.options, 'stdio': self.stdio, 'target_servers': target_servers}
         args.update(kwargs)
         self._call_stdio('verbose', 'Call %s ' % (plugin))
         return plugin(**args)
@@ -176,17 +160,7 @@ class ObdiagHome(object):
         success = True
         for server in servers:
             if server not in ssh_clients:
-                client = SshClient(
-                    SshConfig(
-                        server.ip,
-                        user_config.username,
-                        user_config.password,
-                        user_config.key_file,
-                        user_config.port,
-                        user_config.timeout
-                    ),
-                    self.stdio
-                )
+                client = SshClient(SshConfig(server.ip, user_config.username, user_config.password, user_config.key_file, user_config.port, user_config.timeout), self.stdio)
                 error = client.connect(stdio=connect_io)
                 connect_status[server] = status = CheckStatus()
                 if error is not True:
@@ -252,7 +226,7 @@ class ObdiagHome(object):
                 handler = GatherSceneHandler(self.context)
                 return handler.handle()
             elif function_type == 'gather_ash_report':
-                handler =GatherAshReportHandler(self.context)
+                handler = GatherAshReportHandler(self.context)
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
@@ -295,7 +269,7 @@ class ObdiagHome(object):
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
                 return False
-    
+
     def check(self, opts):
         config = self.config_manager
         if not config:
@@ -306,26 +280,22 @@ class ObdiagHome(object):
             self.set_context('check', 'check', config)
             obproxy_check_handler = None
             observer_check_handler = None
-            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers"))>0:
-                obproxy_check_handler = CheckHandler(self.context,check_target_type="obproxy")
+            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
+                obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
                 obproxy_check_handler.handle()
                 obproxy_check_handler.execute()
-            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers"))>0:
-                observer_check_handler = CheckHandler(self.context,check_target_type="observer")
+            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
+                observer_check_handler = CheckHandler(self.context, check_target_type="observer")
                 observer_check_handler.handle()
                 observer_check_handler.execute()
             if obproxy_check_handler is not None:
                 obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                 if os.path.exists(obproxy_report_path):
-                    self.stdio.print(
-                        "Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(
-                            obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                    self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
             if observer_check_handler is not None:
                 observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                 if os.path.exists(observer_report_path):
-                    self.stdio.print(
-                        "Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(
-                            observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                    self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
 
     def check_list(self, opts):
         config = self.config_manager

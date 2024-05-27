@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class GetSystemParameterHandler:
-    def __init__(self,context, step, node, task_variable_dict):
+    def __init__(self, context, step, node, task_variable_dict):
         self.context = context
         self.stdio = context.stdio
         self.stdio.verbose("init GetSystemParameterHandler")
@@ -34,14 +34,12 @@ class GetSystemParameterHandler:
         self.task_variable_dict = task_variable_dict
 
         try:
-            self.ssh_helper=self.node["ssher"]
+            self.ssh_helper = self.node["ssher"]
             if self.ssh_helper is None:
                 raise Exception("self.ssh_helper is None.")
         except Exception as e:
-            self.stdio.error(
-                "GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
-            raise Exception(
-                "GetSystemParameterHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))
+            self.stdio.error("GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
+            raise Exception("GetSystemParameterHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))
 
         # step report
         self.parameter = []
@@ -53,8 +51,7 @@ class GetSystemParameterHandler:
             parameter_value = self.ssh_helper.ssh_exec_cmd("cat /proc/sys/" + parameter_name).strip()
             self.ssh_helper.ssh_close()
         except Exception as e:
-            self.stdio.warn(
-                "get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))
+            self.stdio.warn("get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))
             parameter_value = str("-1")
         return parameter_value
 

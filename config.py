@@ -58,44 +58,44 @@ obproxy:
 '''
 
 DEFAULT_INNER_CONFIG = {
-        'obdiag': {
-            'basic': {
-                'config_path': '~/.obdiag/config.yml',
-                'config_backup_dir': '~/.obdiag/backup_conf',
-                'file_number_limit': 20,
-                'file_size_limit': '2G',
-                'dis_rsa_algorithms':0,
-            },
-            'logger': {
-                'log_dir': '~/.obdiag/log',
-                'log_filename': 'obdiag.log',
-                'file_handler_log_level': 'DEBUG',
-                'log_level': 'INFO',
-                'mode': 'obdiag',
-                'stdout_handler_log_level': 'INFO',
-            },
+    'obdiag': {
+        'basic': {
+            'config_path': '~/.obdiag/config.yml',
+            'config_backup_dir': '~/.obdiag/backup_conf',
+            'file_number_limit': 20,
+            'file_size_limit': '2G',
+            'dis_rsa_algorithms': 0,
         },
-        'check': {
-            'ignore_version': False,
-            'work_path': '~/.obdiag/check',
-            'report': {
-                'report_path': './check_report/',
-                'export_type': 'table',
-            },
-            'package_file': '~/.obdiag/check/check_package.yaml',
-            'tasks_base_path': '~/.obdiag/check/tasks/',
+        'logger': {
+            'log_dir': '~/.obdiag/log',
+            'log_filename': 'obdiag.log',
+            'file_handler_log_level': 'DEBUG',
+            'log_level': 'INFO',
+            'mode': 'obdiag',
+            'stdout_handler_log_level': 'INFO',
         },
-        'gather': {
-            'scenes_base_path': '~/.obdiag/gather/tasks',
+    },
+    'check': {
+        'ignore_version': False,
+        'work_path': '~/.obdiag/check',
+        'report': {
+            'report_path': './check_report/',
+            'export_type': 'table',
         },
-        'rca': {
-            'result_path': './rca/',
-        },
-    }
+        'package_file': '~/.obdiag/check/check_package.yaml',
+        'tasks_base_path': '~/.obdiag/check/tasks/',
+    },
+    'gather': {
+        'scenes_base_path': '~/.obdiag/gather/tasks',
+    },
+    'rca': {
+        'result_path': './rca/',
+    },
+}
 
 
 class Manager(SafeStdio):
-    
+
     RELATIVE_PATH = ''
 
     def __init__(self, home_path, stdio=None):
@@ -142,7 +142,7 @@ class Manager(SafeStdio):
 
 
 class ConfigManager(Manager):
-    
+
     def __init__(self, config_file=None, stdio=None):
         default_config_path = os.path.join(os.path.expanduser("~"), ".obdiag", "config.yml")
 
@@ -248,8 +248,9 @@ class ConfigManager(Manager):
                 return node.get(config_item)
         return None
 
+
 class InnerConfigManager(Manager):
-    
+
     def __init__(self, stdio=None):
         inner_config_abs_path = os.path.abspath(INNER_CONFIG_FILE)
         super().__init__(inner_config_abs_path, stdio=stdio)

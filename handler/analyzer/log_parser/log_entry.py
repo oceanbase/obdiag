@@ -34,14 +34,13 @@ def find_field_end(data, end_chs=",)}({|][", start=0, end=-1):
 
 class LogEntry(object):
     WF_LEVELS = {"ERROR", "WARN", "FATAL"}
-    __slots__ = ("id", "log_type", "log_file_offset", "log_text_length", "timestamp_us", "parse_succ", "is_trace",
-                 "log_level", "component", "source_func", "source_file", "source_line", "th_id", "co_id", "trace_id",
-                 "lt", "dc", "log_text", "content")
+    __slots__ = ("id", "log_type", "log_file_offset", "log_text_length", "timestamp_us", "parse_succ", "is_trace", "log_level", "component", "source_func", "source_file", "source_line", "th_id", "co_id", "trace_id", "lt", "dc", "log_text", "content")
     """
     Log entry parsed from the log text.
     This entry should be complete, meaning that we can resume the original log from this entry.
     At this stage we store the raw text in the field "log_text".
     """
+
     def __init__(self, log_id, log_type, file_offset, file_length):
         # key_info: only these vars dumped to files
         self.id = log_id
@@ -83,7 +82,7 @@ class LogEntry(object):
         while idx != -1:
             next_idx = data.find(next_brac, idx)
             if next_idx == -1:
-                bare_elems.append(data[idx:len(data)].strip())
+                bare_elems.append(data[idx : len(data)].strip())
                 break
             if cur_brac == "[":
                 in_brac_elems.append(data[idx:next_idx].strip())
@@ -97,7 +96,7 @@ class LogEntry(object):
                         bare_elems.append(bare_elem)
             idx = next_idx + 1
             cur_brac, next_brac = next_brac, cur_brac
-        time_slice[0] += (time.time()-st)
+        time_slice[0] += time.time() - st
         st = time.time()
         if len(in_brac_elems) < 3 and "(tid:" in data:
             return
@@ -121,12 +120,12 @@ class LogEntry(object):
                     in_brac_elems = [in_brac_elems[0], ""] + in_brac_elems[1:]
             # has func and component, level is WARN ERROR FATAL
             elif len(real_bare_content) == 4:
-                bare_elems = [real_bare_content[0], real_bare_content[2]+" "+real_bare_content[3]] + bare_elems[1:]
+                bare_elems = [real_bare_content[0], real_bare_content[2] + " " + real_bare_content[3]] + bare_elems[1:]
                 in_brac_elems = [in_brac_elems[0], real_bare_content[1]] + in_brac_elems[1:]
             else:
-                time_slice[1] += (time.time() - st)
+                time_slice[1] += time.time() - st
                 raise Exception()
-        time_slice[1] += (time.time()-st)
+        time_slice[1] += time.time() - st
         st = time.time()
         self.timestamp_us = TimeUtils.datetime_to_timestamp(in_brac_elems[0])
         self.log_level = bare_elems[0]
@@ -141,7 +140,7 @@ class LogEntry(object):
         fl_tup = file_line_str.split(':')
         self.source_file = fl_tup[0]
         self.source_line = int(fl_tup[1])
-        time_slice[2] += (time.time()-st)
+        time_slice[2] += time.time() - st
         st = time.time()
         th_idx = 2
         # 寻找lt和dc的位置
@@ -181,10 +180,10 @@ class LogEntry(object):
             else:
                 # 无dc 有lt
                 self.lt = in_brac_elems[lt_idx]
-                self.trace_id = in_brac_elems[lt_idx-1]
+                self.trace_id = in_brac_elems[lt_idx - 1]
                 self.th_id = int(in_brac_elems[th_idx])
                 if lt_idx - 2 != th_idx:
-                    self.co_id = int(in_brac_elems[lt_idx-2])
+                    self.co_id = int(in_brac_elems[lt_idx - 2])
 
         else:
             # 有dc
@@ -199,7 +198,7 @@ class LogEntry(object):
                 self.co_id = in_brac_elems[dc_idx - 3]
                 self.th_id = in_brac_elems[th_idx]
 
-        time_slice[3] += (time.time()-st)
+        time_slice[3] += time.time() - st
         st = time.time()
         # 日志内容解析
         # 将非头部分提取为content
@@ -215,13 +214,12 @@ class LogEntry(object):
         self.co_id = int(self.co_id) if self.co_id is not None else None
         # self.lt = int(self.lt.split("=")[1]) if self.lt is not None else None
         # self.dc = int(self.dc.split("=")[1]) if self.dc is not None else None
-        time_slice[4] += (time.time()-st)
+        time_slice[4] += time.time() - st
         self.parse_succ = True
         return
 
     @staticmethod
-    def generate_log_entries_from_string_reader(
-            reader_io, parse_time_slice, max_read_n=-1, start_offset=0, start_log_id=0):
+    def generate_log_entries_from_string_reader(reader_io, parse_time_slice, max_read_n=-1, start_offset=0, start_log_id=0):
         """
         parse log entries from start point that user specified.
         A posix read-like stream reader interface.
@@ -267,15 +265,14 @@ class LogEntry(object):
                     log_entry_text = "\n".join(log_entry_texts)
                     st = time.time()
                     try:
-                        log_entry = LogEntry(log_id, None, log_entry_begin_offset,
-                                             line_offset - log_entry_begin_offset)
+                        log_entry = LogEntry(log_id, None, log_entry_begin_offset, line_offset - log_entry_begin_offset)
                         log_entry.parse_from_data(log_entry_text, parse_time_slice)
                         success_log_entries.append(log_entry)
                         log_id += 1
                         n_read += 1
                     except Exception as e:
                         irregular_logs.append(log_entry_text)
-                    parse_time_slice[5] += (time.time() - st)
+                    parse_time_slice[5] += time.time() - st
                     log_entry_begin_offset = line_offset
                 log_entry_texts = [line]
             else:

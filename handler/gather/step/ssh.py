@@ -24,7 +24,7 @@ from common.tool import StringUtils
 class SshHandler(SafeStdio):
     def __init__(self, context, step, node, report_path, task_variable_dict):
         self.context = context
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         self.ssh_report_value = None
         self.parameters = None
         self.step = step
@@ -64,7 +64,7 @@ class SshHandler(SafeStdio):
     def report(self, command, data):
         try:
             with open(self.report_file_path, 'a', encoding='utf-8') as f:
-                f.write('\n\n' + '['+ self.node.get("ip") + '] shell > ' + command + '\n')
+                f.write('\n\n' + '[' + self.node.get("ip") + '] shell > ' + command + '\n')
                 f.write(data + '\n')
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))

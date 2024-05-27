@@ -162,6 +162,7 @@ class TreeMeta:
                 keyword = elem
                 ex = 0
             return '{: <' + str(keyword + ex) + 's}'
+
         return '| %s|' % '| '.join(format_len(elem) for elem in self.fmt_elements).format(*args)
 
     @property
@@ -206,11 +207,17 @@ class TreeMeta:
             time_str = 'Elapsed: {}'.format(TimeUtils.trans_time(et - st))
         else:
             time_str = ''
-        return '{} - {}  {} {}' \
-               '{}{}{}{}{}'.format(index, node.value['trace_data']['name'] if node.value else '', time_str,
-                                 ('\n' + ' ' * (3 + len(str(index)))) if hosts else '', hosts,
-                                 ('\n' + ' ' * (3 + len(str(index)))) if tags else '', tags,
-                                 ('\n' + ' ' * (3 + len(str(index)))) if logs else '', logs)
+        return '{} - {}  {} {}' '{}{}{}{}{}'.format(
+            index,
+            node.value['trace_data']['name'] if node.value else '',
+            time_str,
+            ('\n' + ' ' * (3 + len(str(index)))) if hosts else '',
+            hosts,
+            ('\n' + ' ' * (3 + len(str(index)))) if tags else '',
+            tags,
+            ('\n' + ' ' * (3 + len(str(index)))) if logs else '',
+            logs,
+        )
 
     def record_node_info(self, node: Node):
         self.counter += 1
@@ -268,8 +275,7 @@ class Tree:
             if max_recursion != -1 and len(parent_info) / 2 > max_recursion:
                 return
             if parent_info:
-                node.tree_info = parent_info[:-1].replace(node_chars[0:2], child_chars[0:2]). \
-                                     replace(node_chars[2:4], child_chars[2:4]) + parent_info[-1]
+                node.tree_info = parent_info[:-1].replace(node_chars[0:2], child_chars[0:2]).replace(node_chars[2:4], child_chars[2:4]) + parent_info[-1]
             else:
                 node.tree_info = ''
             meta_data.record_node_info(node)
@@ -301,7 +307,7 @@ class Tree:
         topN = heapq.nlargest(top_n, leaf_nodes.items(), lambda x: x[1].elapsed_time_us)
         topN_meta = TreeMeta()
         topN_counter = 0
-        table = PrettyTable(['ID','Leaf Span Name','Elapsed Time','HOSTS'])
+        table = PrettyTable(['ID', 'Leaf Span Name', 'Elapsed Time', 'HOSTS'])
         table.align = 'l'
         while topN:
             topN_counter += 1
@@ -316,7 +322,7 @@ class Tree:
                 yield str(line)
             yield topN_meta.detail_header
             for node in topN_li:
-                yield topN_meta.detail(node.index,node)
+                yield topN_meta.detail(node.index, node)
 
         meta = self.meta[root_node]
         yield meta.details_data
