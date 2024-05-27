@@ -33,37 +33,40 @@ from common.tool import Util
 from common.tool import YamlUtils
 from common.tool import StringUtils
 
+
 class CheckHandler:
 
-    def __init__(self, context,  check_target_type="observer"):
+    def __init__(self, context, check_target_type="observer"):
         self.context = context
         self.stdio = context.stdio
         # init input parameters
         self.report = None
         self.tasks = None
         self.work_path = os.path.expanduser(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
-        self.export_report_path=os.path.expanduser(self.context.inner_config["check"]["report"]["report_path"] or "./check_report/")
+        self.export_report_path = os.path.expanduser(self.context.inner_config["check"]["report"]["report_path"] or "./check_report/")
         self.export_report_type = self.context.inner_config["check"]["report"]["export_type"] or "table"
         self.ignore_version = self.context.inner_config["check"]["ignore_version"] or False
         self.cluster = self.context.cluster_config
-        if check_target_type=="observer":
-            self.nodes =self.context.cluster_config.get("servers")
+        if check_target_type == "observer":
+            self.nodes = self.context.cluster_config.get("servers")
         if check_target_type == "obproxy":
             self.nodes = self.context.obproxy_config.get("servers")
         self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
 
-        self.stdio.verbose("CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
-                           "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
-                           " tasks_base_path is {6}.".format(self.ignore_version,
-                                                             self.cluster.get(
-                                                                 "ob_cluster_name") or self.cluster.get(
-                                                                 "obproxy_cluster_name"),
-                                                             StringUtils.node_cut_passwd_for_log(self.nodes),
-                                                             self.export_report_path,
-                                                             self.export_report_type,
-                                                             self.check_target_type,
-                                                             self.tasks_base_path))
+        self.stdio.verbose(
+            "CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
+            "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
+            " tasks_base_path is {6}.".format(
+                self.ignore_version,
+                self.cluster.get("ob_cluster_name") or self.cluster.get("obproxy_cluster_name"),
+                StringUtils.node_cut_passwd_for_log(self.nodes),
+                self.export_report_path,
+                self.export_report_type,
+                self.check_target_type,
+                self.tasks_base_path,
+            )
+        )
 
         # case_package_file
         # build case_package_file
@@ -90,36 +93,30 @@ class CheckHandler:
             raise CheckException("tasks_base_path {0} is not exist".format(tasks_base_path))
         self.stdio.verbose("tasks_base_path is " + self.tasks_base_path)
         # input_param
-        self.options=self.context.options
+        self.options = self.context.options
 
         # add ssher
-        new_node=[]
+        new_node = []
         for node in self.nodes:
             # add ssher
             ssher = None
             try:
-                ssher = SshHelper(True, node.get("ip"),
-                                  node.get("ssh_username"),
-                                  node.get("ssh_password"),
-                                  node.get("ssh_port"),
-                                  node.get("ssh_key_file"),
-                                  node)
+                ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
             except Exception as e:
                 self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
             node["ssher"] = ssher
             new_node.append(node)
-        self.nodes=new_node
-        self.version=get_version(self.nodes, self.check_target_type,self.cluster, self.stdio)
+        self.nodes = new_node
+        self.version = get_version(self.nodes, self.check_target_type, self.cluster, self.stdio)
 
         # add OBConnectorPool
         try:
-            obConnectorPool=checkOBConnectorPool(context,3,self.cluster)
+            obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
 
         except Exception as e:
             self.stdio.warn("obConnector init error. Error info is {0}".format(e))
         finally:
             self.context.set_variable('check_obConnector_pool', obConnectorPool)
-
 
     def handle(self):
         try:
@@ -157,8 +154,7 @@ class CheckHandler:
                 self.get_all_tasks()
                 filter_tasks = self.get_package_tasks("filter")
                 if len(filter_tasks) > 0:
-                    self.tasks = {key: value for key, value in self.tasks.items() if key not in
-                                  filter_tasks}
+                    self.tasks = {key: value for key, value in self.tasks.items() if key not in filter_tasks}
                     new_tasks = {}
                     for filter_task in filter_tasks:
                         for task_name, task_value in self.tasks.items():
@@ -205,7 +201,7 @@ class CheckHandler:
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
             # Verify if the version is within a reasonable range
-            report = TaskReport(self.context,task_name)
+            report = TaskReport(self.context, task_name)
             if not self.ignore_version:
                 version = self.version
                 if version:
@@ -226,12 +222,8 @@ class CheckHandler:
 
     def execute(self):
         try:
-            self.stdio.verbose(
-                "execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()),
-                                                                                     self.tasks.keys()))
-            self.report = CheckReport(self.context, export_report_path=self.export_report_path,
-                                      export_report_type=self.export_report_type,
-                                      report_target=self.check_target_type)
+            self.stdio.verbose("execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()), self.tasks.keys()))
+            self.report = CheckReport(self.context, export_report_path=self.export_report_path, export_report_type=self.export_report_type, report_target=self.check_target_type)
             # one of tasks to execute
             for task in self.tasks:
                 t_report = self.execute_one(task)
@@ -242,28 +234,21 @@ class CheckHandler:
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
 
+
 class checkOBConnectorPool:
-    def __init__(self,context, max_size, cluster):
+    def __init__(self, context, max_size, cluster):
         self.max_size = max_size
-        self.cluster=cluster
+        self.cluster = cluster
         self.connections = queue.Queue(maxsize=max_size)
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         self.stdio.verbose("obConnectorPool init success!")
         try:
             for i in range(max_size):
-                conn = OBConnector(
-                    ip=self.cluster.get("db_host"),
-                    port=self.cluster.get("db_port"),
-                    username=self.cluster.get("tenant_sys").get("user"),
-                    password=self.cluster.get("tenant_sys").get("password"),
-                    stdio=self.stdio,
-                    timeout=10000
-                )
+                conn = OBConnector(ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
                 self.connections.put(conn)
             self.stdio.verbose("obConnectorPool init success!")
         except Exception as e:
             self.stdio.error("obConnectorPool init fail! err:".format(e))
-
 
     def get_connection(self):
         try:
@@ -277,4 +262,3 @@ class checkOBConnectorPool:
         if conn is not None:
             self.connections.put(conn)
         return
-

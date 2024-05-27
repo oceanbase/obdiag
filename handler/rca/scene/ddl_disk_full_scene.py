@@ -55,7 +55,7 @@ class DDlDiskFullScene(RcaScene):
         if table_name is None or table_name == "" or tenant_name is None or tenant_name == "":
             raise RCAInitException("table_name or tenant_name is None. Please check the input parameters.")
         if action_type is not None:
-            if action_type=="add_index":
+            if action_type == "add_index":
                 self.action_type = action_type
                 self.verbose("action type is {0}.".format(action_type))
                 if index_name is not None and index_name.strip() != "":
@@ -67,25 +67,19 @@ class DDlDiskFullScene(RcaScene):
             else:
                 self.stdio.error("action type is {0}, but only support add_index now.".format(action_type))
 
-        tenant_data = self.ob_connector.execute_sql(
-            "select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
+        tenant_data = self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
         if len(tenant_data) == 0:
-            raise RCAInitException(
-                "can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
+            raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
         self.tenant_id = tenant_data[0][0]
         if self.tenant_id is None:
-            raise RCAInitException(
-                "can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
+            raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
 
-        table_id_data = self.ob_connector.execute_sql(
-            "select table_id from oceanbase.__all_virtual_table where table_name = '{0}';".format(table_name))
+        table_id_data = self.ob_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}';".format(table_name))
         if len(table_id_data) == 0:
-            raise RCAInitException(
-                "can not find table id by table name: {0}. Please check the table name.".format(table_name))
+            raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         self.table_id = table_id_data[0][0]
         if self.table_id is None:
-            raise RCAInitException(
-                "can not find table id by table name: {0}. Please check the table name.".format(table_name))
+            raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         self.verbose("table_id is {0}, tenant_id is {1}.".format(self.table_id, self.tenant_id))
 
     def verbose(self, info):
@@ -100,15 +94,14 @@ class DDlDiskFullScene(RcaScene):
             self.verbose("start to get estimated_data_size...")
             ## if the action is not add_index
             sql = "select svr_ip, svr_port, sum(original_size) as estimated_data_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where table_id = {0}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
-                self.table_id)
+                self.table_id
+            )
             self.verbose("execute_sql is {0}".format(sql))
             tablet_size_data = self.ob_connector.execute_sql(sql)
             self.verbose("tablet_size_data is {0}".format(tablet_size_data))
             record.add_record("tablet_size_data is {0}".format(tablet_size_data))
             if len(tablet_size_data) <= 0 or tablet_size_data[0][2] is None:
-                raise RCAExecuteException(
-                    "can not find tablet size info or estimated_data_size. please check the data:{0}.".format(
-                        tablet_size_data))
+                raise RCAExecuteException("can not find tablet size info or estimated_data_size. please check the data:{0}.".format(tablet_size_data))
             self.estimated_size = tablet_size_data
             self.verbose("estimated_size is {0}".format(self.estimated_size))
             record.add_record("estimated_size is {0}".format(self.estimated_size))
@@ -119,24 +112,21 @@ class DDlDiskFullScene(RcaScene):
                 record.add_record("index_name is {0}".format(self.index_name))
                 record.add_record("action_type is {0}".format(self.action_type))
                 ## if the action is add_index
-                sql = "select table_id from oceanbase.__all_virtual_table_history where tenant_id = '{0}' and data_table_id = '{1}' and table_name like '%{2}%';".format(
-                    self.tenant_id, self.table_id, self.index_name)
+                sql = "select table_id from oceanbase.__all_virtual_table_history where tenant_id = '{0}' and data_table_id = '{1}' and table_name like '%{2}%';".format(self.tenant_id, self.table_id, self.index_name)
                 self.verbose("execute_sql is {0}".format(sql))
                 self.index_table_id = self.ob_connector.execute_sql(sql)[0][0]
                 self.verbose("index_table_id is {0}".format(self.index_table_id))
                 record.add_record("index_table_id is {0}".format(self.index_table_id))
 
                 # Query the sum of the lengths of all columns in the main table
-                sql = "select table_id, sum(data_length) from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(
-                    self.tenant_id, self.table_id)
+                sql = "select table_id, sum(data_length) from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, self.table_id)
                 self.verbose("execute_sql is {0}".format(sql))
                 main_table_sum_of_data_length = int(self.ob_connector.execute_sql(sql)[0][1])
                 self.verbose("main_table_sum_of_data_length is {0}".format(main_table_sum_of_data_length))
                 record.add_record("main_table_sum_of_data_length is {0}".format(main_table_sum_of_data_length))
 
                 # The sum of the lengths of all columns in the query index
-                sql = "select table_id, sum(data_length) from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(
-                    self.tenant_id, self.index_table_id)
+                sql = "select table_id, sum(data_length) from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, self.index_table_id)
                 self.verbose("execute_sql is {0}".format(sql))
                 index_table_sum_of_data_length = int(self.ob_connector.execute_sql(sql)[0][1])
                 self.verbose("index_table_sum_of_data_length is {0}".format(index_table_sum_of_data_length))
@@ -146,8 +136,7 @@ class DDlDiskFullScene(RcaScene):
                 new_estimated_size = []
                 for node_estimated_size in self.estimated_size:
                     new_node_estimated_size = [node_estimated_size[0], node_estimated_size[1]]
-                    estimiated_index_size = int(index_table_sum_of_data_length / main_table_sum_of_data_length / 1024 / 1024 * int(
-                        node_estimated_size[2]))
+                    estimiated_index_size = int(index_table_sum_of_data_length / main_table_sum_of_data_length / 1024 / 1024 * int(node_estimated_size[2]))
 
                     new_node_estimated_size.append(estimiated_index_size)
                     new_estimated_size.append(new_node_estimated_size)
@@ -162,9 +151,7 @@ class DDlDiskFullScene(RcaScene):
                 record.add_record("On target_server_ip is {0}, target_server_port is {1}, target_server_estimated_size is {2}".format(target_server_ip, target_server_port, target_server_estimated_size))
 
                 # get target_server_total_size and target_server_used_size
-                target_server_data = self.ob_connector.execute_sql(
-                    "select total_size, used_size from oceanbase.__all_virtual_disk_stat where svr_ip = '{0}' and svr_port = {1};".format(
-                        target_server_ip, target_server_port))
+                target_server_data = self.ob_connector.execute_sql("select total_size, used_size from oceanbase.__all_virtual_disk_stat where svr_ip = '{0}' and svr_port = {1};".format(target_server_ip, target_server_port))
                 target_server_total_size = int(target_server_data[0][0])
                 self.verbose("target_server_total_size is {0}".format(target_server_total_size))
                 record.add_record("target_server_total_size is {0}".format(target_server_total_size))
@@ -174,36 +161,29 @@ class DDlDiskFullScene(RcaScene):
                 record.add_record("target_server_used_size is {0}".format(target_server_used_size))
 
                 # get data_disk_usage_limit_percentage
-                sql = "SELECT VALUE FROM oceanbase.GV$OB_PARAMETERS WHERE SVR_IP='{0}' and SVR_PORT='{1}' and NAME LIKE  \"data_disk_usage_limit_percentage\"".format(
-                    target_server_ip, target_server_port)
+                sql = "SELECT VALUE FROM oceanbase.GV$OB_PARAMETERS WHERE SVR_IP='{0}' and SVR_PORT='{1}' and NAME LIKE  \"data_disk_usage_limit_percentage\"".format(target_server_ip, target_server_port)
                 self.verbose("execute_sql is {0}".format(sql))
                 data_disk_usage_limit_percentage = int(self.ob_connector.execute_sql(sql)[0][0])
                 # data_disk_usage_limit_percentage is a Cluster level configuration items
                 self.verbose("data_disk_usage_limit_percentage is {0}".format(data_disk_usage_limit_percentage))
                 record.add_record("data_disk_usage_limit_percentage is {0}".format(data_disk_usage_limit_percentage))
-                if self.observer_version == "4.3.0.0" or StringUtils.compare_versions_greater(self.observer_version,
-                                                                                              "4.3.0.0"):
-                    target_server_estimated_size =int(target_server_estimated_size * 15/10)
+                if self.observer_version == "4.3.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.3.0.0"):
+                    target_server_estimated_size = int(target_server_estimated_size * 15 / 10)
                 else:
-                    target_server_estimated_size =int(target_server_estimated_size * 55/10)
+                    target_server_estimated_size = int(target_server_estimated_size * 55 / 10)
                 self.verbose("target_server_estimated_size is {0}".format(target_server_estimated_size))
                 record.add_record("target_server_estimated_size is {0}".format(target_server_estimated_size))
 
-
-                available_disk_space=int(target_server_total_size/100*data_disk_usage_limit_percentage-target_server_used_size)
+                available_disk_space = int(target_server_total_size / 100 * data_disk_usage_limit_percentage - target_server_used_size)
                 self.verbose("available_disk_space is {0}".format(available_disk_space))
                 record.add_record("available_disk_space is {0}".format(available_disk_space))
 
                 if target_server_estimated_size - available_disk_space > 0:
                     record.add_record("target_server_estimated_size - available_disk_space is {0}".format(target_server_estimated_size - available_disk_space))
-                    record.add_suggest(
-                        "the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(
-                            target_server_ip, target_server_port))
+                    record.add_suggest("the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(target_server_ip, target_server_port))
                 else:
                     record.add_record("target_server_estimated_size - available_disk_space is {0}".format(target_server_estimated_size - available_disk_space))
-                    record.add_suggest(
-                        "the disk space of server({0}:{1}) is enough. Don't warn ".format(target_server_ip,
-                                                                                          target_server_port))
+                    record.add_suggest("the disk space of server({0}:{1}) is enough. Don't warn ".format(target_server_ip, target_server_port))
             self.Result.records.append(record)
         except Exception as e:
             raise RCAExecuteException("DDlDiskFullScene execute error: {0}".format(e))
@@ -215,10 +195,11 @@ class DDlDiskFullScene(RcaScene):
 
     def get_scene_info(self):
 
-        return {"name": "ddl_disk_full",
-                "info_en": "Insufficient disk space reported during DDL process. ",
-                "info_cn": 'DDL过程中报磁盘空间不足的问题',
-                }
+        return {
+            "name": "ddl_disk_full",
+            "info_en": "Insufficient disk space reported during DDL process. ",
+            "info_cn": 'DDL过程中报磁盘空间不足的问题',
+        }
 
 
 ddl_disk_full = DDlDiskFullScene()

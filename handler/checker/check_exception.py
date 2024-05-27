@@ -52,24 +52,24 @@ class StepResultFailException(CheckException):
 
 class ResultFalseException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(ResultFalseException,self).__init__(msg, obj)
+        super(ResultFalseException, self).__init__(msg, obj)
 
 
 class ResultFailException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(ResultFailException,self).__init__(msg, obj)
+        super(ResultFailException, self).__init__(msg, obj)
 
 
 class VerifyFalseException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(VerifyFalseException,self).__init__(msg, obj)
+        super(VerifyFalseException, self).__init__(msg, obj)
 
 
 class VerifyFailException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(VerifyFailException,self).__init__(msg, obj)
+        super(VerifyFailException, self).__init__(msg, obj)
 
 
 class TaskException(CheckException):
     def __init__(self, msg=None, obj=None):
-        super(TaskException,self).__init__(msg, obj)
+        super(TaskException, self).__init__(msg, obj)

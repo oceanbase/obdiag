@@ -17,6 +17,7 @@
 from __future__ import absolute_import, division, print_function
 from optparse import Values
 
+
 class HandlerContextNamespace:
 
     def __init__(self, spacename):

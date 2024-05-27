@@ -53,8 +53,8 @@ class GatherPlanMonitorHandler(object):
         self.sql_audit_name = "gv$sql_audit"
         self.plan_explain_name = "gv$plan_cache_plan_explain"
         self.is_scene = is_scene
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -70,8 +70,8 @@ class GatherPlanMonitorHandler(object):
         trace_id_option = Util.get_option(options, 'trace_id')
         store_dir_option = Util.get_option(options, 'store_dir')
         env_option = Util.get_option(options, 'env')
-        if self.context.get_variable("gather_plan_monitor_trace_id", None) :
-            trace_id_option=self.context.get_variable("gather_plan_monitor_trace_id")
+        if self.context.get_variable("gather_plan_monitor_trace_id", None):
+            trace_id_option = self.context.get_variable("gather_plan_monitor_trace_id")
         if trace_id_option is not None:
             self.trace_id = trace_id_option
         else:
@@ -101,8 +101,7 @@ class GatherPlanMonitorHandler(object):
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(
-            TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.report_file_path = os.path.join(pack_dir_this_command, "sql_plan_monitor_report.html")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
@@ -136,20 +135,12 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("TENANT_ID: %s " % tenant_id)
 
                 sql_plan_monitor_svr_agg_template = self.sql_plan_monitor_svr_agg_template_sql()
-                sql_plan_monitor_svr_agg_v1 = str(sql_plan_monitor_svr_agg_template) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_ORDER_BY##", "PLAN_LINE_ID ASC, MAX_CHANGE_TIME ASC, SVR_IP, SVR_PORT")
-                sql_plan_monitor_svr_agg_v2 = str(sql_plan_monitor_svr_agg_template) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_ORDER_BY##", "SVR_IP, SVR_PORT, PLAN_LINE_ID")
+                sql_plan_monitor_svr_agg_v1 = str(sql_plan_monitor_svr_agg_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PLAN_LINE_ID ASC, MAX_CHANGE_TIME ASC, SVR_IP, SVR_PORT")
+                sql_plan_monitor_svr_agg_v2 = str(sql_plan_monitor_svr_agg_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "SVR_IP, SVR_PORT, PLAN_LINE_ID")
 
                 sql_plan_monitor_detail_template = self.sql_plan_monitor_detail_template_sql()
-                sql_plan_monitor_detail_v1 = str(sql_plan_monitor_detail_template) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_ORDER_BY##", "PLAN_LINE_ID ASC, SVR_IP, SVR_PORT, CHANGE_TS, PROCESS_NAME ASC")
-                sql_plan_monitor_detail_v2 = str(sql_plan_monitor_detail_template) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_ORDER_BY##", "PROCESS_NAME ASC, PLAN_LINE_ID ASC, FIRST_REFRESH_TIME ASC")
+                sql_plan_monitor_detail_v1 = str(sql_plan_monitor_detail_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PLAN_LINE_ID ASC, SVR_IP, SVR_PORT, CHANGE_TS, PROCESS_NAME ASC")
+                sql_plan_monitor_detail_v2 = str(sql_plan_monitor_detail_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PROCESS_NAME ASC, PLAN_LINE_ID ASC, FIRST_REFRESH_TIME ASC")
 
                 sql_plan_monitor_dfo_op = self.sql_plan_monitor_dfo_op_sql(tenant_id, plan_id, trace_id)
                 full_audit_sql_by_trace_id_sql = self.full_audit_sql_by_trace_id_sql(trace_id)
@@ -190,12 +181,9 @@ class GatherPlanMonitorHandler(object):
 
                 # 输出本报告在租户下使用的 SQL
                 self.__report("<h4>本报告在租户下使用的 SQL</h4>")
-                self.__report("<div class='help' style='font-size:11px'>DFO 级<hr /><pre>%s</pre></div><br/>" % (
-                    sql_plan_monitor_dfo_op))
-                self.__report("<div class='help' style='font-size:11px'>机器级<hr /><pre>%s</pre></div><br/>" % (
-                    sql_plan_monitor_svr_agg_v1))
-                self.__report("<div class='help' style='font-size:11px'>线程级<hr /><pre>%s</pre></div><br/>" % (
-                    sql_plan_monitor_detail_v1))
+                self.__report("<div class='help' style='font-size:11px'>DFO 级<hr /><pre>%s</pre></div><br/>" % (sql_plan_monitor_dfo_op))
+                self.__report("<div class='help' style='font-size:11px'>机器级<hr /><pre>%s</pre></div><br/>" % (sql_plan_monitor_svr_agg_v1))
+                self.__report("<div class='help' style='font-size:11px'>线程级<hr /><pre>%s</pre></div><br/>" % (sql_plan_monitor_detail_v1))
 
                 t = time.localtime(time.time())
                 self.__report("报告生成时间： %s" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
@@ -205,14 +193,13 @@ class GatherPlanMonitorHandler(object):
             if resp["skip"]:
                 return
             if resp["error"]:
-                gather_tuples.append((cluster_name, True, resp["error_msg"], 0, int(time.time() - st),
-                                      "Error:{0}".format(resp["error_msg"]), ""))
+                gather_tuples.append((cluster_name, True, resp["error_msg"], 0, int(time.time() - st), "Error:{0}".format(resp["error_msg"]), ""))
                 return
             gather_pack_path_dict[cluster_name] = resp["gather_pack_path"]
             gather_tuples.append((cluster_name, False, "", int(time.time() - st), pack_dir_this_command))
 
         if getattr(sys, 'frozen', False):
-                absPath = os.path.dirname(sys.executable)
+            absPath = os.path.dirname(sys.executable)
         else:
             absPath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         cs_resources_path = os.path.join(absPath, "resources")
@@ -227,7 +214,6 @@ class GatherPlanMonitorHandler(object):
         # 将汇总结果持久化记录到文件中
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         return gather_tuples, gather_pack_path_dict
-
 
     def __init_db_conn(self, env):
         try:
@@ -258,18 +244,15 @@ class GatherPlanMonitorHandler(object):
             is_err = tup[2]
             consume_time = tup[3]
             pack_path = tup[4]
-            summary_tab.append(
-                (cluster, "Error" if is_err else "Completed", "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather Sql Plan Monitor Summary:\n" + \
-               tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+            summary_tab.append((cluster, "Error" if is_err else "Completed", "{0} s".format(int(consume_time)), pack_path))
+        return "\nGather Sql Plan Monitor Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
     def report_schema(self, sql):
         try:
             schemas = ""
             valid_words = []
             if self.enable_dump_db:
-                words = [w.strip(',') for w in ("%s" % sql).split() if not (
-                        "[" in w or "=" in w or "|" in w or "(" in w or "--" in w or "]" in w or ")" in w or "*" in w or "/" in w or "%" in w or "'" in w or "-" in w or w.isdigit())]
+                words = [w.strip(',') for w in ("%s" % sql).split() if not ("[" in w or "=" in w or "|" in w or "(" in w or "--" in w or "]" in w or ")" in w or "*" in w or "/" in w or "%" in w or "'" in w or "-" in w or w.isdigit())]
                 for t in words:
                     if t in valid_words:
                         continue
@@ -295,8 +278,7 @@ class GatherPlanMonitorHandler(object):
             s = from_db_cursor(cursor)
             s.align = 'l'
             schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % s
-            self.__report(
-                "<div><h2 id='schema_anchor'>SCHEMA 信息</h2><div id='schema' style='display: none'>" + schemas + "</div></div>")
+            self.__report("<div><h2 id='schema_anchor'>SCHEMA 信息</h2><div id='schema' style='display: none'>" + schemas + "</div></div>")
             cursor.close()
         except Exception as e:
             self.stdio.exception("report table schema failed %s" % sql)
@@ -314,8 +296,7 @@ class GatherPlanMonitorHandler(object):
         self.stdio.verbose("report header complete")
 
     def init_monitor_stat(self):
-        sql = "select ID,NAME,TYPE from " + (
-            "SYS." if self.tenant_mode == "oracle" else "oceanbase.") + "v$sql_monitor_statname order by ID"
+        sql = "select ID,NAME,TYPE from " + ("SYS." if self.tenant_mode == "oracle" else "oceanbase.") + "v$sql_monitor_statname order by ID"
         data = self.sys_connector.execute_sql(sql)
         for item in data:
             self.STAT_NAME[item[0]] = {"type": item[2], "name": item[1]}
@@ -330,8 +311,7 @@ class GatherPlanMonitorHandler(object):
             elif self.STAT_NAME[item[n]]["type"] == 2:
                 val = "%0.3fMB" % (item[n + 1] / 1024.0 / 1024)
             elif self.STAT_NAME[item[n]]["type"] == 3:
-                val = "%s.%06d" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(item[v] / 1000000)),
-                                   item[v] - (item[v] / 1000000) * 1000000)
+                val = "%s.%06d" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(item[v] / 1000000)), item[v] - (item[v] / 1000000) * 1000000)
             else:
                 val = str(item[v])
         except Exception as e:
@@ -375,13 +355,23 @@ class GatherPlanMonitorHandler(object):
     def report_detail_graph_data(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = (0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS'])
-            end = (0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS'])
-            rows = (0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS'])
+            start = 0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
+            end = 0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
+            rows = 0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
             otherstat = self.detail_otherstat_explain(item)
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d, tag:'op', depth:%d, rescan:%d, svr_ip:'%s', otherstat:'%s'}," % (
-                start, end, end - start, item['PLAN_LINE_ID'], item['PLAN_OPERATION'], item['PROCESS_NAME'], rows,
-                item['PLAN_DEPTH'], item['RESCAN_TIMES'], item['SVR_IP'], otherstat)
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PROCESS_NAME'],
+                rows,
+                item['PLAN_DEPTH'],
+                item['RESCAN_TIMES'],
+                item['SVR_IP'],
+                otherstat,
+            )
         data = data + "{start:0}];</script>"
         data = data + "<p>%s</p><div class='bar' id='%s'></div>" % (title, ident)
         self.__report(data)
@@ -389,14 +379,25 @@ class GatherPlanMonitorHandler(object):
     def report_detail_graph_data_obversion4(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = (0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS'])
-            end = (0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS'])
-            rows = (0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS'])
+            start = 0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
+            end = 0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
+            rows = 0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
             otherstat = self.detail_otherstat_explain(item)
             data = data + "{cpu:%f, io:%f, start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d, tag:'op', depth:%d, rescan:%d, svr_ip:'%s', otherstat:'%s'}," % (
-                item['MY_CPU_TIME'], item['MY_IO_TIME'], start, end, end - start, item['PLAN_LINE_ID'],
-                item['PLAN_OPERATION'], item['PROCESS_NAME'], rows, item['PLAN_DEPTH'], item['RESCAN_TIMES'],
-                item['SVR_IP'], otherstat)
+                item['MY_CPU_TIME'],
+                item['MY_IO_TIME'],
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PROCESS_NAME'],
+                rows,
+                item['PLAN_DEPTH'],
+                item['RESCAN_TIMES'],
+                item['SVR_IP'],
+                otherstat,
+            )
         data = data + "{start:0}];</script>"
         data = data + "<p>%s</p><div class='bar' id='%s'></div>" % (title, ident)
         self.__report(data)
@@ -416,26 +417,46 @@ class GatherPlanMonitorHandler(object):
             threads = item['THREAD_NUM']
             my_cpu_time = item['MY_CPU_TIME']
             my_io_time = item['MY_IO_TIME']
-            otherstat = "my_db_time:%f, my_cpu_time:%f, my_io_time:%f" % (
-                item['MY_DB_TIME'], item['MY_CPU_TIME'], item['MY_IO_TIME'])
+            otherstat = "my_db_time:%f, my_cpu_time:%f, my_io_time:%f" % (item['MY_DB_TIME'], item['MY_CPU_TIME'], item['MY_IO_TIME'])
             data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, my_io_time:%f, my_cpu_time:%f, opid:%s, op:'%s', est_rows:0, rows:%d, tag:'db_time', tid: %d, depth:%d, otherstat:'%s'}," % (
-                item['MY_CPU_TIME'], item['MY_IO_TIME'], start, end, diff, my_io_time, my_cpu_time, op_id, op, rows,
-                threads, depth, otherstat)
+                item['MY_CPU_TIME'],
+                item['MY_IO_TIME'],
+                start,
+                end,
+                diff,
+                my_io_time,
+                my_cpu_time,
+                op_id,
+                op,
+                rows,
+                threads,
+                depth,
+                otherstat,
+            )
         data = data + "{start:0}];"
-        data = data + "</script><p>%s</p><div class='bar' id='db_time_serial'></div>" % (title);
+        data = data + "</script><p>%s</p><div class='bar' id='db_time_serial'></div>" % (title)
         self.__report(data)
 
     def report_dfo_agg_graph_data(self, cursor, title=''):
         data = "<script> var agg_serial = ["
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS'])
-            end = (0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            est_rows = (0 if None == item['EST_ROWS'] else item['EST_ROWS'])
+            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', depth:%d, otherstat:'%s'}," % (
-                start, end, end - start, item['PLAN_LINE_ID'],
-                item['PLAN_OPERATION'], item['PARALLEL'], rows, est_rows, item['PLAN_DEPTH'], otherstat)
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                rows,
+                est_rows,
+                item['PLAN_DEPTH'],
+                otherstat,
+            )
         data = data + "{start:0}];"
         data = data + "</script><p>%s</p><div class='bar' id='agg_serial'></div>" % (title)
         self.__report(data)
@@ -443,15 +464,27 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_agg_graph_data_obversion4(self, cursor, title=''):
         data = "<script> var agg_serial = ["
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS'])
-            end = (0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            skewness = (0 if None == item['SKEWNESS'] else item['SKEWNESS'])
-            est_rows = (0 if None == item['EST_ROWS'] else item['EST_ROWS'])
+            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
+            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', depth:%d, otherstat:'%s', skewness:%.2f}," % (
-                item['MY_CPU_TIME'], item['MY_IO_TIME'], start, end, end - start, item['PLAN_LINE_ID'],
-                item['PLAN_OPERATION'], item['PARALLEL'], rows, est_rows, item['PLAN_DEPTH'], otherstat, skewness)
+                item['MY_CPU_TIME'],
+                item['MY_IO_TIME'],
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                rows,
+                est_rows,
+                item['PLAN_DEPTH'],
+                otherstat,
+                skewness,
+            )
         data = data + "{start:0}];"
         data = data + "</script><p>%s</p><div class='bar' id='agg_serial'></div>" % (title)
         self.__report(data)
@@ -459,15 +492,23 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_sched_agg_graph_data(self, cursor, title=''):
         data = "<script> var agg_sched_serial = ["
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS'])
-            end = (0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            est_rows = (0 if None == item['EST_ROWS'] else item['EST_ROWS'])
+            start = 0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
+            end = 0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
-            data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', " \
-                          "depth:%d, otherstat:'%s'}," % (start, end, end - start, item['PLAN_LINE_ID'],
-                                                          item['PLAN_OPERATION'], item['PARALLEL'], rows, est_rows,
-                                                          item['PLAN_DEPTH'], otherstat)
+            data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', " "depth:%d, otherstat:'%s'}," % (
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                rows,
+                est_rows,
+                item['PLAN_DEPTH'],
+                otherstat,
+            )
         data = data + "{start:0}];"
         data = data + "</script><p>%s</p><div class='bar' id='agg_sched_serial'></div>" % (title)
         self.__report(data)
@@ -475,20 +516,27 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_sched_agg_graph_data_obversion4(self, cursor, title=''):
         data = "<script> var agg_sched_serial = ["
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS'])
-            end = (0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            skewness = (0 if None == item['SKEWNESS'] else item['SKEWNESS'])
-            est_rows = (0 if None == item['EST_ROWS'] else item['EST_ROWS'])
+            start = 0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
+            end = 0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
+            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
-            data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, " \
-                          "tag:'dfo', depth:%d, otherstat:'%s', skewness:%.2f}," % (item['MY_CPU_TIME'],
-                                                                                    item['MY_IO_TIME'], start, end,
-                                                                                    end - start, item['PLAN_LINE_ID'],
-                                                                                    item['PLAN_OPERATION'],
-                                                                                    item['PARALLEL'], rows, est_rows,
-                                                                                    item['PLAN_DEPTH'], otherstat,
-                                                                                    skewness)
+            data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, " "tag:'dfo', depth:%d, otherstat:'%s', skewness:%.2f}," % (
+                item['MY_CPU_TIME'],
+                item['MY_IO_TIME'],
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                rows,
+                est_rows,
+                item['PLAN_DEPTH'],
+                otherstat,
+                skewness,
+            )
         data = data + "{start:0}];"
         data = data + "</script><p>%s</p><div class='bar' id='agg_sched_serial'></div>" % (title)
         self.__report(data)
@@ -497,14 +545,20 @@ class GatherPlanMonitorHandler(object):
     def report_svr_agg_graph_data(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS'])
-            end = (0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " \
-                          "tag:'sqc', depth:%d}," % (start, end, end - start, item['PLAN_LINE_ID'],
-                                                     item['PLAN_OPERATION'], item['PARALLEL'],
-                                                     item['SVR_IP'] + ':' + str(item['SVR_PORT']), rows,
-                                                     item['PLAN_DEPTH'])
+            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " "tag:'sqc', depth:%d}," % (
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                item['SVR_IP'] + ':' + str(item['SVR_PORT']),
+                rows,
+                item['PLAN_DEPTH'],
+            )
         data = data + "{start:0}];</script>"
         data = data + "<p>%s</p><div class='bar' id='%s'></div>" % (title, ident)
         self.stdio.verbose("report SQL_PLAN_MONITOR SQC operator priority start, DATA: %s", data)
@@ -513,16 +567,24 @@ class GatherPlanMonitorHandler(object):
     def report_svr_agg_graph_data_obversion4(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = (0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS'])
-            end = (0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS'])
-            rows = (0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS'])
-            skewness = (0 if None == item['SKEWNESS'] else item['SKEWNESS'])
-            data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " \
-                          "tag:'sqc', depth:%d, skewness:%.2f}," % (item['MY_CPU_TIME'], item['MY_IO_TIME'], start,
-                                                                    end, end - start, item['PLAN_LINE_ID'],
-                                                                    item['PLAN_OPERATION'], item['PARALLEL'],
-                                                                    item['SVR_IP'] + ':' + str(item['SVR_PORT']), rows,
-                                                                    item['PLAN_DEPTH'], skewness)
+            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
+            data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " "tag:'sqc', depth:%d, skewness:%.2f}," % (
+                item['MY_CPU_TIME'],
+                item['MY_IO_TIME'],
+                start,
+                end,
+                end - start,
+                item['PLAN_LINE_ID'],
+                item['PLAN_OPERATION'],
+                item['PARALLEL'],
+                item['SVR_IP'] + ':' + str(item['SVR_PORT']),
+                rows,
+                item['PLAN_DEPTH'],
+                skewness,
+            )
         data = data + "{start:0}];</script>"
         data = data + "<p>%s</p><div class='bar' id='%s'></div>" % (title, ident)
         self.stdio.verbose("report SQL_PLAN_MONITOR SQC operator priority start, DATA: %s", data)
@@ -563,9 +625,7 @@ class GatherPlanMonitorHandler(object):
                 major_version = int(version.split('.')[0])
 
                 self.sql_audit_name = "gv$ob_sql_audit" if major_version >= 4 else "gv$sql_audit"
-                self.plan_explain_name = (
-                    "gv$ob_plan_cache_plan_explain" if major_version >= 4 else "gv$plan_cache_plan_explain"
-                )
+                self.plan_explain_name = "gv$ob_plan_cache_plan_explain" if major_version >= 4 else "gv$plan_cache_plan_explain"
                 self.ob_major_version = major_version
                 self.tenant_mode = "mysql"
                 self.sys_database = "oceanbase"
@@ -615,13 +675,9 @@ class GatherPlanMonitorHandler(object):
 
     def sql_audit_by_trace_id_limit1_sql(self):
         if self.tenant_mode == 'mysql':
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")) \
-                .replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##",
-                                                                           self.sql_audit_name)
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
         else:
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle")).replace(
-                "##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##",
-                                                                  self.sql_audit_name)
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
         return sql
 
     def select_sql_audit_by_trace_id_limit1(self):
@@ -632,68 +688,66 @@ class GatherPlanMonitorHandler(object):
     def plan_explain_sql(self, tenant_id, plan_id, svr_ip, svr_port):
         if self.tenant_mode == 'mysql':
             if self.ob_major_version >= 4:
-                sql = "select * from oceanbase.gv$ob_plan_cache_plan_explain where tenant_id = %s and " \
-                      "plan_id = %s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
+                sql = "select * from oceanbase.gv$ob_plan_cache_plan_explain where tenant_id = %s and " "plan_id = %s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
             else:
-                sql = "select * from oceanbase.gv$plan_cache_plan_explain where tenant_id = %s and " \
-                      "plan_id = %s  and ip = '%s' and port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
+                sql = "select * from oceanbase.gv$plan_cache_plan_explain where tenant_id = %s and " "plan_id = %s  and ip = '%s' and port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
         else:
             if self.ob_major_version >= 4:
-                sql = "select * from sys.gv$ob_plan_cache_plan_explain where tenant_id = %s and plan_id = " \
-                      "%s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
+                sql = "select * from sys.gv$ob_plan_cache_plan_explain where tenant_id = %s and plan_id = " "%s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
             else:
-                sql = "select * from sys.gv$plan_cache_plan_explain where tenant_id = %s and plan_id = " \
-                      "%s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
+                sql = "select * from sys.gv$plan_cache_plan_explain where tenant_id = %s and plan_id = " "%s  and svr_ip = '%s' and svr_port = %s" % (tenant_id, plan_id, svr_ip, svr_port)
         return sql
 
     def full_audit_sql_by_trace_id_sql(self, trace_id):
         if self.tenant_mode == 'mysql':
-            if self.ob_major_version >=4:
-                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " \
-                  "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (
-                      GlobalSqlMeta().get_value(key="sql_audit_item_mysql_obversion4"), self.sql_audit_name, trace_id)
+            if self.ob_major_version >= 4:
+                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_mysql_obversion4"), self.sql_audit_name, trace_id)
             else:
-                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " \
-                      "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (
-                          GlobalSqlMeta().get_value(key="sql_audit_item_mysql"), self.sql_audit_name, trace_id)
+                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_mysql"), self.sql_audit_name, trace_id)
         else:
-            if self.ob_major_version >=4:
-                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " \
-                  "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (
-                      GlobalSqlMeta().get_value(key="sql_audit_item_oracle_obversion4"), self.sql_audit_name, trace_id)
+            if self.ob_major_version >= 4:
+                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_oracle_obversion4"), self.sql_audit_name, trace_id)
             else:
-                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " \
-                      "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (
-                          GlobalSqlMeta().get_value(key="sql_audit_item_oracle"), self.sql_audit_name, trace_id)
+                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_oracle"), self.sql_audit_name, trace_id)
         return sql
 
     def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id):
         if self.tenant_mode == 'mysql':
             if self.ob_major_version >= 4:
-                sql = str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_mysql_obversion4")) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_PLAN_ID##", str(plan_id)) \
-                    .replace("##REPLACE_TENANT_ID##", str(tenant_id)) \
+                sql = (
+                    str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_mysql_obversion4"))
+                    .replace("##REPLACE_TRACE_ID##", trace_id)
+                    .replace("##REPLACE_PLAN_ID##", str(plan_id))
+                    .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                )
             else:
-                sql = str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_mysql")) \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_PLAN_ID##", str(plan_id)) \
-                    .replace("##REPLACE_TENANT_ID##", str(tenant_id)) \
+                sql = (
+                    str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_mysql"))
+                    .replace("##REPLACE_TRACE_ID##", trace_id)
+                    .replace("##REPLACE_PLAN_ID##", str(plan_id))
+                    .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                )
         else:
             if self.ob_major_version >= 4:
-                sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_oracle_obversion4") \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_PLAN_ID##", str(plan_id)) \
-                    .replace("##REPLACE_TENANT_ID##", str(tenant_id)) \
+                sql = (
+                    GlobalSqlMeta()
+                    .get_value(key="sql_plan_monitor_dfo_op_oracle_obversion4")
+                    .replace("##REPLACE_TRACE_ID##", trace_id)
+                    .replace("##REPLACE_PLAN_ID##", str(plan_id))
+                    .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                )
             else:
-                sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_oracle") \
-                    .replace("##REPLACE_TRACE_ID##", trace_id) \
-                    .replace("##REPLACE_PLAN_ID##", str(plan_id)) \
-                    .replace("##REPLACE_TENANT_ID##", str(tenant_id)) \
+                sql = (
+                    GlobalSqlMeta()
+                    .get_value(key="sql_plan_monitor_dfo_op_oracle")
+                    .replace("##REPLACE_TRACE_ID##", trace_id)
+                    .replace("##REPLACE_PLAN_ID##", str(plan_id))
+                    .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                )
 
         return sql
 
@@ -727,8 +781,7 @@ class GatherPlanMonitorHandler(object):
     def report_sql_audit_details(self, sql):
         if self.enable_dump_db:
             full_audit_sql_result = self.sys_connector.execute_sql_pretty(sql)
-            self.__report(
-                "<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>" + full_audit_sql_result.get_html_string() + "</div></div>")
+            self.__report("<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>" + full_audit_sql_result.get_html_string() + "</div></div>")
         self.stdio.verbose("report full sql audit complete")
 
     # plan cache
@@ -784,8 +837,7 @@ class GatherPlanMonitorHandler(object):
 
     def report_sql_plan_monitor_dfo_op(self, sql):
         data_sql_plan_monitor_dfo_op = self.sys_connector.execute_sql_pretty(sql)
-        self.__report(
-            "<div><h2 id='agg_table_anchor'>SQL_PLAN_MONITOR DFO 级调度时序汇总</h2><div class='v' id='agg_table' style='display: none'>" + data_sql_plan_monitor_dfo_op.get_html_string() + "</div></div>")
+        self.__report("<div><h2 id='agg_table_anchor'>SQL_PLAN_MONITOR DFO 级调度时序汇总</h2><div class='v' id='agg_table' style='display: none'>" + data_sql_plan_monitor_dfo_op.get_html_string() + "</div></div>")
         self.stdio.verbose("report SQL_PLAN_MONITOR DFO complete")
         cursor_sql_plan_monitor_dfo_op = self.sys_connector.execute_sql_return_cursor_dictionary(sql)
         if self.ob_major_version >= 4:
@@ -803,18 +855,18 @@ class GatherPlanMonitorHandler(object):
     def report_sql_plan_monitor_svr_agg(self, sql_plan_monitor_svr_agg_v1, sql_plan_monitor_svr_agg_v2):
         cursor_sql_plan_monitor_svr_agg = self.sys_connector.execute_sql_return_cursor(sql_plan_monitor_svr_agg_v1)
         self.__report(
-            "<div><h2 id='svr_agg_table_anchor'>SQL_PLAN_MONITOR SQC 级汇总</h2><div class='v' id='svr_agg_table' style='display: none'>" + from_db_cursor(
-                cursor_sql_plan_monitor_svr_agg).get_html_string() + "</div><div class='shortcut'><a href='#svr_agg_serial_v1'>Goto 算子优先</a> <a href='#svr_agg_serial_v2'>Goto 机器优先</a></div></div>")
+            "<div><h2 id='svr_agg_table_anchor'>SQL_PLAN_MONITOR SQC 级汇总</h2><div class='v' id='svr_agg_table' style='display: none'>"
+            + from_db_cursor(cursor_sql_plan_monitor_svr_agg).get_html_string()
+            + "</div><div class='shortcut'><a href='#svr_agg_serial_v1'>Goto 算子优先</a> <a href='#svr_agg_serial_v2'>Goto 机器优先</a></div></div>"
+        )
         self.stdio.verbose("report SQL_PLAN_MONITOR SQC complete")
-        cursor_sql_plan_monitor_svr_agg_v1 = self.sys_connector.execute_sql_return_cursor_dictionary(
-            sql_plan_monitor_svr_agg_v2)
+        cursor_sql_plan_monitor_svr_agg_v1 = self.sys_connector.execute_sql_return_cursor_dictionary(sql_plan_monitor_svr_agg_v2)
         if self.ob_major_version >= 4:
             self.report_svr_agg_graph_data_obversion4('svr_agg_serial_v1', cursor_sql_plan_monitor_svr_agg_v1, '算子优先视图')
         else:
             self.report_svr_agg_graph_data('svr_agg_serial_v1', cursor_sql_plan_monitor_svr_agg_v1, '算子优先视图')
         self.stdio.verbose("report SQL_PLAN_MONITOR SQC operator priority complete")
-        cursor_data_sql_plan_monitor_svr_agg_v2 = self.sys_connector.execute_sql_return_cursor_dictionary(
-            sql_plan_monitor_svr_agg_v2)
+        cursor_data_sql_plan_monitor_svr_agg_v2 = self.sys_connector.execute_sql_return_cursor_dictionary(sql_plan_monitor_svr_agg_v2)
         if self.ob_major_version >= 4:
             self.report_svr_agg_graph_data('svr_agg_serial_v2', cursor_data_sql_plan_monitor_svr_agg_v2, '机器优先视图')
         else:
@@ -824,15 +876,14 @@ class GatherPlanMonitorHandler(object):
     def report_sql_plan_monitor_detail_operator_priority(self, sql):
         cursor_sql_plan_monitor_detail = self.sys_connector.execute_sql_return_cursor(sql)
         self.__report(
-            "<div><h2 id='detail_table_anchor'>SQL_PLAN_MONITOR 详情</h2><div class='v' id='detail_table' style='display: none'>" + (
-                "no result in --fast mode" if self.enable_fast_dump else from_db_cursor(
-                    cursor_sql_plan_monitor_detail).get_html_string()) + "</div><div class='shortcut'><a href='#detail_serial_v1'>Goto 算子优先</a> <a href='#detail_serial_v2'>Goto 线程优先</a></div></div>")
+            "<div><h2 id='detail_table_anchor'>SQL_PLAN_MONITOR 详情</h2><div class='v' id='detail_table' style='display: none'>"
+            + ("no result in --fast mode" if self.enable_fast_dump else from_db_cursor(cursor_sql_plan_monitor_detail).get_html_string())
+            + "</div><div class='shortcut'><a href='#detail_serial_v1'>Goto 算子优先</a> <a href='#detail_serial_v2'>Goto 线程优先</a></div></div>"
+        )
         self.stdio.verbose("report SQL_PLAN_MONITOR details complete")
         cursor_sql_plan_monitor_detail_v1 = self.sys_connector.execute_sql_return_cursor_dictionary(sql)
         if self.ob_major_version >= 4:
-            self.report_detail_graph_data_obversion4("detail_serial_v1",
-                                                     cursor_sql_plan_monitor_detail_v1,
-                                                     '算子优先视图')
+            self.report_detail_graph_data_obversion4("detail_serial_v1", cursor_sql_plan_monitor_detail_v1, '算子优先视图')
         else:
             self.report_detail_graph_data("detail_serial_v1", cursor_sql_plan_monitor_detail_v1, '算子优先视图')
         self.stdio.verbose("report SQL_PLAN_MONITOR details operator priority complete")
@@ -840,9 +891,7 @@ class GatherPlanMonitorHandler(object):
     def reportsql_plan_monitor_detail_svr_priority(self, sql):
         cursor_sql_plan_monitor_detail_v2 = self.sys_connector.execute_sql_return_cursor_dictionary(sql)
         if self.ob_major_version >= 4:
-            self.report_detail_graph_data_obversion4("detail_serial_v2",
-                                                     cursor_sql_plan_monitor_detail_v2,
-                                                     '线程优先视图')
+            self.report_detail_graph_data_obversion4("detail_serial_v2", cursor_sql_plan_monitor_detail_v2, '线程优先视图')
         else:
             self.report_detail_graph_data("detail_serial_v2", cursor_sql_plan_monitor_detail_v2, '线程优先视图')
         self.stdio.verbose("report SQL_PLAN_MONITOR details server priority complete")

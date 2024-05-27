@@ -42,6 +42,7 @@ from common.tool import TimeUtils
 from stdio import SafeStdio
 from err import EC_SSH_CONNECT
 from subprocess32 import Popen, PIPE
+
 warnings.filterwarnings("ignore")
 
 
@@ -59,7 +60,7 @@ class SshConfig(object):
         self.timeout = int(timeout)
 
     def __str__(self):
-        return '%s@%s' % (self.username ,self.host)
+        return '%s@%s' % (self.username, self.host)
 
 
 class SshReturn(object):
@@ -71,10 +72,10 @@ class SshReturn(object):
 
     def __bool__(self):
         return self.code == 0
-    
+
     def __nonzero__(self):
         return self.__bool__()
-    
+
 
 class FeatureSshReturn(SshReturn, SafeStdio):
 
@@ -105,7 +106,7 @@ class FeatureSshReturn(SshReturn, SafeStdio):
                 verbose_msg = 'exited code 255, error output:\n%s' % self._stderr
                 self.stdio.verbose(verbose_msg)
                 self.stdio.exception('')
-    
+
     @property
     def code(self):
         self._get_return()
@@ -175,7 +176,7 @@ class ConcurrentExecutor(object):
 
 
 class LocalClient(SafeStdio):
-    
+
     @staticmethod
     def init_env(env=None):
         if env is None:
@@ -198,7 +199,6 @@ class LocalClient(SafeStdio):
             stdio.verbose(verbose_msg)
             stdio.exception('')
             return SshReturn(code, output, error)
-
 
     @staticmethod
     def execute_command(command, env=None, timeout=None, stdio=None):
@@ -298,6 +298,7 @@ class LocalClient(SafeStdio):
                 process.terminate()
         return SshReturn(code, stdout, stderr)
 
+
 class RemoteTransporter(enum.Enum):
     CLIENT = 0
     RSYNC = 1
@@ -372,7 +373,7 @@ class SshClient(SafeStdio):
     def get_env(self, key, stdio=None):
         return self.env[key] if key in self.env else None
 
-    def del_env(self, key,  stdio=None):
+    def del_env(self, key, stdio=None):
         if key in self.env:
             stdio.verbose('%s@%s delete env %s' % (self.config.username, self.config.host, key))
             del self.env[key]
@@ -392,13 +393,7 @@ class SshClient(SafeStdio):
             self.ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             stdio.verbose('host: %s, port: %s, user: %s, password: %s' % (self.config.host, self.config.port, self.config.username, self.config.password))
             self.ssh_client.connect(
-                self.config.host,
-                port=self.config.port,
-                username=self.config.username,
-                password=self.config.password,
-                key_filename=self.config.key_filename,
-                timeout=self.config.timeout,
-                disabled_algorithms=self._disabled_rsa_algorithms
+                self.config.host, port=self.config.port, username=self.config.username, password=self.config.password, key_filename=self.config.key_filename, timeout=self.config.timeout, disabled_algorithms=self._disabled_rsa_algorithms
             )
             self.is_connected = True
         except AuthenticationException:
@@ -470,7 +465,7 @@ class SshClient(SafeStdio):
         except SSHException as e:
             if retry:
                 self.close()
-                return self._execute_command(command, retry-1, stdio)
+                return self._execute_command(command, retry - 1, stdio)
             else:
                 stdio.exception('')
                 stdio.critical('%s@%s connect failed: %s' % (self.config.username, self.config.host, e))
@@ -556,11 +551,7 @@ class SshClient(SafeStdio):
             identity_option += '-i {key_filename} '.format(key_filename=self.config.key_filename)
         if self.config.port:
             identity_option += '-p {}'.format(self.config.port)
-        cmd = 'yes | rsync -a -W -e "ssh {identity_option}" {source} {target}'.format(
-            identity_option=identity_option,
-            source=source,
-            target=target
-        )
+        cmd = 'yes | rsync -a -W -e "ssh {identity_option}" {source} {target}'.format(identity_option=identity_option, source=source, target=target)
         ret = LocalClient.execute_command(cmd, stdio=stdio)
         return bool(ret)
 
@@ -811,19 +802,24 @@ class SshClient(SafeStdio):
         except:
             stdio.exception("")
             stdio.verbose('Failed to get %s' % remote_dir)
+
+
 # TODO ENV_DISABLE_RSA_ALGORITHMS need get by context.inner_context
-ENV_DISABLE_RSA_ALGORITHMS=0
+ENV_DISABLE_RSA_ALGORITHMS = 0
+
+
 def dis_rsa_algorithms(state=0):
     """
     Disable RSA algorithms in OpenSSH server.
     """
     global ENV_DISABLE_RSA_ALGORITHMS
-    ENV_DISABLE_RSA_ALGORITHMS=state
+    ENV_DISABLE_RSA_ALGORITHMS = state
+
+
 class SshHelper(object):
-    def __init__(self, is_ssh=None, host_ip=None, username=None, password=None, ssh_port=None, key_file=None,
-                 node=None, stdio=None):
+    def __init__(self, is_ssh=None, host_ip=None, username=None, password=None, ssh_port=None, key_file=None, node=None, stdio=None):
         if node is None:
-            node={}
+            node = {}
         self.is_ssh = is_ssh
         self.stdio = stdio
         self.host_ip = host_ip
@@ -832,7 +828,7 @@ class SshHelper(object):
         self.need_password = True
         self.password = node.get("ssh_password") or password
         self.key_file = node.get("ssh_key_file") or key_file
-        self.key_file=os.path.expanduser(self.key_file)
+        self.key_file = os.path.expanduser(self.key_file)
         self.ssh_type = node.get("ssh_type") or "remote"
         self._ssh_fd = None
         self._sftp_client = None
@@ -858,7 +854,7 @@ class SshHelper(object):
             return
 
         if self.is_ssh:
-            self._disabled_rsa_algorithms=None
+            self._disabled_rsa_algorithms = None
             DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
             if ENV_DISABLE_RSA_ALGORITHMS == 1:
                 self._disabled_rsa_algorithms = DISABLED_ALGORITHMS
@@ -868,11 +864,11 @@ class SshHelper(object):
                     self._ssh_fd = paramiko.SSHClient()
                     self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                     self._ssh_fd.load_system_host_keys()
-                    self._ssh_fd.connect(hostname=host_ip, username=username, key_filename=self.key_file, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                    self._ssh_fd.connect(hostname=host_ip, username=username, key_filename=self.key_file, port=ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
                 except AuthenticationException:
                     self.password = input("Authentication failed, Input {0}@{1} password:\n".format(username, host_ip))
                     self.need_password = True
-                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
                 except Exception as e:
                     raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(username, host_ip, e))
             else:
@@ -880,7 +876,7 @@ class SshHelper(object):
                 self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 self._ssh_fd.load_system_host_keys()
                 self.need_password = True
-                self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
 
     def ssh_exec_cmd(self, cmd):
         if self.ssh_type == "docker":
@@ -894,9 +890,7 @@ class SshHelper(object):
                     stderr=True,
                 )
                 if result.exit_code != 0:
-                    raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                                  "command=[{1}], exception:{2}".format(self.node["container_name"], cmd,
-                                                                                        result.output.decode('utf-8')))
+                    raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.node["container_name"], cmd, result.output.decode('utf-8')))
 
             except Exception as e:
                 self.stdio.error("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
@@ -907,11 +901,9 @@ class SshHelper(object):
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                           "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text))
+                raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text))
         except SSHException as e:
-            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                       "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
+            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
         return stdout.read().decode('utf-8')
 
     def ssh_exec_cmd_ignore_err(self, cmd):
@@ -988,10 +980,9 @@ class SshHelper(object):
         bar = '\033[32;1m%s\033[0m' % '=' * filled_len + '-' * (bar_len - filled_len)
         print_percents = round((percents * 5), 1)
         sys.stdout.flush()
-        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']',  suffix))
+        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
         if transferred == to_be_transferred:
-            sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (
-            bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+            sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
             print()
 
     def download(self, remote_path, local_path):
@@ -1011,16 +1002,16 @@ class SshHelper(object):
 
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
-        print('Download {0}:{1}'.format(self.host_ip,remote_path))
+        print('Download {0}:{1}'.format(self.host_ip, remote_path))
         self._sftp_client.get(remote_path, local_path, callback=self.progress_bar)
         self._sftp_client.close()
 
     def translate_byte(self, B):
         B = float(B)
         KB = float(1024)
-        MB = float(KB ** 2)
-        GB = float(MB ** 2)
-        TB = float(GB ** 2)
+        MB = float(KB**2)
+        GB = float(MB**2)
+        TB = float(GB**2)
         if B < KB:
             return '{} {}'.format(B, 'bytes' if B > 1 else "byte")
         elif KB < B < MB:
@@ -1081,11 +1072,10 @@ class SshHelper(object):
             self._ssh_fd.close()
             result = ssh.recv(65535)
         except SSHException as e:
-            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                       "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
+            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
         return result
 
     def get_name(self):
         if self.ssh_type == "docker":
-             return "(docker)"+self.node.get("container_name")
+            return "(docker)" + self.node.get("container_name")
         return self.host_ip

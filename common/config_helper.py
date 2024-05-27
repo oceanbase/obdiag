@@ -41,17 +41,18 @@ class ConfigHelper(object):
         self.db_port = Util.get_option(options, 'P')
         self.config_path = os.path.expanduser('~/.obdiag/config.yml')
         self.inner_config = self.context.inner_config
-        self.ob_cluster = {"db_host": self.db_host, "db_port": self.db_port, "tenant_sys": {"password": self.sys_tenant_password, "user": self.sys_tenant_user, }}
+        self.ob_cluster = {
+            "db_host": self.db_host,
+            "db_port": self.db_port,
+            "tenant_sys": {
+                "password": self.sys_tenant_password,
+                "user": self.sys_tenant_user,
+            },
+        }
 
     def get_cluster_name(self):
         ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
-        obConnetcor = OBConnector(
-            ip=self.db_host, 
-            port=self.db_port, 
-            username=self.sys_tenant_user,
-            password=self.sys_tenant_password, 
-            stdio=self.stdio,
-            timeout=100)
+        obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         if ob_version.startswith("3") or ob_version.startswith("2"):
             sql = "select cluster_name from oceanbase.v$ob_cluster"
             res = obConnetcor.execute_sql(sql)
@@ -64,19 +65,13 @@ class ConfigHelper(object):
 
     def get_host_info_list_by_cluster(self):
         ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
-        obConnetcor = OBConnector(ip=self.db_host,
-                                  port=self.db_port,
-                                  username=self.sys_tenant_user,
-                                  password=self.sys_tenant_password,
-                                  stdio=self.stdio,
-                                  timeout=100)
+        obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
         if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
             sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
         res = obConnetcor.execute_sql(sql)
         if len(res) == 0:
-            raise Exception("Failed to get the node from cluster config, "
-                            "please check whether the cluster config correct!!!")
+            raise Exception("Failed to get the node from cluster config, " "please check whether the cluster config correct!!!")
         host_info_list = []
         for row in res:
             host_info = OrderedDict()
@@ -111,25 +106,8 @@ class ConfigHelper(object):
         global_data_dir = self.input_with_default("oceanbase data_dir", default_data_dir)
         global_redo_dir = self.input_with_default("oceanbase redo_dir", default_data_dir)
         tenant_sys_config = {"user": self.sys_tenant_user, "password": self.sys_tenant_password}
-        global_config = {
-            "ssh_username": global_ssh_username,
-            "ssh_password": global_ssh_password,
-            "ssh_port": global_ssh_port,
-            "ssh_key_file": "",
-            "home_path": global_home_path,
-            "data_dir": global_data_dir,
-            "redo_dir": global_redo_dir
-        }
-        new_config = {
-            "obcluster": {
-                "ob_cluster_name": ob_cluster_name,
-                "db_host": self.db_host,
-                "db_port": self.db_port,
-                "tenant_sys": tenant_sys_config,
-                "servers": {
-                    "nodes": nodes_config,
-                    "global": global_config
-                }}}
+        global_config = {"ssh_username": global_ssh_username, "ssh_password": global_ssh_password, "ssh_port": global_ssh_port, "ssh_key_file": "", "home_path": global_home_path, "data_dir": global_data_dir, "redo_dir": global_redo_dir}
+        new_config = {"obcluster": {"ob_cluster_name": ob_cluster_name, "db_host": self.db_host, "db_port": self.db_port, "tenant_sys": tenant_sys_config, "servers": {"nodes": nodes_config, "global": global_config}}}
         YamlUtils.write_yaml_data(new_config, self.config_path)
         need_config_obproxy = self.input_choice_default("need config obproxy [y/N]", "N")
         if need_config_obproxy:
@@ -154,13 +132,7 @@ class ConfigHelper(object):
                 "ssh_key_file": "",
                 "home_path": global_home_path,
             }
-            new_config = {
-                "obproxy": {
-                    "obproxy_cluster_name": "obproxy",
-                    "servers": {
-                        "nodes": nodes_config,
-                        "global": global_config
-                    }}}
+            new_config = {"obproxy": {"obproxy_cluster_name": "obproxy", "servers": {"nodes": nodes_config, "global": global_config}}}
             YamlUtils.write_yaml_data_append(new_config, path)
 
     def get_old_configuration(self, path):
@@ -185,8 +157,7 @@ class ConfigHelper(object):
             return value
 
     def input_password_with_default(self, prompt, default):
-        value = pwinput.pwinput(prompt="\033[32mEnter your {0} (default:'{1}'): \033[0m".format(prompt, default),
-                                mask='*')
+        value = pwinput.pwinput(prompt="\033[32mEnter your {0} (default:'{1}'): \033[0m".format(prompt, default), mask='*')
         if value == '' or value.lower() == "y" or value.lower() == "yes":
             return default
         else:

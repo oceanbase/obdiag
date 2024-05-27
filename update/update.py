@@ -29,28 +29,25 @@ import yaml
 
 # for update obdiag files without obdiag
 class UpdateHandler:
-    def __init__(self,context):
+    def __init__(self, context):
         self.context = context
         self.stdio = context.stdio
         self.local_update_file_sha = ""
         self.local_obdiag_version = OBDIAG_VERSION
         self.remote_obdiag_version = ""
         self.remote_tar_sha = ""
-        self.options=self.context.options
-        self.file_path=""
-        self.force=False
+        self.options = self.context.options
+        self.file_path = ""
+        self.force = False
         # on obdiag update command
-        if context.namespace.spacename =="update":
-            self.file_path=Util.get_option(self.options, 'file',default="")
-            self.force=Util.get_option(self.options, 'force',default=False)
-
-
-
+        if context.namespace.spacename == "update":
+            self.file_path = Util.get_option(self.options, 'file', default="")
+            self.force = Util.get_option(self.options, 'force', default=False)
 
     def execute(self):
         try:
-            file_path=self.file_path
-            force=self.force
+            file_path = self.file_path
+            force = self.force
             remote_server = const.UPDATE_REMOTE_SERVER
             remote_version_file_name = const.UPDATE_REMOTE_VERSION_FILE_NAME
             local_version_file_name = os.path.expanduser('~/.obdiag/remote_version.yaml')
@@ -75,8 +72,8 @@ class UpdateHandler:
                 self.stdio.warn(
                     "remote_obdiag_version is {0}. local_obdiag_version is {1}. "
                     "remote_obdiag_version>local_obdiag_version. Unable to update dependency files, please upgrade "
-                    "obdiag. Do not perform the upgrade process.".format(
-                        self.remote_obdiag_version, self.local_obdiag_version))
+                    "obdiag. Do not perform the upgrade process.".format(self.remote_obdiag_version, self.local_obdiag_version)
+                )
                 return
             if remote_data.get("remote_tar_sha") is None:
                 self.stdio.warn("remote_tar_sha is None. Do not perform the upgrade process.")
@@ -89,13 +86,11 @@ class UpdateHandler:
                 if os.path.exists(os.path.expanduser(local_update_log_file_name)):
                     with open(os.path.expanduser(local_update_log_file_name), 'r') as file:
                         local_data = yaml.safe_load(file)
-                    if local_data.get("remote_tar_sha") is not None and local_data.get(
-                            "remote_tar_sha") == self.remote_tar_sha:
+                    if local_data.get("remote_tar_sha") is not None and local_data.get("remote_tar_sha") == self.remote_tar_sha:
                         self.stdio.warn("[update] remote_tar_sha as local_tar_sha. No need to update.")
                         return
                     # get data_update_time
-                    if local_data.get("data_update_time") is not None and time.time() - local_data[
-                        "data_update_time"] < 3600 * 24 * 7:
+                    if local_data.get("data_update_time") is not None and time.time() - local_data["data_update_time"] < 3600 * 24 * 7:
                         self.stdio.warn("[update] data_update_time No need to update.")
                         return
             # download_update_files
@@ -103,9 +98,7 @@ class UpdateHandler:
             # check_sha
             self.local_update_file_sha = FileUtil.calculate_sha256(local_update_file_name)
             if self.remote_tar_sha != self.local_update_file_sha:
-                self.stdio.warn(
-                    "remote_tar_sha is {0}, but local_tar_sha is {1}. Unable to update dependency files. Do not perform the upgrade process.".format(
-                        self.remote_tar_sha, self.local_update_file_sha))
+                self.stdio.warn("remote_tar_sha is {0}, but local_tar_sha is {1}. Unable to update dependency files. Do not perform the upgrade process.".format(self.remote_tar_sha, self.local_update_file_sha))
                 return
             # move old files
             ## check_old_files

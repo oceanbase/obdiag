@@ -84,7 +84,6 @@ class AnalyzeFltTraceHandler(object):
             self.output = int(output_option)
         return True
 
-
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
@@ -125,10 +124,7 @@ class AnalyzeFltTraceHandler(object):
         return analyze_tuples
 
     def __handle_from_node(self, node, old_files, local_store_parent_dir):
-        resp = {
-            "skip": False,
-            "error": ""
-        }
+        resp = {"skip": False, "error": ""}
         remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
@@ -147,10 +143,7 @@ class AnalyzeFltTraceHandler(object):
             ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node)
         except Exception as e:
             ssh = None
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user,
-                remote_ip,
-                self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -177,6 +170,7 @@ class AnalyzeFltTraceHandler(object):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         local_store_path = "{0}/{1}".format(local_store_dir, str(node.get("host_type")) + '-' + str(self.flt_trace_id))
+
         def check_filename(filename):
             if os.path.exists(filename):
                 # 文件已存在，尝试添加后缀
@@ -192,17 +186,10 @@ class AnalyzeFltTraceHandler(object):
                 return filename
 
         local_store_path = check_filename(local_store_path)
-        grep_cmd = "grep '{grep_args}' {log_dir}/*trace.log* > {gather_path}/{log_name} ".format(
-            grep_args=self.flt_trace_id,
-            gather_path=gather_path,
-            log_name=self.flt_trace_id,
-            log_dir=log_path)
+        grep_cmd = "grep '{grep_args}' {log_dir}/*trace.log* > {gather_path}/{log_name} ".format(grep_args=self.flt_trace_id, gather_path=gather_path, log_name=self.flt_trace_id, log_dir=log_path)
         self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
         SshClient(self.stdio).run(ssh_helper, grep_cmd)
-        log_full_path = "{gather_path}/{log_name}".format(
-            log_name=self.flt_trace_id,
-            gather_path=gather_path
-        )
+        log_full_path = "{gather_path}/{log_name}".format(log_name=self.flt_trace_id, gather_path=gather_path)
         download_file(True, ssh_helper, log_full_path, local_store_path, self.stdio)
 
     def __get_offline_log_file(self, ssh_helper, log_full_path, local_store_dir):
@@ -213,10 +200,7 @@ class AnalyzeFltTraceHandler(object):
         local_store_path = os.path.join(local_store_dir, self.flt_trace_id)
         log_name_list = self.__get_log_name_list_offline()
         if self.flt_trace_id is not None and (len(log_name_list) > 0):
-            grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(
-                grep_args=self.flt_trace_id,
-                log_file=' '.join(log_name_list),
-                local_store_path=local_store_path)
+            grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(grep_args=self.flt_trace_id, log_file=' '.join(log_name_list), local_store_path=local_store_path)
             LocalClient(self.stdio).run(grep_cmd)
             download_file(False, ssh_helper, log_full_path, local_store_path, self.stdio)
 
@@ -269,6 +253,7 @@ class AnalyzeFltTraceHandler(object):
                     di[new_key] = temp
                     di.pop(key)
             return di
+
         li = []
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -300,9 +285,9 @@ class AnalyzeFltTraceHandler(object):
                 if countStr == 1:
                     return json.loads(data_start + line[idx:-1] + data_end)
                 else:
-                    line_last = line[idx + 1:len(line) + 1]
+                    line_last = line[idx + 1 : len(line) + 1]
                     idx_last = line_last.find(traced_prefix)
-                    new_line = line[idx:(idx + idx_last + 1)]
+                    new_line = line[idx : (idx + idx_last + 1)]
                     if len(new_line) > 10:
                         return json.loads(data_start + new_line + data_end)
                     else:

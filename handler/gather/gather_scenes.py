@@ -47,8 +47,8 @@ class GatherSceneHandler(SafeStdio):
         self.tasks_base_path = tasks_base_path
         self.task_type = task_type
         self.variables = {}
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -154,7 +154,7 @@ class GatherSceneHandler(SafeStdio):
                 "observer_data_dir": self.ob_nodes[0].get("home_path") if self.ob_nodes and self.ob_nodes[0].get("home_path") else "",
                 "obproxy_data_dir": self.obproxy_nodes[0].get("home_path") if self.obproxy_nodes and self.obproxy_nodes[0].get("home_path") else "",
                 "from_time": self.from_time_str,
-                "to_time": self.to_time_str
+                "to_time": self.to_time_str,
             }
             self.stdio.verbose("gather scene variables: {0}".format(self.variables))
         except Exception as e:

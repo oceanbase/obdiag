@@ -30,7 +30,6 @@ class RCAInitException(Exception):
         return repr(self)
 
 
-
 class RCAExecuteException(Exception):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
@@ -40,7 +39,6 @@ class RCAExecuteException(Exception):
 
     def __str__(self):
         return repr(self)
-
 
 
 class RCANotNeedExecuteException(Exception):

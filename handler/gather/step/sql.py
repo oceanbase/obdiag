@@ -25,21 +25,16 @@ from common.tool import StringUtils
 class StepSQLHandler(SafeStdio):
     def __init__(self, context, step, ob_cluster, report_path, task_variable_dict):
         self.context = context
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         try:
             self.ob_cluster = ob_cluster
             self.ob_cluster_name = ob_cluster.get("cluster_name")
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
-                                        port=ob_cluster.get("db_port"),
-                                        username=ob_cluster.get("tenant_sys").get("user"),
-                                        password=ob_cluster.get("tenant_sys").get("password"),
-                                        stdio=self.stdio,
-                                        timeout=10000)
+            self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
         except Exception as e:
-            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster, e))
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.enable_fast_dump = False

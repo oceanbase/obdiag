@@ -16,6 +16,7 @@
 @desc:
 """
 
+
 class OBLogLevel(object):
     CRITICAL = 50
     FATAL = 50
@@ -49,4 +50,3 @@ class OBLogLevel(object):
             return self.DEBUG
         else:
             return self.NOTSET
-        

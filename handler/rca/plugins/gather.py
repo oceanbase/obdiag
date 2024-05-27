@@ -23,7 +23,7 @@ from common.tool import Util
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 
 
-class Gather_log():
+class Gather_log:
     def __init__(self, context):
         self.conf_map = {}
         self.context = context
@@ -72,12 +72,12 @@ class Gather_log():
             if not self.conf_map["filter_nodes_list"] or len(self.conf_map["filter_nodes_list"]) == 0:
                 self.context.set_variable("filter_nodes_list", self.conf_map["filter_nodes_list"])
                 # execute on all nodes_list
-            handle=None
+            handle = None
             for conf in self.conf_map:
                 self.context.set_variable(conf, self.conf_map[conf])
             if self.conf_map["gather_target"] == 'observer':
                 all_node = self.context.cluster_config.get("servers")
-                if self.conf_map["filter_nodes_list"] and len(self.conf_map["filter_nodes_list"]>0):
+                if self.conf_map["filter_nodes_list"] and len(self.conf_map["filter_nodes_list"] > 0):
                     # execute on specific nodes_list
                     for gather_node in self.conf_map["filter_nodes_list"]:
                         for node in all_node:
@@ -85,7 +85,7 @@ class Gather_log():
                                 nodes_list.append(node)
                                 self.stdio.verbose("{0} is in the nodes list".format(node.get("ip")))
                     self.conf_map["filter_nodes_list"] = nodes_list
-                handle=GatherLogHandler(self.context)
+                handle = GatherLogHandler(self.context)
             elif self.conf_map["gather_target"] == 'obproxy':
                 all_node = self.context.get_variable('obproxy_nodes')
                 if self.conf_map["filter_nodes_list"]:
@@ -97,31 +97,31 @@ class Gather_log():
                         else:
                             nodes_list.append(node)
                     self.conf_map["filter_nodes_list"] = nodes_list
-                handle=GatherObProxyLogHandler(self.context)
+                handle = GatherObProxyLogHandler(self.context)
 
             if handle is None:
                 self.stdio.error("rca gather handle the target cannot be empty!")
                 raise Exception("rca gather handle the target cannot be empty!")
             else:
                 handle.handle()
-            gather_result=handle.pack_dir_this_command
+            gather_result = handle.pack_dir_this_command
             zip_files = os.listdir(gather_result)
-            result_log_files=[]
+            result_log_files = []
             for zip_file in zip_files:
                 if "zip" not in zip_file:
                     continue
 
                 # open zip file
-                self.stdio.verbose("open zip file: {0}".format(os.path.join(gather_result,zip_file)))
-                with zipfile.ZipFile(os.path.join(gather_result,zip_file), 'r') as zip_ref:
+                self.stdio.verbose("open zip file: {0}".format(os.path.join(gather_result, zip_file)))
+                with zipfile.ZipFile(os.path.join(gather_result, zip_file), 'r') as zip_ref:
                     # Extract all files to the current directory
                     zip_ref.extractall(gather_result)
             for file_name in os.listdir(gather_result):
                 if "zip" not in file_name and "result_summary.txt" not in file_name:
-                    log_dir=os.path.join(gather_result,file_name)
+                    log_dir = os.path.join(gather_result, file_name)
                     for log_file in os.listdir(log_dir):
-                        result_log_files.append(os.path.join(log_dir,log_file))
-                        self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir,log_file)))
+                        result_log_files.append(os.path.join(log_dir, log_file))
+                        self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
 
             self.reset()
 

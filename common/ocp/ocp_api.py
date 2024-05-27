@@ -35,4 +35,3 @@ cluster_parameters = "/api/v2/ob/clusters/parameterInfo"
 
 # task
 task = "/api/v2/tasks/instances"
-
