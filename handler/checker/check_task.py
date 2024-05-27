@@ -42,7 +42,7 @@ class TaskBase(object):
         self.stdio.verbose("task_base execute")
         steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
-            self.stdio.warn("Unadapted by version. SKIP")
+            self.stdio.verbose("Unadapted by version. SKIP")
             self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
@@ -63,14 +63,16 @@ class TaskBase(object):
             self.stdio.verbose("run task in node: {0}".format(StringUtils.node_cut_passwd_for_log(node)))
             steps = self.task[steps_nu]
             nu = 1
+            task_variable_dict={}
             for step in steps["steps"]:
                 try:
                     self.stdio.verbose("step nu: {0}".format(nu))
                     if len(self.cluster) == 0:
                         raise Exception("cluster is not exist")
-                    step_run = StepBase(self.context, step, node, self.cluster, self.task_variable_dict)
+                    step_run = StepBase(self.context, step, node, self.cluster, task_variable_dict)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
                     step_run.execute(self.report)
+                    task_variable_dict=step_run.update_task_variable_dict()
                     if "report_type" in step["result"] and step["result"]["report_type"] == "execution":
                         self.stdio.verbose("report_type stop this step")
                         return

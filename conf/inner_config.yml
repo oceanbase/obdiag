@@ -2,8 +2,8 @@ obdiag:
   basic:
     config_path: ~/.obdiag/config.yml
     config_backup_dir: ~/.obdiag/backup_conf
-    file_number_limit: 20
-    file_size_limit: 2G
+    file_number_limit: 50
+    file_size_limit: 5G
     dis_rsa_algorithms: 0
   logger:
     log_dir: ~/.obdiag/log

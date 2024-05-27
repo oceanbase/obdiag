@@ -59,7 +59,7 @@ class SceneBase(SafeStdio):
     def __execute_yaml_mode(self, nodes):
         steps_nu = filter_by_version(self.scene, self.cluster, self.stdio)
         if steps_nu < 0:
-            self.stdio.warn("Unadapted by version. SKIP")
+            self.stdio.verbose("Unadapted by version. SKIP")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(nodes)==0:
