@@ -19,8 +19,8 @@ import os
 
 
 class OBLogRoleConst(object):
-    OBLOG_ROLE_ROOTSERVICE = 'RS'
-    OBLOG_ROLE_OBSERVER = 'OBS'
+    OBLOG_ROLE_ROOTSERVICE = "RS"
+    OBLOG_ROLE_OBSERVER = "OBS"
     OBLOG_ROLE_SUPPORT_LIST = [OBLOG_ROLE_OBSERVER, OBLOG_ROLE_ROOTSERVICE]
 
 
@@ -55,16 +55,16 @@ class AgentRuntimeGlobalVars(object):
 
 # dir name in pack
 class DirNameInPackConst(object):
-    TRIMMED_LOG_DIR_NAME_IN_PACK = 'trimmed_log'
-    OS_STATE_LOG_DIR_NAME_IN_PACK = 'os_state'
+    TRIMMED_LOG_DIR_NAME_IN_PACK = "trimmed_log"
+    OS_STATE_LOG_DIR_NAME_IN_PACK = "os_state"
 
 
 class PackCompressConst(object):
-    COMPRESS_ZIP = 'zip'
-    COMPRESS_ZSTD = 'zstd'
+    COMPRESS_ZIP = "zip"
+    COMPRESS_ZSTD = "zstd"
     CompressSuffixDict = {
-        COMPRESS_ZIP: '.zip',
-        COMPRESS_ZSTD: '.tar.zst',
+        COMPRESS_ZIP: ".zip",
+        COMPRESS_ZSTD: ".tar.zst",
     }
     COMPRESS_VALID_LIST = [COMPRESS_ZIP, COMPRESS_ZSTD]
     # 当前使用的压缩类型

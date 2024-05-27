@@ -30,10 +30,14 @@ class LocalClient(object):
     def run(self, cmd):
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(
+                cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True
+            )
             stdout, stderr = out.communicate()
             if stderr:
-                self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
+                self.stdio.error(
+                    "run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr)
+                )
             return stdout
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
@@ -41,7 +45,9 @@ class LocalClient(object):
     def run_get_stderr(self, cmd):
         try:
             self.stdio.verbose("run cmd = [{0}] on localhost".format(cmd))
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(
+                cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True
+            )
             stdout, stderr = out.communicate()
             return stderr
         except:
@@ -54,28 +60,56 @@ class SshClient(object):
 
     def run(self, ssh_helper, cmd):
         try:
-            self.stdio.verbose("[remote host {0}] excute cmd = [{1}]".format(ssh_helper.get_name(), cmd))
+            self.stdio.verbose(
+                "[remote host {0}] excute cmd = [{1}]".format(
+                    ssh_helper.get_name(), cmd
+                )
+            )
             stdout = ssh_helper.ssh_exec_cmd(cmd)
-            self.stdio.verbose("[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(ssh_helper.get_name(), cmd, stdout))
+            self.stdio.verbose(
+                "[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(
+                    ssh_helper.get_name(), cmd, stdout
+                )
+            )
             return stdout
         except Exception as e:
-            self.stdio.error("[remote host {0}] excute cmd = [{1}] except: [{2}]".format(ssh_helper.get_name(), cmd, e))
+            self.stdio.error(
+                "[remote host {0}] excute cmd = [{1}] except: [{2}]".format(
+                    ssh_helper.get_name(), cmd, e
+                )
+            )
 
     def run_get_stderr(self, ssh_helper, cmd):
         try:
-            self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
+            self.stdio.verbose(
+                "[remote host {0}] run cmd = [{1}] start ...".format(
+                    ssh_helper.get_name(), cmd
+                )
+            )
             std = ssh_helper.ssh_exec_cmd_get_stderr(cmd)
             return std
         except Exception as e:
-            self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
+            self.stdio.error(
+                "[remote host {0}] run ssh cmd = [{1}] except: {2}".format(
+                    ssh_helper.get_name(), cmd, e
+                )
+            )
 
     def run_ignore_err(self, ssh_helper, cmd):
         try:
-            self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
+            self.stdio.verbose(
+                "[remote host {0}] run cmd = [{1}] start ...".format(
+                    ssh_helper.get_name(), cmd
+                )
+            )
             std = ssh_helper.ssh_exec_cmd_ignore_err(cmd)
             return std
         except SSHException as e:
-            self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
+            self.stdio.error(
+                "[remote host {0}] run ssh cmd = [{1}] except: {2}".format(
+                    ssh_helper.get_name(), cmd, e
+                )
+            )
 
 
 def download_file(is_ssh, ssh_helper, remote_path, local_path, stdio=None):
@@ -86,7 +120,11 @@ def download_file(is_ssh, ssh_helper, remote_path, local_path, stdio=None):
     """
     try:
         if is_ssh:
-            stdio.verbose("Please wait a moment, download file [{0}] from server {1} to [{2}]".format(remote_path, ssh_helper.get_name(),local_path))
+            stdio.verbose(
+                "Please wait a moment, download file [{0}] from server {1} to [{2}]".format(
+                    remote_path, ssh_helper.get_name(), local_path
+                )
+            )
             ssh_helper.download(remote_path, local_path)
         else:
             cmd = "cp -r {0} {1}".format(remote_path, local_path)
@@ -102,8 +140,11 @@ def upload_file(is_ssh, ssh_helper, local_path, remote_path, stdio=None):
     :param args: is_ssh, ssh helper, local file path, remote file path
     :return: local path
     """
-    stdio.verbose("Please wait a moment, upload file to server {0}, local file path {1}, remote file path {2}".format(
-        ssh_helper.get_name(), local_path, remote_path))
+    stdio.verbose(
+        "Please wait a moment, upload file to server {0}, local file path {1}, remote file path {2}".format(
+            ssh_helper.get_name(), local_path, remote_path
+        )
+    )
     try:
         if is_ssh:
             ssh_helper.upload(local_path, remote_path)
@@ -126,13 +167,14 @@ def rm_rf_file(is_ssh, ssh_helper, dir, stdio=None):
     else:
         LocalClient(stdio).run(cmd)
 
+
 def delete_file_in_folder(is_ssh, ssh_helper, file_path, stdio):
     """
     delete file
     :param args: is_ssh, ssh helper, file_name
     :return:
     """
-    if (file_path is None) or (not 'gather_pack' in file_path):
+    if (file_path is None) or (not "gather_pack" in file_path):
         raise Exception("Please check file path, {0}".format(file_path))
     cmd = "rm -rf {file_path}/*".format(file_path=file_path)
     if is_ssh:
@@ -160,7 +202,7 @@ def is_empty_dir(is_ssh, ssh_helper, dir, stdio=None):
 
 def get_file_start_time(is_ssh, ssh_helper, file_name, dir, stdio=None):
     """
-    get log file start time 
+    get log file start time
     :param args: is_ssh, ssh helper, gather log full path
     :return: true or false
     """
@@ -172,41 +214,68 @@ def get_file_start_time(is_ssh, ssh_helper, file_name, dir, stdio=None):
     return TimeUtils.extract_time_from_log_file_text(str(first_line_text))
 
 
-def get_logfile_name_list(is_ssh, ssh_helper, from_time_str, to_time_str, log_dir, log_files, stdio=None):
+def get_logfile_name_list(
+    is_ssh, ssh_helper, from_time_str, to_time_str, log_dir, log_files, stdio=None
+):
     """
-    get log name list 
+    get log name list
     :param args: is_ssh, ssh helper, from time, to time, log dir, log file list
     :return: true or false
     """
-    stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
+    stdio.verbose(
+        "get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(
+            from_time_str, to_time_str, log_dir, log_files
+        )
+    )
     log_name_list = []
     last_file_dict = {"prefix_file_name": "", "file_name": "", "file_end_time": ""}
-    for file_name in log_files.split('\n'):
+    for file_name in log_files.split("\n"):
         if file_name == "":
             stdio.verbose("existing file name is empty")
             continue
         if not file_name.endswith("log") and not file_name.endswith("wf"):
             file_start_time_str = ""
             prefix_name = file_name[:-14] if len(file_name) > 24 else ""
-            file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, stdio), stdio)
-            if last_file_dict["prefix_file_name"] != "" and last_file_dict["prefix_file_name"] == prefix_name:
+            file_end_time_str = TimeUtils.filename_time_to_datetime(
+                TimeUtils.extract_filename_time_from_log_name(file_name, stdio), stdio
+            )
+            if (
+                last_file_dict["prefix_file_name"] != ""
+                and last_file_dict["prefix_file_name"] == prefix_name
+            ):
                 file_start_time_str = last_file_dict["file_end_time"]
-            elif last_file_dict["prefix_file_name"] != "" and last_file_dict["prefix_file_name"] != prefix_name:
+            elif (
+                last_file_dict["prefix_file_name"] != ""
+                and last_file_dict["prefix_file_name"] != prefix_name
+            ):
                 file_start_time_str = ""
                 file_end_time_str = ""
             elif last_file_dict["prefix_file_name"] == "":
-                file_start_time_str = get_file_start_time(is_ssh, ssh_helper, file_name, log_dir, stdio)
+                file_start_time_str = get_file_start_time(
+                    is_ssh, ssh_helper, file_name, log_dir, stdio
+                )
             # When two time intervals overlap, need to add the file
-            if (file_end_time_str != "") and (file_start_time_str != "") and (file_start_time_str <= to_time_str) and (
-                    file_end_time_str >= from_time_str):
+            if (
+                (file_end_time_str != "")
+                and (file_start_time_str != "")
+                and (file_start_time_str <= to_time_str)
+                and (file_end_time_str >= from_time_str)
+            ):
                 log_name_list.append(file_name)
-            last_file_dict = {"prefix_file_name": prefix_name, "file_name": file_name,
-                              "file_end_time": file_end_time_str}
+            last_file_dict = {
+                "prefix_file_name": prefix_name,
+                "file_name": file_name,
+                "file_end_time": file_end_time_str,
+            }
         elif file_name.endswith("log") or file_name.endswith("wf"):
             # Get the first and last lines of text of the file. Here, use a command
-            get_first_line_cmd = "head -n 1 {0}/{1} && tail -n 1 {0}/{1}".format(log_dir, file_name)
+            get_first_line_cmd = "head -n 1 {0}/{1} && tail -n 1 {0}/{1}".format(
+                log_dir, file_name
+            )
             if is_ssh:
-                first_and_last_line_text = SshClient(stdio).run(ssh_helper, get_first_line_cmd)
+                first_and_last_line_text = SshClient(stdio).run(
+                    ssh_helper, get_first_line_cmd
+                )
             else:
                 first_and_last_line_text = LocalClient(stdio).run(get_first_line_cmd)
 
@@ -217,18 +286,39 @@ def get_logfile_name_list(is_ssh, ssh_helper, from_time_str, to_time_str, log_di
                 last_line_text = first_and_last_line_text_list[-1]
 
                 # Time to parse the first and last lines of text
-                file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, stdio)
-                file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, stdio)
-                stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str,file_end_time))
-                stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
-                if (file_start_time_str <= to_time_str) and (file_end_time >= from_time_str):
+                file_start_time_str = TimeUtils.extract_time_from_log_file_text(
+                    first_line_text, stdio
+                )
+                file_end_time = TimeUtils.extract_time_from_log_file_text(
+                    last_line_text, stdio
+                )
+                stdio.verbose(
+                    "The log file {0} starts at {1} ends at {2}".format(
+                        file_name, file_start_time_str, file_end_time
+                    )
+                )
+                stdio.verbose(
+                    "to_time_str {0} from_time_str {1}".format(
+                        to_time_str, from_time_str
+                    )
+                )
+                if (file_start_time_str <= to_time_str) and (
+                    file_end_time >= from_time_str
+                ):
                     log_name_list.append(file_name)
     if len(log_name_list) > 0:
-        stdio.verbose("Find the qualified log file {0} on Server [{1}], "
-                    "wait for the next step".format(log_name_list, "localhost" if not is_ssh else ssh_helper.get_name()))
+        stdio.verbose(
+            "Find the qualified log file {0} on Server [{1}], "
+            "wait for the next step".format(
+                log_name_list, "localhost" if not is_ssh else ssh_helper.get_name()
+            )
+        )
     else:
-        stdio.warn("No found the qualified log file on Server [{0}]".format(
-            "localhost" if not is_ssh else ssh_helper.get_name()))
+        stdio.warn(
+            "No found the qualified log file on Server [{0}]".format(
+                "localhost" if not is_ssh else ssh_helper.get_name()
+            )
+        )
     return log_name_list
 
 
@@ -265,8 +355,8 @@ def zip_dir(is_ssh, ssh_helper, father_dir, zip_dir, stdio=None):
     :return:
     """
     cmd = "cd {father_dir} && zip {zip_dir}.zip -rm {zip_dir}".format(
-        father_dir=father_dir,
-        zip_dir=zip_dir)
+        father_dir=father_dir, zip_dir=zip_dir
+    )
     stdio.verbose("Please wait a moment ...")
     if is_ssh:
         SshClient(stdio).run(ssh_helper, cmd)
@@ -281,14 +371,14 @@ def zip_encrypt_dir(is_ssh, ssh_helper, zip_password, father_dir, zip_dir, stdio
     :return:
     """
     cmd = "cd {father_dir} && zip --password {zip_password} {zip_dir}.zip -rm {zip_dir}".format(
-        zip_password=zip_password,
-        father_dir=father_dir,
-        zip_dir=zip_dir)
+        zip_password=zip_password, father_dir=father_dir, zip_dir=zip_dir
+    )
     stdio.verbose("Please wait a moment ...")
     if is_ssh:
         SshClient(stdio).run(ssh_helper, cmd)
     else:
         LocalClient(stdio).run(cmd)
+
 
 def is_support_arch(is_ssh, ssh_helper, stdio=None):
     """
@@ -319,29 +409,36 @@ def get_observer_version(is_ssh, ssh_helper, ob_install_dir, stdio):
     :return:
     """
     ob_version = ""
-    cmd = "{ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+    cmd = "{ob_install_dir}/bin/observer --version".format(
+        ob_install_dir=ob_install_dir
+    )
     if is_ssh:
         ob_version_info = SshClient(stdio).run_get_stderr(ssh_helper, cmd)
     else:
         ob_version_info = LocalClient(stdio).run_get_stderr(cmd)
     stdio.verbose("get observer version, run cmd = [{0}] ".format(cmd))
     if ob_version_info is not None:
-        ob_version = re.findall(r'[(]OceanBase.(.+?)[)]', ob_version_info)
+        ob_version = re.findall(r"[(]OceanBase.(.+?)[)]", ob_version_info)
         if len(ob_version) > 0:
-            result = re.sub(r'[a-zA-Z]', '', ob_version[0])
+            result = re.sub(r"[a-zA-Z]", "", ob_version[0])
             return result.strip()
         else:
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(
-                ob_install_dir=ob_install_dir)
+                ob_install_dir=ob_install_dir
+            )
             if is_ssh:
                 ob_version_info = SshClient(stdio).run_get_stderr(ssh_helper, cmd)
             else:
                 ob_version_info = LocalClient(stdio).run_get_stderr(cmd)
-            stdio.verbose("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
+            stdio.verbose(
+                "get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd)
+            )
             if "REVISION" not in ob_version_info:
-                raise Exception("Please check conf about observer,{0}".format(ob_version_info))
-            ob_version = re.findall(r'[(]OceanBase.*\s(.+?)[)]', ob_version_info)
-            result = re.sub(r'[a-zA-Z]', '', ob_version[0])
+                raise Exception(
+                    "Please check conf about observer,{0}".format(ob_version_info)
+                )
+            ob_version = re.findall(r"[(]OceanBase.*\s(.+?)[)]", ob_version_info)
+            result = re.sub(r"[a-zA-Z]", "", ob_version[0])
             return result.strip()
 
 
@@ -352,26 +449,35 @@ def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir, stdio):
     :return:
     """
     obproxy_version = ""
-    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(
+        obproxy_install_dir=obproxy_install_dir
+    )
     if is_ssh:
         obproxy_version_info = SshClient(stdio).run_get_stderr(ssh_helper, cmd)
     else:
         obproxy_version_info = LocalClient(stdio).run_get_stderr(cmd)
     stdio.verbose("get obproxy version, run cmd = [{0}] ".format(cmd))
     if obproxy_version_info is not None:
-        ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
+        ob_version = re.findall(r"[(]OceanBase.(.+? +?)[)]", obproxy_version_info)
         if len(ob_version) > 0:
             return ob_version[0]
         else:
             cmd = "export LD_LIBRARY_PATH={obproxy_install_dir}/lib && {obproxy_install_dir}/bin/obproxy --version".format(
-                obproxy_install_dir=obproxy_install_dir)
+                obproxy_install_dir=obproxy_install_dir
+            )
             if is_ssh:
                 obproxy_version_info = SshClient(stdio).run_get_stderr(ssh_helper, cmd)
             else:
                 obproxy_version_info = LocalClient(stdio).run_get_stderr(cmd)
-            stdio.verbose("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd,obproxy_version_info))
+            stdio.verbose(
+                "get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(
+                    cmd, obproxy_version_info
+                )
+            )
             if "REVISION" not in obproxy_version_info:
-                raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
+                raise Exception(
+                    "Please check conf about proxy,{0}".format(obproxy_version_info)
+                )
             pattern = r"(\d+\.\d+\.\d+\.\d+)"
             match = re.search(pattern, obproxy_version_info)
             if match:
@@ -383,28 +489,38 @@ def get_obproxy_version(is_ssh, ssh_helper, obproxy_install_dir, stdio):
                 obproxy_version_info = match.group(1)
                 obproxy_version_info = obproxy_version_info.split()[0]
             return obproxy_version_info
+
+
 # Only applicable to the community version
+
 
 def get_observer_version_by_sql(ob_cluster, stdio=None):
     stdio.verbose("start get_observer_version_by_sql . input: {0}".format(ob_cluster))
     try:
-        ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
-                                   port=ob_cluster.get("db_port"),
-                                   username=ob_cluster.get("tenant_sys").get("user"),
-                                   password=ob_cluster.get("tenant_sys").get("password"),
-                                   stdio=stdio,
-                                   timeout=100)
+        ob_connector = OBConnector(
+            ip=ob_cluster.get("db_host"),
+            port=ob_cluster.get("db_port"),
+            username=ob_cluster.get("tenant_sys").get("user"),
+            password=ob_cluster.get("tenant_sys").get("password"),
+            stdio=stdio,
+            timeout=100,
+        )
         ob_version_info = ob_connector.execute_sql("select version();")
     except Exception as e:
-        raise Exception("get_observer_version_by_sql Exception. Maybe cluster'info is error: " + e.__str__())
+        raise Exception(
+            "get_observer_version_by_sql Exception. Maybe cluster'info is error: "
+            + e.__str__()
+        )
 
     ob_version = ob_version_info[0]
-    stdio.verbose("get_observer_version_by_sql ob_version_info is {0}".format(ob_version))
-    version = re.findall(r'OceanBase(_)?(.CE)?-v(.+)', ob_version[0])
+    stdio.verbose(
+        "get_observer_version_by_sql ob_version_info is {0}".format(ob_version)
+    )
+    version = re.findall(r"OceanBase(_)?(.CE)?-v(.+)", ob_version[0])
     if len(version) > 0:
         return version[0][2]
     else:
-        version = re.findall(r'(.+)', ob_version[0])
+        version = re.findall(r"(.+)", ob_version[0])
         return version[0]
 
 
@@ -415,13 +531,17 @@ def get_observer_pid(is_ssh, ssh_helper, ob_install_dir, stdio=None):
     :return:
     """
     try:
-        cmd = "cat {ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
+        cmd = "cat {ob_install_dir}/run/observer.pid".format(
+            ob_install_dir=ob_install_dir
+        )
         if is_ssh:
             pids = SshClient(stdio).run(ssh_helper, cmd)
         else:
             pids = LocalClient(stdio).run(cmd)
         pid_list = pids.split()
-        stdio.verbose("get observer pid, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
+        stdio.verbose(
+            "get observer pid, run cmd = [{0}], result:{1} ".format(cmd, pid_list)
+        )
     except:
         stdio.verbose("get observer pid failed")
         return []
@@ -447,7 +567,9 @@ def delete_empty_file(is_ssh, ssh_helper, file_path, stdio=None):
     :param args: is_ssh, ssh helper, file_name
     :return:
     """
-    cmd = "find  {file_path} -name '*' -type f -size 0c | xargs -n 1 rm -f".format(file_path=file_path)
+    cmd = "find  {file_path} -name '*' -type f -size 0c | xargs -n 1 rm -f".format(
+        file_path=file_path
+    )
     if is_ssh:
         SshClient(stdio).run(ssh_helper, cmd)
     else:
@@ -512,9 +634,11 @@ def is_empty_file(is_ssh, ssh_helper, file_path, stdio=None):
 
 
 def get_obdiag_display(log_dir, trace_id, stdio=None):
-    cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
+    cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(
+        trace_id, log_dir, trace_id
+    )
     stdout = LocalClient(stdio).run(cmd)
-    print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
+    print_stdout = str(stdout).replace("\\n", "\n").replace("\\t", "\t")
     if len(print_stdout) > 0:
         print(print_stdout)
 
@@ -528,6 +652,7 @@ def uzip_dir_local(uzip_dir, stdio=None):
     cmd = f"cd {uzip_dir} && unzip *.zip && rm -rf *.zip"
     LocalClient(stdio).run(cmd)
 
+
 def analyze_log_get_sqc_addr(uzip_dir, stdio):
     """
     analyze files
@@ -535,31 +660,35 @@ def analyze_log_get_sqc_addr(uzip_dir, stdio):
     :return: ip_port
     """
     cmd = "cd {uzip_dir} && cd ob_log* && grep {key_words} * | grep -oP '{key_words}=\"\\K[^\"]+' | sort | uniq".format(
-        uzip_dir=uzip_dir,
-        key_words = "px_obdiag_sqc_addr")
+        uzip_dir=uzip_dir, key_words="px_obdiag_sqc_addr"
+    )
     stdout = LocalClient(stdio).run(cmd)
-    sqc_addrs = stdout.decode().strip().split('\n')
+    sqc_addrs = stdout.decode().strip().split("\n")
     if len(sqc_addrs) > 0:
-        if not re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', sqc_addrs[0]):
+        if not re.match(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", sqc_addrs[0]):
             return None
         else:
             return sqc_addrs[0]
     else:
         return None
 
+
 def find_home_path_by_port(is_ssh, ssh_helper, internal_port_str, stdio):
     cmd = "ps aux | grep observer | grep 'P {internal_port_str}' |  grep -oP '/[^\s]*/bin/observer' ".format(
-        internal_port_str = internal_port_str)
+        internal_port_str=internal_port_str
+    )
     if is_ssh:
         stdout = SshClient(stdio).run(ssh_helper, cmd)
     else:
         stdout = LocalClient(stdio).run(cmd)
-    
-    str_list = stdout.strip().split('\n')
+
+    str_list = stdout.strip().split("\n")
     home_path = ""
     for original_str in str_list:
         original_str = str(original_str)
-        if original_str.endswith("/bin/observer") and not original_str.startswith('/[^\s]*'):
+        if original_str.endswith("/bin/observer") and not original_str.startswith(
+            "/[^\s]*"
+        ):
             home_path = original_str.rstrip("/bin/observer")
             break
     stdio.verbose("home_path:{0}".format(home_path))

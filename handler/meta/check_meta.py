@@ -31,23 +31,23 @@ class GlobalCheckMeta:
         try:
             return self._check_dict[key]
         except:
-            print('get' + key + 'failed\r\n')
+            print("get" + key + "failed\r\n")
 
     def rm_value(self, key):
         try:
             return self._check_dict.pop(key)
         except:
-            print('delete' + key + 'failed\r\n')
+            print("delete" + key + "failed\r\n")
 
 
 check_dict = GlobalCheckMeta()
 check_dict.set_value(
     "check_verify_shell",
-    '''
+    """
 if ${new_expr}; then
     echo "true"
 else
     echo "false"
 fi
-                '''
+                """,
 )

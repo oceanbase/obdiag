@@ -17,6 +17,7 @@
 from __future__ import absolute_import, division, print_function
 from optparse import Values
 
+
 class HandlerContextNamespace:
 
     def __init__(self, spacename):
@@ -101,7 +102,19 @@ class HandlerReturn(object):
 
 class HandlerContext(object):
 
-    def __init__(self, handler_name=None, namespace=None, namespaces=None, cluster_config=None, obproxy_config=None, ocp_config=None, inner_config=None, cmd=None, options=None, stdio=None):
+    def __init__(
+        self,
+        handler_name=None,
+        namespace=None,
+        namespaces=None,
+        cluster_config=None,
+        obproxy_config=None,
+        ocp_config=None,
+        inner_config=None,
+        cmd=None,
+        options=None,
+        stdio=None,
+    ):
         self.namespace = HandlerContextNamespace(namespace)
         self.namespaces = namespaces
         self.handler_name = handler_name

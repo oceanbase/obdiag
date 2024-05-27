@@ -42,6 +42,7 @@ from common.tool import TimeUtils
 from stdio import SafeStdio
 from err import EC_SSH_CONNECT
 from subprocess32 import Popen, PIPE
+
 warnings.filterwarnings("ignore")
 
 
@@ -50,7 +51,15 @@ __all__ = ("SshClient", "SshConfig", "LocalClient", "ConcurrentExecutor")
 
 class SshConfig(object):
 
-    def __init__(self, host, username='root', password=None, key_filename=None, port=22, timeout=30):
+    def __init__(
+        self,
+        host,
+        username="root",
+        password=None,
+        key_filename=None,
+        port=22,
+        timeout=30,
+    ):
         self.host = host
         self.username = username
         self.password = password if password is None else str(password)
@@ -59,7 +68,7 @@ class SshConfig(object):
         self.timeout = int(timeout)
 
     def __str__(self):
-        return '%s@%s' % (self.username ,self.host)
+        return "%s@%s" % (self.username, self.host)
 
 
 class SshReturn(object):
@@ -71,10 +80,10 @@ class SshReturn(object):
 
     def __bool__(self):
         return self.code == 0
-    
+
     def __nonzero__(self):
         return self.__bool__()
-    
+
 
 class FeatureSshReturn(SshReturn, SafeStdio):
 
@@ -91,21 +100,21 @@ class FeatureSshReturn(SshReturn, SafeStdio):
             try:
                 p = self.popen
                 output, error = p.communicate(timeout=self.timeout)
-                self._stdout = output.decode(errors='replace')
-                self._stderr = error.decode(errors='replace')
+                self._stdout = output.decode(errors="replace")
+                self._stderr = error.decode(errors="replace")
                 self._code = p.returncode
-                verbose_msg = 'exited code %s' % self._code
+                verbose_msg = "exited code %s" % self._code
                 if self._code:
-                    verbose_msg += ', error output:\n%s' % self._stderr
+                    verbose_msg += ", error output:\n%s" % self._stderr
                 self.stdio.verbose(verbose_msg)
             except Exception as e:
-                self._stdout = ''
+                self._stdout = ""
                 self._stderr = str(e)
                 self._code = 255
-                verbose_msg = 'exited code 255, error output:\n%s' % self._stderr
+                verbose_msg = "exited code 255, error output:\n%s" % self._stderr
                 self.stdio.verbose(verbose_msg)
-                self.stdio.exception('')
-    
+                self.stdio.exception("")
+
     @property
     def code(self):
         self._get_return()
@@ -132,7 +141,7 @@ class FutureSshReturn(SshReturn):
         if self.stdio:
             self.stdio = self.stdio.sub_io()
         self.finsh = False
-        super(FutureSshReturn, self).__init__(127, '', '')
+        super(FutureSshReturn, self).__init__(127, "", "")
 
     def set_return(self, ssh_return):
         self.code = ssh_return.code
@@ -158,7 +167,9 @@ class ConcurrentExecutor(object):
     @staticmethod
     def execute(future):
         client = SshClient(future.client.config, future.stdio)
-        future.set_return(client.execute_command(future.command, timeout=future.timeout))
+        future.set_return(
+            client.execute_command(future.command, timeout=future.timeout)
+        )
         return future
 
     def submit(self):
@@ -175,7 +186,7 @@ class ConcurrentExecutor(object):
 
 
 class LocalClient(SafeStdio):
-    
+
     @staticmethod
     def init_env(env=None):
         if env is None:
@@ -186,69 +197,87 @@ class LocalClient(SafeStdio):
 
     @staticmethod
     def execute_command_background(command, env=None, timeout=None, stdio=None):
-        stdio.verbose('local background execute: %s ' % command, end='')
+        stdio.verbose("local background execute: %s " % command, end="")
         try:
-            p = Popen(command, env=LocalClient.init_env(env), shell=True, stdout=PIPE, stderr=PIPE)
+            p = Popen(
+                command,
+                env=LocalClient.init_env(env),
+                shell=True,
+                stdout=PIPE,
+                stderr=PIPE,
+            )
             return FeatureSshReturn(p, timeout, stdio)
         except Exception as e:
-            output = ''
+            output = ""
             error = str(e)
             code = 255
-            verbose_msg = 'exited code 255, error output:\n%s' % error
+            verbose_msg = "exited code 255, error output:\n%s" % error
             stdio.verbose(verbose_msg)
-            stdio.exception('')
+            stdio.exception("")
             return SshReturn(code, output, error)
-
 
     @staticmethod
     def execute_command(command, env=None, timeout=None, stdio=None):
-        stdio.verbose('local execute: %s ' % command, end='')
+        stdio.verbose("local execute: %s " % command, end="")
         try:
-            p = Popen(command, env=LocalClient.init_env(env), shell=True, stdout=PIPE, stderr=PIPE)
+            p = Popen(
+                command,
+                env=LocalClient.init_env(env),
+                shell=True,
+                stdout=PIPE,
+                stderr=PIPE,
+            )
             output, error = p.communicate(timeout=timeout)
             code = p.returncode
-            output = output.decode(errors='replace')
-            error = error.decode(errors='replace')
-            verbose_msg = 'exited code %s' % code
+            output = output.decode(errors="replace")
+            error = error.decode(errors="replace")
+            verbose_msg = "exited code %s" % code
             if code:
-                verbose_msg += ', error output:\n%s' % error
+                verbose_msg += ", error output:\n%s" % error
             stdio.verbose(verbose_msg)
         except Exception as e:
-            output = ''
+            output = ""
             error = str(e)
             code = 255
-            verbose_msg = 'exited code 255, error output:\n%s' % error
+            verbose_msg = "exited code 255, error output:\n%s" % error
             stdio.verbose(verbose_msg)
-            stdio.exception('')
+            stdio.exception("")
         return SshReturn(code, output, error)
 
     @staticmethod
     def put_file(local_path, remote_path, stdio=None):
-        if LocalClient.execute_command('mkdir -p %s && cp -f %s %s' % (os.path.dirname(remote_path), local_path, remote_path), stdio=stdio):
+        if LocalClient.execute_command(
+            "mkdir -p %s && cp -f %s %s"
+            % (os.path.dirname(remote_path), local_path, remote_path),
+            stdio=stdio,
+        ):
             return True
         return False
 
     @staticmethod
     def put_dir(local_dir, remote_dir, stdio=None):
         if os.path.isdir(local_dir):
-            local_dir = os.path.join(local_dir, '*')
+            local_dir = os.path.join(local_dir, "*")
         if os.path.exists(os.path.dirname(local_dir)) and not glob(local_dir):
             stdio.verbose("%s is empty" % local_dir)
             return True
-        if LocalClient.execute_command('mkdir -p %s && cp -frL %s %s' % (remote_dir, local_dir, remote_dir), stdio=stdio):
+        if LocalClient.execute_command(
+            "mkdir -p %s && cp -frL %s %s" % (remote_dir, local_dir, remote_dir),
+            stdio=stdio,
+        ):
             return True
         return False
 
     @staticmethod
-    def write_file(content, file_path, mode='w', stdio=None):
-        stdio.verbose('write {} to {}'.format(content, file_path))
+    def write_file(content, file_path, mode="w", stdio=None):
+        stdio.verbose("write {} to {}".format(content, file_path))
         try:
             with FileUtil.open(file_path, mode, stdio=stdio) as f:
                 f.write(content)
                 f.flush()
             return True
         except:
-            stdio.exception('')
+            stdio.exception("")
             return False
 
     @staticmethod
@@ -260,23 +289,37 @@ class LocalClient(SafeStdio):
         return LocalClient.put_dir(remote_path, local_path, stdio=stdio)
 
     @staticmethod
-    def run_command(command, env=None, timeout=None, print_stderr=True, elimit=0, olimit=0, stdio=None):
-        stdio.verbose('local execute: %s ' % command)
+    def run_command(
+        command,
+        env=None,
+        timeout=None,
+        print_stderr=True,
+        elimit=0,
+        olimit=0,
+        stdio=None,
+    ):
+        stdio.verbose("local execute: %s " % command)
         stdout = ""
         process = None
         try:
             with Timeout(timeout):
-                process = Popen(command, env=LocalClient.init_env(env), shell=True, stdout=PIPE, stderr=PIPE)
+                process = Popen(
+                    command,
+                    env=LocalClient.init_env(env),
+                    shell=True,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                )
                 while process.poll() is None:
                     lines = process.stdout.readline()
                     line = lines.strip()
                     if line:
-                        stdio.print(line.decode("utf8", 'ignore'))
-                stderr = process.stderr.read().decode("utf8", 'ignore')
+                        stdio.print(line.decode("utf8", "ignore"))
+                stderr = process.stderr.read().decode("utf8", "ignore")
                 code = process.returncode
-                verbose_msg = 'exit code {}'.format(code)
+                verbose_msg = "exit code {}".format(code)
                 if code != 0 and stderr:
-                    verbose_msg += ', error output:\n'
+                    verbose_msg += ", error output:\n"
                 stdio.verbose(verbose_msg)
                 if print_stderr:
                     stdio.print(stderr)
@@ -287,16 +330,17 @@ class LocalClient(SafeStdio):
         except Exception as e:
             if process:
                 process.terminate()
-            stdout = ''
+            stdout = ""
             stderr = str(e)
             code = 255
-            verbose_msg = 'exited code 255, error output:\n%s' % stderr
+            verbose_msg = "exited code 255, error output:\n%s" % stderr
             stdio.verbose(verbose_msg)
-            stdio.exception('')
+            stdio.exception("")
         finally:
             if process:
                 process.terminate()
         return SshReturn(code, stdout, stderr)
+
 
 class RemoteTransporter(enum.Enum):
     CLIENT = 0
@@ -311,8 +355,8 @@ class RemoteTransporter(enum.Enum):
 
 class SshClient(SafeStdio):
 
-    DEFAULT_PATH = '/sbin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:'
-    LOCAL_HOST = ['127.0.0.1', 'localhost', '127.1', '127.0.1']
+    DEFAULT_PATH = "/sbin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:"
+    LOCAL_HOST = ["127.0.0.1", "localhost", "127.1", "127.0.1"]
     DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
 
     def __init__(self, config, stdio=None):
@@ -321,7 +365,7 @@ class SshClient(SafeStdio):
         self.sftp = None
         self.is_connected = False
         self.ssh_client = SSHClient()
-        self.env_str = ''
+        self.env_str = ""
         self._remote_transporter = None
         self.task_queue = None
         self.result_queue = None
@@ -329,7 +373,7 @@ class SshClient(SafeStdio):
         if self._is_local:
             self.env = {}
         else:
-            self.env = {'PATH': self.DEFAULT_PATH}
+            self.env = {"PATH": self.DEFAULT_PATH}
             self._update_env()
 
         self._disabled_rsa_algorithms = None
@@ -343,18 +387,24 @@ class SshClient(SafeStdio):
         env = []
         for key in self.env:
             if self.env[key]:
-                env.append('export %s=%s$%s;' % (key, self.env[key], key))
-        self.env_str = ''.join(env)
+                env.append("export %s=%s$%s;" % (key, self.env[key], key))
+        self.env_str = "".join(env)
 
     def add_env(self, key, value, rewrite=False, stdio=None):
         if key not in self.env or not self.env[key] or rewrite:
-            stdio.verbose('%s@%s set env %s to \'%s\'' % (self.config.username, self.config.host, key, value))
+            stdio.verbose(
+                "%s@%s set env %s to '%s'"
+                % (self.config.username, self.config.host, key, value)
+            )
             if self._is_local:
                 self._add_env_for_local(key, value, rewrite)
             else:
                 self.env[key] = value
         else:
-            stdio.verbose('%s@%s append \'%s\' to %s' % (self.config.username, self.config.host, value, key))
+            stdio.verbose(
+                "%s@%s append '%s' to %s"
+                % (self.config.username, self.config.host, value, key)
+            )
             if self._is_local:
                 self._add_env_for_local(key, value, rewrite)
             else:
@@ -366,20 +416,22 @@ class SshClient(SafeStdio):
             self.env[key] = value
         else:
             if key not in self.env:
-                self.env[key] = COMMAND_ENV.get(key, '')
+                self.env[key] = COMMAND_ENV.get(key, "")
             self.env[key] += value
 
     def get_env(self, key, stdio=None):
         return self.env[key] if key in self.env else None
 
-    def del_env(self, key,  stdio=None):
+    def del_env(self, key, stdio=None):
         if key in self.env:
-            stdio.verbose('%s@%s delete env %s' % (self.config.username, self.config.host, key))
+            stdio.verbose(
+                "%s@%s delete env %s" % (self.config.username, self.config.host, key)
+            )
             del self.env[key]
             self._update_env()
 
     def __str__(self):
-        return '%s@%s:%d' % (self.config.username, self.config.host, self.config.port)
+        return "%s@%s:%d" % (self.config.username, self.config.host, self.config.port)
 
     def is_localhost(self, stdio=None):
         return self.config.host in self.LOCAL_HOST
@@ -390,7 +442,15 @@ class SshClient(SafeStdio):
         err = None
         try:
             self.ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-            stdio.verbose('host: %s, port: %s, user: %s, password: %s' % (self.config.host, self.config.port, self.config.username, self.config.password))
+            stdio.verbose(
+                "host: %s, port: %s, user: %s, password: %s"
+                % (
+                    self.config.host,
+                    self.config.port,
+                    self.config.username,
+                    self.config.password,
+                )
+            )
             self.ssh_client.connect(
                 self.config.host,
                 port=self.config.port,
@@ -398,18 +458,26 @@ class SshClient(SafeStdio):
                 password=self.config.password,
                 key_filename=self.config.key_filename,
                 timeout=self.config.timeout,
-                disabled_algorithms=self._disabled_rsa_algorithms
+                disabled_algorithms=self._disabled_rsa_algorithms,
             )
             self.is_connected = True
         except AuthenticationException:
-            stdio.exception('')
-            err = EC_SSH_CONNECT.format(user=self.config.username, ip=self.config.host, message='username or password error')
+            stdio.exception("")
+            err = EC_SSH_CONNECT.format(
+                user=self.config.username,
+                ip=self.config.host,
+                message="username or password error",
+            )
         except NoValidConnectionsError:
-            stdio.exception('')
-            err = EC_SSH_CONNECT.format(user=self.config.username, ip=self.config.host, message='time out')
+            stdio.exception("")
+            err = EC_SSH_CONNECT.format(
+                user=self.config.username, ip=self.config.host, message="time out"
+            )
         except BaseException as e:
-            stdio.exception('')
-            err = EC_SSH_CONNECT.format(user=self.config.username, ip=self.config.host, message=e)
+            stdio.exception("")
+            err = EC_SSH_CONNECT.format(
+                user=self.config.username, ip=self.config.host, message=e
+            )
         if err:
             if exit:
                 stdio.critical(err)
@@ -452,33 +520,38 @@ class SshClient(SafeStdio):
 
     def _execute_command(self, command, timeout=None, retry=3, stdio=None):
         if not self._login(stdio):
-            return SshReturn(255, '', 'connect failed')
+            return SshReturn(255, "", "connect failed")
         try:
-            stdin, stdout, stderr = self.ssh_client.exec_command(command, timeout=timeout)
-            output = stdout.read().decode(errors='replace')
-            error = stderr.read().decode(errors='replace')
+            stdin, stdout, stderr = self.ssh_client.exec_command(
+                command, timeout=timeout
+            )
+            output = stdout.read().decode(errors="replace")
+            error = stderr.read().decode(errors="replace")
             if output:
-                idx = output.rindex('\n')
+                idx = output.rindex("\n")
                 code = int(output[idx:])
                 stdout = output[:idx]
-                verbose_msg = 'exited code %s' % code
+                verbose_msg = "exited code %s" % code
             else:
-                code, stdout = 1, ''
+                code, stdout = 1, ""
             if code:
-                verbose_msg = 'exited code %s, error output:\n%s' % (code, error)
+                verbose_msg = "exited code %s, error output:\n%s" % (code, error)
             stdio.verbose(verbose_msg)
         except SSHException as e:
             if retry:
                 self.close()
-                return self._execute_command(command, retry-1, stdio)
+                return self._execute_command(command, retry - 1, stdio)
             else:
-                stdio.exception('')
-                stdio.critical('%s@%s connect failed: %s' % (self.config.username, self.config.host, e))
+                stdio.exception("")
+                stdio.critical(
+                    "%s@%s connect failed: %s"
+                    % (self.config.username, self.config.host, e)
+                )
                 raise e
         except Exception as e:
-            stdio.exception('')
+            stdio.exception("")
             code = 255
-            stdout = ''
+            stdout = ""
             error = str(e)
         return SshReturn(code, stdout, error)
 
@@ -489,11 +562,16 @@ class SshClient(SafeStdio):
             timeout = None
 
         if self._is_local:
-            return LocalClient.execute_command(command, self.env if self.env else None, timeout, stdio=stdio)
+            return LocalClient.execute_command(
+                command, self.env if self.env else None, timeout, stdio=stdio
+            )
 
-        verbose_msg = '%s execute: %s ' % (self.config, command)
-        stdio.verbose(verbose_msg, end='')
-        command = '(%s %s);echo -e "\n$?\c"' % (self.env_str, command.strip(';').lstrip('\n'))
+        verbose_msg = "%s execute: %s " % (self.config, command)
+        stdio.verbose(verbose_msg, end="")
+        command = '(%s %s);echo -e "\n$?\c"' % (
+            self.env_str,
+            command.strip(";").lstrip("\n"),
+        )
         return self._execute_command(command, retry=3, timeout=timeout, stdio=stdio)
 
     @property
@@ -503,16 +581,20 @@ class SshClient(SafeStdio):
         _transporter = RemoteTransporter.CLIENT
         if not self._is_local and self._remote_transporter is None:
             if not self.config.password and not self.disable_rsync:
-                ret = LocalClient.execute_command('rsync -h', stdio=self.stdio) and self.execute_command('rsync -h', stdio=self.stdio)
+                ret = LocalClient.execute_command(
+                    "rsync -h", stdio=self.stdio
+                ) and self.execute_command("rsync -h", stdio=self.stdio)
                 if ret:
                     _transporter = RemoteTransporter.RSYNC
         self._remote_transporter = _transporter
-        self.stdio.verbose("current remote_transporter {}".format(self._remote_transporter))
+        self.stdio.verbose(
+            "current remote_transporter {}".format(self._remote_transporter)
+        )
         return self._remote_transporter
 
     def put_file(self, local_path, remote_path, stdio=None):
         if not os.path.isfile(local_path):
-            stdio.error('path: %s is not file' % local_path)
+            stdio.error("path: %s is not file" % local_path)
             return False
         if self._is_local:
             return LocalClient.put_file(local_path, remote_path, stdio=stdio)
@@ -520,20 +602,20 @@ class SshClient(SafeStdio):
             return False
         return self._put_file(local_path, remote_path, stdio=stdio)
 
-    def write_file(self, content, file_path, mode='w', stdio=None):
+    def write_file(self, content, file_path, mode="w", stdio=None):
         if self._is_local:
             return LocalClient.write_file(content, file_path, mode, stdio)
         return self._write_file(content, file_path, mode, stdio)
 
-    def _write_file(self, content, file_path, mode='w', stdio=None):
-        stdio.verbose('write {} to {}: {}'.format(content, self, file_path))
+    def _write_file(self, content, file_path, mode="w", stdio=None):
+        stdio.verbose("write {} to {}: {}".format(content, self, file_path))
         try:
             with tempfile.NamedTemporaryFile(mode=mode) as f:
                 f.write(content)
                 f.flush()
                 return self.put_file(f.name, file_path, stdio=stdio)
         except:
-            stdio.exception('')
+            stdio.exception("")
             return False
 
     @property
@@ -544,43 +626,57 @@ class SshClient(SafeStdio):
             return self._client_put_file
 
     def _client_put_file(self, local_path, remote_path, stdio=None):
-        if self.execute_command('mkdir -p %s && rm -fr %s' % (os.path.dirname(remote_path), remote_path), stdio=stdio):
-            stdio.verbose('send %s to %s' % (local_path, remote_path))
-            if self.sftp.put(local_path.replace('~', os.getenv('HOME')), remote_path.replace('~', os.getenv('HOME'))):
-                return self.execute_command('chmod %s %s' % (oct(os.stat(local_path).st_mode)[-3:], remote_path))
+        if self.execute_command(
+            "mkdir -p %s && rm -fr %s" % (os.path.dirname(remote_path), remote_path),
+            stdio=stdio,
+        ):
+            stdio.verbose("send %s to %s" % (local_path, remote_path))
+            if self.sftp.put(
+                local_path.replace("~", os.getenv("HOME")),
+                remote_path.replace("~", os.getenv("HOME")),
+            ):
+                return self.execute_command(
+                    "chmod %s %s" % (oct(os.stat(local_path).st_mode)[-3:], remote_path)
+                )
         return False
 
     def _rsync(self, source, target, stdio=None):
         identity_option = ""
         if self.config.key_filename:
-            identity_option += '-i {key_filename} '.format(key_filename=self.config.key_filename)
+            identity_option += "-i {key_filename} ".format(
+                key_filename=self.config.key_filename
+            )
         if self.config.port:
-            identity_option += '-p {}'.format(self.config.port)
+            identity_option += "-p {}".format(self.config.port)
         cmd = 'yes | rsync -a -W -e "ssh {identity_option}" {source} {target}'.format(
-            identity_option=identity_option,
-            source=source,
-            target=target
+            identity_option=identity_option, source=source, target=target
         )
         ret = LocalClient.execute_command(cmd, stdio=stdio)
         return bool(ret)
 
     def _rsync_put_dir(self, local_path, remote_path, stdio=None):
-        stdio.verbose('send %s to %s by rsync' % (local_path, remote_path))
-        source = os.path.join(local_path, '*')
+        stdio.verbose("send %s to %s by rsync" % (local_path, remote_path))
+        source = os.path.join(local_path, "*")
         if os.path.exists(os.path.dirname(source)) and not glob(source):
             stdio.verbose("%s is empty" % source)
             return True
-        target = "{user}@{host}:{remote_path}".format(user=self.config.username, host=self.config.host, remote_path=remote_path)
+        target = "{user}@{host}:{remote_path}".format(
+            user=self.config.username, host=self.config.host, remote_path=remote_path
+        )
         if self._rsync(source, target, stdio=stdio):
             return True
         else:
             return False
 
     def _rsync_put_file(self, local_path, remote_path, stdio=None):
-        if not self.execute_command('mkdir -p %s' % os.path.dirname(remote_path), stdio=stdio):
+        if not self.execute_command(
+            "mkdir -p %s" % os.path.dirname(remote_path), stdio=stdio
+        ):
             return False
-        stdio.verbose('send %s to %s by rsync' % (local_path, remote_path))
-        target = "{user}@{host}:{remote_path}".format(user=self.config.username, host=self.config.host, remote_path=remote_path)
+        stdio.verbose("send %s to %s by rsync" % (local_path, remote_path))
+        target = "{user}@{host}:{remote_path}".format(
+            user=self.config.username, host=self.config.host, remote_path=remote_path
+        )
         if self._rsync(local_path, target, stdio=stdio):
             return True
         else:
@@ -591,11 +687,11 @@ class SshClient(SafeStdio):
             return LocalClient.put_dir(local_dir, remote_dir, stdio=stdio)
         if not self._open_sftp(stdio=stdio):
             return False
-        if not self.execute_command('mkdir -p %s' % remote_dir, stdio=stdio):
+        if not self.execute_command("mkdir -p %s" % remote_dir, stdio=stdio):
             return False
-        stdio.start_loading('Send %s to %s' % (local_dir, remote_dir))
+        stdio.start_loading("Send %s to %s" % (local_dir, remote_dir))
         ret = self._put_dir(local_dir, remote_dir, stdio=stdio)
-        stdio.stop_loading('succeed' if ret else 'fail')
+        stdio.stop_loading("succeed" if ret else "fail")
         return ret
 
     @property
@@ -607,24 +703,30 @@ class SshClient(SafeStdio):
 
     def _client_put_dir(self, local_dir, remote_dir, stdio=None):
         has_failed = False
-        ret = LocalClient.execute_command('find -L %s -type f' % local_dir)
+        ret = LocalClient.execute_command("find -L %s -type f" % local_dir)
         if not ret:
             has_failed = True
-        all_files = ret.stdout.strip().split('\n') if ret.stdout else []
-        ret = LocalClient.execute_command('find %s -type d' % local_dir)
+        all_files = ret.stdout.strip().split("\n") if ret.stdout else []
+        ret = LocalClient.execute_command("find %s -type d" % local_dir)
         if not ret:
             has_failed = True
-        all_dirs = ret.stdout.strip().split('\n') if ret.stdout else []
+        all_dirs = ret.stdout.strip().split("\n") if ret.stdout else []
         self._filter_dir_in_file_path(all_files, all_dirs)
         for local_path in all_files:
-            remote_path = os.path.join(remote_dir, os.path.relpath(local_path, local_dir))
+            remote_path = os.path.join(
+                remote_dir, os.path.relpath(local_path, local_dir)
+            )
             if not self._client_put_file(local_path, remote_path, stdio=stdio):
-                stdio.error('Fail to get %s' % remote_path)
+                stdio.error("Fail to get %s" % remote_path)
                 has_failed = True
         for local_path in all_dirs:
-            remote_path = os.path.join(remote_dir, os.path.relpath(local_path, local_dir))
+            remote_path = os.path.join(
+                remote_dir, os.path.relpath(local_path, local_dir)
+            )
             stat = oct(os.stat(local_path).st_mode)[-3:]
-            cmd = '[ -d "{remote_path}" ] || (mkdir -p {remote_path}; chmod {stat} {remote_path})'.format(remote_path=remote_path, stat=stat)
+            cmd = '[ -d "{remote_path}" ] || (mkdir -p {remote_path}; chmod {stat} {remote_path})'.format(
+                remote_path=remote_path, stat=stat
+            )
             if not self.execute_command(cmd):
                 has_failed = True
         return not has_failed
@@ -636,12 +738,12 @@ class SshClient(SafeStdio):
             local_path = os.path.join(dirname, local_path)
         if os.path.exists(dirname):
             if not os.path.isdir(dirname):
-                stdio.error('%s is not directory' % dirname)
+                stdio.error("%s is not directory" % dirname)
                 return False
         elif not DirectoryUtil.mkdir(dirname, stdio=stdio):
             return False
         if os.path.exists(local_path) and not os.path.isfile(local_path):
-            stdio.error('path: %s is not file' % local_path)
+            stdio.error("path: %s is not file" % local_path)
             return False
         if self._is_local:
             return LocalClient.get_file(local_path, remote_path, stdio=stdio)
@@ -657,20 +759,26 @@ class SshClient(SafeStdio):
             return self._client_get_file
 
     def _rsync_get_dir(self, local_path, remote_path, stdio=None):
-        source = "{user}@{host}:{remote_path}".format(user=self.config.username, host=self.config.host, remote_path=remote_path)
+        source = "{user}@{host}:{remote_path}".format(
+            user=self.config.username, host=self.config.host, remote_path=remote_path
+        )
         if "*" not in remote_path:
             source = os.path.join(source, "*")
         target = local_path
-        stdio.verbose('get %s from %s by rsync' % (local_path, remote_path))
-        if LocalClient.execute_command('mkdir -p {}'.format(local_path), stdio=stdio) and self._rsync(source, target, stdio=stdio):
+        stdio.verbose("get %s from %s by rsync" % (local_path, remote_path))
+        if LocalClient.execute_command(
+            "mkdir -p {}".format(local_path), stdio=stdio
+        ) and self._rsync(source, target, stdio=stdio):
             return True
         else:
             return False
 
     def _rsync_get_file(self, local_path, remote_path, stdio=None):
-        source = "{user}@{host}:{remote_path}".format(user=self.config.username, host=self.config.host, remote_path=remote_path)
+        source = "{user}@{host}:{remote_path}".format(
+            user=self.config.username, host=self.config.host, remote_path=remote_path
+        )
         target = local_path
-        stdio.verbose('get %s from %s by rsync' % (local_path, remote_path))
+        stdio.verbose("get %s from %s by rsync" % (local_path, remote_path))
         if self._rsync(source, target, stdio=stdio):
             return True
         else:
@@ -683,7 +791,10 @@ class SshClient(SafeStdio):
             os.chmod(local_path, stat.st_mode)
             return True
         except Exception as e:
-            stdio.exception('get %s from %s@%s:%s failed: %s' % (local_path, self.config.username, self.config.host, remote_path, e))
+            stdio.exception(
+                "get %s from %s@%s:%s failed: %s"
+                % (local_path, self.config.username, self.config.host, remote_path, e)
+            )
         return False
 
     def get_dir(self, local_dir, remote_dir, stdio=None):
@@ -692,24 +803,24 @@ class SshClient(SafeStdio):
             dirname = os.getcwd()
             local_dir = os.path.join(dirname, local_dir)
         if "*" in dirname:
-            stdio.error('Invalid directory {}'.format(dirname))
+            stdio.error("Invalid directory {}".format(dirname))
             return False
         if os.path.exists(dirname):
             if not os.path.isdir(dirname):
-                stdio.error('%s is not directory' % dirname)
+                stdio.error("%s is not directory" % dirname)
                 return False
         elif not DirectoryUtil.mkdir(dirname, stdio=stdio):
             return False
         if os.path.exists(local_dir) and not os.path.isdir(local_dir):
-            stdio.error('%s is not directory' % local_dir)
+            stdio.error("%s is not directory" % local_dir)
             return False
         if self._is_local:
             return LocalClient.get_dir(local_dir, remote_dir, stdio=stdio)
         if not self._open_sftp(stdio=stdio):
             return False
-        stdio.start_loading('Get %s from %s' % (local_dir, remote_dir))
+        stdio.start_loading("Get %s from %s" % (local_dir, remote_dir))
         ret = self._get_dir(local_dir, remote_dir, stdio=stdio)
-        stdio.stop_loading('succeed' if ret else 'fail')
+        stdio.stop_loading("succeed" if ret else "fail")
         return ret
 
     @property
@@ -724,15 +835,15 @@ class SshClient(SafeStdio):
         has_failed = False
         if DirectoryUtil.mkdir(local_dir, stdio=stdio):
             try:
-                ret = self.execute_command('find %s -type f' % remote_dir)
+                ret = self.execute_command("find %s -type f" % remote_dir)
                 if not ret:
                     stdio.verbose(ret.stderr)
                     has_failed = True
-                all_files = ret.stdout.strip().split('\n') if ret.stdout else []
-                ret = self.execute_command('find %s -type d' % remote_dir)
+                all_files = ret.stdout.strip().split("\n") if ret.stdout else []
+                ret = self.execute_command("find %s -type d" % remote_dir)
                 if not ret:
                     has_failed = True
-                all_dirs = ret.stdout.strip().split('\n') if ret.stdout else []
+                all_dirs = ret.stdout.strip().split("\n") if ret.stdout else []
                 self._filter_dir_in_file_path(all_files, all_dirs)
                 for f in all_files:
                     task_queue.append(f)
@@ -741,22 +852,28 @@ class SshClient(SafeStdio):
                 else:
                     remote_base_dir = remote_dir
                 for remote_path in task_queue:
-                    local_path = os.path.join(local_dir, os.path.relpath(remote_path, remote_dir))
+                    local_path = os.path.join(
+                        local_dir, os.path.relpath(remote_path, remote_dir)
+                    )
                     if not self._client_get_file(local_path, remote_path, stdio=stdio):
-                        stdio.error('Fail to get %s' % remote_path)
+                        stdio.error("Fail to get %s" % remote_path)
                         has_failed = True
                 for remote_path in all_dirs:
                     try:
-                        local_path = os.path.join(local_dir, os.path.relpath(remote_path, remote_base_dir))
+                        local_path = os.path.join(
+                            local_dir, os.path.relpath(remote_path, remote_base_dir)
+                        )
                         if not os.path.exists(local_path):
                             stat = self.sftp.stat(remote_path)
                             os.makedirs(local_path, mode=stat.st_mode)
                     except Exception as e:
-                        stdio.exception('Fail to make directory %s in local: %s' % (remote_path, e))
+                        stdio.exception(
+                            "Fail to make directory %s in local: %s" % (remote_path, e)
+                        )
                         has_failed = True
                 return not has_failed
             except Exception as e:
-                stdio.exception('Fail to get %s: %s' % (remote_dir, e))
+                stdio.exception("Fail to get %s: %s" % (remote_dir, e))
 
     @staticmethod
     def _filter_dir_in_file_path(files, directories):
@@ -778,16 +895,18 @@ class SshClient(SafeStdio):
             client._remote_transporter = self.remote_transporter
             while True:
                 remote_path = self.task_queue.get(block=False)
-                local_path = os.path.join(local_dir, os.path.relpath(remote_path, remote_dir))
+                local_path = os.path.join(
+                    local_dir, os.path.relpath(remote_path, remote_dir)
+                )
                 if client.get_file(local_path, remote_path, stdio=stdio):
                     self.result_queue.put(remote_path)
                 else:
-                    stdio.error('Fail to get %s' % remote_path)
+                    stdio.error("Fail to get %s" % remote_path)
         except Empty:
             return
         except:
             stdio.exception("")
-            stdio.exception('Failed to get %s' % remote_dir)
+            stdio.exception("Failed to get %s" % remote_dir)
 
     def file_uploader(self, local_dir, remote_dir, stdio=None):
         try:
@@ -795,35 +914,54 @@ class SshClient(SafeStdio):
             client._remote_transporter = self.remote_transporter
             while True:
                 local_path, is_dir = self.task_queue.get(block=False)
-                remote_path = os.path.join(remote_dir, os.path.relpath(local_path, local_dir))
+                remote_path = os.path.join(
+                    remote_dir, os.path.relpath(local_path, local_dir)
+                )
                 if is_dir:
                     stat = oct(os.stat(local_path).st_mode)[-3:]
-                    cmd = '[ -d "{remote_path}" ] || (mkdir -p {remote_path}; chmod {stat} {remote_path})'.format(remote_path=remote_path, stat=stat)
+                    cmd = '[ -d "{remote_path}" ] || (mkdir -p {remote_path}; chmod {stat} {remote_path})'.format(
+                        remote_path=remote_path, stat=stat
+                    )
                     if client.execute_command(cmd):
                         self.result_queue.put(remote_path)
                 else:
                     if client.put_file(local_path, remote_path, stdio=stdio):
                         self.result_queue.put(remote_path)
                     else:
-                        stdio.error('Fail to get %s' % remote_path)
+                        stdio.error("Fail to get %s" % remote_path)
         except Empty:
             return
         except:
             stdio.exception("")
-            stdio.verbose('Failed to get %s' % remote_dir)
+            stdio.verbose("Failed to get %s" % remote_dir)
+
+
 # TODO ENV_DISABLE_RSA_ALGORITHMS need get by context.inner_context
-ENV_DISABLE_RSA_ALGORITHMS=0
+ENV_DISABLE_RSA_ALGORITHMS = 0
+
+
 def dis_rsa_algorithms(state=0):
     """
     Disable RSA algorithms in OpenSSH server.
     """
     global ENV_DISABLE_RSA_ALGORITHMS
-    ENV_DISABLE_RSA_ALGORITHMS=state
+    ENV_DISABLE_RSA_ALGORITHMS = state
+
+
 class SshHelper(object):
-    def __init__(self, is_ssh=None, host_ip=None, username=None, password=None, ssh_port=None, key_file=None,
-                 node=None, stdio=None):
+    def __init__(
+        self,
+        is_ssh=None,
+        host_ip=None,
+        username=None,
+        password=None,
+        ssh_port=None,
+        key_file=None,
+        node=None,
+        stdio=None,
+    ):
         if node is None:
-            node={}
+            node = {}
         self.is_ssh = is_ssh
         self.stdio = stdio
         self.host_ip = host_ip
@@ -832,24 +970,40 @@ class SshHelper(object):
         self.need_password = True
         self.password = node.get("ssh_password") or password
         self.key_file = node.get("ssh_key_file") or key_file
-        self.key_file=os.path.expanduser(self.key_file)
+        self.key_file = os.path.expanduser(self.key_file)
         self.ssh_type = node.get("ssh_type") or "remote"
         self._ssh_fd = None
         self._sftp_client = None
         if "ssh_type" in node and node.get("ssh_type") == "docker":
             try:
                 self.ssh_type = node["ssh_type"]
-                self.stdio.verbose("use ssh_type:{0} , node info : {1}".format(self.ssh_type, StringUtils.node_cut_passwd_for_log(node)))
+                self.stdio.verbose(
+                    "use ssh_type:{0} , node info : {1}".format(
+                        self.ssh_type, StringUtils.node_cut_passwd_for_log(node)
+                    )
+                )
                 self.node = node
                 # docker_permissions_check
                 if self.ssh_type == "docker":
                     self.client = docker.from_env()
                     if "container_name" not in node:
-                        self.stdio.error("SshHelper init docker Exception: 'container_name' not in node")
-                        raise Exception("SshHelper init docker Exception: 'container_name' not in node")
+                        self.stdio.error(
+                            "SshHelper init docker Exception: 'container_name' not in node"
+                        )
+                        raise Exception(
+                            "SshHelper init docker Exception: 'container_name' not in node"
+                        )
                 else:
-                    self.stdio.error("SshHelper init not support the ssh_type : {0}".format(self.ssh_type))
-                    raise Exception("SshHelper init not support the ssh_type : {0}".format(self.ssh_type))
+                    self.stdio.error(
+                        "SshHelper init not support the ssh_type : {0}".format(
+                            self.ssh_type
+                        )
+                    )
+                    raise Exception(
+                        "SshHelper init not support the ssh_type : {0}".format(
+                            self.ssh_type
+                        )
+                    )
 
             except Exception as e:
                 self.stdio.error("SshHelper init docker Exception: {0}".format(e))
@@ -858,7 +1012,7 @@ class SshHelper(object):
             return
 
         if self.is_ssh:
-            self._disabled_rsa_algorithms=None
+            self._disabled_rsa_algorithms = None
             DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
             if ENV_DISABLE_RSA_ALGORITHMS == 1:
                 self._disabled_rsa_algorithms = DISABLED_ALGORITHMS
@@ -866,26 +1020,60 @@ class SshHelper(object):
             if len(self.key_file) > 0:
                 try:
                     self._ssh_fd = paramiko.SSHClient()
-                    self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+                    self._ssh_fd.set_missing_host_key_policy(
+                        paramiko.client.AutoAddPolicy()
+                    )
                     self._ssh_fd.load_system_host_keys()
-                    self._ssh_fd.connect(hostname=host_ip, username=username, key_filename=self.key_file, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                    self._ssh_fd.connect(
+                        hostname=host_ip,
+                        username=username,
+                        key_filename=self.key_file,
+                        port=ssh_port,
+                        disabled_algorithms=self._disabled_rsa_algorithms,
+                    )
                 except AuthenticationException:
-                    self.password = input("Authentication failed, Input {0}@{1} password:\n".format(username, host_ip))
+                    self.password = input(
+                        "Authentication failed, Input {0}@{1} password:\n".format(
+                            username, host_ip
+                        )
+                    )
                     self.need_password = True
-                    self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                    self._ssh_fd.connect(
+                        hostname=host_ip,
+                        username=username,
+                        password=password,
+                        port=ssh_port,
+                        disabled_algorithms=self._disabled_rsa_algorithms,
+                    )
                 except Exception as e:
-                    raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(username, host_ip, e))
+                    raise OBDIAGSSHConnException(
+                        "ssh {0}@{1}: failed, exception:{2}".format(
+                            username, host_ip, e
+                        )
+                    )
             else:
                 self._ssh_fd = paramiko.SSHClient()
-                self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+                self._ssh_fd.set_missing_host_key_policy(
+                    paramiko.client.AutoAddPolicy()
+                )
                 self._ssh_fd.load_system_host_keys()
                 self.need_password = True
-                self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port,disabled_algorithms=self._disabled_rsa_algorithms)
+                self._ssh_fd.connect(
+                    hostname=host_ip,
+                    username=username,
+                    password=password,
+                    port=ssh_port,
+                    disabled_algorithms=self._disabled_rsa_algorithms,
+                )
 
     def ssh_exec_cmd(self, cmd):
         if self.ssh_type == "docker":
             try:
-                self.stdio.verbose("ssh_exec_cmd docker {0} cmd: {1}".format(self.node.get("container_name"), cmd))
+                self.stdio.verbose(
+                    "ssh_exec_cmd docker {0} cmd: {1}".format(
+                        self.node.get("container_name"), cmd
+                    )
+                )
                 client_result = self.client.containers.get(self.node["container_name"])
                 result = client_result.exec_run(
                     cmd=["bash", "-c", cmd],
@@ -894,25 +1082,38 @@ class SshHelper(object):
                     stderr=True,
                 )
                 if result.exit_code != 0:
-                    raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                                  "command=[{1}], exception:{2}".format(self.node["container_name"], cmd,
-                                                                                        result.output.decode('utf-8')))
+                    raise OBDIAGShellCmdException(
+                        "Execute Shell command on server {0} failed, "
+                        "command=[{1}], exception:{2}".format(
+                            self.node["container_name"],
+                            cmd,
+                            result.output.decode("utf-8"),
+                        )
+                    )
 
             except Exception as e:
-                self.stdio.error("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
-                raise Exception("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
+                self.stdio.error(
+                    "sshHelper ssh_exec_cmd docker Exception: {0}".format(e)
+                )
+                raise Exception(
+                    "sshHelper ssh_exec_cmd docker Exception: {0}".format(e)
+                )
 
-            return result.output.decode('utf-8')
+            return result.output.decode("utf-8")
         try:
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                           "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text))
+                raise OBDIAGShellCmdException(
+                    "Execute Shell command on server {0} failed, "
+                    "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text)
+                )
         except SSHException as e:
-            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                       "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
-        return stdout.read().decode('utf-8')
+            raise OBDIAGShellCmdException(
+                "Execute Shell command on server {0} failed, "
+                "command=[{1}], exception:{2}".format(self.host_ip, cmd, e)
+            )
+        return stdout.read().decode("utf-8")
 
     def ssh_exec_cmd_ignore_err(self, cmd):
         if self.ssh_type == "docker":
@@ -925,16 +1126,24 @@ class SshHelper(object):
                     stderr=True,
                 )
             except Exception as e:
-                self.stdio.error("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
-                raise Exception("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
+                self.stdio.error(
+                    "sshHelper ssh_exec_cmd docker Exception: {0}".format(e)
+                )
+                raise Exception(
+                    "sshHelper ssh_exec_cmd docker Exception: {0}".format(e)
+                )
 
-            return result.output.decode('utf-8')
+            return result.output.decode("utf-8")
 
         try:
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
-            return stdout.read().decode('utf-8')
+            return stdout.read().decode("utf-8")
         except SSHException as e:
-            print("Execute Shell command on server {0} failed,command=[{1}], exception:{2}".format(self.node, cmd, e))
+            print(
+                "Execute Shell command on server {0} failed,command=[{1}], exception:{2}".format(
+                    self.node, cmd, e
+                )
+            )
 
     def ssh_exec_cmd_ignore_exception(self, cmd):
         if self.ssh_type == "docker":
@@ -946,16 +1155,20 @@ class SshHelper(object):
                     stdout=True,
                     stderr=True,
                 )
-                return result.output.decode('utf-8')
+                return result.output.decode("utf-8")
             except Exception as e:
-                self.stdio.error("sshHelper ssh_exec_cmd_ignore_exception docker Exception: {0}".format(e))
+                self.stdio.error(
+                    "sshHelper ssh_exec_cmd_ignore_exception docker Exception: {0}".format(
+                        e
+                    )
+                )
                 pass
                 # raise Exception("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
             return
 
         try:
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
-            return stderr.read().decode('utf-8')
+            return stderr.read().decode("utf-8")
         except SSHException as e:
             pass
 
@@ -969,35 +1182,62 @@ class SshHelper(object):
                     stdout=True,
                     stderr=True,
                 )
-                return result.output.decode('utf-8')
+                return result.output.decode("utf-8")
             except Exception as e:
-                self.stdio.error("sshHelper ssh_exec_cmd_ignore_exception docker Exception: {0}".format(e))
+                self.stdio.error(
+                    "sshHelper ssh_exec_cmd_ignore_exception docker Exception: {0}".format(
+                        e
+                    )
+                )
                 pass
                 # raise Exception("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
             return
         try:
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
-            return stderr.read().decode('utf-8')
+            return stderr.read().decode("utf-8")
         except SSHException as e:
             pass
 
-    def progress_bar(self, transferred, to_be_transferred, suffix=''):
+    def progress_bar(self, transferred, to_be_transferred, suffix=""):
         bar_len = 20
         filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
         percents = round(20.0 * transferred / float(to_be_transferred), 1)
-        bar = '\033[32;1m%s\033[0m' % '=' * filled_len + '-' * (bar_len - filled_len)
+        bar = "\033[32;1m%s\033[0m" % "=" * filled_len + "-" * (bar_len - filled_len)
         print_percents = round((percents * 5), 1)
         sys.stdout.flush()
-        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']',  suffix))
+        sys.stdout.write(
+            "Downloading [%s] %s%s%s %s %s\r"
+            % (
+                bar,
+                "\033[32;1m%s\033[0m" % print_percents,
+                "% [",
+                self.translate_byte(transferred),
+                "]",
+                suffix,
+            )
+        )
         if transferred == to_be_transferred:
-            sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (
-            bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+            sys.stdout.write(
+                "Downloading [%s] %s%s%s %s %s\r"
+                % (
+                    bar,
+                    "\033[32;1m%s\033[0m" % print_percents,
+                    "% [",
+                    self.translate_byte(transferred),
+                    "]",
+                    suffix,
+                )
+            )
             print()
 
     def download(self, remote_path, local_path):
         if self.ssh_type == "docker":
             try:
-                self.stdio.verbose("remote_path: {0}:{1} to local_path:{2}".format(self.node["container_name"], remote_path, local_path))
+                self.stdio.verbose(
+                    "remote_path: {0}:{1} to local_path:{2}".format(
+                        self.node["container_name"], remote_path, local_path
+                    )
+                )
                 client_result = self.client.containers.get(self.node["container_name"])
                 data, stat = client_result.get_archive(remote_path)
                 with open(local_path, "wb") as f:
@@ -1011,33 +1251,39 @@ class SshHelper(object):
 
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
-        print('Download {0}:{1}'.format(self.host_ip,remote_path))
+        print("Download {0}:{1}".format(self.host_ip, remote_path))
         self._sftp_client.get(remote_path, local_path, callback=self.progress_bar)
         self._sftp_client.close()
 
     def translate_byte(self, B):
         B = float(B)
         KB = float(1024)
-        MB = float(KB ** 2)
-        GB = float(MB ** 2)
-        TB = float(GB ** 2)
+        MB = float(KB**2)
+        GB = float(MB**2)
+        TB = float(GB**2)
         if B < KB:
-            return '{} {}'.format(B, 'bytes' if B > 1 else "byte")
+            return "{} {}".format(B, "bytes" if B > 1 else "byte")
         elif KB < B < MB:
-            return '{:.2f} KB'.format(B / KB)
+            return "{:.2f} KB".format(B / KB)
         elif MB < B < GB:
-            return '{:.2f} MB'.format(B / MB)
+            return "{:.2f} MB".format(B / MB)
         elif GB < B < TB:
-            return '{:.2f} GB'.format(B / GB)
+            return "{:.2f} GB".format(B / GB)
         else:
-            return '{:.2f} TB'.format(B / TB)
+            return "{:.2f} TB".format(B / TB)
 
     def upload(self, remote_path, local_path):
         if self.ssh_type == "docker":
             try:
-                self.stdio.verbose(" local_path:{0} to remote_path:{1}:{2}".format(local_path, self.node["container_name"], remote_path))
+                self.stdio.verbose(
+                    " local_path:{0} to remote_path:{1}:{2}".format(
+                        local_path, self.node["container_name"], remote_path
+                    )
+                )
 
-                self.client.containers.get(self.node["container_name"]).put_archive(remote_path, local_path)
+                self.client.containers.get(self.node["container_name"]).put_archive(
+                    remote_path, local_path
+                )
 
                 return
             except Exception as e:
@@ -1065,27 +1311,40 @@ class SshHelper(object):
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         if self.ssh_type == "docker":
             try:
-                exec_id = self.client.exec_create(container=self.node["container_name"], command=['su', '- ' + new_user])
+                exec_id = self.client.exec_create(
+                    container=self.node["container_name"],
+                    command=["su", "- " + new_user],
+                )
                 response = self.client.exec_start(exec_id)
 
                 return response
             except Exception as e:
-                self.stdio.error("sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(e))
-                raise Exception("sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(e))
+                self.stdio.error(
+                    "sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(
+                        e
+                    )
+                )
+                raise Exception(
+                    "sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(
+                        e
+                    )
+                )
             return
         try:
             ssh = self._ssh_fd.invoke_shell()
-            ssh.send('su {0}\n'.format(new_user))
-            ssh.send('{}\n'.format(cmd))
+            ssh.send("su {0}\n".format(new_user))
+            ssh.send("{}\n".format(cmd))
             time.sleep(time_out)
             self._ssh_fd.close()
             result = ssh.recv(65535)
         except SSHException as e:
-            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, "
-                                       "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
+            raise OBDIAGShellCmdException(
+                "Execute Shell command on server {0} failed, "
+                "command=[{1}], exception:{2}".format(self.host_ip, cmd, e)
+            )
         return result
 
     def get_name(self):
         if self.ssh_type == "docker":
-             return "(docker)"+self.node.get("container_name")
+            return "(docker)" + self.node.get("container_name")
         return self.host_ip

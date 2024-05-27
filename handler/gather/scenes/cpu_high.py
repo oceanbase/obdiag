@@ -22,6 +22,7 @@ from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_log import GatherLogHandler
 
+
 class CPUHighScene(SafeStdio):
     def __init__(self, context, report_path, task_variable_dict=None, env={}):
         self.context = context
@@ -33,9 +34,9 @@ class CPUHighScene(SafeStdio):
         self.report_path = report_path
         self.env = env
         self.is_ssh = True
-        self.nodes = self.context.cluster_config['servers']
+        self.nodes = self.context.cluster_config["servers"]
         self.cluster = self.context.cluster_config
-        self.ob_nodes = self.context.cluster_config['servers']
+        self.ob_nodes = self.context.cluster_config["servers"]
 
     def execute(self):
         self.__gather_obstack()
@@ -59,15 +60,34 @@ class CPUHighScene(SafeStdio):
         try:
             self.stdio.print("gather current_clocksource start")
             for node in self.nodes:
-                ssh_helper = SshHelper(self.is_ssh, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
-                cmd = 'cat /sys/devices/system/clocksource/clocksource0/current_clocksource'
-                self.stdio.verbose("gather current_clocksource, run cmd = [{0}]".format(cmd))
+                ssh_helper = SshHelper(
+                    self.is_ssh,
+                    node.get("ip"),
+                    node.get("ssh_username"),
+                    node.get("ssh_password"),
+                    node.get("ssh_port"),
+                    node.get("ssh_key_file"),
+                    node,
+                )
+                cmd = "cat /sys/devices/system/clocksource/clocksource0/current_clocksource"
+                self.stdio.verbose(
+                    "gather current_clocksource, run cmd = [{0}]".format(cmd)
+                )
                 result = ssh_helper.ssh_exec_cmd(cmd)
-                file_path = os.path.join(self.report_path, "current_clocksource_{ip}_result.txt".format(ip=str(node.get("ip")).replace('.', '_')))
+                file_path = os.path.join(
+                    self.report_path,
+                    "current_clocksource_{ip}_result.txt".format(
+                        ip=str(node.get("ip")).replace(".", "_")
+                    ),
+                )
                 self.report(file_path, cmd, result)
             self.stdio.print("gather current_clocksource end")
         except Exception as e:
-            self.stdio.error("SshHandler init fail. Please check the node conf. Exception : {0} .".format(e))
+            self.stdio.error(
+                "SshHandler init fail. Please check the node conf. Exception : {0} .".format(
+                    e
+                )
+            )
 
     def __gather_log(self):
         try:
@@ -81,8 +101,10 @@ class CPUHighScene(SafeStdio):
 
     def report(self, file_path, command, data):
         try:
-            with open(file_path, 'a', encoding='utf-8') as f:
-                f.write('\n\n' + 'shell > ' + command + '\n')
-                f.write(data + '\n')
+            with open(file_path, "a", encoding="utf-8") as f:
+                f.write("\n\n" + "shell > " + command + "\n")
+                f.write(data + "\n")
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: ".format(file_path))
+            self.stdio.error(
+                "report sql result to file: {0} failed, error: ".format(file_path)
+            )

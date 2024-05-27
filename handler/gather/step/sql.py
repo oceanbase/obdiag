@@ -25,21 +25,27 @@ from common.tool import StringUtils
 class StepSQLHandler(SafeStdio):
     def __init__(self, context, step, ob_cluster, report_path, task_variable_dict):
         self.context = context
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         try:
             self.ob_cluster = ob_cluster
             self.ob_cluster_name = ob_cluster.get("cluster_name")
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"),
-                                        port=ob_cluster.get("db_port"),
-                                        username=ob_cluster.get("tenant_sys").get("user"),
-                                        password=ob_cluster.get("tenant_sys").get("password"),
-                                        stdio=self.stdio,
-                                        timeout=10000)
+            self.ob_connector = OBConnector(
+                ip=ob_cluster.get("db_host"),
+                port=ob_cluster.get("db_port"),
+                username=ob_cluster.get("tenant_sys").get("user"),
+                password=ob_cluster.get("tenant_sys").get("password"),
+                stdio=self.stdio,
+                timeout=10000,
+            )
         except Exception as e:
-            self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster,e))
+            self.stdio.error(
+                "StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(
+                    ob_cluster, e
+                )
+            )
         self.task_variable_dict = task_variable_dict
         self.enable_dump_db = False
         self.enable_fast_dump = False
@@ -53,7 +59,9 @@ class StepSQLHandler(SafeStdio):
             if "sql" not in self.step:
                 self.stdio.error("StepSQLHandler execute sql is not set")
                 return
-            sql = StringUtils.build_sql_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
+            sql = StringUtils.build_sql_on_expr_by_dict(
+                self.step["sql"], self.task_variable_dict
+            )
             self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             columns, data = self.ob_connector.execute_sql_return_columns_and_data(sql)
             if data is None or len(data) == 0:
@@ -68,7 +76,9 @@ class StepSQLHandler(SafeStdio):
     def report(self, sql, column_names, data):
         try:
             table_data = [list(row) for row in data]
-            formatted_table = tabulate(table_data, headers=column_names, tablefmt="grid")
+            formatted_table = tabulate(
+                table_data, headers=column_names, tablefmt="grid"
+            )
 
             # Check file size and rename if necessary
             while True:
@@ -81,16 +91,22 @@ class StepSQLHandler(SafeStdio):
 
                 # Increment file suffix and update self.report_file_path
                 base_name, ext = os.path.splitext(self.report_file_path)
-                parts = base_name.split('_')
-                if len(parts) > 1 and parts[-1].isdigit():  # Check if the last part is a digit
+                parts = base_name.split("_")
+                if (
+                    len(parts) > 1 and parts[-1].isdigit()
+                ):  # Check if the last part is a digit
                     suffix = int(parts[-1]) + 1
-                    new_base_name = '_'.join(parts[:-1]) + '_{}'.format(suffix)
+                    new_base_name = "_".join(parts[:-1]) + "_{}".format(suffix)
                 else:
-                    new_base_name = base_name + '_1'
-                self.report_file_path = '{}{}'.format(new_base_name, ext)
+                    new_base_name = base_name + "_1"
+                self.report_file_path = "{}{}".format(new_base_name, ext)
 
-            with open(self.report_file_path, 'a', encoding='utf-8') as f:
-                f.write('\n\n' + 'obclient > ' + sql + '\n')
+            with open(self.report_file_path, "a", encoding="utf-8") as f:
+                f.write("\n\n" + "obclient > " + sql + "\n")
                 f.write(formatted_table)
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: {1}".format(self.report_file_path, str(e)))
+            self.stdio.error(
+                "report sql result to file: {0} failed, error: {1}".format(
+                    self.report_file_path, str(e)
+                )
+            )

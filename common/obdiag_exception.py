@@ -27,7 +27,10 @@ class OBDIAGIgnoreException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -38,7 +41,10 @@ class OBDIAGFormatException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -49,7 +55,10 @@ class OBDIAGConfNotFoundException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -60,7 +69,10 @@ class OBDIAGArgsNotFoundException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -71,7 +83,10 @@ class OBDIAGInvalidArgs(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -82,7 +97,10 @@ class OBDIAGSSHConnException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -93,7 +111,10 @@ class OBDIAGDBConnException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -104,7 +125,10 @@ class OBDIAGShellCmdException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
@@ -115,7 +139,10 @@ class OBDIAGAPIException(OBDIAGException):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)

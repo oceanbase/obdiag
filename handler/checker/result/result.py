@@ -15,7 +15,11 @@
 @file: result.py
 @desc:
 """
-from handler.checker.check_exception import ResultFalseException, ResultFailException, VerifyFailException
+from handler.checker.check_exception import (
+    ResultFalseException,
+    ResultFailException,
+    VerifyFailException,
+)
 from handler.checker.result.verify import VerifyResult
 import re
 
@@ -24,8 +28,9 @@ import re
 # validation process, handle it as fail); VerifyException (verification failed, report needs to be combined with
 # report_type)
 
+
 class CheckResult:
-    def __init__(self,context, step_result_info, variable_dict):
+    def __init__(self, context, step_result_info, variable_dict):
         self.context = context
         self.stdio = context.stdio
         self.step_result_info = step_result_info
@@ -42,25 +47,35 @@ class CheckResult:
         # if verify in step.result[]
         if "verify" in self.step_result_info:
             try:
-                verify = VerifyResult(self.context,self.step_result_info["verify"],
-                                      self.variable_dict, self.step_result_info["set_value"], verify_type)
+                verify = VerifyResult(
+                    self.context,
+                    self.step_result_info["verify"],
+                    self.variable_dict,
+                    self.step_result_info["set_value"],
+                    verify_type,
+                )
                 result = verify.execute()
-                self.stdio.verbose("verify.execute end. and result is {0}".format(result))
+                self.stdio.verbose(
+                    "verify.execute end. and result is {0}".format(result)
+                )
 
             except Exception as e:
-                self.stdio.error("check_result execute VerifyFailException :{0}".format(e))
+                self.stdio.error(
+                    "check_result execute VerifyFailException :{0}".format(e)
+                )
                 raise ResultFailException(e)
             if not result:
                 err_msg = self.build_msg()
                 self.stdio.verbose(
-                    "verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
+                    "verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(
+                        err_msg
+                    )
+                )
                 raise ResultFalseException(err_msg)
-
-
 
     def build_msg(self):
         s = "the step is not pass"
-        if 'err_msg' in self.step_result_info:
+        if "err_msg" in self.step_result_info:
             s = self.step_result_info["err_msg"]
         d = self.variable_dict
 
@@ -68,6 +83,4 @@ class CheckResult:
             key = match.group(1)
             return str(d.get(key, match.group(0)))
 
-        return re.sub(r'#\{(\w+)\}', replacer, s)
-
-
+        return re.sub(r"#\{(\w+)\}", replacer, s)

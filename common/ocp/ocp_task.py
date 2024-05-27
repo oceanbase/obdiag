@@ -32,9 +32,7 @@ class Task:
     STATUS_TASK_PENDING = "PENDING"
     STATUS_TASK_SUCCESS = "SUCCESSFUL"
     STATUS_TASK_FAILED = "FAILED"
-    TASK_RETRY_PERMIT = {
-        "Task retry": 3
-    }
+    TASK_RETRY_PERMIT = {"Task retry": 3}
 
     def __init__(self, url, auth, task_id):
         self.url = url
@@ -77,7 +75,9 @@ class Task:
             try:
                 self.get()
             except Exception as e:
-                logger.warning("task(%s:%s) get statsu failed, error:%s" % (self.id, self.name, e))
+                logger.warning(
+                    "task(%s:%s) get statsu failed, error:%s" % (self.id, self.name, e)
+                )
                 break
             if self.status == Task.STATUS_TASK_SUCCESS:
                 logger.info("task(%s:%s) success" % (self.id, self.name))
@@ -88,12 +88,16 @@ class Task:
                 else:
                     self.retry()
                     self._retry_times += 1
-                    logger.warning('task %s failed,but allowed retry %s times, now retry %s time' % (
-                        self.name, self._retry_permit_time, self._retry_times))
+                    logger.warning(
+                        "task %s failed,but allowed retry %s times, now retry %s time"
+                        % (self.name, self._retry_permit_time, self._retry_times)
+                    )
                     time.sleep(interval)
                     continue
             else:
                 logger.info(
-                    "task(%s:%s) not finished yet, now status %s, waiting" % (self.id, self.name, self.status))
+                    "task(%s:%s) not finished yet, now status %s, waiting"
+                    % (self.id, self.name, self.status)
+                )
                 time.sleep(interval)
         return self.status

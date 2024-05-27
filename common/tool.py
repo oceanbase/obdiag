@@ -54,32 +54,33 @@ from colorama import Fore, Style
 from ruamel.yaml import YAML
 from err import EC_SQL_EXECUTE_FAILED
 from stdio import SafeStdio
+
 _open = open
 encoding_open = open
 
 
 __all__ = (
-"Timeout", 
-"DynamicLoading", 
-"ConfigUtil", 
-"DirectoryUtil", 
-"FileUtil", 
-"YamlLoader", 
-"OrderedDict", 
-"COMMAND_ENV", 
-"TimeUtils", 
-"NetUtils", 
-"StringUtils", 
-"YamlUtils", 
-"Util"
+    "Timeout",
+    "DynamicLoading",
+    "ConfigUtil",
+    "DirectoryUtil",
+    "FileUtil",
+    "YamlLoader",
+    "OrderedDict",
+    "COMMAND_ENV",
+    "TimeUtils",
+    "NetUtils",
+    "StringUtils",
+    "YamlUtils",
+    "Util",
 )
 
-_WINDOWS = os.name == 'nt'
+_WINDOWS = os.name == "nt"
 
 
 class Timeout(object):
 
-    def __init__(self, seconds=1, error_message='Timeout'):
+    def __init__(self, seconds=1, error_message="Timeout"):
         self.seconds = seconds
         self.error_message = error_message
 
@@ -149,15 +150,17 @@ class DynamicLoading(object):
     def import_module(name, stdio=None):
         if name not in DynamicLoading.MODULES:
             try:
-                stdio and getattr(stdio, 'verbose', print)('import %s' % name)
+                stdio and getattr(stdio, "verbose", print)("import %s" % name)
                 module = __import__(name)
                 DynamicLoading.MODULES[name] = DynamicLoading.Module(module)
             except:
-                stdio and getattr(stdio, 'exception', print)('import %s failed' % name)
-                stdio and getattr(stdio, 'verbose', print)('sys.path: %s' % sys.path)
+                stdio and getattr(stdio, "exception", print)("import %s failed" % name)
+                stdio and getattr(stdio, "verbose", print)("sys.path: %s" % sys.path)
                 return None
         DynamicLoading.MODULES[name].count += 1
-        stdio and getattr(stdio, 'verbose', print)('add %s ref count to %s' % (name, DynamicLoading.MODULES[name].count))
+        stdio and getattr(stdio, "verbose", print)(
+            "add %s ref count to %s" % (name, DynamicLoading.MODULES[name].count)
+        )
         return DynamicLoading.MODULES[name].module
 
     @staticmethod
@@ -168,13 +171,15 @@ class DynamicLoading(object):
             return
         try:
             DynamicLoading.MODULES[name].count -= 1
-            stdio and getattr(stdio, 'verbose', print)('sub %s ref count to %s' % (name, DynamicLoading.MODULES[name].count))
+            stdio and getattr(stdio, "verbose", print)(
+                "sub %s ref count to %s" % (name, DynamicLoading.MODULES[name].count)
+            )
             if DynamicLoading.MODULES[name].count == 0:
-                stdio and getattr(stdio, 'verbose', print)('export %s' % name)
+                stdio and getattr(stdio, "verbose", print)("export %s" % name)
                 del sys.modules[name]
                 del DynamicLoading.MODULES[name]
         except:
-            stdio and getattr(stdio, 'exception', print)('export %s failed' % name)
+            stdio and getattr(stdio, "exception", print)("export %s failed" % name)
 
 
 class ConfigUtil(object):
@@ -184,7 +189,9 @@ class ConfigUtil(object):
         try:
             # 不要使用 conf.get(key, default)来替换，这里还有类型转换的需求
             value = conf[key]
-            return transform_func(value) if value is not None and transform_func else value
+            return (
+                transform_func(value) if value is not None and transform_func else value
+            )
         except:
             return default
 
@@ -208,7 +215,9 @@ class ConfigUtil(object):
         return pwd
 
     @staticmethod
-    def get_random_pwd_by_rule(lowercase_length=2, uppercase_length=2, digits_length=2, punctuation_length=2):
+    def get_random_pwd_by_rule(
+        lowercase_length=2, uppercase_length=2, digits_length=2, punctuation_length=2
+    ):
         pwd = ""
         for i in range(lowercase_length):
             pwd += random.choice(string.ascii_lowercase)
@@ -217,10 +226,10 @@ class ConfigUtil(object):
         for i in range(digits_length):
             pwd += random.choice(string.digits)
         for i in range(punctuation_length):
-            pwd += random.choice('(._+@#%)')
+            pwd += random.choice("(._+@#%)")
         pwd_list = list(pwd)
         random.shuffle(pwd_list)
-        return ''.join(pwd_list)
+        return "".join(pwd_list)
 
     @staticmethod
     def passwd_format(passwd):
@@ -248,12 +257,16 @@ class DirectoryUtil(object):
     @staticmethod
     def copy(src, dst, stdio=None):
         if not os.path.isdir(src):
-            stdio and getattr(stdio, 'error', print)("cannot copy tree '%s': not a directory" % src)
+            stdio and getattr(stdio, "error", print)(
+                "cannot copy tree '%s': not a directory" % src
+            )
             return False
         try:
             names = os.listdir(src)
         except:
-            stdio and getattr(stdio, 'exception', print)("error listing files in '%s':" % (src))
+            stdio and getattr(stdio, "exception", print)(
+                "error listing files in '%s':" % (src)
+            )
             return False
 
         if DirectoryUtil.mkdir(dst, stdio):
@@ -278,7 +291,7 @@ class DirectoryUtil(object):
 
     @staticmethod
     def mkdir(path, mode=0o755, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('mkdir %s' % path)
+        stdio and getattr(stdio, "verbose", print)("mkdir %s" % path)
         try:
             os.makedirs(path, mode=mode)
             return True
@@ -286,18 +299,22 @@ class DirectoryUtil(object):
             if e.errno == 17:
                 return True
             elif e.errno == 20:
-                stdio and getattr(stdio, 'error', print)('%s is not a directory', path)
+                stdio and getattr(stdio, "error", print)("%s is not a directory", path)
             else:
-                stdio and getattr(stdio, 'error', print)('failed to create directory %s', path)
-            stdio and getattr(stdio, 'exception', print)('')
+                stdio and getattr(stdio, "error", print)(
+                    "failed to create directory %s", path
+                )
+            stdio and getattr(stdio, "exception", print)("")
         except:
-            stdio and getattr(stdio, 'exception', print)('')
-            stdio and getattr(stdio, 'error', print)('failed to create directory %s', path)
+            stdio and getattr(stdio, "exception", print)("")
+            stdio and getattr(stdio, "error", print)(
+                "failed to create directory %s", path
+            )
         return False
 
     @staticmethod
     def rm(path, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('rm %s' % path)
+        stdio and getattr(stdio, "verbose", print)("rm %s" % path)
         try:
             if os.path.exists(path):
                 if os.path.islink(path):
@@ -306,8 +323,8 @@ class DirectoryUtil(object):
                     shutil.rmtree(path)
             return True
         except Exception as e:
-            stdio and getattr(stdio, 'exception', print)('')
-            stdio and getattr(stdio, 'error', print)('failed to remove %s', path)
+            stdio and getattr(stdio, "exception", print)("")
+            stdio and getattr(stdio, "error", print)("failed to remove %s", path)
         return False
 
 
@@ -318,19 +335,20 @@ class FileUtil(object):
     @staticmethod
     def checksum(target_path, stdio=None):
         from common.ssh import LocalClient
+
         if not os.path.isfile(target_path):
-            info = 'No such file: ' + target_path
+            info = "No such file: " + target_path
             if stdio:
-                getattr(stdio, 'error', print)(info)
+                getattr(stdio, "error", print)(info)
                 return False
             else:
                 raise IOError(info)
-        ret = LocalClient.execute_command('md5sum {}'.format(target_path), stdio=stdio)
+        ret = LocalClient.execute_command("md5sum {}".format(target_path), stdio=stdio)
         if ret:
-            return ret.stdout.strip().split(' ')[0].encode('utf-8')
+            return ret.stdout.strip().split(" ")[0].encode("utf-8")
         else:
             m = hashlib.md5()
-            with open(target_path, 'rb') as f:
+            with open(target_path, "rb") as f:
                 m.update(f.read())
             return m.hexdigest().encode(sys.getdefaultencoding())
 
@@ -346,11 +364,11 @@ class FileUtil(object):
 
     @staticmethod
     def copy(src, dst, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('copy %s %s' % (src, dst))
+        stdio and getattr(stdio, "verbose", print)("copy %s %s" % (src, dst))
         if os.path.exists(src) and os.path.exists(dst) and os.path.samefile(src, dst):
             info = "`%s` and `%s` are the same file" % (src, dst)
             if stdio:
-                getattr(stdio, 'error', print)(info)
+                getattr(stdio, "error", print)(info)
                 return False
             else:
                 raise IOError(info)
@@ -364,7 +382,7 @@ class FileUtil(object):
                 if stat.S_ISFIFO(st.st_mode):
                     info = "`%s` is a named pipe" % fn
                     if stdio:
-                        getattr(stdio, 'error', print)(info)
+                        getattr(stdio, "error", print)(info)
                         return False
                     else:
                         raise IOError(info)
@@ -373,96 +391,101 @@ class FileUtil(object):
             if os.path.islink(src):
                 FileUtil.symlink(os.readlink(src), dst)
                 return True
-            with FileUtil.open(src, 'rb') as fsrc, FileUtil.open(dst, 'wb') as fdst:
-                    FileUtil.copy_fileobj(fsrc, fdst)
-                    os.chmod(dst, os.stat(src).st_mode)
-                    return True
+            with FileUtil.open(src, "rb") as fsrc, FileUtil.open(dst, "wb") as fdst:
+                FileUtil.copy_fileobj(fsrc, fdst)
+                os.chmod(dst, os.stat(src).st_mode)
+                return True
         except Exception as e:
-            if int(getattr(e, 'errno', -1)) == 26:
+            if int(getattr(e, "errno", -1)) == 26:
                 from common.ssh import LocalClient
-                if LocalClient.execute_command('/usr/bin/cp -f %s %s' % (src, dst), stdio=stdio):
+
+                if LocalClient.execute_command(
+                    "/usr/bin/cp -f %s %s" % (src, dst), stdio=stdio
+                ):
                     return True
             elif stdio:
-                getattr(stdio, 'exception', print)('copy error: %s' % e)
+                getattr(stdio, "exception", print)("copy error: %s" % e)
             else:
                 raise e
         return False
 
     @staticmethod
     def symlink(src, dst, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('link %s %s' % (src, dst))
+        stdio and getattr(stdio, "verbose", print)("link %s %s" % (src, dst))
         try:
             if DirectoryUtil.rm(dst, stdio):
                 os.symlink(src, dst)
                 return True
         except Exception as e:
             if stdio:
-                getattr(stdio, 'exception', print)('link error: %s' % e)
+                getattr(stdio, "exception", print)("link error: %s" % e)
             else:
                 raise e
         return False
 
     @staticmethod
-    def open(path, _type='r', encoding=None, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('open %s for %s' % (path, _type))
+    def open(path, _type="r", encoding=None, stdio=None):
+        stdio and getattr(stdio, "verbose", print)("open %s for %s" % (path, _type))
         if os.path.exists(path):
             if os.path.isfile(path):
                 return encoding_open(path, _type, encoding=encoding)
-            info = '%s is not file' % path
+            info = "%s is not file" % path
             if stdio:
-                getattr(stdio, 'error', print)(info)
+                getattr(stdio, "error", print)(info)
                 return None
             else:
                 raise IOError(info)
         dir_path, file_name = os.path.split(path)
         if not dir_path or DirectoryUtil.mkdir(dir_path, stdio=stdio):
             return encoding_open(path, _type, encoding=encoding)
-        info = '%s is not file' % path
+        info = "%s is not file" % path
         if stdio:
-            getattr(stdio, 'error', print)(info)
+            getattr(stdio, "error", print)(info)
             return None
         else:
             raise IOError(info)
 
     @staticmethod
     def unzip(source, ztype=None, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('unzip %s' % source)
+        stdio and getattr(stdio, "verbose", print)("unzip %s" % source)
         if not ztype:
-            ztype = source.split('.')[-1]
+            ztype = source.split(".")[-1]
         try:
-            if ztype == 'bz2':
-                s_fn = bz2.BZ2File(source, 'r')
-            elif ztype == 'xz':
-                s_fn = lzma.LZMAFile(source, 'r')
-            elif ztype == 'gz':
-                s_fn = gzip.GzipFile(source, 'r')
+            if ztype == "bz2":
+                s_fn = bz2.BZ2File(source, "r")
+            elif ztype == "xz":
+                s_fn = lzma.LZMAFile(source, "r")
+            elif ztype == "gz":
+                s_fn = gzip.GzipFile(source, "r")
             else:
-                s_fn = open(source, 'r')
+                s_fn = open(source, "r")
             return s_fn
         except:
-            stdio and getattr(stdio, 'exception', print)('failed to unzip %s' % source)
+            stdio and getattr(stdio, "exception", print)("failed to unzip %s" % source)
         return None
 
     def extract_tar(tar_path, output_path, stdio=None):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
         try:
-            with tarfile.open(tar_path, 'r') as tar:
+            with tarfile.open(tar_path, "r") as tar:
                 tar.extractall(path=output_path)
         except:
-            stdio and getattr(stdio, 'exception', print)('failed to extract tar file %s' % tar_path)
+            stdio and getattr(stdio, "exception", print)(
+                "failed to extract tar file %s" % tar_path
+            )
         return None
 
     @staticmethod
     def rm(path, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('rm %s' % path)
+        stdio and getattr(stdio, "verbose", print)("rm %s" % path)
         if not os.path.exists(path):
             return True
         try:
             os.remove(path)
             return True
         except:
-            stdio and getattr(stdio, 'exception', print)('failed to remove %s' % path)
+            stdio and getattr(stdio, "exception", print)("failed to remove %s" % path)
         return False
 
     @staticmethod
@@ -471,27 +494,31 @@ class FileUtil(object):
 
     @staticmethod
     def share_lock_obj(obj, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('try to get share lock %s' % obj.name)
+        stdio and getattr(stdio, "verbose", print)(
+            "try to get share lock %s" % obj.name
+        )
         fcntl.flock(obj, fcntl.LOCK_SH | fcntl.LOCK_NB)
         return obj
 
     @classmethod
-    def share_lock(cls, path, _type='w', stdio=None):
+    def share_lock(cls, path, _type="w", stdio=None):
         return cls.share_lock_obj(cls.open(path, _type=_type, stdio=stdio))
 
     @staticmethod
     def exclusive_lock_obj(obj, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('try to get exclusive lock %s' % obj.name)
+        stdio and getattr(stdio, "verbose", print)(
+            "try to get exclusive lock %s" % obj.name
+        )
         fcntl.flock(obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return obj
 
     @classmethod
-    def exclusive_lock(cls, path, _type='w', stdio=None):
+    def exclusive_lock(cls, path, _type="w", stdio=None):
         return cls.exclusive_lock_obj(cls.open(path, _type=_type, stdio=stdio))
 
     @staticmethod
     def unlock(obj, stdio=None):
-        stdio and getattr(stdio, 'verbose', print)('unlock %s' % obj.name)
+        stdio and getattr(stdio, "verbose", print)("unlock %s" % obj.name)
         fcntl.flock(obj, fcntl.LOCK_UN)
         return obj
 
@@ -503,7 +530,7 @@ class FileUtil(object):
             unit_idx = units.index(unit)
         except KeyError:
             raise ValueError("unit {0} is illegal!".format(unit))
-        new_num = float(num) * (1024 ** unit_idx)
+        new_num = float(num) * (1024**unit_idx)
         unit_idx = 0
         while new_num > 1024:
             new_num = float(new_num) / 1024
@@ -513,23 +540,27 @@ class FileUtil(object):
         if output_str:
             return "".join(["%.3f" % new_num, units[unit_idx]])
         return new_num, units[unit_idx]
-    
+
     @staticmethod
     def show_file_size_tabulate(ip, file_size, stdio=None):
-        format_file_size = FileUtil.size_format(int(file_size), output_str=True, stdio=stdio)
+        format_file_size = FileUtil.size_format(
+            int(file_size), output_str=True, stdio=stdio
+        )
         summary_tab = []
         field_names = ["Node", "LogSize"]
         summary_tab.append((ip, format_file_size))
-        return "\nZipFileInfo:\n" + \
-            tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        return "\nZipFileInfo:\n" + tabulate.tabulate(
+            summary_tab, headers=field_names, tablefmt="grid", showindex=False
+        )
 
     @staticmethod
     def show_file_list_tabulate(ip, file_list, stdio=None):
         summary_tab = []
         field_names = ["Node", "LogList"]
         summary_tab.append((ip, file_list))
-        return "\nFileListInfo:\n" + \
-            tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        return "\nFileListInfo:\n" + tabulate.tabulate(
+            summary_tab, headers=field_names, tablefmt="grid", showindex=False
+        )
 
     @staticmethod
     def find_all_file(base, stdio=None):
@@ -546,7 +577,7 @@ class FileUtil(object):
         sha256 = hashlib.sha256()
         try:
             filepath = os.path.expanduser(filepath)
-            with open(filepath, 'rb') as file:
+            with open(filepath, "rb") as file:
                 while True:
                     data = file.read(8192)
                     if not data:
@@ -556,7 +587,7 @@ class FileUtil(object):
         except Exception as e:
             return ""
 
-    def size(size_str, unit='B', stdio=None):
+    def size(size_str, unit="B", stdio=None):
         unit_size_dict = {
             "b": 1,
             "B": 1,
@@ -571,31 +602,40 @@ class FileUtil(object):
         }
         unit_str = size_str.strip()[-1]
         if unit_str not in unit_size_dict:
-            raise ValueError('unit {0} not in {1}'.format(unit_str, unit_size_dict.keys()))
+            raise ValueError(
+                "unit {0} not in {1}".format(unit_str, unit_size_dict.keys())
+            )
         real_size = float(size_str.strip()[:-1]) * unit_size_dict[unit_str]
         if real_size < 0:
-            raise ValueError('size cannot be negative!')
+            raise ValueError("size cannot be negative!")
         return real_size / unit_size_dict[unit]
 
     def write_append(filename, result, stdio=None):
-        with io.open(filename, 'a', encoding='utf-8') as fileobj:
-            fileobj.write(u'{}'.format(result))
+        with io.open(filename, "a", encoding="utf-8") as fileobj:
+            fileobj.write("{}".format(result))
 
 
 class YamlLoader(YAML):
 
     def __init__(self, stdio=None, typ=None, pure=False, output=None, plug_ins=None):
-        super(YamlLoader, self).__init__(typ=typ, pure=pure, output=output, plug_ins=plug_ins)
+        super(YamlLoader, self).__init__(
+            typ=typ, pure=pure, output=output, plug_ins=plug_ins
+        )
         self.stdio = stdio
-        if not self.Representer.yaml_multi_representers and self.Representer.yaml_representers:
-            self.Representer.yaml_multi_representers = self.Representer.yaml_representers
+        if (
+            not self.Representer.yaml_multi_representers
+            and self.Representer.yaml_representers
+        ):
+            self.Representer.yaml_multi_representers = (
+                self.Representer.yaml_representers
+            )
 
     def load(self, stream):
         try:
             return super(YamlLoader, self).load(stream)
         except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('Parsing error:\n%s' % e)
+            if getattr(self.stdio, "exception", False):
+                self.stdio.exception("Parsing error:\n%s" % e)
             raise e
 
     def loads(self, yaml_content):
@@ -606,16 +646,18 @@ class YamlLoader(YAML):
             stream.seek(0)
             return self.load(stream)
         except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('Parsing error:\n%s' % e)
+            if getattr(self.stdio, "exception", False):
+                self.stdio.exception("Parsing error:\n%s" % e)
             raise e
 
     def dump(self, data, stream=None, transform=None):
         try:
-            return super(YamlLoader, self).dump(data, stream=stream, transform=transform)
+            return super(YamlLoader, self).dump(
+                data, stream=stream, transform=transform
+            )
         except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('dump error:\n%s' % e)
+            if getattr(self.stdio, "exception", False):
+                self.stdio.exception("dump error:\n%s" % e)
             raise e
 
     def dumps(self, data, transform=None):
@@ -628,9 +670,10 @@ class YamlLoader(YAML):
                 return content
             return content.decode()
         except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('dumps error:\n%s' % e)
+            if getattr(self.stdio, "exception", False):
+                self.stdio.exception("dumps error:\n%s" % e)
             raise e
+
 
 class YamlUtils(object):
 
@@ -638,7 +681,7 @@ class YamlUtils(object):
     def is_yaml_file(path, stdio=None):
         if not os.path.isfile(path):
             return False
-        if path.endswith(('.yaml', '.yml')):
+        if path.endswith((".yaml", ".yml")):
             return True
         else:
             return False
@@ -647,7 +690,7 @@ class YamlUtils(object):
     def read_yaml_data(file_path, stdio=None):
         if YamlUtils.is_yaml_file(file_path):
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     data = yaml.load(f, Loader=yaml.FullLoader)
                 return data
             except yaml.YAMLError as exc:
@@ -655,12 +698,12 @@ class YamlUtils(object):
 
     @staticmethod
     def write_yaml_data(data, file_path, stdio=None):
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
     @staticmethod
     def write_yaml_data_append(data, file_path, stdio=None):
-        with open(file_path, 'a+') as f:
+        with open(file_path, "a+") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
 
@@ -678,7 +721,7 @@ class CommandEnv(SafeStdio):
         self.source_path = source_path
         try:
             if os.path.exists(source_path):
-                with FileUtil.open(source_path, 'r') as f:
+                with FileUtil.open(source_path, "r") as f:
                     self._cmd_env = json.load(f)
         except:
             stdio.exception("Failed to load environments from {}".format(source_path))
@@ -691,10 +734,10 @@ class CommandEnv(SafeStdio):
             return False
         stdio.verbose("save environment variables {}".format(self._cmd_env))
         try:
-            with FileUtil.open(self.source_path, 'w', stdio=stdio) as f:
+            with FileUtil.open(self.source_path, "w", stdio=stdio) as f:
                 json.dump(self._cmd_env, f)
         except:
-            stdio.exception('Failed to save environment variables')
+            stdio.exception("Failed to save environment variables")
             return False
         return True
 
@@ -760,7 +803,7 @@ class NetUtils(object):
             return localhost_ip
         except Exception as e:
             return localhost_ip
-    
+
     @staticmethod
     def network_connectivity(url="", stdio=None):
         try:
@@ -772,26 +815,28 @@ class NetUtils(object):
                 return False
         except Exception as e:
             return False
-    
+
     @staticmethod
     def download_file(url, local_filename, stdio=None):
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
-            with open(local_filename, 'wb') as f:
+            with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         return local_filename
 
-COMMAND_ENV=CommandEnv()
+
+COMMAND_ENV = CommandEnv()
 
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
             # 将datetime对象转换为字符串
-            return obj.strftime('%Y-%m-%d %H:%M:%S')
+            return obj.strftime("%Y-%m-%d %H:%M:%S")
         # 其他类型按默认处理
         return super().default(obj)
+
 
 class TimeUtils(object):
 
@@ -808,7 +853,7 @@ class TimeUtils(object):
         elif unit == "d":
             value *= 3600 * 24
         else:
-            raise Exception('%s parse time to second fialed:' % (time_str))
+            raise Exception("%s parse time to second fialed:" % (time_str))
         return value
 
     @staticmethod
@@ -816,23 +861,24 @@ class TimeUtils(object):
         try:
             return datetime.datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            stdio.exception('%s parse time fialed, error:\n%s, time format need to be %s' % (time_str, e, '%Y-%m-%d %H:%M:%S'))
-
+            stdio.exception(
+                "%s parse time fialed, error:\n%s, time format need to be %s"
+                % (time_str, e, "%Y-%m-%d %H:%M:%S")
+            )
 
     @staticmethod
     def sub_minutes(t, delta, stdio=None):
         try:
-            return (t - datetime.timedelta(minutes=delta)).strftime('%Y-%m-%d %H:%M:%S')
+            return (t - datetime.timedelta(minutes=delta)).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            stdio.exception('%s get time fialed, error:\n%s' % (t, e))
-
+            stdio.exception("%s get time fialed, error:\n%s" % (t, e))
 
     @staticmethod
     def add_minutes(t, delta, stdio=None):
         try:
-            return (t + datetime.timedelta(minutes=delta)).strftime('%Y-%m-%d %H:%M:%S')
+            return (t + datetime.timedelta(minutes=delta)).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            stdio.exception('%s get time fialed, error:\n%s' % (t, e))
+            stdio.exception("%s get time fialed, error:\n%s" % (t, e))
 
     @staticmethod
     def parse_time_from_to(from_time=None, to_time=None, stdio=None):
@@ -841,7 +887,11 @@ class TimeUtils(object):
         sucess = False
         if from_time:
             format_from_time = TimeUtils.get_format_time(from_time, stdio)
-            format_to_time = TimeUtils.get_format_time(to_time, stdio) if to_time else TimeUtils.add_minutes(format_from_time, 30)
+            format_to_time = (
+                TimeUtils.get_format_time(to_time, stdio)
+                if to_time
+                else TimeUtils.add_minutes(format_from_time, 30)
+            )
         else:
             if to_time:
                 format_to_time = TimeUtils.get_format_time(to_time, stdio)
@@ -853,11 +903,15 @@ class TimeUtils(object):
     @staticmethod
     def parse_time_since(since=None, stdio=None):
         now_time = datetime.datetime.now()
-        format_to_time = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+        format_to_time = (now_time + datetime.timedelta(minutes=1)).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         try:
-            format_from_time = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_sec(since))).strftime('%Y-%m-%d %H:%M:%S')
+            format_from_time = (
+                now_time - datetime.timedelta(seconds=TimeUtils.parse_time_sec(since))
+            ).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            stdio.exception('%s parse time fialed, error:\n%s' % (since, e))
+            stdio.exception("%s parse time fialed, error:\n%s" % (since, e))
             format_from_time = TimeUtils.sub_minutes(format_to_time, 30)
         return format_from_time, format_to_time
 
@@ -869,7 +923,7 @@ class TimeUtils(object):
     @staticmethod
     def parse_time_length_to_sec(time_length_str, stdio=None):
         unit = time_length_str[-1]
-        if unit != "m" and  unit != "h" and unit != "d":
+        if unit != "m" and unit != "h" and unit != "d":
             raise Exception("time length must be format 'n'<m|h|d>")
         value = int(time_length_str[:-1])
         if unit == "m":
@@ -887,18 +941,22 @@ class TimeUtils(object):
         # yyyy-mm-dd hh:mm:ss.uuuuus or yyyy-mm-dd hh:mm:ss
         try:
             if len(datetime_str) > 19:
-                dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
+                dt = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S.%f")
             else:
-                dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+                dt = datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
             return int(dt.timestamp() * 1000000)
         except Exception as e:
             return 0
 
     @staticmethod
     def trans_datetime_utc_to_local(datetime_str, stdio=None):
-        utct_date = datetime.datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S")  # 2020-12-01 03:21:57
+        utct_date = datetime.datetime.strptime(
+            datetime_str, "%Y-%m-%dT%H:%M:%S"
+        )  # 2020-12-01 03:21:57
         local_date = utct_date + datetime.timedelta(hours=8)  # 加上时区
-        local_date_srt = datetime.datetime.strftime(local_date, "%Y-%m-%d %H:%M:%S")  # 2020-12-01 11:21:57
+        local_date_srt = datetime.datetime.strftime(
+            local_date, "%Y-%m-%d %H:%M:%S"
+        )  # 2020-12-01 11:21:57
         trans_res = datetime.datetime.strptime(local_date_srt, "%Y-%m-%d %H:%M:%S")
         return str(trans_res)
 
@@ -906,31 +964,45 @@ class TimeUtils(object):
     def timestamp_to_filename_time(timestamp, stdio=None):
         second_timestamp = timestamp / 1000000
         time_obj = time.localtime(int(second_timestamp))
-        filename_time_str = time.strftime('%Y%m%d%H%M%S', time_obj)
+        filename_time_str = time.strftime("%Y%m%d%H%M%S", time_obj)
         return filename_time_str
 
     @staticmethod
     def parse_time_str(arg_time, stdio=None):
-        format_time = ''
+        format_time = ""
         try:
             format_time = datetime.datetime.strptime(arg_time, "%Y-%m-%d %H:%M:%S")
         except ValueError as e:
-            raise ValueError("time option {0} must be formatted as {1}".format(arg_time, '"%Y-%m-%d %H:%M:%S"'))
+            raise ValueError(
+                "time option {0} must be formatted as {1}".format(
+                    arg_time, '"%Y-%m-%d %H:%M:%S"'
+                )
+            )
         return format_time
 
     @staticmethod
     def filename_time_to_datetime(filename_time, stdio=None):
-        """ transform yyyymmddhhmmss to yyyy-mm-dd hh:mm:ss"""
+        """transform yyyymmddhhmmss to yyyy-mm-dd hh:mm:ss"""
         if filename_time != "":
-            return "{0}-{1}-{2} {3}:{4}:{5}".format(filename_time[0:4], filename_time[4:6], filename_time[6:8], filename_time[8:10], filename_time[10:12], filename_time[12:14])
+            return "{0}-{1}-{2} {3}:{4}:{5}".format(
+                filename_time[0:4],
+                filename_time[4:6],
+                filename_time[6:8],
+                filename_time[8:10],
+                filename_time[10:12],
+                filename_time[12:14],
+            )
         else:
             return ""
 
     @staticmethod
     def extract_filename_time_from_log_name(log_name, stdio=None):
-        """ eg: xxx.20221226231617 """
+        """eg: xxx.20221226231617"""
         log_name_fields = log_name.split(".")
-        if bytes.isdigit(log_name_fields[-1].encode("utf-8")) and len(log_name_fields[-1]) >= 14:
+        if (
+            bytes.isdigit(log_name_fields[-1].encode("utf-8"))
+            and len(log_name_fields[-1]) >= 14
+        ):
             return log_name_fields[-1]
         return ""
 
@@ -939,13 +1011,17 @@ class TimeUtils(object):
         # 因为 yyyy-mm-dd hh:mm:ss.000000 的格式已经占了27个字符，所以如果传进来的字符串包含时间信息，那长度一定大于27
         if len(log_text) > 27:
             if log_text.startswith("["):
-                time_str = log_text[1: log_text.find(']')]
+                time_str = log_text[1 : log_text.find("]")]
             else:
-                time_str = log_text[0: log_text.find(',')]
-            time_without_us = time_str[0: time_str.find('.')]
+                time_str = log_text[0 : log_text.find(",")]
+            time_without_us = time_str[0 : time_str.find(".")]
             try:
-                format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
-                format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
+                format_time = datetime.datetime.strptime(
+                    time_without_us, "%Y-%m-%d %H:%M:%S"
+                )
+                format_time_str = time.strftime(
+                    "%Y-%m-%d %H:%M:%S", format_time.timetuple()
+                )
             except Exception as e:
                 format_time_str = ""
         else:
@@ -966,16 +1042,48 @@ class TimeUtils(object):
         :return: 处理后的时间
         """
         if rounding_level == "days":
-            td = timedelta(days=-step, seconds=dt.second, microseconds=dt.microsecond, milliseconds=0, minutes=dt.minute, hours=dt.hour, weeks=0)
+            td = timedelta(
+                days=-step,
+                seconds=dt.second,
+                microseconds=dt.microsecond,
+                milliseconds=0,
+                minutes=dt.minute,
+                hours=dt.hour,
+                weeks=0,
+            )
             new_dt = dt - td
         elif rounding_level == "hour":
-            td = timedelta(days=0, seconds=dt.second, microseconds=dt.microsecond, milliseconds=0, minutes=dt.minute, hours=-step, weeks=0)
+            td = timedelta(
+                days=0,
+                seconds=dt.second,
+                microseconds=dt.microsecond,
+                milliseconds=0,
+                minutes=dt.minute,
+                hours=-step,
+                weeks=0,
+            )
             new_dt = dt - td
         elif rounding_level == "min":
-            td = timedelta(days=0, seconds=dt.second, microseconds=dt.microsecond, milliseconds=0, minutes=-step, hours=0, weeks=0)
+            td = timedelta(
+                days=0,
+                seconds=dt.second,
+                microseconds=dt.microsecond,
+                milliseconds=0,
+                minutes=-step,
+                hours=0,
+                weeks=0,
+            )
             new_dt = dt - td
         elif rounding_level == "s":
-            td = timedelta(days=0, seconds=-step, microseconds=dt.microsecond, milliseconds=0, minutes=0, hours=0, weeks=0)
+            td = timedelta(
+                days=0,
+                seconds=-step,
+                microseconds=dt.microsecond,
+                milliseconds=0,
+                minutes=0,
+                hours=0,
+                weeks=0,
+            )
             new_dt = dt - td
         else:
             new_dt = dt
@@ -989,29 +1097,30 @@ class TimeUtils(object):
         :return: 转化后的字符串
         """
         if size < 0:
-            return 'NO_END'
+            return "NO_END"
         mapping = [
-            (86400000000, 'd'),
-            (3600000000, 'h'),
-            (60000000, 'm'),
-            (1000000, 's'),
-            (1000, 'ms'),
-            (1, 'μs'),
+            (86400000000, "d"),
+            (3600000000, "h"),
+            (60000000, "m"),
+            (1000000, "s"),
+            (1000, "ms"),
+            (1, "μs"),
         ]
         for unit, unit_str in mapping:
             if size >= unit:
                 if unit == 1:
-                    return '{} {}'.format(size, unit_str)
+                    return "{} {}".format(size, unit_str)
                 else:
-                    return '{:.3f} {}'.format(size / unit, unit_str)
-        return '0'
+                    return "{:.3f} {}".format(size / unit, unit_str)
+        return "0"
 
     @staticmethod
     def str_2_timestamp(t, stdio=None):
         if isinstance(t, int):
             return t
-        temp = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
-        return int(datetime.datetime.timestamp(temp) * 10 ** 6)
+        temp = datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S.%f")
+        return int(datetime.datetime.timestamp(temp) * 10**6)
+
 
 class StringUtils(object):
 
@@ -1019,59 +1128,64 @@ class StringUtils(object):
     def parse_mysql_conn(cli_conn_str, stdio=None):
         db_info = {}
         # 处理密码选项，注意区分短选项和长选项的密码
-        password_pattern = re.compile(r'(-p\s*|--password=)([^ ]*)')
+        password_pattern = re.compile(r"(-p\s*|--password=)([^ ]*)")
         password_match = password_pattern.search(cli_conn_str)
         if password_match:
             password = password_match.group(2)
-            db_info['password'] = password
+            db_info["password"] = password
             # 去除密码部分，避免后续解析出错
-            cli_conn_str = cli_conn_str[:password_match.start()] + cli_conn_str[password_match.end():]
+            cli_conn_str = (
+                cli_conn_str[: password_match.start()]
+                + cli_conn_str[password_match.end() :]
+            )
 
         # 模式匹配短选项
-        short_opt_pattern = re.compile(r'-(\w)\s*(\S*)')
+        short_opt_pattern = re.compile(r"-(\w)\s*(\S*)")
         matches = short_opt_pattern.finditer(cli_conn_str)
         for match in matches:
             opt = match.group(1)
             value = match.group(2)
-            if opt == 'h':
-                db_info['host'] = value
-            elif opt == 'u':
-                db_info['user'] = value
-            elif opt == 'P':
-                db_info['port'] = int(value)
-            elif opt == 'D':
-                db_info['database'] = value
+            if opt == "h":
+                db_info["host"] = value
+            elif opt == "u":
+                db_info["user"] = value
+            elif opt == "P":
+                db_info["port"] = int(value)
+            elif opt == "D":
+                db_info["database"] = value
 
         # 模式匹配长选项
-        long_opt_pattern = re.compile(r'--(\w+)=([^ ]+)')
+        long_opt_pattern = re.compile(r"--(\w+)=([^ ]+)")
         long_matches = long_opt_pattern.finditer(cli_conn_str)
         for match in long_matches:
             opt = match.group(1)
             value = match.group(2)
-            if opt == 'host':
-                db_info['host'] = value
-            elif opt == 'user':
-                db_info['user'] = value
-            elif opt == 'port':
-                db_info['port'] = int(value)
-            elif opt in ['dbname', 'database']:
-                db_info['database'] = value
+            if opt == "host":
+                db_info["host"] = value
+            elif opt == "user":
+                db_info["user"] = value
+            elif opt == "port":
+                db_info["port"] = int(value)
+            elif opt in ["dbname", "database"]:
+                db_info["database"] = value
 
         # 如果存在命令行最后的参数，且不是一个选项，则认为是数据库名
         last_param = cli_conn_str.split()[-1]
-        if last_param[0] != '-' and 'database' not in db_info:
-            db_info['database'] = last_param
+        if last_param[0] != "-" and "database" not in db_info:
+            db_info["database"] = last_param
         return db_info
 
     @staticmethod
     def validate_db_info(db_info, stdio=None):
-        required_keys = {'database', 'host', 'user', 'port'}
-        if not required_keys.issubset(db_info.keys()) or any(not value for value in db_info.values()):
+        required_keys = {"database", "host", "user", "port"}
+        if not required_keys.issubset(db_info.keys()) or any(
+            not value for value in db_info.values()
+        ):
             return False
-        if not isinstance(db_info['port'], int):
+        if not isinstance(db_info["port"], int):
             return False
         for key, value in db_info.items():
-            if key != 'port' and not isinstance(value, str):
+            if key != "port" and not isinstance(value, str):
                 return False
         return True
 
@@ -1079,9 +1193,9 @@ class StringUtils(object):
     def parse_env(env_string, stdio=None):
         env_dict = {}
         inner_str = env_string[1:-1]
-        pairs = inner_str.split(',')
+        pairs = inner_str.split(",")
         for pair in pairs:
-            key_value = pair.strip().split('=')
+            key_value = pair.strip().split("=")
             if len(key_value) == 2:
                 key, value = key_value
                 if value.startswith('"') and value.endswith('"'):
@@ -1093,12 +1207,18 @@ class StringUtils(object):
 
     @staticmethod
     def get_observer_ip_from_trace_id(content, stdio=None):
-        if content[0] == 'Y' and len(content) >= 12:
-            sep = content.find('-')
+        if content[0] == "Y" and len(content) >= 12:
+            sep = content.find("-")
             uval = int(content[1:sep], 16)
-            ip = uval & 0xffffffff
-            port = (uval >> 32) & 0xffff
-            return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xff), (ip >> 16 & 0xff), (ip >> 8 & 0xff), (ip >> 0 & 0xff), port)
+            ip = uval & 0xFFFFFFFF
+            port = (uval >> 32) & 0xFFFF
+            return "%d.%d.%d.%d:%d" % (
+                (ip >> 24 & 0xFF),
+                (ip >> 16 & 0xFF),
+                (ip >> 8 & 0xFF),
+                (ip >> 0 & 0xFF),
+                port,
+            )
         else:
             return ""
 
@@ -1109,7 +1229,7 @@ class StringUtils(object):
         nu = int(nu)
         range_str = range_str.replace(" ", "")
         # range_str = range_str.replace(".", "")
-        start, end = range_str[1:-1].split(',')
+        start, end = range_str[1:-1].split(",")
         need_less = True
         need_than = True
         # 将数字转换为整数
@@ -1121,7 +1241,7 @@ class StringUtils(object):
             need_than = False
         else:
             end = float(end.strip())
-        stdio and getattr(stdio, 'verbose', print)('range_str is %s' % range_str)
+        stdio and getattr(stdio, "verbose", print)("range_str is %s" % range_str)
 
         if need_less:
             if range_str[0] == "(":
@@ -1143,30 +1263,36 @@ class StringUtils(object):
     def build_str_on_expr_by_dict(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             return str(d.get(key, match.group(0)))
-        return re.sub(r'#\{(\w+)\}', replacer, s)
+
+        return re.sub(r"#\{(\w+)\}", replacer, s)
 
     @staticmethod
     def build_str_on_expr_by_dict_2(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             value = str(d.get(key, match.group(0)))
             return f"{value}"
-        return re.sub(r'\$\{(\w+)\}', replacer, s)
+
+        return re.sub(r"\$\{(\w+)\}", replacer, s)
 
     @staticmethod
     def build_sql_on_expr_by_dict(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             value = str(d.get(key, match.group(0)))
             return f'"{value}"'
-        return re.sub(r'\$\{(\w+)\}', replacer, s)
+
+        return re.sub(r"\$\{(\w+)\}", replacer, s)
 
     @staticmethod
     def node_cut_passwd_for_log(obj, stdio=None):
@@ -1184,14 +1310,14 @@ class StringUtils(object):
 
     @staticmethod
     def split_ip(ip_str, stdio=None):
-        pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        pattern = r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
         result = re.findall(pattern, ip_str)
         return result
 
     @staticmethod
     def is_chinese(s, stdio=None):
         try:
-            s.encode('ascii')
+            s.encode("ascii")
         except UnicodeEncodeError:
             return True
         else:
@@ -1214,10 +1340,9 @@ class StringUtils(object):
         return len(v1.split(".")) < len(v2.split("."))
 
 
-
 class Cursor(SafeStdio):
 
-    def __init__(self, ip, port, user='root', tenant='sys', password='', stdio=None):
+    def __init__(self, ip, port, user="root", tenant="sys", password="", stdio=None):
         self.stdio = stdio
         self.ip = ip
         self.port = port
@@ -1249,30 +1374,75 @@ class Cursor(SafeStdio):
         return raise_cursor
 
     if sys.version_info.major == 2:
+
         def _connect(self):
-            self.stdio.verbose('connect %s -P%s -u%s -p%s' % (self.ip, self.port, self.user, self.password))
-            self.db = mysql.connect(host=self.ip, user=self.user, port=int(self.port), passwd=str(self.password))
+            self.stdio.verbose(
+                "connect %s -P%s -u%s -p%s"
+                % (self.ip, self.port, self.user, self.password)
+            )
+            self.db = mysql.connect(
+                host=self.ip,
+                user=self.user,
+                port=int(self.port),
+                passwd=str(self.password),
+            )
             self.cursor = self.db.cursor(cursorclass=mysql.cursors.DictCursor)
+
     else:
+
         def _connect(self):
-            self.stdio.verbose('connect %s -P%s -u%s -p%s' % (self.ip, self.port, self.user, self.password))
-            self.db = mysql.connect(host=self.ip, user=self.user, port=int(self.port), password=str(self.password),
-                                    cursorclass=mysql.cursors.DictCursor)
+            self.stdio.verbose(
+                "connect %s -P%s -u%s -p%s"
+                % (self.ip, self.port, self.user, self.password)
+            )
+            self.db = mysql.connect(
+                host=self.ip,
+                user=self.user,
+                port=int(self.port),
+                password=str(self.password),
+                cursorclass=mysql.cursors.DictCursor,
+            )
             self.cursor = self.db.cursor()
 
-    def new_cursor(self, tenant='sys', user='root', password='', ip='', port='', print_exception=True):
+    def new_cursor(
+        self,
+        tenant="sys",
+        user="root",
+        password="",
+        ip="",
+        port="",
+        print_exception=True,
+    ):
         try:
             ip = ip if ip else self.ip
             port = port if port else self.port
-            return Cursor(ip=ip, port=port, user=user, tenant=tenant, password=password, stdio=self.stdio)
+            return Cursor(
+                ip=ip,
+                port=port,
+                user=user,
+                tenant=tenant,
+                password=password,
+                stdio=self.stdio,
+            )
         except:
-            print_exception and self.stdio.exception('')
-            self.stdio.verbose('fail to connect %s -P%s -u%s@%s  -p%s' % (ip, port, user, tenant, password))
+            print_exception and self.stdio.exception("")
+            self.stdio.verbose(
+                "fail to connect %s -P%s -u%s@%s  -p%s"
+                % (ip, port, user, tenant, password)
+            )
             return None
 
-    def execute(self, sql, args=None, execute_func=None, raise_exception=False, exc_level='error', stdio=None):
+    def execute(
+        self,
+        sql,
+        args=None,
+        execute_func=None,
+        raise_exception=False,
+        exc_level="error",
+        stdio=None,
+    ):
         try:
-            stdio.verbose('execute sql: %s. args: %s' % (sql, args))
+            stdio.verbose("execute sql: %s. args: %s" % (sql, args))
             self.cursor.execute(sql, args)
             if not execute_func:
                 return self.cursor
@@ -1282,15 +1452,33 @@ class Cursor(SafeStdio):
             if raise_exception is None:
                 raise_exception = self._raise_exception
             if raise_exception:
-                stdio.exception('')
+                stdio.exception("")
                 raise e
             return False
 
-    def fetchone(self, sql, args=None, raise_exception=False, exc_level='error', stdio=None):
-        return self.execute(sql, args=args, execute_func='fetchone', raise_exception=raise_exception, exc_level=exc_level, stdio=stdio)
+    def fetchone(
+        self, sql, args=None, raise_exception=False, exc_level="error", stdio=None
+    ):
+        return self.execute(
+            sql,
+            args=args,
+            execute_func="fetchone",
+            raise_exception=raise_exception,
+            exc_level=exc_level,
+            stdio=stdio,
+        )
 
-    def fetchall(self, sql, args=None, raise_exception=False, exc_level='error', stdio=None):
-        return self.execute(sql, args=args, execute_func='fetchall', raise_exception=raise_exception, exc_level=exc_level, stdio=stdio)
+    def fetchall(
+        self, sql, args=None, raise_exception=False, exc_level="error", stdio=None
+    ):
+        return self.execute(
+            sql,
+            args=args,
+            execute_func="fetchall",
+            raise_exception=raise_exception,
+            exc_level=exc_level,
+            stdio=stdio,
+        )
 
     def close(self):
         if self.cursor:
@@ -1305,22 +1493,22 @@ class Util(object):
 
     @staticmethod
     def get_option(options, key, default=None):
-        if not hasattr(options, key) :
+        if not hasattr(options, key):
             return default
         value = getattr(options, key)
         if value is None:
             value = default
         return value
-    
+
     @staticmethod
     def set_option(options, key, value):
         setattr(options, key, value)
-    
+
     @staticmethod
     def convert_to_number(s, stdio=None):
         if isinstance(s, (int, float)):
             return s
-        if isinstance(s,decimal.Decimal):
+        if isinstance(s, decimal.Decimal):
             try:
                 return float(s)
             except:
@@ -1345,20 +1533,30 @@ class Util(object):
 
     @staticmethod
     def print_scene(scene_dict, stdio=None):
-        columns_to_print = ['command', 'info_en', 'info_cn']
+        columns_to_print = ["command", "info_en", "info_cn"]
         keys = columns_to_print
         table_data = [[value[key] for key in keys] for value in scene_dict.values()]
-        column_widths = [max(len(str(item)) * (StringUtils.is_chinese(item) or 1) for item in column) for column in zip(*table_data)]
+        column_widths = [
+            max(len(str(item)) * (StringUtils.is_chinese(item) or 1) for item in column)
+            for column in zip(*table_data)
+        ]
         table_data.insert(0, keys)
-        Util.print_line(length= sum(column_widths) + 5)
+        Util.print_line(length=sum(column_widths) + 5)
         for i in range(len(table_data)):
-            print(Fore.GREEN + "   ".join(f"{item:<{width}}" for item, width in zip(table_data[i], column_widths)) + Style.RESET_ALL)
+            print(
+                Fore.GREEN
+                + "   ".join(
+                    f"{item:<{width}}"
+                    for item, width in zip(table_data[i], column_widths)
+                )
+                + Style.RESET_ALL
+            )
             if i == 0:
-                Util.print_line(length= sum(column_widths) + 5)
-        Util.print_line(length= sum(column_widths) + 5)
+                Util.print_line(length=sum(column_widths) + 5)
+        Util.print_line(length=sum(column_widths) + 5)
 
     @staticmethod
-    def print_line(char='-', length=50, stdio=None):
+    def print_line(char="-", length=50, stdio=None):
         print(char * length)
 
     @staticmethod
@@ -1367,7 +1565,7 @@ class Util(object):
 
     @staticmethod
     def gen_password(length=8, chars=string.ascii_letters + string.digits, stdio=None):
-        return ''.join([choice(chars) for i in range(length)])
+        return "".join([choice(chars) for i in range(length)])
 
     def retry(retry_count=3, retry_interval=2, stdio=None):
         def real_decorator(decor_method):
@@ -1377,18 +1575,25 @@ class Util(object):
                         return_values = decor_method(*args, **kwargs)
                         return return_values
                     except Exception as e:
-                        if getattr(stdio, "Function execution %s retry: %s " %(decor_method.__name__, count + 1), False):
-                            stdio.exception('dumps error:\n%s' % e)
+                        if getattr(
+                            stdio,
+                            "Function execution %s retry: %s "
+                            % (decor_method.__name__, count + 1),
+                            False,
+                        ):
+                            stdio.exception("dumps error:\n%s" % e)
                         time.sleep(retry_interval)
                         if count == retry_count - 1:
                             raise e
+
             return wrapper
+
         return real_decorator
 
     @staticmethod
     def get_nodes_list(context, nodes, stdio=None):
-        ctx_nodes = context.get_variable("filter_nodes_list",None)
-        if ctx_nodes is not None and len(ctx_nodes)>0:
+        ctx_nodes = context.get_variable("filter_nodes_list", None)
+        if ctx_nodes is not None and len(ctx_nodes) > 0:
             new_nodes = []
             for node in nodes:
                 if node in ctx_nodes:

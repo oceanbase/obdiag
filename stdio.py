@@ -27,7 +27,15 @@ from enum import Enum
 from halo import Halo, cursor
 from colorama import Fore
 from prettytable import PrettyTable
-from progressbar import AdaptiveETA, Bar, SimpleProgress, ETA, FileTransferSpeed, Percentage, ProgressBar
+from progressbar import (
+    AdaptiveETA,
+    Bar,
+    SimpleProgress,
+    ETA,
+    FileTransferSpeed,
+    Percentage,
+    ProgressBar,
+)
 from types import MethodType
 from inspect2 import Parameter
 
@@ -40,7 +48,7 @@ if sys.version_info.major == 3:
 
 
 class BufferIO(object):
-    
+
     def __init__(self, auto_clear=True):
         self._buffer = []
         self.auto_clear = auto_clear
@@ -71,7 +79,7 @@ class BufferIO(object):
         self._buffer.append(s)
 
     def read(self, *args, **kwargs):
-        s = ''.join(self._buffer)
+        s = "".join(self._buffer)
         self.auto_clear and self.clear()
         return s
 
@@ -130,7 +138,7 @@ class SysStdin(object):
 
     @classmethod
     def read(cls, blocked=False):
-        return ''.join(cls.readlines(blocked=blocked))
+        return "".join(cls.readlines(blocked=blocked))
 
     @classmethod
     def readlines(cls, blocked=False):
@@ -147,7 +155,7 @@ class SysStdin(object):
                 for line in sys.stdin:
                     return line
             except IOError:
-                return ''
+                return ""
             finally:
                 cls.block()
         else:
@@ -200,10 +208,10 @@ class FormtatText(object):
 
 class LogSymbols(Enum):
 
-    INFO = FormtatText.info('!')
-    SUCCESS = FormtatText.success('ok')
-    WARNING = FormtatText.warning('!!')
-    ERROR = FormtatText.error('x')
+    INFO = FormtatText.info("!")
+    SUCCESS = FormtatText.success("ok")
+    WARNING = FormtatText.warning("!!")
+    ERROR = FormtatText.error("x")
 
 
 class IOTable(PrettyTable):
@@ -227,33 +235,54 @@ class IOTable(PrettyTable):
                     val = val_map[field]
                     self._validate_align(val)
                 else:
-                    val = 'l'
+                    val = "l"
                 self._align[field] = val
         else:
             if val:
                 self._validate_align(val)
             else:
-                val = 'l'
+                val = "l"
             for field in self._field_names:
                 self._align[field] = val
 
 
 class IOHalo(Halo):
 
-    def __init__(self, text='', color='cyan', text_color=None, spinner='line', animation=None, placement='right', interval=-1, enabled=True, stream=sys.stdout):
-        super(IOHalo, self).__init__(text=text, color=color, text_color=text_color, spinner=spinner, animation=animation, placement=placement, interval=interval, enabled=enabled, stream=stream)
+    def __init__(
+        self,
+        text="",
+        color="cyan",
+        text_color=None,
+        spinner="line",
+        animation=None,
+        placement="right",
+        interval=-1,
+        enabled=True,
+        stream=sys.stdout,
+    ):
+        super(IOHalo, self).__init__(
+            text=text,
+            color=color,
+            text_color=text_color,
+            spinner=spinner,
+            animation=animation,
+            placement=placement,
+            interval=interval,
+            enabled=enabled,
+            stream=stream,
+        )
 
     def start(self, text=None):
-        if getattr(self._stream, 'isatty', lambda : False)():
+        if getattr(self._stream, "isatty", lambda: False)():
             return super(IOHalo, self).start(text=text)
         else:
             text and self._stream.write(text)
 
-    def stop_and_persist(self, symbol=' ', text=None):
-        if getattr(self._stream, 'isatty', lambda : False)():
+    def stop_and_persist(self, symbol=" ", text=None):
+        if getattr(self._stream, "isatty", lambda: False)():
             return super(IOHalo, self).stop_and_persist(symbol=symbol, text=text)
         else:
-            self._stream.write(' %s\n' % symbol.format(istty=False))
+            self._stream.write(" %s\n" % symbol.format(istty=False))
 
     def succeed(self, text=None):
         return self.stop_and_persist(symbol=LogSymbols.SUCCESS.value, text=text)
@@ -274,18 +303,60 @@ class IOProgressBar(ProgressBar):
     def _get_widgets(widget_type, text, istty=True):
         if istty is False:
             return [text]
-        elif widget_type == 'download':
-                return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']'), ' ', ETA(), ' ', FileTransferSpeed()]
-        elif widget_type == 'timer':
-            return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']'), ' ', AdaptiveETA()]
-        elif widget_type == 'simple_progress':
-            return ['%s: (' % text, SimpleProgress(sep='/'), ') ', Bar(marker='#', left='[', right=']')]
+        elif widget_type == "download":
+            return [
+                "%s: " % text,
+                Percentage(),
+                " ",
+                Bar(marker="#", left="[", right="]"),
+                " ",
+                ETA(),
+                " ",
+                FileTransferSpeed(),
+            ]
+        elif widget_type == "timer":
+            return [
+                "%s: " % text,
+                Percentage(),
+                " ",
+                Bar(marker="#", left="[", right="]"),
+                " ",
+                AdaptiveETA(),
+            ]
+        elif widget_type == "simple_progress":
+            return [
+                "%s: (" % text,
+                SimpleProgress(sep="/"),
+                ") ",
+                Bar(marker="#", left="[", right="]"),
+            ]
         else:
-            return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']')]
+            return [
+                "%s: " % text,
+                Percentage(),
+                " ",
+                Bar(marker="#", left="[", right="]"),
+            ]
 
-    def __init__(self, maxval=None, text='', term_width=None, poll=1, left_justify=True, stream=None, widget_type='download'):
-        self.stream_isatty = getattr(stream, 'isatty', lambda : False)()
-        super(IOProgressBar, self).__init__(maxval=maxval, widgets=self._get_widgets(widget_type, text, self.stream_isatty), term_width=term_width, poll=poll, left_justify=left_justify, fd=stream)
+    def __init__(
+        self,
+        maxval=None,
+        text="",
+        term_width=None,
+        poll=1,
+        left_justify=True,
+        stream=None,
+        widget_type="download",
+    ):
+        self.stream_isatty = getattr(stream, "isatty", lambda: False)()
+        super(IOProgressBar, self).__init__(
+            maxval=maxval,
+            widgets=self._get_widgets(widget_type, text, self.stream_isatty),
+            term_width=term_width,
+            poll=poll,
+            left_justify=left_justify,
+            fd=stream,
+        )
 
     def start(self):
         self._hide_cursor()
@@ -308,13 +379,15 @@ class IOProgressBar(ProgressBar):
 
     def _finish(self):
         self.finished = True
-        self.fd.write('\n')
+        self.fd.write("\n")
         self._show_cursor()
         if self.signal_set:
             signal.signal(signal.SIGWINCH, signal.SIG_DFL)
 
     def _need_update(self):
-        return (self.currval == self.maxval or self.currval == 0 or self.stream_isatty) and super(IOProgressBar, self)._need_update()
+        return (
+            self.currval == self.maxval or self.currval == 0 or self.stream_isatty
+        ) and super(IOProgressBar, self)._need_update()
 
     def _check_stream(self):
         if self.fd.closed:
@@ -328,14 +401,12 @@ class IOProgressBar(ProgressBar):
         return True
 
     def _hide_cursor(self):
-        """Disable the user's blinking cursor
-        """
+        """Disable the user's blinking cursor"""
         if self._check_stream() and self.stream_isatty:
             cursor.hide(stream=self.fd)
 
     def _show_cursor(self):
-        """Re-enable the user's blinking cursor
-        """
+        """Re-enable the user's blinking cursor"""
         if self._check_stream() and self.stream_isatty:
             cursor.show(stream=self.fd)
 
@@ -357,29 +428,30 @@ class IO(object):
 
     WIDTH = 64
     VERBOSE_LEVEL = 0
-    WARNING_PREV = FormtatText.warning('[WARN]')
-    ERROR_PREV = FormtatText.error('[ERROR]')
+    WARNING_PREV = FormtatText.warning("[WARN]")
+    ERROR_PREV = FormtatText.error("[ERROR]")
 
-    def __init__(self,
+    def __init__(
+        self,
         level,
         msg_lv=MsgLevel.DEBUG,
         use_cache=False,
         track_limit=0,
         root_io=None,
         input_stream=SysStdin,
-        output_stream=sys.stdout
+        output_stream=sys.stdout,
     ):
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
         self._log_path = None
         self._trace_id = None
-        self._log_name = 'default'
+        self._log_name = "default"
         self._trace_logger = None
         self._log_cache = [] if use_cache else None
         self._root_io = root_io
         self.track_limit = track_limit
-        self._verbose_prefix = '-' * self.level
+        self._verbose_prefix = "-" * self.level
         self.sync_obj = None
         self.input_stream = None
         self._out_obj = None
@@ -427,7 +499,14 @@ class IO(object):
         state = {}
         for key in self.__dict__:
             state[key] = self.__dict__[key]
-        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_cur_out_obj', '_before_critical']:
+        for key in [
+            "_trace_logger",
+            "input_stream",
+            "sync_obj",
+            "_out_obj",
+            "_cur_out_obj",
+            "_before_critical",
+        ]:
             state[key] = None
         return state
 
@@ -437,11 +516,24 @@ class IO(object):
             return self._root_io.trace_logger
         if self.log_path and self._trace_logger is None:
             self._trace_logger = Logger(self.log_name)
-            handler = handlers.TimedRotatingFileHandler(self.log_path, when='midnight', interval=1, backupCount=30)
+            handler = handlers.TimedRotatingFileHandler(
+                self.log_path, when="midnight", interval=1, backupCount=30
+            )
             if self.trace_id:
-                handler.setFormatter(logging.Formatter("[%%(asctime)s.%%(msecs)03d] [%s] [%%(levelname)s] %%(message)s" % self.trace_id, "%Y-%m-%d %H:%M:%S"))
+                handler.setFormatter(
+                    logging.Formatter(
+                        "[%%(asctime)s.%%(msecs)03d] [%s] [%%(levelname)s] %%(message)s"
+                        % self.trace_id,
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                )
             else:
-                handler.setFormatter(logging.Formatter("[%%(asctime)s.%%(msecs)03d] [%%(levelname)s] %%(message)s", "%Y-%m-%d %H:%M:%S"))
+                handler.setFormatter(
+                    logging.Formatter(
+                        "[%%(asctime)s.%%(msecs)03d] [%%(levelname)s] %%(message)s",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                )
             self._trace_logger.addHandler(handler)
         return self._trace_logger
 
@@ -472,7 +564,7 @@ class IO(object):
     def before_close(self):
         if self._before_critical:
             try:
-               self._before_critical(self)
+                self._before_critical(self)
             except:
                 pass
 
@@ -505,7 +597,7 @@ class IO(object):
             self._flush_log()
             self._log_cache = None
         return True
-    
+
     def get_input_stream(self):
         if self._root_io:
             return self._root_io.get_input_stream()
@@ -547,12 +639,14 @@ class IO(object):
 
     def _start_sync_obj(self, sync_clz, before_critical, *arg, **kwargs):
         if self._root_io:
-            return self._root_io._start_sync_obj(sync_clz, before_critical, *arg, **kwargs)
+            return self._root_io._start_sync_obj(
+                sync_clz, before_critical, *arg, **kwargs
+            )
         if self.sync_obj:
             return None
         if not self._start_buffer_io():
             return None
-        kwargs['stream'] = self._out_obj
+        kwargs["stream"] = self._out_obj
         try:
             self.sync_obj = sync_clz(*arg, **kwargs)
             self._before_critical = before_critical
@@ -584,7 +678,9 @@ class IO(object):
     def start_loading(self, text, *arg, **kwargs):
         if self.sync_obj:
             return False
-        self.sync_obj = self._start_sync_obj(IOHalo, lambda x: x.stop_loading('fail'), *arg, **kwargs)
+        self.sync_obj = self._start_sync_obj(
+            IOHalo, lambda x: x.stop_loading("fail"), *arg, **kwargs
+        )
         if self.sync_obj:
             self.log(MsgLevel.INFO, text)
             return self.sync_obj.start(text)
@@ -595,7 +691,7 @@ class IO(object):
         if getattr(self.sync_obj, stop_type, False):
             return self._stop_sync_obj(IOHalo, stop_type, *arg, **kwargs)
         else:
-            return self._stop_sync_obj(IOHalo, 'stop')
+            return self._stop_sync_obj(IOHalo, "stop")
 
     def update_loading_text(self, text):
         if not isinstance(self.sync_obj, IOHalo):
@@ -604,10 +700,16 @@ class IO(object):
         self.sync_obj.text = text
         return self.sync_obj
 
-    def start_progressbar(self, text, maxval, widget_type='download'):
+    def start_progressbar(self, text, maxval, widget_type="download"):
         if self.sync_obj:
             return False
-        self.sync_obj = self._start_sync_obj(IOProgressBar, lambda x: x.finish_progressbar(), text=text, maxval=maxval, widget_type=widget_type)
+        self.sync_obj = self._start_sync_obj(
+            IOProgressBar,
+            lambda x: x.finish_progressbar(),
+            text=text,
+            maxval=maxval,
+            widget_type=widget_type,
+        )
         if self.sync_obj:
             self.log(MsgLevel.INFO, text)
             return self.sync_obj.start()
@@ -620,24 +722,32 @@ class IO(object):
     def finish_progressbar(self):
         if not isinstance(self.sync_obj, IOProgressBar):
             return False
-        return self._stop_sync_obj(IOProgressBar, 'finish')
+        return self._stop_sync_obj(IOProgressBar, "finish")
 
     def interrupt_progressbar(self):
         if not isinstance(self.sync_obj, IOProgressBar):
             return False
-        return self._stop_sync_obj(IOProgressBar, 'interrupt')
+        return self._stop_sync_obj(IOProgressBar, "interrupt")
 
     def sub_io(self, msg_lv=None):
         if msg_lv is None:
             msg_lv = self.msg_lv
         return self.__class__(
-                self.level + 1,
-                msg_lv=msg_lv,
-                track_limit=self.track_limit,
-                root_io=self._root_io if self._root_io else self
-            )
+            self.level + 1,
+            msg_lv=msg_lv,
+            track_limit=self.track_limit,
+            root_io=self._root_io if self._root_io else self,
+        )
 
-    def print_list(self, ary, field_names=None, exp=lambda x: x if isinstance(x, (list, tuple)) else [x], show_index=False, start=0, **kwargs):
+    def print_list(
+        self,
+        ary,
+        field_names=None,
+        exp=lambda x: x if isinstance(x, (list, tuple)) else [x],
+        show_index=False,
+        start=0,
+        **kwargs
+    ):
         if not ary:
             title = kwargs.get("title", "")
             empty_msg = kwargs.get("empty_msg", "{} is empty.".format(title))
@@ -646,7 +756,7 @@ class IO(object):
             return
         show_index = field_names is not None and show_index
         if show_index:
-            show_index.insert(0, 'idx')
+            show_index.insert(0, "idx")
         table = IOTable(field_names, **kwargs)
         for row in ary:
             row = exp(row)
@@ -656,14 +766,14 @@ class IO(object):
             table.add_row(row)
         self.print(table)
 
-    def read(self, msg='', blocked=False):
+    def read(self, msg="", blocked=False):
         if msg:
             self._print(MsgLevel.INFO, msg)
         return self.get_input_stream().read(blocked)
 
     def confirm(self, msg):
-        msg = '%s [y/n]: ' % msg
-        self.print(msg, end='')
+        msg = "%s [y/n]: " % msg
+        self.print(msg, end="")
         if self.default_confirm:
             self.verbose("default confirm: True")
             return True
@@ -671,15 +781,18 @@ class IO(object):
             while True:
                 try:
                     ans = self.get_input_stream().readline(blocked=True).strip().lower()
-                    if ans == 'y':
+                    if ans == "y":
                         return True
-                    if ans == 'n':
+                    if ans == "n":
                         return False
                 except Exception as e:
                     if not e:
                         return False
         else:
-            self.verbose("isatty: %s, syncing: %s, auto confirm: False" % (self.isatty(), self.syncing))
+            self.verbose(
+                "isatty: %s, syncing: %s, auto confirm: False"
+                % (self.isatty(), self.syncing)
+            )
             return False
 
     def _format(self, msg, *args):
@@ -690,14 +803,14 @@ class IO(object):
     def _print(self, msg_lv, msg, *args, **kwargs):
         if msg_lv < self.msg_lv:
             return
-        if 'prev_msg' in kwargs:
-            print_msg = '%s %s' % (kwargs['prev_msg'], msg)
-            del kwargs['prev_msg']
+        if "prev_msg" in kwargs:
+            print_msg = "%s %s" % (kwargs["prev_msg"], msg)
+            del kwargs["prev_msg"]
         else:
             print_msg = msg
-        kwargs['file'] = self.get_cur_out_obj()
-        kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
-        del kwargs['file']
+        kwargs["file"] = self.get_cur_out_obj()
+        kwargs["file"] and print(self._format(print_msg, *args), **kwargs)
+        del kwargs["file"]
         self.log(msg_lv, msg, *args, **kwargs)
 
     def log(self, levelno, msg, *args, **kwargs):
@@ -706,7 +819,7 @@ class IO(object):
     def _cache_log(self, levelno, msg, *args, **kwargs):
         if self.trace_logger:
             log_cache = self.log_cache
-            lines = str(msg).split('\n')
+            lines = str(msg).split("\n")
             for line in lines:
                 if log_cache is None:
                     self._log(levelno, line, *args, **kwargs)
@@ -727,34 +840,54 @@ class IO(object):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
-        self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)
+        self._print(
+            MsgLevel.WARN,
+            msg,
+            prev_msg=self.WARNING_PREV.format(self.isatty()),
+            *args,
+            **kwargs
+        )
 
     def error(self, msg, *args, **kwargs):
-        self._print(MsgLevel.ERROR, msg, prev_msg=self.ERROR_PREV.format(self.isatty()), *args, **kwargs)
+        self._print(
+            MsgLevel.ERROR,
+            msg,
+            prev_msg=self.ERROR_PREV.format(self.isatty()),
+            *args,
+            **kwargs
+        )
 
     def critical(self, msg, *args, **kwargs):
-        if 'code' in kwargs:
-            code = kwargs['code']
-            del kwargs['code']
+        if "code" in kwargs:
+            code = kwargs["code"]
+            del kwargs["code"]
         else:
             code = 255
-        self._print(MsgLevel.CRITICAL, '%s %s' % (self.ERROR_PREV, msg), *args, **kwargs)
+        self._print(
+            MsgLevel.CRITICAL, "%s %s" % (self.ERROR_PREV, msg), *args, **kwargs
+        )
         if not self._root_io:
             self.exit(code)
 
     def verbose(self, msg, *args, **kwargs):
         if self.level > self.VERBOSE_LEVEL:
-            self.log(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
+            self.log(
+                MsgLevel.VERBOSE, "%s %s" % (self._verbose_prefix, msg), *args, **kwargs
+            )
             return
-        self._print(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
+        self._print(
+            MsgLevel.VERBOSE, "%s %s" % (self._verbose_prefix, msg), *args, **kwargs
+        )
 
     if sys.version_info.major == 2:
-        def exception(self, msg='', *args, **kwargs):
+
+        def exception(self, msg="", *args, **kwargs):
             import linecache
+
             exception_msg = []
             ei = sys.exc_info()
-            exception_msg.append('Traceback (most recent call last):')
-            stack = traceback.extract_stack()[self.track_limit:-2]
+            exception_msg.append("Traceback (most recent call last):")
+            stack = traceback.extract_stack()[self.track_limit : -2]
             tb = ei[2]
             while tb is not None:
                 f = tb.tb_frame
@@ -768,23 +901,28 @@ class IO(object):
                 stack.append((filename, lineno, name, line))
             for line in stack:
                 exception_msg.append('  File "%s", line %d, in %s' % line[:3])
-                if line[3]: exception_msg.append('    ' + line[3].strip())
+                if line[3]:
+                    exception_msg.append("    " + line[3].strip())
             lines = []
             for line in traceback.format_exception_only(ei[0], ei[1]):
                 lines.append(line)
             if lines:
-                exception_msg.append(''.join(lines))
+                exception_msg.append("".join(lines))
             if self.level <= self.VERBOSE_LEVEL:
                 print_stack = lambda m: self._print(MsgLevel.ERROR, m)
             else:
                 print_stack = lambda m: self.log(MsgLevel.ERROR, m)
             msg and self.error(msg)
-            print_stack('\n'.join(exception_msg))
+            print_stack("\n".join(exception_msg))
+
     else:
-        def exception(self, msg='', *args, **kwargs):
+
+        def exception(self, msg="", *args, **kwargs):
             ei = sys.exc_info()
-            traceback_e = traceback.TracebackException(type(ei[1]), ei[1], ei[2], limit=None)
-            pre_stach = traceback.extract_stack()[self.track_limit:-2]
+            traceback_e = traceback.TracebackException(
+                type(ei[1]), ei[1], ei[2], limit=None
+            )
+            pre_stach = traceback.extract_stack()[self.track_limit : -2]
             pre_stach.reverse()
             for summary in pre_stach:
                 traceback_e.stack.insert(0, summary)
@@ -796,7 +934,7 @@ class IO(object):
             else:
                 print_stack = lambda m: self.log(MsgLevel.ERROR, m)
             msg and self.error(msg)
-            print_stack(''.join(lines))
+            print_stack("".join(lines))
 
 
 class _Empty(object):
@@ -827,10 +965,10 @@ class StdIO(object):
         self._warn_func = getattr(self.io, "warn", print)
 
     def __getattr__(self, item):
-        if item.startswith('__'):
+        if item.startswith("__"):
             return super(StdIO, self).__getattribute__(item)
         if self.io is None:
-            if item == 'sub_io':
+            if item == "sub_io":
                 return self
             else:
                 return FAKE_RETURN
@@ -839,8 +977,12 @@ class StdIO(object):
             if attr is not EMPTY:
                 self._attrs[item] = attr
             else:
-                is_tty = getattr(self._stream, 'isatty', lambda : False)()
-                self._warn_func(FormtatText.warning("WARNING: {} has no attribute '{}'".format(self.io, item)).format(is_tty))
+                is_tty = getattr(self._stream, "isatty", lambda: False)()
+                self._warn_func(
+                    FormtatText.warning(
+                        "WARNING: {} has no attribute '{}'".format(self.io, item)
+                    ).format(is_tty)
+                )
                 self._attrs[item] = FAKE_RETURN
         return self._attrs[item]
 
@@ -884,9 +1026,11 @@ def safe_stdio_decorator(default_stdio=None):
                     stdio = get_stdio(kwargs.get("stdio", _default_stdio))
                     kwargs["stdio"] = stdio
                 return func(*args, **kwargs)
+
             return _type(func_wrapper) if is_bond_method else func_wrapper
         else:
             return _type(func) if is_bond_method else func
+
     return decorated
 
 
@@ -931,9 +1075,13 @@ class SafeStdio(six.with_metaclass(SafeStdioMeta)):
         _wrapper_func = super(SafeStdio, self).__getattribute__("_wrapper_func")
         if item not in _wrapper_func:
             attr = super(SafeStdio, self).__getattribute__(item)
-            if (not item.startswith("__") or not item.endswith("__")) and isinstance(attr, MethodType):
+            if (not item.startswith("__") or not item.endswith("__")) and isinstance(
+                attr, MethodType
+            ):
                 if "stdio" in inspect2.signature(attr).parameters:
-                    _wrapper_func[item] = safe_stdio_decorator(default_stdio=getattr(self, "stdio", None))(attr)
+                    _wrapper_func[item] = safe_stdio_decorator(
+                        default_stdio=getattr(self, "stdio", None)
+                    )(attr)
                     return _wrapper_func[item]
             _wrapper_func[item] = STAY_THE_SAME
             return attr

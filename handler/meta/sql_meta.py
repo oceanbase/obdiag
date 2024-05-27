@@ -31,20 +31,20 @@ class GlobalSqlMeta:
         try:
             return self._sql_dict[key]
         except:
-            print('get' + key + 'failed\r\n')
+            print("get" + key + "failed\r\n")
 
     def rm_value(self, key):
         try:
             return self._sql_dict.pop(key)
         except:
-            print('delete' + key + 'failed\r\n')
+            print("delete" + key + "failed\r\n")
 
 
 sql_dict = GlobalSqlMeta()
 
 sql_dict.set_value(
     "sql_audit_by_trace_id_limit1_mysql",
-    '''
+    """
     select /*+ sql_audit */ 
     trace_id,
     query_sql,
@@ -62,12 +62,12 @@ sql_dict.set_value(
     svr_port
     from oceanbase.##REPLACE_SQL_AUDIT_TABLE_NAME##
     where query_sql != '' and is_inner_sql=0 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_audit_by_trace_id_limit1_oracle",
-    '''
+    """
     select * from 
     (select /*+ sql_audit */ 
     trace_id,
@@ -86,22 +86,22 @@ sql_dict.set_value(
     svr_port 
     from sys.##REPLACE_SQL_AUDIT_TABLE_NAME##, V$VERSION
     where length(query_sql)>4 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc) where rownum < 2
-    '''
+    """,
 )
 
 sql_dict.set_value(
-        "sql_audit_item_mysql",
-        '`SVR_IP`,`SVR_PORT`,`REQUEST_ID`,`SQL_EXEC_ID`,`TRACE_ID`,`SID`,`CLIENT_IP`,`CLIENT_PORT`,`TENANT_ID`,'
-        '`EFFECTIVE_TENANT_ID`,`TENANT_NAME`,`USER_ID`,`USER_NAME`,`USER_CLIENT_IP`,`DB_ID`,`DB_NAME`,`SQL_ID`,'
-        '`QUERY_SQL`,`PLAN_ID`,`AFFECTED_ROWS`,`RETURN_ROWS`,`PARTITION_CNT`,`RET_CODE`,`QC_ID`,`DFO_ID`,`SQC_ID`,'
-        '`WORKER_ID`,`EVENT`,`P1TEXT`,`P1`,`P2TEXT`,`P2`,`P3TEXT`,`P3`,`LEVEL`,`WAIT_CLASS_ID`,`WAIT_CLASS`,`STATE`,'
-        '`WAIT_TIME_MICRO`,`TOTAL_WAIT_TIME_MICRO`,`TOTAL_WAITS`,`RPC_COUNT`,`PLAN_TYPE`,`IS_INNER_SQL`,'
-        '`IS_EXECUTOR_RPC`,`IS_HIT_PLAN`,`REQUEST_TIME`,`ELAPSED_TIME`,`NET_TIME`,`NET_WAIT_TIME`,`QUEUE_TIME`,'
-        '`DECODE_TIME`,`GET_PLAN_TIME`,`EXECUTE_TIME`,`APPLICATION_WAIT_TIME`,`CONCURRENCY_WAIT_TIME`,'
-        '`USER_IO_WAIT_TIME`,`SCHEDULE_TIME`,`ROW_CACHE_HIT`,`BLOOM_FILTER_CACHE_HIT`,`BLOCK_CACHE_HIT`,'
-        '`BLOCK_INDEX_CACHE_HIT`,`DISK_READS`,`RETRY_CNT`,`TABLE_SCAN`,`CONSISTENCY_LEVEL`,`MEMSTORE_READ_ROW_COUNT`,'
-        '`SSSTORE_READ_ROW_COUNT`,`REQUEST_MEMORY_USED`,`EXPECTED_WORKER_COUNT`,`USED_WORKER_COUNT`,`PS_STMT_ID`,'
-        '`TRANSACTION_HASH`,`REQUEST_TYPE`,`IS_BATCHED_MULTI_STMT`,`OB_TRACE_INFO`,`PLAN_HASH` '
+    "sql_audit_item_mysql",
+    "`SVR_IP`,`SVR_PORT`,`REQUEST_ID`,`SQL_EXEC_ID`,`TRACE_ID`,`SID`,`CLIENT_IP`,`CLIENT_PORT`,`TENANT_ID`,"
+    "`EFFECTIVE_TENANT_ID`,`TENANT_NAME`,`USER_ID`,`USER_NAME`,`USER_CLIENT_IP`,`DB_ID`,`DB_NAME`,`SQL_ID`,"
+    "`QUERY_SQL`,`PLAN_ID`,`AFFECTED_ROWS`,`RETURN_ROWS`,`PARTITION_CNT`,`RET_CODE`,`QC_ID`,`DFO_ID`,`SQC_ID`,"
+    "`WORKER_ID`,`EVENT`,`P1TEXT`,`P1`,`P2TEXT`,`P2`,`P3TEXT`,`P3`,`LEVEL`,`WAIT_CLASS_ID`,`WAIT_CLASS`,`STATE`,"
+    "`WAIT_TIME_MICRO`,`TOTAL_WAIT_TIME_MICRO`,`TOTAL_WAITS`,`RPC_COUNT`,`PLAN_TYPE`,`IS_INNER_SQL`,"
+    "`IS_EXECUTOR_RPC`,`IS_HIT_PLAN`,`REQUEST_TIME`,`ELAPSED_TIME`,`NET_TIME`,`NET_WAIT_TIME`,`QUEUE_TIME`,"
+    "`DECODE_TIME`,`GET_PLAN_TIME`,`EXECUTE_TIME`,`APPLICATION_WAIT_TIME`,`CONCURRENCY_WAIT_TIME`,"
+    "`USER_IO_WAIT_TIME`,`SCHEDULE_TIME`,`ROW_CACHE_HIT`,`BLOOM_FILTER_CACHE_HIT`,`BLOCK_CACHE_HIT`,"
+    "`BLOCK_INDEX_CACHE_HIT`,`DISK_READS`,`RETRY_CNT`,`TABLE_SCAN`,`CONSISTENCY_LEVEL`,`MEMSTORE_READ_ROW_COUNT`,"
+    "`SSSTORE_READ_ROW_COUNT`,`REQUEST_MEMORY_USED`,`EXPECTED_WORKER_COUNT`,`USED_WORKER_COUNT`,`PS_STMT_ID`,"
+    "`TRANSACTION_HASH`,`REQUEST_TYPE`,`IS_BATCHED_MULTI_STMT`,`OB_TRACE_INFO`,`PLAN_HASH` ",
 )
 
 sql_dict.set_value(
@@ -116,22 +116,22 @@ sql_dict.set_value(
     '"USER_IO_WAIT_TIME","SCHEDULE_TIME","ROW_CACHE_HIT","BLOOM_FILTER_CACHE_HIT","BLOCK_CACHE_HIT",'
     '"BLOCK_INDEX_CACHE_HIT","DISK_READS","RETRY_CNT","TABLE_SCAN","CONSISTENCY_LEVEL","MEMSTORE_READ_ROW_COUNT",'
     '"SSSTORE_READ_ROW_COUNT","REQUEST_MEMORY_USED","EXPECTED_WORKER_COUNT","USED_WORKER_COUNT","PS_STMT_ID",'
-    '"TRANSACTION_HASH","REQUEST_TYPE","IS_BATCHED_MULTI_STMT","OB_TRACE_INFO","PLAN_HASH" '
+    '"TRANSACTION_HASH","REQUEST_TYPE","IS_BATCHED_MULTI_STMT","OB_TRACE_INFO","PLAN_HASH" ',
 )
 
 sql_dict.set_value(
-        "sql_audit_item_mysql_obversion4",
-        '`SVR_IP`,`SVR_PORT`,`REQUEST_ID`,`SQL_EXEC_ID`,`TRACE_ID`,`SID`,`CLIENT_IP`,`CLIENT_PORT`,`TENANT_ID`,'
-        '`EFFECTIVE_TENANT_ID`,`TENANT_NAME`,`USER_ID`,`USER_NAME`,`USER_CLIENT_IP`,`DB_ID`,`DB_NAME`,`SQL_ID`,'
-        '`QUERY_SQL`,`PLAN_ID`,`AFFECTED_ROWS`,`RETURN_ROWS`,`PARTITION_CNT`,`RET_CODE`,`QC_ID`,`DFO_ID`,`SQC_ID`,'
-        '`WORKER_ID`,`EVENT`,`P1TEXT`,`P1`,`P2TEXT`,`P2`,`P3TEXT`,`P3`,`LEVEL`,`WAIT_CLASS_ID`,`WAIT_CLASS`,`STATE`,'
-        '`WAIT_TIME_MICRO`,`TOTAL_WAIT_TIME_MICRO`,`TOTAL_WAITS`,`RPC_COUNT`,`PLAN_TYPE`,`IS_INNER_SQL`,'
-        '`IS_EXECUTOR_RPC`,`IS_HIT_PLAN`,`REQUEST_TIME`,`ELAPSED_TIME`,`NET_TIME`,`NET_WAIT_TIME`,`QUEUE_TIME`,'
-        '`DECODE_TIME`,`GET_PLAN_TIME`,`EXECUTE_TIME`,`APPLICATION_WAIT_TIME`,`CONCURRENCY_WAIT_TIME`,'
-        '`USER_IO_WAIT_TIME`,`SCHEDULE_TIME`,`ROW_CACHE_HIT`,`BLOOM_FILTER_CACHE_HIT`,`BLOCK_CACHE_HIT`,'
-        '`DISK_READS`,`RETRY_CNT`,`TABLE_SCAN`,`CONSISTENCY_LEVEL`,`MEMSTORE_READ_ROW_COUNT`,'
-        '`SSSTORE_READ_ROW_COUNT`,`REQUEST_MEMORY_USED`,`EXPECTED_WORKER_COUNT`,`USED_WORKER_COUNT`,'
-        '`TX_ID`,`REQUEST_TYPE`,`IS_BATCHED_MULTI_STMT`,`OB_TRACE_INFO`,`PLAN_HASH` '
+    "sql_audit_item_mysql_obversion4",
+    "`SVR_IP`,`SVR_PORT`,`REQUEST_ID`,`SQL_EXEC_ID`,`TRACE_ID`,`SID`,`CLIENT_IP`,`CLIENT_PORT`,`TENANT_ID`,"
+    "`EFFECTIVE_TENANT_ID`,`TENANT_NAME`,`USER_ID`,`USER_NAME`,`USER_CLIENT_IP`,`DB_ID`,`DB_NAME`,`SQL_ID`,"
+    "`QUERY_SQL`,`PLAN_ID`,`AFFECTED_ROWS`,`RETURN_ROWS`,`PARTITION_CNT`,`RET_CODE`,`QC_ID`,`DFO_ID`,`SQC_ID`,"
+    "`WORKER_ID`,`EVENT`,`P1TEXT`,`P1`,`P2TEXT`,`P2`,`P3TEXT`,`P3`,`LEVEL`,`WAIT_CLASS_ID`,`WAIT_CLASS`,`STATE`,"
+    "`WAIT_TIME_MICRO`,`TOTAL_WAIT_TIME_MICRO`,`TOTAL_WAITS`,`RPC_COUNT`,`PLAN_TYPE`,`IS_INNER_SQL`,"
+    "`IS_EXECUTOR_RPC`,`IS_HIT_PLAN`,`REQUEST_TIME`,`ELAPSED_TIME`,`NET_TIME`,`NET_WAIT_TIME`,`QUEUE_TIME`,"
+    "`DECODE_TIME`,`GET_PLAN_TIME`,`EXECUTE_TIME`,`APPLICATION_WAIT_TIME`,`CONCURRENCY_WAIT_TIME`,"
+    "`USER_IO_WAIT_TIME`,`SCHEDULE_TIME`,`ROW_CACHE_HIT`,`BLOOM_FILTER_CACHE_HIT`,`BLOCK_CACHE_HIT`,"
+    "`DISK_READS`,`RETRY_CNT`,`TABLE_SCAN`,`CONSISTENCY_LEVEL`,`MEMSTORE_READ_ROW_COUNT`,"
+    "`SSSTORE_READ_ROW_COUNT`,`REQUEST_MEMORY_USED`,`EXPECTED_WORKER_COUNT`,`USED_WORKER_COUNT`,"
+    "`TX_ID`,`REQUEST_TYPE`,`IS_BATCHED_MULTI_STMT`,`OB_TRACE_INFO`,`PLAN_HASH` ",
 )
 
 sql_dict.set_value(
@@ -146,12 +146,12 @@ sql_dict.set_value(
     '"USER_IO_WAIT_TIME","SCHEDULE_TIME","ROW_CACHE_HIT","BLOOM_FILTER_CACHE_HIT","BLOCK_CACHE_HIT",'
     '"DISK_READS","RETRY_CNT","TABLE_SCAN","CONSISTENCY_LEVEL","MEMSTORE_READ_ROW_COUNT",'
     '"SSSTORE_READ_ROW_COUNT","REQUEST_MEMORY_USED","EXPECTED_WORKER_COUNT","USED_WORKER_COUNT",'
-    '"TX_ID","REQUEST_TYPE","IS_BATCHED_MULTI_STMT","OB_TRACE_INFO","PLAN_HASH" '
+    '"TX_ID","REQUEST_TYPE","IS_BATCHED_MULTI_STMT","OB_TRACE_INFO","PLAN_HASH" ',
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_dfo_op_oracle",
-    '''
+    """
     SELECT
       AVG("ROWS") EST_ROWS, /*0 */
       plan_monitor.PLAN_DEPTH,
@@ -250,12 +250,12 @@ sql_dict.set_value(
       plan_monitor.PLAN_LINE_ID, PLAN_OPERATION, plan_monitor.PLAN_DEPTH
     ORDER BY
       plan_monitor.PLAN_LINE_ID ASC;
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_dfo_op_mysql",
-    '''
+    """
         select
           AVG(ROWS) EST_ROWS, /*0*/
           plan_monitor.PLAN_DEPTH PLAN_DEPTH,
@@ -324,12 +324,12 @@ sql_dict.set_value(
           plan_monitor.PLAN_LINE_ID, plan_monitor.PLAN_OPERATION
         ORDER BY
           plan_monitor.PLAN_LINE_ID ASC
-        '''
+        """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_svr_agg_template_oracle",
-    '''
+    """
         SELECT
           PLAN_DEPTH,
           PLAN_LINE_ID,
@@ -406,12 +406,12 @@ sql_dict.set_value(
           PLAN_LINE_ID,PLAN_OPERATION,PLAN_DEPTH,SVR_IP,SVR_PORT
         ORDER BY
           ##REPLACE_ORDER_BY##
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_svr_agg_template_mysql",
-    '''
+    """
         select
           PLAN_DEPTH,
           PLAN_LINE_ID,
@@ -461,12 +461,12 @@ sql_dict.set_value(
           PLAN_LINE_ID,PLAN_OPERATION,SVR_IP,SVR_PORT
         ORDER BY
           ##REPLACE_ORDER_BY##
-        '''
+        """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_detail_template_oracle",
-    '''
+    """
         select
           PLAN_DEPTH, /*0*/
           SVR_IP,
@@ -504,12 +504,12 @@ sql_dict.set_value(
             trace_id = '##REPLACE_TRACE_ID##'
         ORDER BY
           ##REPLACE_ORDER_BY##
-        '''
+        """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_detail_template_mysql",
-    '''
+    """
         select
           PLAN_DEPTH,/*0*/
           SVR_IP,
@@ -547,12 +547,12 @@ sql_dict.set_value(
             trace_id = '##REPLACE_TRACE_ID##'
         ORDER BY
           ##REPLACE_ORDER_BY##
-        '''
+        """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_dfo_op_oracle_obversion4",
-    '''
+    """
 SELECT
   AVG("ROWS") EST_ROWS, /*0 */
   plan_monitor.PLAN_DEPTH,
@@ -656,12 +656,12 @@ GROUP BY
   plan_monitor.PLAN_LINE_ID, PLAN_OPERATION, plan_monitor.PLAN_DEPTH
 ORDER BY
   plan_monitor.PLAN_LINE_ID ASC;
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_dfo_op_mysql_obversion4",
-    '''
+    """
 select
   AVG(ROWS) EST_ROWS, /*0*/
   plan_monitor.PLAN_DEPTH PLAN_DEPTH,
@@ -734,12 +734,12 @@ GROUP BY
   plan_monitor.PLAN_LINE_ID, plan_monitor.PLAN_OPERATION
 ORDER BY
   plan_monitor.PLAN_LINE_ID ASC;
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_svr_agg_template_oracle_obversion4",
-    '''
+    """
 SELECT
   PLAN_DEPTH,
   PLAN_LINE_ID,
@@ -822,12 +822,12 @@ GROUP BY
   PLAN_LINE_ID,PLAN_OPERATION,PLAN_DEPTH,SVR_IP,SVR_PORT
 ORDER BY
   ##REPLACE_ORDER_BY##;
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_svr_agg_template_mysql_obversion4",
-    '''
+    """
 select
   PLAN_DEPTH,
   PLAN_LINE_ID,
@@ -881,12 +881,12 @@ GROUP BY
   PLAN_LINE_ID,PLAN_OPERATION,SVR_IP,SVR_PORT
 ORDER BY
   ##REPLACE_ORDER_BY##; 
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_db_time_mysql_template_obversion4",
-    '''
+    """
 SELECT  COUNT(1) THREAD_NUM, PLAN_LINE_ID, PLAN_DEPTH, PLAN_OPERATION, SUM(OUTPUT_ROWS) TOTAL_OUTPUT_ROWS,
    TRUNCATE(AVG(DB_TIME)/1000000000.0/2.5, 2) MY_DB_TIME,
    TRUNCATE(AVG(DB_TIME-USER_IO_WAIT_TIME)/1000000000.0/2.5, 2) MY_CPU_TIME,
@@ -895,12 +895,12 @@ FROM oceanbase.gv$sql_plan_monitor
 WHERE trace_id = '##REPLACE_TRACE_ID##'
 GROUP BY PLAN_LINE_ID, PLAN_OPERATION, PLAN_DEPTH
 ORDER BY PLAN_LINE_ID
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_db_time_oracle_template_obversion4",
-    '''
+    """
 SELECT  COUNT(1) THREAD_NUM, PLAN_LINE_ID, PLAN_DEPTH, PLAN_OPERATION, SUM(OUTPUT_ROWS) TOTAL_OUTPUT_ROWS,
    TRUNC(AVG(DB_TIME)/1000000000.0/2.5, 2) MY_DB_TIME,
    TRUNC(AVG(DB_TIME-USER_IO_WAIT_TIME)/1000000000.0/2.5, 2) MY_CPU_TIME,
@@ -909,12 +909,12 @@ FROM SYS.gv$sql_plan_monitor
 WHERE trace_id = '##REPLACE_TRACE_ID##'
 GROUP BY PLAN_LINE_ID, PLAN_OPERATION, PLAN_DEPTH
 ORDER BY PLAN_LINE_ID
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_detail_template_oracle_obversion4",
-    '''
+    """
 select
   PLAN_DEPTH, /*0*/
   SVR_IP,
@@ -955,12 +955,12 @@ WHERE
     trace_id = '##REPLACE_TRACE_ID##'
 ORDER BY
   ##REPLACE_ORDER_BY##;
-    '''
+    """,
 )
 
 sql_dict.set_value(
     "sql_plan_monitor_detail_template_mysql_obversion4",
-    '''
+    """
 select
   PLAN_DEPTH,/*0*/
   SVR_IP,
@@ -1001,5 +1001,5 @@ where
     trace_id = '##REPLACE_TRACE_ID##'
 ORDER BY
   ##REPLACE_ORDER_BY##;
-    '''
+    """,
 )

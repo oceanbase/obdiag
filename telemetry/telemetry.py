@@ -31,7 +31,9 @@ import ssl
 from stdio import IO
 
 ssl._create_default_https_context = ssl._create_unverified_context
-class Telemetry():
+
+
+class Telemetry:
     def __init__(self):
         self.obversion = None
         self.ob_connector = None
@@ -44,35 +46,38 @@ class Telemetry():
         self.threads = []
         self.work_tag = True
         self.version = get_obdiag_version()
-        self.stdio=IO(1)
+        self.stdio = IO(1)
 
     def set_cluster_conn(self, obcluster):
         try:
             if not self.work_tag:
                 return
             if self.work_tag:
-                self.work_tag = NetUtils.network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
+                self.work_tag = NetUtils.network_connectivity(
+                    "https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH
+                )
             if not self.work_tag:
                 return
 
             if obcluster is not None:
                 try:
 
-                    self.cluster_conn = OBConnector(ip=obcluster.get("db_host"),
-                                                    port=obcluster.get("db_port"),
-                                                    username=obcluster.get("tenant_sys").get("user"),
-                                                    password=obcluster.get("tenant_sys").get("password"),
-                                                    stdio=self.stdio,
-                                                    timeout=10000)
+                    self.cluster_conn = OBConnector(
+                        ip=obcluster.get("db_host"),
+                        port=obcluster.get("db_port"),
+                        username=obcluster.get("tenant_sys").get("user"),
+                        password=obcluster.get("tenant_sys").get("password"),
+                        stdio=self.stdio,
+                        timeout=10000,
+                    )
                     self.threads.append(threading.Thread(None, self.get_cluster_info()))
-                   # self.threads.append(threading.Thread(None, self.get_tenant_info()))
+                    # self.threads.append(threading.Thread(None, self.get_tenant_info()))
                     for thread in self.threads:
                         thread.start()
                 except Exception as e:
                     pass
         except Exception as e:
             pass
-
 
     def get_cluster_info(self):
         if self.cluster_conn is not None:
@@ -81,19 +86,21 @@ class Telemetry():
                 version = str(self.cluster_conn.execute_sql("select version();")[0][0])
                 if "-v4" in version:
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary(
-                        "select * from oceanbase.GV$OB_SERVERS;")
+                        "select * from oceanbase.GV$OB_SERVERS;"
+                    )
                     columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         data_one["SVR_IP"] = ip_mix_by_sha256(data_one["SVR_IP"])
                 elif version.startswith("3."):
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary(
-                        "select *from oceanbase.gv$unit u, oceanbase.__all_virtual_server_stat s where s.svr_ip=u.svr_ip and s.svr_port=u.svr_port")
+                        "select *from oceanbase.gv$unit u, oceanbase.__all_virtual_server_stat s where s.svr_ip=u.svr_ip and s.svr_port=u.svr_port"
+                    )
                     columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         data_one["svr_ip"] = ip_mix_by_sha256(data_one["svr_ip"])
-                self.obversion=version
+                self.obversion = version
                 self.cluster_info = json.dumps(data)
                 self.cluster_info["obversion"] = version
             except Exception as e:
@@ -107,20 +114,26 @@ class Telemetry():
                 version = str(self.cluster_conn.execute_sql("select version();")[0][0])
                 if "-v4" in version:
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary(
-                        "SELECT * FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4 where t1.tenant_id = t4.tenant_id AND t4.resource_pool_id=t2.resource_pool_id AND t4.unit_config_id=t3.unit_config_id ORDER BY t1.tenant_name;")
+                        "SELECT * FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4 where t1.tenant_id = t4.tenant_id AND t4.resource_pool_id=t2.resource_pool_id AND t4.unit_config_id=t3.unit_config_id ORDER BY t1.tenant_name;"
+                    )
                     columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         if "SVR_IP" in data_one:
-                            data_one["SVR_IP"] = ip_mix_by_sha256(data_one.get("SVR_IP"))
+                            data_one["SVR_IP"] = ip_mix_by_sha256(
+                                data_one.get("SVR_IP")
+                            )
                 elif version.startswith("3."):
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary(
-                        "SELECT * FROM OCEANBASE.gv$tenant t1,OCEANBASE.gv$unit t2 where t1.tenant_id = t2.tenant_id;")
+                        "SELECT * FROM OCEANBASE.gv$tenant t1,OCEANBASE.gv$unit t2 where t1.tenant_id = t2.tenant_id;"
+                    )
                     columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         if "svr_ip" in data_one:
-                            data_one["svr_ip"] = ip_mix_by_sha256(data_one.get("svr_ip"))
+                            data_one["svr_ip"] = ip_mix_by_sha256(
+                                data_one.get("svr_ip")
+                            )
 
                 self.tenant_info = json.dumps(data, cls=DateTimeEncoder)
             except Exception as e:
@@ -145,7 +158,11 @@ class Telemetry():
         try:
             for thread in self.threads:
                 thread.join()
-            report_data = {"reporter": const.TELEMETRY_CONTENT_REPORTER, "eventId": ip_mix_by_sha256(str(time.time())), "obdiagVersion": get_obdiag_version()}
+            report_data = {
+                "reporter": const.TELEMETRY_CONTENT_REPORTER,
+                "eventId": ip_mix_by_sha256(str(time.time())),
+                "obdiagVersion": get_obdiag_version(),
+            }
             if self.cluster_info is not None:
                 report_data["cluster_info"] = self.cluster_info
             if self.tenant_info is not None:
@@ -155,12 +172,12 @@ class Telemetry():
             if self.check_info is not None:
                 report_data["check_info"] = self.check_info
             if self.obversion is not None:
-                report_data["obversion"]=self.obversion
+                report_data["obversion"] = self.obversion
 
-            re = {"content": report_data,"component":"obdiag"}
+            re = {"content": report_data, "component": "obdiag"}
 
             # put to /tmp
-            with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'w', encoding="utf8") as f:
+            with open(const.OBDIAG_TELEMETRY_FILE_NAME, "w", encoding="utf8") as f:
                 f.write(json.dumps(re, ensure_ascii=False))
             self.put_info_to_oceanbase()
 
@@ -173,24 +190,28 @@ class Telemetry():
             return
         try:
             conn = http.client.HTTPSConnection(const.TELEMETRY_URL, timeout=(5))
-            with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'rb') as file:
+            with open(const.OBDIAG_TELEMETRY_FILE_NAME, "rb") as file:
                 payload = file.read()
             headers = {
-                'Content-Encoding': 'application/gzip',
-                'Content-Type': 'application/json'
+                "Content-Encoding": "application/gzip",
+                "Content-Type": "application/json",
             }
             conn.request("POST", const.TELEMETRY_PATH, payload, headers)
             res = conn.getresponse()
-        except :
+        except:
             pass
 
 
+key = "********"
 
 
-key="********"
 def ip_mix_by_sha256(ip):
-    ip = ip.encode('utf-8')
-    return hmac.new(key.encode('utf-8'), ip, digestmod=hashlib.sha256).hexdigest().upper()
+    ip = ip.encode("utf-8")
+    return (
+        hmac.new(key.encode("utf-8"), ip, digestmod=hashlib.sha256).hexdigest().upper()
+    )
+
+
 def ip_mix_by_sha1(ip=""):
     sha1 = hashlib.sha1()
     sha1.update(ip.encode())
@@ -198,5 +219,3 @@ def ip_mix_by_sha1(ip=""):
 
 
 telemetry = Telemetry()
-
-

@@ -21,8 +21,8 @@ from stdio import IO
 
 ROOT_IO = IO(1)
 
-if __name__ == '__main__':
-    defaultencoding = 'utf-8'
+if __name__ == "__main__":
+    defaultencoding = "utf-8"
     if sys.getdefaultencoding() != defaultencoding:
         try:
             from imp import reload

@@ -33,7 +33,13 @@ from common.tool import TimeUtils
 
 class GatherSceneHandler(SafeStdio):
 
-    def __init__(self, context, gather_pack_dir='./', tasks_base_path="~/.obdiag/gather/tasks/", task_type="observer"):
+    def __init__(
+        self,
+        context,
+        gather_pack_dir="./",
+        tasks_base_path="~/.obdiag/gather/tasks/",
+        task_type="observer",
+    ):
         self.context = context
         self.stdio = context.stdio
         self.is_ssh = True
@@ -47,15 +53,15 @@ class GatherSceneHandler(SafeStdio):
         self.tasks_base_path = tasks_base_path
         self.task_type = task_type
         self.variables = {}
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
     def init_config(self):
         self.cluster = self.context.cluster_config
-        self.obproxy_nodes = self.context.obproxy_config['servers']
-        self.ob_nodes = self.context.cluster_config['servers']
+        self.obproxy_nodes = self.context.obproxy_config["servers"]
+        self.ob_nodes = self.context.cluster_config["servers"]
         new_nodes = Util.get_nodes_list(self.context, self.ob_nodes, self.stdio)
         if new_nodes:
             self.nodes = new_nodes
@@ -63,10 +69,10 @@ class GatherSceneHandler(SafeStdio):
 
     def handle(self):
         if not self.init_option():
-            self.stdio.error('init option failed')
+            self.stdio.error("init option failed")
             return False
         if not self.init_config():
-            self.stdio.error('init config failed')
+            self.stdio.error("init config failed")
             return False
         self.__init_variables()
         self.__init_report_path()
@@ -76,7 +82,11 @@ class GatherSceneHandler(SafeStdio):
 
     def execute(self):
         try:
-            self.stdio.verbose("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
+            self.stdio.verbose(
+                "execute_tasks. the number of tasks is {0} ,tasks is {1}".format(
+                    len(self.yaml_tasks.keys()), self.yaml_tasks.keys()
+                )
+            )
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
                 self.__execute_yaml_task_one(key, value)
             for task in self.code_tasks:
@@ -89,15 +99,24 @@ class GatherSceneHandler(SafeStdio):
         try:
             self.stdio.print("execute tasks: {0}".format(task_name))
             task_type = self.__get_task_type(task_name)
-            version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type, self.stdio)
+            version = get_obproxy_and_ob_version(
+                self.obproxy_nodes, self.ob_nodes, self.task_type, self.stdio
+            )
             if version:
-                match = re.search(r'\d+(\.\d+){2}(?:\.\d+)?', version)
+                match = re.search(r"\d+(\.\d+){2}(?:\.\d+)?", version)
                 if match:
                     self.cluster["version"] = match.group(0)
                 else:
                     self.stdio.erroe("get cluster.version failed")
                     return
-                task = SceneBase(context=self.context, scene=task_data["task"], report_dir=self.report_path, env=self.env, scene_variable_dict=self.variables, task_type=task_type)
+                task = SceneBase(
+                    context=self.context,
+                    scene=task_data["task"],
+                    report_dir=self.report_path,
+                    env=self.env,
+                    scene_variable_dict=self.variables,
+                    task_type=task_type,
+                )
                 self.stdio.verbose("{0} execute!".format(task_name))
                 task.execute()
                 self.stdio.verbose("execute tasks end : {0}".format(task_name))
@@ -111,7 +130,14 @@ class GatherSceneHandler(SafeStdio):
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
             scene = {"name": task_name}
-            task = SceneBase(context=self.context, scene=scene, report_dir=self.report_path, env=self.env, mode='code', task_type=task_name)
+            task = SceneBase(
+                context=self.context,
+                scene=scene,
+                report_dir=self.report_path,
+                env=self.env,
+                mode="code",
+                task_type=task_name,
+            )
             self.stdio.verbose("{0} execute!".format(task_name))
             task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))
@@ -120,8 +146,8 @@ class GatherSceneHandler(SafeStdio):
 
     def __init_task_names(self):
         if self.scene:
-            new = re.sub(r'\{|\}', '', self.scene)
-            items = re.split(r'[;,]', new)
+            new = re.sub(r"\{|\}", "", self.scene)
+            items = re.split(r"[;,]", new)
             scene = GatherScenesListHandler(self.context)
             for item in items:
                 yaml_task_data = scene.get_one_yaml_task(item)
@@ -142,7 +168,13 @@ class GatherSceneHandler(SafeStdio):
 
     def __init_report_path(self):
         try:
-            self.report_path = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp), self.stdio))
+            self.report_path = os.path.join(
+                self.gather_pack_dir,
+                "gather_pack_{0}".format(
+                    TimeUtils.timestamp_to_filename_time(self.gather_timestamp),
+                    self.stdio,
+                ),
+            )
             self.stdio.verbose("Use {0} as pack dir.".format(self.report_path))
             DirectoryUtil.mkdir(path=self.report_path, stdio=self.stdio)
         except Exception as e:
@@ -151,10 +183,18 @@ class GatherSceneHandler(SafeStdio):
     def __init_variables(self):
         try:
             self.variables = {
-                "observer_data_dir": self.ob_nodes[0].get("home_path") if self.ob_nodes and self.ob_nodes[0].get("home_path") else "",
-                "obproxy_data_dir": self.obproxy_nodes[0].get("home_path") if self.obproxy_nodes and self.obproxy_nodes[0].get("home_path") else "",
+                "observer_data_dir": (
+                    self.ob_nodes[0].get("home_path")
+                    if self.ob_nodes and self.ob_nodes[0].get("home_path")
+                    else ""
+                ),
+                "obproxy_data_dir": (
+                    self.obproxy_nodes[0].get("home_path")
+                    if self.obproxy_nodes and self.obproxy_nodes[0].get("home_path")
+                    else ""
+                ),
                 "from_time": self.from_time_str,
-                "to_time": self.to_time_str
+                "to_time": self.to_time_str,
             }
             self.stdio.verbose("gather scene variables: {0}".format(self.variables))
         except Exception as e:
@@ -162,20 +202,20 @@ class GatherSceneHandler(SafeStdio):
 
     def __get_task_type(self, s):
         trimmed_str = s.strip()
-        if '.' in trimmed_str:
-            parts = trimmed_str.split('.', 1)
+        if "." in trimmed_str:
+            parts = trimmed_str.split(".", 1)
             return parts[0]
         else:
             return None
 
     def init_option(self):
         options = self.context.options
-        from_option = Util.get_option(options, 'from')
-        to_option = Util.get_option(options, 'to')
-        since_option = Util.get_option(options, 'since')
-        store_dir_option = Util.get_option(options, 'store_dir')
-        env_option = Util.get_option(options, 'env')
-        scene_option = Util.get_option(options, 'scene')
+        from_option = Util.get_option(options, "from")
+        to_option = Util.get_option(options, "to")
+        since_option = Util.get_option(options, "since")
+        store_dir_option = Util.get_option(options, "store_dir")
+        env_option = Util.get_option(options, "env")
+        scene_option = Util.get_option(options, "scene")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -183,28 +223,64 @@ class GatherSceneHandler(SafeStdio):
                 self.from_time_str = from_option
                 self.to_time_str = to_option
             except OBDIAGFormatException:
-                self.stdio.exception('Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}'.format(from_option, to_option))
+                self.stdio.exception(
+                    "Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}".format(
+                        from_option, to_option
+                    )
+                )
                 return False
             if to_timestamp <= from_timestamp:
-                self.stdio.exception('Error: from datetime is larger than to datetime, please check.')
+                self.stdio.exception(
+                    "Error: from datetime is larger than to datetime, please check."
+                )
                 return False
         elif (from_option is None or to_option is None) and since_option is not None:
             now_time = datetime.datetime.now()
-            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            self.from_time_str = (
+                now_time
+                - datetime.timedelta(
+                    seconds=TimeUtils.parse_time_length_to_sec(since_option)
+                )
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            self.stdio.print(
+                "gather from_time: {0}, to_time: {1}".format(
+                    self.from_time_str, self.to_time_str
+                )
+            )
         else:
-            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
+            self.stdio.warn(
+                "No time option provided, default processing is based on the last 30 minutes"
+            )
             now_time = datetime.datetime.now()
-            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
             if since_option:
-                self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
+                self.from_time_str = (
+                    now_time
+                    - datetime.timedelta(
+                        seconds=TimeUtils.parse_time_length_to_sec(since_option)
+                    )
+                ).strftime("%Y-%m-%d %H:%M:%S")
             else:
-                self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+                self.from_time_str = (
+                    now_time - datetime.timedelta(minutes=30)
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            self.stdio.print(
+                "gather from_time: {0}, to_time: {1}".format(
+                    self.from_time_str, self.to_time_str
+                )
+            )
         if store_dir_option:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn(
+                    "warn: args --store_dir [{0}] incorrect: No such directory, Now create it".format(
+                        os.path.abspath(store_dir_option)
+                    )
+                )
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if scene_option:
@@ -217,4 +293,10 @@ class GatherSceneHandler(SafeStdio):
         return True
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
+        self.stdio.print(
+            Fore.YELLOW
+            + "\nGather scene results stored in this directory: {0}\n".format(
+                self.report_path
+            )
+            + Style.RESET_ALL
+        )

@@ -24,11 +24,13 @@ class RCAInitException(Exception):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
-
 
 
 class RCAExecuteException(Exception):
@@ -36,11 +38,13 @@ class RCAExecuteException(Exception):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)
-
 
 
 class RCANotNeedExecuteException(Exception):
@@ -48,7 +52,10 @@ class RCANotNeedExecuteException(Exception):
         self.msg, self.obj = msg, obj
 
     def __repr__(self):
-        return '%s %s' % (self.msg, self.obj is not None and pprint.pformat(self.obj) or '')
+        return "%s %s" % (
+            self.msg,
+            self.obj is not None and pprint.pformat(self.obj) or "",
+        )
 
     def __str__(self):
         return repr(self)

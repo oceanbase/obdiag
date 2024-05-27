@@ -31,20 +31,20 @@ class GlobalHtmlMeta:
         try:
             return self._html_dict[key]
         except:
-            print('get' + key + 'failed\r\n')
+            print("get" + key + "failed\r\n")
 
     def rm_value(self, key):
         try:
             return self._html_dict.pop(key)
         except:
-            print('delete' + key + 'failed\r\n')
+            print("delete" + key + "failed\r\n")
 
 
 html_dict = GlobalHtmlMeta()
 
 html_dict.set_value(
     "sql_plan_monitor_report_header",
-    '''
+    """
     <!doctype html>
     <html lang="en">
       <head>
@@ -200,12 +200,12 @@ html_dict.set_value(
       topnode.get(0).innerHTML = table;
     }
     </script>
-    '''
+    """,
 )
 
 html_dict.set_value(
     "sql_plan_monitor_report_footer",
-    '''
+    """
         <script>
         generate_graph("detail", detail_serial_v1, $('#detail_serial_v1'));
         generate_graph("detail", detail_serial_v2, $('#detail_serial_v2'));
@@ -235,12 +235,12 @@ html_dict.set_value(
         </script>
         </body>
         </html>
-        '''
+        """,
 )
 
 html_dict.set_value(
     "sql_plan_monitor_report_footer_obversion4",
-    '''
+    """
         <script>
         var detail_load = false;
         if (detail_serial_v1.length > 4000) {
@@ -285,5 +285,5 @@ html_dict.set_value(
         <div id='debug' class="fixed"><a target='_blank' href='https://www.oceanbase.com/'>帮助文档</a> </div>
         </body>
         </html>
-        '''
+        """,
 )

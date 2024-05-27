@@ -53,7 +53,9 @@ from common.tool import TimeUtils
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml')):
+    def __init__(
+        self, stdio=None, config_path=os.path.expanduser("~/.obdiag/config.yml")
+    ):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -64,13 +66,32 @@ class ObdiagHome(object):
         self.context = None
         self.inner_config_manager = InnerConfigManager(stdio)
         self.config_manager = ConfigManager(config_path, stdio)
-        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get(
-                "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get(
-                "telemetry") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False:
+        if (
+            self.inner_config_manager.config.get("obdiag") is not None
+            and self.inner_config_manager.config.get("obdiag").get("basic") is not None
+            and self.inner_config_manager.config.get("obdiag")
+            .get("basic")
+            .get("telemetry")
+            is not None
+            and self.inner_config_manager.config.get("obdiag")
+            .get("basic")
+            .get("telemetry")
+            is False
+        ):
             telemetry.work_tag = False
-        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get(
-                "basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms") is not None :
-            disable_rsa_algorithms=self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms")
+        if (
+            self.inner_config_manager.config.get("obdiag") is not None
+            and self.inner_config_manager.config.get("obdiag").get("basic") is not None
+            and self.inner_config_manager.config.get("obdiag")
+            .get("basic")
+            .get("dis_rsa_algorithms")
+            is not None
+        ):
+            disable_rsa_algorithms = (
+                self.inner_config_manager.config.get("obdiag")
+                .get("basic")
+                .get("dis_rsa_algorithms")
+            )
             dis_rsa_algorithms(disable_rsa_algorithms)
 
     def fork(self, cmds=None, options=None, stdio=None):
@@ -91,16 +112,29 @@ class ObdiagHome(object):
 
     def set_stdio(self, stdio):
         def _print(msg, *arg, **kwarg):
-            sep = kwarg['sep'] if 'sep' in kwarg else None
-            end = kwarg['end'] if 'end' in kwarg else None
-            return print(msg, sep='' if sep is None else sep, end='\n' if end is None else end)
+            sep = kwarg["sep"] if "sep" in kwarg else None
+            end = kwarg["end"] if "end" in kwarg else None
+            return print(
+                msg, sep="" if sep is None else sep, end="\n" if end is None else end
+            )
 
         self.stdio = stdio
         self._stdio_func = {}
         if not self.stdio:
             return
-        for func in ['start_loading', 'stop_loading', 'print', 'confirm', 'verbose', 'warn', 'exception', 'error',
-                     'critical', 'print_list', 'read']:
+        for func in [
+            "start_loading",
+            "stop_loading",
+            "print",
+            "confirm",
+            "verbose",
+            "warn",
+            "exception",
+            "error",
+            "critical",
+            "print_list",
+            "read",
+        ]:
             self._stdio_func[func] = getattr(self.stdio, func, _print)
 
     def set_context(self, handler_name, namespace, config):
@@ -113,7 +147,7 @@ class ObdiagHome(object):
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
+            inner_config=self.inner_config_manager.config,
         )
         telemetry.set_cluster_conn(config.get_ob_cluster_config)
 
@@ -127,7 +161,7 @@ class ObdiagHome(object):
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
+            inner_config=self.inner_config_manager.config,
         )
 
     def set_offline_context(self, handler_name, namespace):
@@ -137,7 +171,7 @@ class ObdiagHome(object):
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
-            inner_config=self.inner_config_manager.config
+            inner_config=self.inner_config_manager.config,
         )
 
     def get_namespace(self, spacename):
@@ -150,18 +184,18 @@ class ObdiagHome(object):
 
     def call_plugin(self, plugin, spacename=None, target_servers=None, **kwargs):
         args = {
-            'namespace': spacename,
-            'namespaces': self.namespaces,
-            'cluster_config': None,
-            'obproxy_config': None,
-            'ocp_config': None,
-            'cmd': self.cmds,
-            'options': self.options,
-            'stdio': self.stdio,
-            'target_servers': target_servers
+            "namespace": spacename,
+            "namespaces": self.namespaces,
+            "cluster_config": None,
+            "obproxy_config": None,
+            "ocp_config": None,
+            "cmd": self.cmds,
+            "options": self.options,
+            "stdio": self.stdio,
+            "target_servers": target_servers,
         }
         args.update(kwargs)
-        self._call_stdio('verbose', 'Call %s ' % (plugin))
+        self._call_stdio("verbose", "Call %s " % (plugin))
         return plugin(**args)
 
     def _call_stdio(self, func, msg, *arg, **kwarg):
@@ -170,7 +204,7 @@ class ObdiagHome(object):
         return self._stdio_func[func](msg, *arg, **kwarg)
 
     def ssh_clients_connect(self, servers, ssh_clients, user_config, fail_exit=False):
-        self._call_stdio('start_loading', 'Open ssh connection')
+        self._call_stdio("start_loading", "Open ssh connection")
         connect_io = self.stdio if fail_exit else self.stdio.sub_io()
         connect_status = {}
         success = True
@@ -183,9 +217,9 @@ class ObdiagHome(object):
                         user_config.password,
                         user_config.key_file,
                         user_config.port,
-                        user_config.timeout
+                        user_config.timeout,
                     ),
-                    self.stdio
+                    self.stdio,
                 )
                 error = client.connect(stdio=connect_io)
                 connect_status[server] = status = CheckStatus()
@@ -197,43 +231,43 @@ class ObdiagHome(object):
                 else:
                     status.status = CheckStatus.PASS
                     ssh_clients[server] = client
-        self._call_stdio('stop_loading', 'succeed' if success else 'fail')
+        self._call_stdio("stop_loading", "succeed" if success else "fail")
         return connect_status
 
     def gather_function(self, function_type, opt):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
             self.stdio.print("{0} start ...".format(function_type))
-            self.set_context(function_type, 'gather', config)
+            self.set_context(function_type, "gather", config)
             timestamp = TimeUtils.get_current_us_timestamp()
-            self.context.set_variable('gather_timestamp', timestamp)
-            if function_type == 'gather_log':
+            self.context.set_variable("gather_timestamp", timestamp)
+            if function_type == "gather_log":
                 handler = GatherLogHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_awr':
+            elif function_type == "gather_awr":
                 handler = GatherAwrHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_clog':
-                self.context.set_variable('gather_obadmin_mode', 'clog')
+            elif function_type == "gather_clog":
+                self.context.set_variable("gather_obadmin_mode", "clog")
                 handler = GatherObAdminHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_slog':
-                self.context.set_variable('gather_obadmin_mode', 'slog')
+            elif function_type == "gather_slog":
+                self.context.set_variable("gather_obadmin_mode", "slog")
                 handler = GatherObAdminHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_obstack':
+            elif function_type == "gather_obstack":
                 handler = GatherObstack2Handler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_perf':
+            elif function_type == "gather_perf":
                 handler = GatherPerfHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_plan_monitor':
+            elif function_type == "gather_plan_monitor":
                 handler = GatherPlanMonitorHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_all':
+            elif function_type == "gather_all":
                 handler_sysstat = GatherOsInfoHandler(self.context)
                 handler_sysstat.handle()
                 handler_stack = GatherObstack2Handler(self.context)
@@ -245,105 +279,135 @@ class ObdiagHome(object):
                 handler_obproxy = GatherObProxyLogHandler(self.context)
                 handler_obproxy.handle()
                 return True
-            elif function_type == 'gather_sysstat':
+            elif function_type == "gather_sysstat":
                 handler = GatherOsInfoHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_scenes_run':
+            elif function_type == "gather_scenes_run":
                 handler = GatherSceneHandler(self.context)
                 return handler.handle()
-            elif function_type == 'gather_ash_report':
-                handler =GatherAshReportHandler(self.context)
+            elif function_type == "gather_ash_report":
+                handler = GatherAshReportHandler(self.context)
                 return handler.handle()
             else:
-                self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
+                self._call_stdio(
+                    "error", "Not support gather function: {0}".format(function_type)
+                )
                 return False
 
     def gather_obproxy_log(self, opt):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
-            self.set_context_skip_cluster_conn('gather_obproxy_log', 'gather', config)
+            self.set_context_skip_cluster_conn("gather_obproxy_log", "gather", config)
             handler = GatherObProxyLogHandler(self.context)
             return handler.handle()
 
     def gather_scenes_list(self, opt):
-        self.set_offline_context('gather_scenes_list', 'gather')
+        self.set_offline_context("gather_scenes_list", "gather")
         handler = GatherScenesListHandler(self.context)
         return handler.handle()
 
     def analyze_fuction(self, function_type, opt):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
             self.stdio.print("{0} start ...".format(function_type))
-            if function_type == 'analyze_log':
-                self.set_context(function_type, 'analyze', config)
+            if function_type == "analyze_log":
+                self.set_context(function_type, "analyze", config)
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
-            elif function_type == 'analyze_log_offline':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+            elif function_type == "analyze_log_offline":
+                self.set_context_skip_cluster_conn(function_type, "analyze", config)
                 handler = AnalyzeLogHandler(self.context)
                 handler.handle()
-            elif function_type == 'analyze_flt_trace':
-                self.set_context(function_type, 'analyze', config)
+            elif function_type == "analyze_flt_trace":
+                self.set_context(function_type, "analyze", config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 handler.handle()
             else:
-                self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
+                self._call_stdio(
+                    "error", "Not support analyze function: {0}".format(function_type)
+                )
                 return False
-    
+
     def check(self, opts):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
             self.stdio.print("check start ...")
-            self.set_context('check', 'check', config)
+            self.set_context("check", "check", config)
             obproxy_check_handler = None
             observer_check_handler = None
-            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers"))>0:
-                obproxy_check_handler = CheckHandler(self.context,check_target_type="obproxy")
+            if (
+                self.context.obproxy_config.get("servers") is not None
+                and len(self.context.obproxy_config.get("servers")) > 0
+            ):
+                obproxy_check_handler = CheckHandler(
+                    self.context, check_target_type="obproxy"
+                )
                 obproxy_check_handler.handle()
                 obproxy_check_handler.execute()
-            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers"))>0:
-                observer_check_handler = CheckHandler(self.context,check_target_type="observer")
+            if (
+                self.context.cluster_config.get("servers") is not None
+                and len(self.context.cluster_config.get("servers")) > 0
+            ):
+                observer_check_handler = CheckHandler(
+                    self.context, check_target_type="observer"
+                )
                 observer_check_handler.handle()
                 observer_check_handler.execute()
             if obproxy_check_handler is not None:
-                obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
+                obproxy_report_path = os.path.expanduser(
+                    obproxy_check_handler.report.get_report_path()
+                )
                 if os.path.exists(obproxy_report_path):
                     self.stdio.print(
-                        "Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(
-                            obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                        "Check obproxy finished. For more details, please run cmd '"
+                        + Fore.YELLOW
+                        + " cat {0} ".format(
+                            obproxy_check_handler.report.get_report_path()
+                        )
+                        + Style.RESET_ALL
+                        + "'"
+                    )
             if observer_check_handler is not None:
-                observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
+                observer_report_path = os.path.expanduser(
+                    observer_check_handler.report.get_report_path()
+                )
                 if os.path.exists(observer_report_path):
                     self.stdio.print(
-                        "Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(
-                            observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                        "Check observer finished. For more details, please run cmd'"
+                        + Fore.YELLOW
+                        + " cat {0} ".format(
+                            observer_check_handler.report.get_report_path()
+                        )
+                        + Style.RESET_ALL
+                        + "'"
+                    )
 
     def check_list(self, opts):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
-            self.set_offline_context('check_list', 'check_list')
+            self.set_offline_context("check_list", "check_list")
             handler = CheckListHandler(self.context)
             handler.handle()
 
     def rca_run(self, opts):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
-            self.set_context('rca_run', 'rca_run', config)
+            self.set_context("rca_run", "rca_run", config)
             try:
                 handler = RCAHandler(self.context)
                 handler.handle()
@@ -354,30 +418,30 @@ class ObdiagHome(object):
     def rca_list(self, opts):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
-            self.set_offline_context('rca_list', 'rca_list')
+            self.set_offline_context("rca_list", "rca_list")
             handler = RcaScenesListHandler(context=self.context)
             handler.handle()
 
     def update(self, opts):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
             self.stdio.print("update start ...")
-            self.set_offline_context('update', 'update')
+            self.set_offline_context("update", "update")
             handler = UpdateHandler(self.context)
             handler.execute()
 
     def config(self, opt):
         config = self.config_manager
         if not config:
-            self._call_stdio('error', 'No such custum config')
+            self._call_stdio("error", "No such custum config")
             return False
         else:
-            self.set_offline_context('config', 'config')
+            self.set_offline_context("config", "config")
             config_helper = ConfigHelper(context=self.context)
             config_helper.build_configuration()

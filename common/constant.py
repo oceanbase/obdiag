@@ -42,7 +42,7 @@ const.OBPROXY_LOG_DIR_DEFAULT = "/root/obproxy/log"
 
 const.GATHER_LOG_TEMPORARY_DIR_DEFAULT = "/tmp"
 
-const.OBSTACK2_DEFAULT_INSTALL_PATH = '/tmp/obstack_x86_64_7'
+const.OBSTACK2_DEFAULT_INSTALL_PATH = "/tmp/obstack_x86_64_7"
 const.OBSTACK2_LOCAL_STORED_PATH = "./dependencies/bin/obstack_x86_64_7"
 
 # 限制收集任务的并发线程数量 10
@@ -54,7 +54,7 @@ const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK = "2.0.0"
 
 const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN = "4.0.0"
 
-const.DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser('~'), ".obdiag/config.yml")
+const.DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".obdiag/config.yml")
 
 const.FLT_TRACE_TREE_MAX_RECURSION = 5
 const.FLT_TRACE_TREE_TOP_LEAF = 5
@@ -62,40 +62,35 @@ const.FLT_TRACE_WORKER = 4
 const.FLT_TRACE_OUTPUT = 50
 
 const.OBDIAG_BASE_DEFAULT_CONFIG = {
-  "obdiag": {
-    "basic": {
-      "config_path": "~/.obdiag/config.yml",
-      "config_backup_dir": "~/.obdiag/backup_conf",
-      "file_number_limit": 20,
-      "file_size_limit": "2G"
-    },
-    "logger": {
-      "file_handler_log_level": "DEBUG",
-      "log_dir": "~/.obdiag/log",
-      "log_filename": "obdiag.log",
-      "log_level": "INFO",
-      "mode": "obdiag",
-      "stdout_handler_log_level": "INFO"
+    "obdiag": {
+        "basic": {
+            "config_path": "~/.obdiag/config.yml",
+            "config_backup_dir": "~/.obdiag/backup_conf",
+            "file_number_limit": 20,
+            "file_size_limit": "2G",
+        },
+        "logger": {
+            "file_handler_log_level": "DEBUG",
+            "log_dir": "~/.obdiag/log",
+            "log_filename": "obdiag.log",
+            "log_level": "INFO",
+            "mode": "obdiag",
+            "stdout_handler_log_level": "INFO",
+        },
     }
-  }
 }
 
 const.OBDIAG_CHECK_DEFAULT_CONFIG = {
-  "check": {
-    "ignore_version": "false",
-    "report": {
-      "report_path": "./check_report/",
-      "export_type": "table"
-    },
-    "package_file": "~/.obdiag/check/check_package.yaml",
-    "tasks_base_path": "~/.obdiag/check/tasks/"
-  }
+    "check": {
+        "ignore_version": "false",
+        "report": {"report_path": "./check_report/", "export_type": "table"},
+        "package_file": "~/.obdiag/check/check_package.yaml",
+        "tasks_base_path": "~/.obdiag/check/tasks/",
+    }
 }
 
 const.OBDIAG_GATHER_DEFAULT_CONFIG = {
-  "gather": {
-    "cases_base_path": "~/.obdiag/gather/tasks"
-  }
+    "gather": {"cases_base_path": "~/.obdiag/gather/tasks"}
 }
 
 const.OBDIAG_RCA_DEFAULT_CONFIG = {
@@ -107,7 +102,7 @@ const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemet
 const.TELEMETRY_CONTENT_REPORTER = "obdiag"
 const.TELEMETRY_URL = "openwebapi.oceanbase.com"
 const.TELEMETRY_PATH = "/api/web/oceanbase/report"
-const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
-const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
-const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'
-const.RCA_WORK_PATH= '~/.obdiag/rca'
+const.UPDATE_REMOTE_SERVER = "https://obbusiness-private.oss-cn-shanghai.aliyuncs.com"
+const.UPDATE_REMOTE_VERSION_FILE_NAME = "https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml"
+const.UPDATE_REMOTE_UPDATE_FILE_NAME = "https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar"
+const.RCA_WORK_PATH = "~/.obdiag/rca"

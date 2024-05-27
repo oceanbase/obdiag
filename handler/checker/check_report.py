@@ -34,8 +34,13 @@ from telemetry.telemetry import telemetry
 
 
 class CheckReport:
-    def __init__(self, context, report_target="observer", export_report_path="./check_report/",
-                 export_report_type="table"):
+    def __init__(
+        self,
+        context,
+        report_target="observer",
+        export_report_path="./check_report/",
+        export_report_type="table",
+    ):
         self.context = context
         self.stdio = context.stdio
         self.tasks = []
@@ -63,7 +68,10 @@ class CheckReport:
 
     def export_report(self):
         self.stdio.verbose(
-            "export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
+            "export report to {0}.{1}, export type is {1}".format(
+                self.report_path, self.export_report_type
+            )
+        )
         try:
             if self.export_report_type == "table":
                 self.export_report_table()
@@ -74,8 +82,14 @@ class CheckReport:
             elif self.export_report_type == "yaml":
                 self.export_report_yaml()
             else:
-                raise CheckrReportException("export_report_type: {0} is not support".format(self.export_report_type))
-            self.export_report_path = self.export_report_path + "." + self.export_report_type
+                raise CheckrReportException(
+                    "export_report_type: {0} is not support".format(
+                        self.export_report_type
+                    )
+                )
+            self.export_report_path = (
+                self.export_report_path + "." + self.export_report_type
+            )
         except Exception as e:
             self.stdio.error("export_report Exception : {0}".format(e))
             raise CheckrReportException(e)
@@ -85,7 +99,7 @@ class CheckReport:
 
     def export_report_xml(self):
         allMap = self.report_tobeMap()
-        with open(self.report_path + ".xml", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".xml", "w", encoding="utf8") as f:
             allreport = {}
             allreport["report"] = allMap
             json_str = json.dumps(allreport)
@@ -95,13 +109,13 @@ class CheckReport:
 
     def export_report_yaml(self):
         allMap = self.report_tobeMap()
-        with open(self.report_path + ".yaml", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".yaml", "w", encoding="utf8") as f:
             yaml.dump(allMap, f)
 
     def export_report_json(self):
         allMap = self.report_tobeMap()
         self.stdio.verbose("export_report_json allMap: {0}".format(allMap))
-        with open(self.report_path + ".json", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".json", "w", encoding="utf8") as f:
             # for python2 and python3
             try:
                 json.dump(allMap, f, ensure_ascii=False)
@@ -128,9 +142,14 @@ class CheckReport:
         allMap["critical"] = criticalMap
         allMap["warning"] = warningMap
         allMap["all"] = allInfoMap
-        telemetry.push_check_info(self.report_target,
-                                  {"fail_cases": list(failMap), "critical_cases": list(criticalMap),
-                                   "warning_cases": list(warningMap)})
+        telemetry.push_check_info(
+            self.report_target,
+            {
+                "fail_cases": list(failMap),
+                "critical_cases": list(criticalMap),
+                "warning_cases": list(warningMap),
+            },
+        )
         return allMap
 
     def export_report_table(self):
@@ -157,23 +176,36 @@ class CheckReport:
 
             for task in self.tasks:
                 if len(task.all_fail()) != 0:
-                    report_fail_tb.add_row([task.name, '\n'.join(task.all_fail())])
+                    report_fail_tb.add_row([task.name, "\n".join(task.all_fail())])
                     failMap.append(task.name)
                 if len(task.all_critical()) != 0:
-                    report_critical_tb.add_row([task.name, '\n'.join(task.all_critical())])
+                    report_critical_tb.add_row(
+                        [task.name, "\n".join(task.all_critical())]
+                    )
                     criticalMap.append(task.name)
                 if len(task.all_warning()) != 0:
-                    report_warning_tb.add_row([task.name, '\n'.join(task.all_warning())])
+                    report_warning_tb.add_row(
+                        [task.name, "\n".join(task.all_warning())]
+                    )
                     warningMap.append(task.name)
                 if len(task.all()) != 0:
-                    report_all_tb.add_row([task.name, '\n'.join(task.all())])
-                if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
+                    report_all_tb.add_row([task.name, "\n".join(task.all())])
+                if (
+                    len(task.all_fail()) == 0
+                    and len(task.all_critical()) == 0
+                    and len(task.all_warning()) == 0
+                ):
                     report_all_tb.add_row([task.name, "all pass"])
-            telemetry.push_check_info(self.report_target,
-                                      {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)),
-                                       "warning_cases": list(set(warningMap))})
+            telemetry.push_check_info(
+                self.report_target,
+                {
+                    "fail_cases": list(set(failMap)),
+                    "critical_cases": list(set(criticalMap)),
+                    "warning_cases": list(set(warningMap)),
+                },
+            )
 
-            fp = open(self.report_path + ".table", 'a+', encoding="utf8")
+            fp = open(self.report_path + ".table", "a+", encoding="utf8")
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)

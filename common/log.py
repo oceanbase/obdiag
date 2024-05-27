@@ -26,5 +26,5 @@ class Logger(logging.Logger):
         self.buffer = []
         self.buffer_size = 0
 
-    def _log(self, level, msg, args, end='\n', **kwargs):
+    def _log(self, level, msg, args, end="\n", **kwargs):
         return super(Logger, self)._log(level, msg, args, **kwargs)
