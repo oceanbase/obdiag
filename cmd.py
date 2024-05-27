@@ -52,8 +52,7 @@ class OptionHelpFormatter(IndentedHelpFormatter):
             if len(help_lines) == 1:
                 help_lines = textwrap.wrap(help_text, self.help_width)
             result.append("%*s%s\n" % (indent_first, "", help_lines[0]))
-            result.extend(["%*s%s\n" % (self.help_position, "", line)
-                           for line in help_lines[1:]])
+            result.extend(["%*s%s\n" % (self.help_position, "", line) for line in help_lines[1:]])
         elif opts[-1] != "\n":
             result.append("\n")
         return "".join(result)
@@ -62,24 +61,8 @@ class OptionHelpFormatter(IndentedHelpFormatter):
 class AllowUndefinedOptionParser(OptionParser):
     IS_TTY = sys.stdin.isatty()
 
-    def __init__(self,
-                 usage=None,
-                 option_list=None,
-                 option_class=Option,
-                 version=None,
-                 conflict_handler="resolve",
-                 description=None,
-                 formatter=None,
-                 add_help_option=True,
-                 prog=None,
-                 epilog=None,
-                 allow_undefine=True,
-                 undefine_warn=True
-                 ):
-        OptionParser.__init__(
-            self, usage, option_list, option_class, version, conflict_handler,
-            description, formatter, add_help_option, prog, epilog
-        )
+    def __init__(self, usage=None, option_list=None, option_class=Option, version=None, conflict_handler="resolve", description=None, formatter=None, add_help_option=True, prog=None, epilog=None, allow_undefine=True, undefine_warn=True):
+        OptionParser.__init__(self, usage, option_list, option_class, version, conflict_handler, description, formatter, add_help_option, prog, epilog)
         self.allow_undefine = allow_undefine
         self.undefine_warn = undefine_warn
 
@@ -96,7 +79,7 @@ class AllowUndefinedOptionParser(OptionParser):
         except BadOptionError as e:
             if self.allow_undefine:
                 key = e.opt_str
-                value = value[len(key) + 1:]
+                value = value[len(key) + 1 :]
                 setattr(values, key.strip('-').replace('-', '_'), value if value != '' else True)
                 self.undefine_warn and self.warn(e)
             else:
@@ -109,7 +92,7 @@ class AllowUndefinedOptionParser(OptionParser):
         except BadOptionError as e:
             if self.allow_undefine:
                 key = e.opt_str
-                value = value[len(key) + 1:]
+                value = value[len(key) + 1 :]
                 setattr(values, key.strip('-').replace('-', '_'), value if value != '' else True)
                 self.undefine_warn and self.warn(e)
             else:
@@ -133,7 +116,7 @@ class BaseCommand(object):
         self.parser.add_option('-v', '--verbose', action='callback', callback=self._set_verbose, help='Activate verbose output.')
 
     def _set_verbose(self, *args, **kwargs):
-        ROOT_IO.set_verbose_level(0xfffffff)
+        ROOT_IO.set_verbose_level(0xFFFFFFF)
 
     def init(self, cmd, args):
         if self.is_init is False:
@@ -198,7 +181,7 @@ class ObdiagOriginCommand(BaseCommand):
             elif to_index is not None and i == to_index:
                 next_arg = argv[i + 1] if i + 1 < len(argv) else None
                 if next_arg and self.is_valid_time_format(next_arg):
-                    processed_argv.append(argv[i] + ' ' +  next_arg)
+                    processed_argv.append(argv[i] + ' ' + next_arg)
                     to_index = None
                     i += 1
                 else:
@@ -273,6 +256,7 @@ class DisplayTraceCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         from common.ssh import LocalClient
+
         if not self.cmds:
             return self._show_help()
         log_dir = os.path.expanduser('~/.obdiag/log')
@@ -289,6 +273,7 @@ class DisplayTraceCommand(ObdiagOriginCommand):
         data = LocalClient.execute_command(cmd)
         ROOT_IO.print(data.stdout)
         return True
+
 
 class MajorCommand(BaseCommand):
 
@@ -323,8 +308,8 @@ class MajorCommand(BaseCommand):
         cmd = '%s %s' % (self.prev_cmd, base)
         ROOT_IO.track_limit += 1
         if "main.py" in cmd:
-            telemetry.work_tag=False
-        telemetry.push_cmd_info("cmd: {0}. args:{1}".format(cmd,args))
+            telemetry.work_tag = False
+        telemetry.push_cmd_info("cmd: {0}. args:{1}".format(cmd, args))
         return self.commands[base].init(cmd, args).do_command()
 
     def register_command(self, command):
@@ -347,7 +332,7 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
         self.parser.add_option('--encrypt', type='string', help="Whether the returned results need to be encrypted, choices=[true, false]", default="false")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-    
+
     def init(self, cmd, args):
         super(ObdiagGatherAllCommand, self).init(cmd, args)
         self.parser.set_usage('%s [options]' % self.prev_cmd)
@@ -360,7 +345,7 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
 class ObdiagGatherLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherLogCommand, self).__init__('log', 'Gather oceanbase logs from oceanbase machines')  
+        super(ObdiagGatherLogCommand, self).__init__('log', 'Gather oceanbase logs from oceanbase machines')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -378,10 +363,11 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         return obdiag.gather_function('gather_log', self.opts)
 
+
 class ObdiagGatherSysStatCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherSysStatCommand, self).__init__('sysstat', 'Gather Host information')      
+        super(ObdiagGatherSysStatCommand, self).__init__('sysstat', 'Gather Host information')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
@@ -398,7 +384,7 @@ class ObdiagGatherStackCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherStackCommand, self).__init__('stack', 'Gather stack')
-        
+
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
@@ -415,7 +401,7 @@ class ObdiagGatherPerfCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherPerfCommand, self).__init__('perf', 'Gather perf')
-        
+
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--scope', type='string', help="perf type constrains, choices=[sample, flame, pstack, all]", default='all')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
@@ -468,10 +454,11 @@ class ObdiagGatherClogCommand(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         return obdiag.gather_function('gather_clog', self.opts)
 
+
 class ObdiagGatherAwrCommand(ObdiagOriginCommand):
-    
+
     def __init__(self):
-        super(ObdiagGatherAwrCommand, self).__init__('awr', 'Gather ParalleSQL information')    
+        super(ObdiagGatherAwrCommand, self).__init__('awr', 'Gather ParalleSQL information')
         self.parser.add_option('--cluster_name', type='string', help='cluster_name from ocp')
         self.parser.add_option('--cluster_id', type='string', help='cluster_id from ocp')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
@@ -492,7 +479,7 @@ class ObdiagGatherAwrCommand(ObdiagOriginCommand):
 class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherPlanMonitorCommand, self).__init__('plan_monitor', 'Gather ParalleSQL information')    
+        super(ObdiagGatherPlanMonitorCommand, self).__init__('plan_monitor', 'Gather ParalleSQL information')
         self.parser.add_option('--trace_id', type='string', help='sql trace id')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--env', type='string', help='''env, eg: "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}"''')
@@ -510,7 +497,7 @@ class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
 class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherObproxyLogCommand, self).__init__('obproxy_log', 'Gather obproxy log from obproxy machines')  
+        super(ObdiagGatherObproxyLogCommand, self).__init__('obproxy_log', 'Gather obproxy log from obproxy machines')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -530,10 +517,10 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
 
 
 class ObdiagGatherSceneListCommand(ObdiagOriginCommand):
-    
+
     def __init__(self):
         super(ObdiagGatherSceneListCommand, self).__init__('list', 'gather scene list')
-    
+
     def init(self, cmd, args):
         super(ObdiagGatherSceneListCommand, self).init(cmd, args)
         return self
@@ -543,13 +530,13 @@ class ObdiagGatherSceneListCommand(ObdiagOriginCommand):
 
 
 class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
-    
+
     def __init__(self):
         super(ObdiagGatherSceneRunCommand, self).__init__('run', 'gather scene run')
         self.parser.add_option('--scene', type='string', help="Specify the scene to be gather")
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--since', type='string',  help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.",default='30m')
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--env', type='string', help='env, eg: "{env1=xxx, env2=xxx}"')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
@@ -566,24 +553,16 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagGatherAshReportCommand, self).__init__('ash', 'Gather ash report')
-        self.parser.add_option('--trace_id', type='string',
-                               help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
-        self.parser.add_option('--sql_id', type='string',
-                               help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
+        self.parser.add_option('--trace_id', type='string', help="The TRACE.ID of the SQL to be sampled, if left blank or filled with NULL, indicates that TRACE.ID is not restricted.")
+        self.parser.add_option('--sql_id', type='string', help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
         # WAIT_CLASS
-        self.parser.add_option('--wait_class', type='string',
-                               help='Event types to be sampled.')
-        self.parser.add_option('--report_type', type='string',
-                               help='Report type, currently only supports text type.', default='TEXT')
-        self.parser.add_option('--from', type='string',
-                               help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string',
-                               help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--store_dir', type='string',
-                               help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--wait_class', type='string', help='Event types to be sampled.')
+        self.parser.add_option('--report_type', type='string', help='Report type, currently only supports text type.', default='TEXT')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
 
-        self.parser.add_option('-c', type='string', help='obdiag custom config',
-                               default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
         super(ObdiagGatherAshReportCommand, self).init(cmd, args)
@@ -596,7 +575,7 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')       
+        super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
@@ -605,7 +584,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--files', action="append", type='string', help="specify files")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-        self.parser.add_option('--since', type='string',help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.",default='30m')
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
 
     def init(self, cmd, args):
         super(ObdiagAnalyzeLogCommand, self).init(cmd, args)
@@ -623,7 +602,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeFltTraceCommand, self).__init__('flt_trace', 'Analyze oceanbase trace.log from online observer machines or offline oceanbase trace.log files')        
+        super(ObdiagAnalyzeFltTraceCommand, self).__init__('flt_trace', 'Analyze oceanbase trace.log from online observer machines or offline oceanbase trace.log files')
         self.parser.add_option('--flt_trace_id', type='string', help="flt trace id, . format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
         self.parser.add_option('--files', action="append", help="specify files")
         self.parser.add_option('--top', type='string', help="top leaf span", default=5)
@@ -644,12 +623,11 @@ class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
 class ObdiagCheckCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckCommand, self).__init__('check', 'check oceanbase cluster')        
+        super(ObdiagCheckCommand, self).__init__('check', 'check oceanbase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-
 
     def init(self, cmd, args):
         super(ObdiagCheckCommand, self).init(cmd, args)
@@ -666,7 +644,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
 class ObdiagRCARunCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')       
+        super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')
         self.parser.add_option('--scene', type='string', help="rca scene name. The argument is required.")
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./rca/')
         self.parser.add_option('--input_parameters', type='string', help='input parameters of scene')
@@ -696,7 +674,7 @@ class ObdiagRCAListCommand(ObdiagOriginCommand):
 
 
 class ObdiagConfigCommand(ObdiagOriginCommand):
-    
+
     def __init__(self):
         super(ObdiagConfigCommand, self).__init__('config', 'Quick build config')
         self.parser.add_option('-h', type='string', help="database host")
@@ -712,13 +690,17 @@ class ObdiagConfigCommand(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         return obdiag.config(self.opts)
 
+
 class ObdiagUpdateCommand(ObdiagOriginCommand):
-    
+
     def __init__(self):
         super(ObdiagUpdateCommand, self).__init__('update', 'Update cheat files')
         self.parser.add_option('--file', type='string', help="obdiag update cheat file path. Please note that you need to ensure the reliability of the files on your own.")
-        self.parser.add_option('--force', action='store_true', help='You can force online upgrades by adding --force in the command',)
-
+        self.parser.add_option(
+            '--force',
+            action='store_true',
+            help='You can force online upgrades by adding --force in the command',
+        )
 
     def init(self, cmd, args):
         super(ObdiagUpdateCommand, self).init(cmd, args)
@@ -748,7 +730,7 @@ class ObdiagGatherCommand(MajorCommand):
 
 
 class ObdiagGatherSceneCommand(MajorCommand):
-    
+
     def __init__(self):
         super(ObdiagGatherSceneCommand, self).__init__('scene', 'Gather scene diagnostic info')
         self.register_command(ObdiagGatherSceneListCommand())
@@ -772,7 +754,7 @@ class ObdiagRCACommand(MajorCommand):
 
 
 class MainCommand(MajorCommand):
-    
+
     def __init__(self):
         super(MainCommand, self).__init__('obdiag', '')
         self.register_command(DisplayTraceCommand())

@@ -62,41 +62,15 @@ const.FLT_TRACE_WORKER = 4
 const.FLT_TRACE_OUTPUT = 50
 
 const.OBDIAG_BASE_DEFAULT_CONFIG = {
-  "obdiag": {
-    "basic": {
-      "config_path": "~/.obdiag/config.yml",
-      "config_backup_dir": "~/.obdiag/backup_conf",
-      "file_number_limit": 20,
-      "file_size_limit": "2G"
-    },
-    "logger": {
-      "file_handler_log_level": "DEBUG",
-      "log_dir": "~/.obdiag/log",
-      "log_filename": "obdiag.log",
-      "log_level": "INFO",
-      "mode": "obdiag",
-      "stdout_handler_log_level": "INFO"
+    "obdiag": {
+        "basic": {"config_path": "~/.obdiag/config.yml", "config_backup_dir": "~/.obdiag/backup_conf", "file_number_limit": 20, "file_size_limit": "2G"},
+        "logger": {"file_handler_log_level": "DEBUG", "log_dir": "~/.obdiag/log", "log_filename": "obdiag.log", "log_level": "INFO", "mode": "obdiag", "stdout_handler_log_level": "INFO"},
     }
-  }
 }
 
-const.OBDIAG_CHECK_DEFAULT_CONFIG = {
-  "check": {
-    "ignore_version": "false",
-    "report": {
-      "report_path": "./check_report/",
-      "export_type": "table"
-    },
-    "package_file": "~/.obdiag/check/check_package.yaml",
-    "tasks_base_path": "~/.obdiag/check/tasks/"
-  }
-}
+const.OBDIAG_CHECK_DEFAULT_CONFIG = {"check": {"ignore_version": "false", "report": {"report_path": "./check_report/", "export_type": "table"}, "package_file": "~/.obdiag/check/check_package.yaml", "tasks_base_path": "~/.obdiag/check/tasks/"}}
 
-const.OBDIAG_GATHER_DEFAULT_CONFIG = {
-  "gather": {
-    "cases_base_path": "~/.obdiag/gather/tasks"
-  }
-}
+const.OBDIAG_GATHER_DEFAULT_CONFIG = {"gather": {"cases_base_path": "~/.obdiag/gather/tasks"}}
 
 const.OBDIAG_RCA_DEFAULT_CONFIG = {
     "rca": {
@@ -110,4 +84,4 @@ const.TELEMETRY_PATH = "/api/web/oceanbase/report"
 const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
 const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
 const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'
-const.RCA_WORK_PATH= '~/.obdiag/rca'
+const.RCA_WORK_PATH = '~/.obdiag/rca'

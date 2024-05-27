@@ -127,9 +127,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         if not self.init_config():
             self.stdio.error('init config failed')
             return False
-        local_store_parent_dir = os.path.join(self.gather_pack_dir,
-                                              "analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(
-                                                  TimeUtils.get_current_us_timestamp())))
+        local_store_parent_dir = os.path.join(self.gather_pack_dir, "analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
 
@@ -153,20 +151,17 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.print(title)
         self.stdio.print(table)
         FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), title + str(table) + "\n\nDetails:\n\n")
-        
+
         for m in range(len(summary_details_list)):
             for n in range(len(field_names)):
-                extend = "\n\n" if n == len(field_names) -1 else "\n"
+                extend = "\n\n" if n == len(field_names) - 1 else "\n"
                 FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
         return analyze_tuples
 
     def __handle_from_node(self, node, local_store_parent_dir):
-        resp = {
-            "skip": False,
-            "error": ""
-        }
+        resp = {"skip": False, "error": ""}
         node_results = []
         remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         remote_user = node.get("ssh_username")
@@ -176,20 +171,17 @@ class AnalyzeLogHandler(BaseShellHandler):
         remote_home_path = node.get("home_path")
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
-        if "ssh_type" in node and node["ssh_type"]=="docker":
-            local_store_dir= "{0}/docker_{1}".format(local_store_parent_dir, node["container_name"])
+        if "ssh_type" in node and node["ssh_type"] == "docker":
+            local_store_dir = "{0}/docker_{1}".format(local_store_parent_dir, node["container_name"])
         else:
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip.replace(".", "_"))
-        DirectoryUtil.mkdir(path=local_store_dir,stdio=self.stdio)
+        DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         ssh_failed = False
         ssh = None
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key,node, self.stdio)
+            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -209,9 +201,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                     self.__pharse_offline_log_file(ssh_helper=ssh, log_name=log_name, local_store_dir=local_store_dir)
                     analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
                 else:
-                    self.__pharse_log_file(ssh_helper=ssh, node=node, log_name=log_name,
-                                        gather_path=gather_dir_full_path,
-                                        local_store_dir=local_store_dir)
+                    self.__pharse_log_file(ssh_helper=ssh, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
                     analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
                 self.stdio.start_loading('analyze log start')
                 file_result = self.__parse_log_lines(analyze_log_full_path)
@@ -227,21 +217,15 @@ class AnalyzeLogHandler(BaseShellHandler):
         else:
             log_list = self.__get_log_name_list(ssh, node)
         if len(log_list) > self.file_number_limit:
-            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list),
-                                                                                          self.file_number_limit))
-            resp["skip"] = True,
-            resp["error"] = "Too many files {0} > {1}, Please adjust the analyze time range".format(len(log_list),
-                                                                                                    self.file_number_limit)
+            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list), self.file_number_limit))
+            resp["skip"] = (True,)
+            resp["error"] = "Too many files {0} > {1}, Please adjust the analyze time range".format(len(log_list), self.file_number_limit)
             if self.directly_analyze_files:
-                resp["error"] = "Too many files {0} > {1}, " \
-                                "Please adjust the number of incoming files".format(len(log_list),
-                                                                                    self.file_number_limit)
+                resp["error"] = "Too many files {0} > {1}, " "Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
             return log_list, resp
         elif len(log_list) == 0:
-            self.stdio.warn(
-                "{0} The number of log files is {1}, No files found, "
-                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
-            resp["skip"] = True,
+            self.stdio.warn("{0} The number of log files is {1}, No files found, " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
+            resp["skip"] = (True,)
             resp["error"] = "No files found"
             return log_list, resp
         return log_list, resp
@@ -256,13 +240,11 @@ class AnalyzeLogHandler(BaseShellHandler):
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
             get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % \
-                        (log_path, log_path, log_path)
+            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
         log_name_list = []
         log_files = SshClient(self.stdio).run(ssh_helper, get_oblog) if self.is_ssh else LocalClient(self.stdio).run(get_oblog)
         if log_files:
-            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str,
-                                              log_path, log_files, self.stdio)
+            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
         else:
             self.stdio.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
         return log_name_list
@@ -294,25 +276,15 @@ class AnalyzeLogHandler(BaseShellHandler):
         log_path = os.path.join(home_path, "log")
         local_store_path = "{0}/{1}".format(local_store_dir, log_name)
         if self.grep_args is not None:
-            grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(
-                grep_args=self.grep_args,
-                gather_path=gather_path,
-                log_name=log_name,
-                log_dir=log_path)
+            grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
-            log_full_path = "{gather_path}/{log_name}".format(
-                log_name=log_name,
-                gather_path=gather_path
-            )
+            log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
             download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
         else:
             real_time_logs = ["observer.log", "rootservice.log", "election.log", "trace.log", "observer.log.wf", "rootservice.log.wf", "election.log.wf", "trace.log.wf"]
             if log_name in real_time_logs:
-                cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(
-                    gather_path=gather_path,
-                    log_name=log_name,
-                    log_dir=log_path)
+                cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
                 self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
                 SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
                 log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
@@ -328,10 +300,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         """
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
-            grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(
-                grep_args=self.grep_args,
-                log_name=log_name,
-                local_store_path=local_store_path)
+            grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
         else:
@@ -382,29 +351,15 @@ class AnalyzeLogHandler(BaseShellHandler):
                     if len(ret_code) > 1:
                         trace_id = self.__get_trace_id(line)
                         if error_dict.get(ret_code) is None:
-                            error_dict[ret_code] = {
-                                "file_name": file_full_path,
-                                "count": 1,
-                                "first_found_time": line_time,
-                                "last_found_time": line_time,
-                                "trace_id_list": {trace_id} if len(trace_id) > 0 else {}
-                            }
+                            error_dict[ret_code] = {"file_name": file_full_path, "count": 1, "first_found_time": line_time, "last_found_time": line_time, "trace_id_list": {trace_id} if len(trace_id) > 0 else {}}
                         else:
                             count = error_dict[ret_code]["count"] + 1
-                            first_found_time = error_dict[ret_code]["first_found_time"] if error_dict[ret_code][
-                                                                                               "first_found_time"] < line_time else line_time
-                            last_found_time = error_dict[ret_code]["last_found_time"] if error_dict[ret_code][
-                                                                                             "last_found_time"] > line_time else line_time
+                            first_found_time = error_dict[ret_code]["first_found_time"] if error_dict[ret_code]["first_found_time"] < line_time else line_time
+                            last_found_time = error_dict[ret_code]["last_found_time"] if error_dict[ret_code]["last_found_time"] > line_time else line_time
                             trace_id_list = list(error_dict[ret_code]["trace_id_list"])
                             if not (trace_id in trace_id_list):
                                 trace_id_list.append(trace_id)
-                            error_dict[ret_code] = {
-                                "file_name": file_full_path,
-                                "count": count,
-                                "first_found_time": first_found_time,
-                                "last_found_time": last_found_time,
-                                "trace_id_list": trace_id_list
-                            }
+                            error_dict[ret_code] = {"file_name": file_full_path, "count": count, "first_found_time": first_found_time, "last_found_time": last_found_time, "trace_id_list": trace_id_list}
         self.stdio.verbose("complete parse log {0}".format(file_full_path))
         return error_dict
 
@@ -416,7 +371,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         """
         time_str = ""
         if len(log_line) >= 28:
-            time_str = log_line[1: log_line.find(']')]
+            time_str = log_line[1 : log_line.find(']')]
         return time_str
 
     def __get_trace_id(self, log_line):
@@ -429,7 +384,6 @@ class AnalyzeLogHandler(BaseShellHandler):
         find = pattern.search(log_line)
         if find and find.group(1):
             return find.group(1).strip('[').strip(']')
-
 
     def __get_log_level(self, log_line):
         """
@@ -454,10 +408,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         :param node_summary_tuple
         :return: a string indicating the overall summary
         """
-        field_names = [
-            "Node", "Status", "FileName", "ErrorCode",
-            "Message", "Count"
-        ]
+        field_names = ["Node", "Status", "FileName", "ErrorCode", "Message", "Count"]
         t = []
         t_details = []
         field_names_details = field_names
@@ -477,25 +428,22 @@ class AnalyzeLogHandler(BaseShellHandler):
                         error_code_info = OB_RET_DICT.get(ret_key, "")
                         if len(error_code_info) > 3:
                             is_empty = False
-                            t.append([node,
-                                           "Error:" + tup[2] if is_err else "Completed",
-                                           ret_value["file_name"],
-                                           ret_key,
-                                           error_code_info[1],
-                                           ret_value["count"]
-                                           ])
-                            t_details.append([node,
-                                           "Error:" + tup[2] if is_err else "Completed",
-                                           ret_value["file_name"],
-                                           ret_key,
-                                           error_code_info[1],
-                                           ret_value["count"],
-                                           error_code_info[2],
-                                           error_code_info[3],
-                                           ret_value["first_found_time"],
-                                           ret_value["last_found_time"],
-                                           str(ret_value["trace_id_list"])
-                                           ])
+                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_key, error_code_info[1], ret_value["count"]])
+                            t_details.append(
+                                [
+                                    node,
+                                    "Error:" + tup[2] if is_err else "Completed",
+                                    ret_value["file_name"],
+                                    ret_key,
+                                    error_code_info[1],
+                                    ret_value["count"],
+                                    error_code_info[2],
+                                    error_code_info[3],
+                                    ret_value["first_found_time"],
+                                    ret_value["last_found_time"],
+                                    str(ret_value["trace_id_list"]),
+                                ]
+                            )
             if is_empty:
                 t.append([node, "\033[32mPASS\033[0m", None, None, None, None])
                 t_details.append([node, "\033[32mPASS\033[0m", None, None, None, None, None, None, None, None, None])

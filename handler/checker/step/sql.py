@@ -23,7 +23,7 @@ from common.tool import Util
 
 
 class StepSQLHandler:
-    def __init__(self,context, step, task_variable_dict):
+    def __init__(self, context, step, task_variable_dict):
         try:
             self.context = context
             self.stdio = context.stdio
@@ -32,9 +32,9 @@ class StepSQLHandler:
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
-            self.ob_connector_pool=self.context.get_variable('check_obConnector_pool',None)
+            self.ob_connector_pool = self.context.get_variable('check_obConnector_pool', None)
             if self.ob_connector_pool is not None:
-                self.ob_connector=self.ob_connector_pool.get_connection()
+                self.ob_connector = self.ob_connector_pool.get_connection()
             if self.ob_connector is None:
                 raise Exception("self.ob_connector is None.")
         except Exception as e:
@@ -59,8 +59,8 @@ class StepSQLHandler:
             self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             data = self.ob_connector.execute_sql(sql)
             self.stdio.verbose("execute_sql result:{0}".format(data))
-            if   data is None  or len(data) == 0:
-                data=""
+            if data is None or len(data) == 0:
+                data = ""
             else:
                 data = data[0][0]
             if data is None:

@@ -45,8 +45,8 @@ class GatherPerfHandler(BaseShellHandler):
         self.is_scene = is_scene
         self.scope = "all"
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -87,7 +87,7 @@ class GatherPerfHandler(BaseShellHandler):
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path,"gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
@@ -97,10 +97,7 @@ class GatherPerfHandler(BaseShellHandler):
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"],
-                                  file_size,
-                                  int(time.time() - st),
-                                  resp["gather_pack_path"]))
+            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
         if self.is_ssh:
             for node in self.nodes:
@@ -119,11 +116,7 @@ class GatherPerfHandler(BaseShellHandler):
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
 
     def __handle_from_node(self, node, local_stored_path):
-        resp = {
-            "skip": False,
-            "error": "",
-            "gather_pack_path": ""
-        }
+        resp = {"skip": False, "error": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
@@ -136,13 +129,9 @@ class GatherPerfHandler(BaseShellHandler):
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port,
-                                   remote_private_key, node, self.stdio)
+            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -168,7 +157,7 @@ class GatherPerfHandler(BaseShellHandler):
             file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
                 local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                download_file(self.is_ssh,ssh_helper, remote_file_full_path, local_file_path, self.stdio)
+                download_file(self.is_ssh, ssh_helper, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
@@ -179,13 +168,11 @@ class GatherPerfHandler(BaseShellHandler):
 
     def __gather_perf_sample(self, ssh_helper, gather_path, pid_observer):
         try:
-            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(
-            gather_path=gather_path, pid=pid_observer)
+            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
             SshClient(self.stdio).run_ignore_err(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
 
-            generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(
-            gather_path=gather_path)
+            generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
             SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
         except:
@@ -193,13 +180,11 @@ class GatherPerfHandler(BaseShellHandler):
 
     def __gather_perf_flame(self, ssh_helper, gather_path, pid_observer):
         try:
-            perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(
-            gather_path=gather_path, pid=pid_observer)
+            perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf, run cmd = [{0}]".format(perf_cmd))
             SshClient(self.stdio).run_ignore_err(ssh_helper, perf_cmd) if self.is_ssh else LocalClient(self.stdio).run(perf_cmd)
 
-            generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(
-            gather_path=gather_path)
+            generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
             SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
         except:
@@ -207,8 +192,7 @@ class GatherPerfHandler(BaseShellHandler):
 
     def __gather_top(self, ssh_helper, gather_path, pid_observer):
         try:
-            cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(
-            gather_path=gather_path, pid=pid_observer)
+            cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather top, run cmd = [{0}]".format(cmd))
             SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
         except:
@@ -228,7 +212,5 @@ class GatherPerfHandler(BaseShellHandler):
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
             except:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
-            summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                format_file_size, "{0} s".format(int(consume_time)), pack_path))
-        return "\nGather Perf Summary:\n" + \
-               tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+            summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
+        return "\nGather Perf Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

@@ -34,8 +34,7 @@ from telemetry.telemetry import telemetry
 
 
 class CheckReport:
-    def __init__(self, context, report_target="observer", export_report_path="./check_report/",
-                 export_report_type="table"):
+    def __init__(self, context, report_target="observer", export_report_path="./check_report/", export_report_type="table"):
         self.context = context
         self.stdio = context.stdio
         self.tasks = []
@@ -62,8 +61,7 @@ class CheckReport:
         self.tasks.append(task_report)
 
     def export_report(self):
-        self.stdio.verbose(
-            "export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
+        self.stdio.verbose("export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
         try:
             if self.export_report_type == "table":
                 self.export_report_table()
@@ -128,9 +126,7 @@ class CheckReport:
         allMap["critical"] = criticalMap
         allMap["warning"] = warningMap
         allMap["all"] = allInfoMap
-        telemetry.push_check_info(self.report_target,
-                                  {"fail_cases": list(failMap), "critical_cases": list(criticalMap),
-                                   "warning_cases": list(warningMap)})
+        telemetry.push_check_info(self.report_target, {"fail_cases": list(failMap), "critical_cases": list(criticalMap), "warning_cases": list(warningMap)})
         return allMap
 
     def export_report_table(self):
@@ -169,9 +165,7 @@ class CheckReport:
                     report_all_tb.add_row([task.name, '\n'.join(task.all())])
                 if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_tb.add_row([task.name, "all pass"])
-            telemetry.push_check_info(self.report_target,
-                                      {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)),
-                                       "warning_cases": list(set(warningMap))})
+            telemetry.push_check_info(self.report_target, {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases": list(set(warningMap))})
 
             fp = open(self.report_path + ".table", 'a+', encoding="utf8")
 

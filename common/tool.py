@@ -54,25 +54,12 @@ from colorama import Fore, Style
 from ruamel.yaml import YAML
 from err import EC_SQL_EXECUTE_FAILED
 from stdio import SafeStdio
+
 _open = open
 encoding_open = open
 
 
-__all__ = (
-"Timeout", 
-"DynamicLoading", 
-"ConfigUtil", 
-"DirectoryUtil", 
-"FileUtil", 
-"YamlLoader", 
-"OrderedDict", 
-"COMMAND_ENV", 
-"TimeUtils", 
-"NetUtils", 
-"StringUtils", 
-"YamlUtils", 
-"Util"
-)
+__all__ = ("Timeout", "DynamicLoading", "ConfigUtil", "DirectoryUtil", "FileUtil", "YamlLoader", "OrderedDict", "COMMAND_ENV", "TimeUtils", "NetUtils", "StringUtils", "YamlUtils", "Util")
 
 _WINDOWS = os.name == 'nt'
 
@@ -318,6 +305,7 @@ class FileUtil(object):
     @staticmethod
     def checksum(target_path, stdio=None):
         from common.ssh import LocalClient
+
         if not os.path.isfile(target_path):
             info = 'No such file: ' + target_path
             if stdio:
@@ -374,12 +362,13 @@ class FileUtil(object):
                 FileUtil.symlink(os.readlink(src), dst)
                 return True
             with FileUtil.open(src, 'rb') as fsrc, FileUtil.open(dst, 'wb') as fdst:
-                    FileUtil.copy_fileobj(fsrc, fdst)
-                    os.chmod(dst, os.stat(src).st_mode)
-                    return True
+                FileUtil.copy_fileobj(fsrc, fdst)
+                os.chmod(dst, os.stat(src).st_mode)
+                return True
         except Exception as e:
             if int(getattr(e, 'errno', -1)) == 26:
                 from common.ssh import LocalClient
+
                 if LocalClient.execute_command('/usr/bin/cp -f %s %s' % (src, dst), stdio=stdio):
                     return True
             elif stdio:
@@ -503,7 +492,7 @@ class FileUtil(object):
             unit_idx = units.index(unit)
         except KeyError:
             raise ValueError("unit {0} is illegal!".format(unit))
-        new_num = float(num) * (1024 ** unit_idx)
+        new_num = float(num) * (1024**unit_idx)
         unit_idx = 0
         while new_num > 1024:
             new_num = float(new_num) / 1024
@@ -513,23 +502,21 @@ class FileUtil(object):
         if output_str:
             return "".join(["%.3f" % new_num, units[unit_idx]])
         return new_num, units[unit_idx]
-    
+
     @staticmethod
     def show_file_size_tabulate(ip, file_size, stdio=None):
         format_file_size = FileUtil.size_format(int(file_size), output_str=True, stdio=stdio)
         summary_tab = []
         field_names = ["Node", "LogSize"]
         summary_tab.append((ip, format_file_size))
-        return "\nZipFileInfo:\n" + \
-            tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        return "\nZipFileInfo:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
     @staticmethod
     def show_file_list_tabulate(ip, file_list, stdio=None):
         summary_tab = []
         field_names = ["Node", "LogList"]
         summary_tab.append((ip, file_list))
-        return "\nFileListInfo:\n" + \
-            tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
+        return "\nFileListInfo:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
     @staticmethod
     def find_all_file(base, stdio=None):
@@ -631,6 +618,7 @@ class YamlLoader(YAML):
             if getattr(self.stdio, 'exception', False):
                 self.stdio.exception('dumps error:\n%s' % e)
             raise e
+
 
 class YamlUtils(object):
 
@@ -760,7 +748,7 @@ class NetUtils(object):
             return localhost_ip
         except Exception as e:
             return localhost_ip
-    
+
     @staticmethod
     def network_connectivity(url="", stdio=None):
         try:
@@ -772,7 +760,7 @@ class NetUtils(object):
                 return False
         except Exception as e:
             return False
-    
+
     @staticmethod
     def download_file(url, local_filename, stdio=None):
         with requests.get(url, stream=True) as r:
@@ -782,7 +770,8 @@ class NetUtils(object):
                     f.write(chunk)
         return local_filename
 
-COMMAND_ENV=CommandEnv()
+
+COMMAND_ENV = CommandEnv()
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -792,6 +781,7 @@ class DateTimeEncoder(json.JSONEncoder):
             return obj.strftime('%Y-%m-%d %H:%M:%S')
         # 其他类型按默认处理
         return super().default(obj)
+
 
 class TimeUtils(object):
 
@@ -818,14 +808,12 @@ class TimeUtils(object):
         except Exception as e:
             stdio.exception('%s parse time fialed, error:\n%s, time format need to be %s' % (time_str, e, '%Y-%m-%d %H:%M:%S'))
 
-
     @staticmethod
     def sub_minutes(t, delta, stdio=None):
         try:
             return (t - datetime.timedelta(minutes=delta)).strftime('%Y-%m-%d %H:%M:%S')
         except Exception as e:
             stdio.exception('%s get time fialed, error:\n%s' % (t, e))
-
 
     @staticmethod
     def add_minutes(t, delta, stdio=None):
@@ -869,7 +857,7 @@ class TimeUtils(object):
     @staticmethod
     def parse_time_length_to_sec(time_length_str, stdio=None):
         unit = time_length_str[-1]
-        if unit != "m" and  unit != "h" and unit != "d":
+        if unit != "m" and unit != "h" and unit != "d":
             raise Exception("time length must be format 'n'<m|h|d>")
         value = int(time_length_str[:-1])
         if unit == "m":
@@ -920,7 +908,7 @@ class TimeUtils(object):
 
     @staticmethod
     def filename_time_to_datetime(filename_time, stdio=None):
-        """ transform yyyymmddhhmmss to yyyy-mm-dd hh:mm:ss"""
+        """transform yyyymmddhhmmss to yyyy-mm-dd hh:mm:ss"""
         if filename_time != "":
             return "{0}-{1}-{2} {3}:{4}:{5}".format(filename_time[0:4], filename_time[4:6], filename_time[6:8], filename_time[8:10], filename_time[10:12], filename_time[12:14])
         else:
@@ -928,7 +916,7 @@ class TimeUtils(object):
 
     @staticmethod
     def extract_filename_time_from_log_name(log_name, stdio=None):
-        """ eg: xxx.20221226231617 """
+        """eg: xxx.20221226231617"""
         log_name_fields = log_name.split(".")
         if bytes.isdigit(log_name_fields[-1].encode("utf-8")) and len(log_name_fields[-1]) >= 14:
             return log_name_fields[-1]
@@ -939,10 +927,10 @@ class TimeUtils(object):
         # 因为 yyyy-mm-dd hh:mm:ss.000000 的格式已经占了27个字符，所以如果传进来的字符串包含时间信息，那长度一定大于27
         if len(log_text) > 27:
             if log_text.startswith("["):
-                time_str = log_text[1: log_text.find(']')]
+                time_str = log_text[1 : log_text.find(']')]
             else:
-                time_str = log_text[0: log_text.find(',')]
-            time_without_us = time_str[0: time_str.find('.')]
+                time_str = log_text[0 : log_text.find(',')]
+            time_without_us = time_str[0 : time_str.find('.')]
             try:
                 format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
                 format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
@@ -1011,7 +999,8 @@ class TimeUtils(object):
         if isinstance(t, int):
             return t
         temp = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S.%f')
-        return int(datetime.datetime.timestamp(temp) * 10 ** 6)
+        return int(datetime.datetime.timestamp(temp) * 10**6)
+
 
 class StringUtils(object):
 
@@ -1025,7 +1014,7 @@ class StringUtils(object):
             password = password_match.group(2)
             db_info['password'] = password
             # 去除密码部分，避免后续解析出错
-            cli_conn_str = cli_conn_str[:password_match.start()] + cli_conn_str[password_match.end():]
+            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :]
 
         # 模式匹配短选项
         short_opt_pattern = re.compile(r'-(\w)\s*(\S*)')
@@ -1096,9 +1085,9 @@ class StringUtils(object):
         if content[0] == 'Y' and len(content) >= 12:
             sep = content.find('-')
             uval = int(content[1:sep], 16)
-            ip = uval & 0xffffffff
-            port = (uval >> 32) & 0xffff
-            return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xff), (ip >> 16 & 0xff), (ip >> 8 & 0xff), (ip >> 0 & 0xff), port)
+            ip = uval & 0xFFFFFFFF
+            port = (uval >> 32) & 0xFFFF
+            return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xFF), (ip >> 16 & 0xFF), (ip >> 8 & 0xFF), (ip >> 0 & 0xFF), port)
         else:
             return ""
 
@@ -1143,29 +1132,35 @@ class StringUtils(object):
     def build_str_on_expr_by_dict(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             return str(d.get(key, match.group(0)))
+
         return re.sub(r'#\{(\w+)\}', replacer, s)
 
     @staticmethod
     def build_str_on_expr_by_dict_2(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             value = str(d.get(key, match.group(0)))
             return f"{value}"
+
         return re.sub(r'\$\{(\w+)\}', replacer, s)
 
     @staticmethod
     def build_sql_on_expr_by_dict(expr, variable_dict, stdio=None):
         s = expr
         d = variable_dict
+
         def replacer(match):
             key = match.group(1)
             value = str(d.get(key, match.group(0)))
             return f'"{value}"'
+
         return re.sub(r'\$\{(\w+)\}', replacer, s)
 
     @staticmethod
@@ -1214,7 +1209,6 @@ class StringUtils(object):
         return len(v1.split(".")) < len(v2.split("."))
 
 
-
 class Cursor(SafeStdio):
 
     def __init__(self, ip, port, user='root', tenant='sys', password='', stdio=None):
@@ -1249,15 +1243,17 @@ class Cursor(SafeStdio):
         return raise_cursor
 
     if sys.version_info.major == 2:
+
         def _connect(self):
             self.stdio.verbose('connect %s -P%s -u%s -p%s' % (self.ip, self.port, self.user, self.password))
             self.db = mysql.connect(host=self.ip, user=self.user, port=int(self.port), passwd=str(self.password))
             self.cursor = self.db.cursor(cursorclass=mysql.cursors.DictCursor)
+
     else:
+
         def _connect(self):
             self.stdio.verbose('connect %s -P%s -u%s -p%s' % (self.ip, self.port, self.user, self.password))
-            self.db = mysql.connect(host=self.ip, user=self.user, port=int(self.port), password=str(self.password),
-                                    cursorclass=mysql.cursors.DictCursor)
+            self.db = mysql.connect(host=self.ip, user=self.user, port=int(self.port), password=str(self.password), cursorclass=mysql.cursors.DictCursor)
             self.cursor = self.db.cursor()
 
     def new_cursor(self, tenant='sys', user='root', password='', ip='', port='', print_exception=True):
@@ -1305,22 +1301,22 @@ class Util(object):
 
     @staticmethod
     def get_option(options, key, default=None):
-        if not hasattr(options, key) :
+        if not hasattr(options, key):
             return default
         value = getattr(options, key)
         if value is None:
             value = default
         return value
-    
+
     @staticmethod
     def set_option(options, key, value):
         setattr(options, key, value)
-    
+
     @staticmethod
     def convert_to_number(s, stdio=None):
         if isinstance(s, (int, float)):
             return s
-        if isinstance(s,decimal.Decimal):
+        if isinstance(s, decimal.Decimal):
             try:
                 return float(s)
             except:
@@ -1350,12 +1346,12 @@ class Util(object):
         table_data = [[value[key] for key in keys] for value in scene_dict.values()]
         column_widths = [max(len(str(item)) * (StringUtils.is_chinese(item) or 1) for item in column) for column in zip(*table_data)]
         table_data.insert(0, keys)
-        Util.print_line(length= sum(column_widths) + 5)
+        Util.print_line(length=sum(column_widths) + 5)
         for i in range(len(table_data)):
             print(Fore.GREEN + "   ".join(f"{item:<{width}}" for item, width in zip(table_data[i], column_widths)) + Style.RESET_ALL)
             if i == 0:
-                Util.print_line(length= sum(column_widths) + 5)
-        Util.print_line(length= sum(column_widths) + 5)
+                Util.print_line(length=sum(column_widths) + 5)
+        Util.print_line(length=sum(column_widths) + 5)
 
     @staticmethod
     def print_line(char='-', length=50, stdio=None):
@@ -1377,18 +1373,20 @@ class Util(object):
                         return_values = decor_method(*args, **kwargs)
                         return return_values
                     except Exception as e:
-                        if getattr(stdio, "Function execution %s retry: %s " %(decor_method.__name__, count + 1), False):
+                        if getattr(stdio, "Function execution %s retry: %s " % (decor_method.__name__, count + 1), False):
                             stdio.exception('dumps error:\n%s' % e)
                         time.sleep(retry_interval)
                         if count == retry_count - 1:
                             raise e
+
             return wrapper
+
         return real_decorator
 
     @staticmethod
     def get_nodes_list(context, nodes, stdio=None):
-        ctx_nodes = context.get_variable("filter_nodes_list",None)
-        if ctx_nodes is not None and len(ctx_nodes)>0:
+        ctx_nodes = context.get_variable("filter_nodes_list", None)
+        if ctx_nodes is not None and len(ctx_nodes) > 0:
             new_nodes = []
             for node in nodes:
                 if node in ctx_nodes:

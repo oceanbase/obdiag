@@ -25,9 +25,9 @@ from handler.gather.gather_sysstat import GatherOsInfoHandler
 
 
 class Base(SafeStdio):
-    def __init__(self, context, step, node, cluster, report_path, task_variable_dict=None, env={}, node_number = 1):
+    def __init__(self, context, step, node, cluster, report_path, task_variable_dict=None, env={}, node_number=1):
         self.context = context
-        self.stdio=context.stdio
+        self.stdio = context.stdio
         if task_variable_dict is None:
             self.task_variable_dict = {}
         else:
@@ -41,11 +41,11 @@ class Base(SafeStdio):
 
     def execute(self):
         self.stdio.verbose("step: {0}".format(self.step))
-        no_cluster_name_msg="(Please set ob_cluster_name or obproxy_cluster_name)"
+        no_cluster_name_msg = "(Please set ob_cluster_name or obproxy_cluster_name)"
         try:
             if "ip" in self.node:
                 self.task_variable_dict["remote_ip"] = self.node["ip"]
-            elif "ssh_type" in self.node and self.node["ssh_type"]=="docker":
+            elif "ssh_type" in self.node and self.node["ssh_type"] == "docker":
                 self.stdio.verbose("execute ssh_type is docker")
                 self.task_variable_dict["remote_ip"] = docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks']['bridge']["IPAddress"]
             self.task_variable_dict["remote_home_path"] = self.node["home_path"]
@@ -82,7 +82,7 @@ class Base(SafeStdio):
                     self.context.set_variable('filter_nodes_list', [self.node])
                     handler.handle()
                 else:
-                    self.stdio.error("the type not support: {0}" .format(self.step["type"]))
+                    self.stdio.error("the type not support: {0}".format(self.step["type"]))
         except Exception as e:
             self.stdio.error("StepBase handler.execute fail, error: {0}".format(e))
             if self.step["type"] == "sql":

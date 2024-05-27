@@ -40,7 +40,7 @@ if sys.version_info.major == 3:
 
 
 class BufferIO(object):
-    
+
     def __init__(self, auto_clear=True):
         self._buffer = []
         self.auto_clear = auto_clear
@@ -244,13 +244,13 @@ class IOHalo(Halo):
         super(IOHalo, self).__init__(text=text, color=color, text_color=text_color, spinner=spinner, animation=animation, placement=placement, interval=interval, enabled=enabled, stream=stream)
 
     def start(self, text=None):
-        if getattr(self._stream, 'isatty', lambda : False)():
+        if getattr(self._stream, 'isatty', lambda: False)():
             return super(IOHalo, self).start(text=text)
         else:
             text and self._stream.write(text)
 
     def stop_and_persist(self, symbol=' ', text=None):
-        if getattr(self._stream, 'isatty', lambda : False)():
+        if getattr(self._stream, 'isatty', lambda: False)():
             return super(IOHalo, self).stop_and_persist(symbol=symbol, text=text)
         else:
             self._stream.write(' %s\n' % symbol.format(istty=False))
@@ -275,7 +275,7 @@ class IOProgressBar(ProgressBar):
         if istty is False:
             return [text]
         elif widget_type == 'download':
-                return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']'), ' ', ETA(), ' ', FileTransferSpeed()]
+            return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']'), ' ', ETA(), ' ', FileTransferSpeed()]
         elif widget_type == 'timer':
             return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']'), ' ', AdaptiveETA()]
         elif widget_type == 'simple_progress':
@@ -284,7 +284,7 @@ class IOProgressBar(ProgressBar):
             return ['%s: ' % text, Percentage(), ' ', Bar(marker='#', left='[', right=']')]
 
     def __init__(self, maxval=None, text='', term_width=None, poll=1, left_justify=True, stream=None, widget_type='download'):
-        self.stream_isatty = getattr(stream, 'isatty', lambda : False)()
+        self.stream_isatty = getattr(stream, 'isatty', lambda: False)()
         super(IOProgressBar, self).__init__(maxval=maxval, widgets=self._get_widgets(widget_type, text, self.stream_isatty), term_width=term_width, poll=poll, left_justify=left_justify, fd=stream)
 
     def start(self):
@@ -328,14 +328,12 @@ class IOProgressBar(ProgressBar):
         return True
 
     def _hide_cursor(self):
-        """Disable the user's blinking cursor
-        """
+        """Disable the user's blinking cursor"""
         if self._check_stream() and self.stream_isatty:
             cursor.hide(stream=self.fd)
 
     def _show_cursor(self):
-        """Re-enable the user's blinking cursor
-        """
+        """Re-enable the user's blinking cursor"""
         if self._check_stream() and self.stream_isatty:
             cursor.show(stream=self.fd)
 
@@ -360,15 +358,7 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self,
-        level,
-        msg_lv=MsgLevel.DEBUG,
-        use_cache=False,
-        track_limit=0,
-        root_io=None,
-        input_stream=SysStdin,
-        output_stream=sys.stdout
-    ):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout):
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -472,7 +462,7 @@ class IO(object):
     def before_close(self):
         if self._before_critical:
             try:
-               self._before_critical(self)
+                self._before_critical(self)
             except:
                 pass
 
@@ -505,7 +495,7 @@ class IO(object):
             self._flush_log()
             self._log_cache = None
         return True
-    
+
     def get_input_stream(self):
         if self._root_io:
             return self._root_io.get_input_stream()
@@ -630,12 +620,7 @@ class IO(object):
     def sub_io(self, msg_lv=None):
         if msg_lv is None:
             msg_lv = self.msg_lv
-        return self.__class__(
-                self.level + 1,
-                msg_lv=msg_lv,
-                track_limit=self.track_limit,
-                root_io=self._root_io if self._root_io else self
-            )
+        return self.__class__(self.level + 1, msg_lv=msg_lv, track_limit=self.track_limit, root_io=self._root_io if self._root_io else self)
 
     def print_list(self, ary, field_names=None, exp=lambda x: x if isinstance(x, (list, tuple)) else [x], show_index=False, start=0, **kwargs):
         if not ary:
@@ -749,12 +734,14 @@ class IO(object):
         self._print(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
 
     if sys.version_info.major == 2:
+
         def exception(self, msg='', *args, **kwargs):
             import linecache
+
             exception_msg = []
             ei = sys.exc_info()
             exception_msg.append('Traceback (most recent call last):')
-            stack = traceback.extract_stack()[self.track_limit:-2]
+            stack = traceback.extract_stack()[self.track_limit : -2]
             tb = ei[2]
             while tb is not None:
                 f = tb.tb_frame
@@ -768,7 +755,8 @@ class IO(object):
                 stack.append((filename, lineno, name, line))
             for line in stack:
                 exception_msg.append('  File "%s", line %d, in %s' % line[:3])
-                if line[3]: exception_msg.append('    ' + line[3].strip())
+                if line[3]:
+                    exception_msg.append('    ' + line[3].strip())
             lines = []
             for line in traceback.format_exception_only(ei[0], ei[1]):
                 lines.append(line)
@@ -780,11 +768,13 @@ class IO(object):
                 print_stack = lambda m: self.log(MsgLevel.ERROR, m)
             msg and self.error(msg)
             print_stack('\n'.join(exception_msg))
+
     else:
+
         def exception(self, msg='', *args, **kwargs):
             ei = sys.exc_info()
             traceback_e = traceback.TracebackException(type(ei[1]), ei[1], ei[2], limit=None)
-            pre_stach = traceback.extract_stack()[self.track_limit:-2]
+            pre_stach = traceback.extract_stack()[self.track_limit : -2]
             pre_stach.reverse()
             for summary in pre_stach:
                 traceback_e.stack.insert(0, summary)
@@ -839,7 +829,7 @@ class StdIO(object):
             if attr is not EMPTY:
                 self._attrs[item] = attr
             else:
-                is_tty = getattr(self._stream, 'isatty', lambda : False)()
+                is_tty = getattr(self._stream, 'isatty', lambda: False)()
                 self._warn_func(FormtatText.warning("WARNING: {} has no attribute '{}'".format(self.io, item)).format(is_tty))
                 self._attrs[item] = FAKE_RETURN
         return self._attrs[item]
@@ -884,9 +874,11 @@ def safe_stdio_decorator(default_stdio=None):
                     stdio = get_stdio(kwargs.get("stdio", _default_stdio))
                     kwargs["stdio"] = stdio
                 return func(*args, **kwargs)
+
             return _type(func_wrapper) if is_bond_method else func_wrapper
         else:
             return _type(func) if is_bond_method else func
+
     return decorated
 
 
@@ -896,7 +888,7 @@ class SafeStdioMeta(type):
     def _init_wrapper_func(func):
         def wrapper(*args, **kwargs):
             setattr(args[0], "_wrapper_func", {})
-            func(*args, **kwargs)
+            safe_stdio_decorator(FAKE_IO)(func)(*args, **kwargs)
             if "stdio" in args[0].__dict__:
                 args[0].__dict__["stdio"] = get_stdio(args[0].__dict__["stdio"])
 

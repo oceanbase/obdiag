@@ -22,6 +22,7 @@ from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_log import GatherLogHandler
 
+
 class CPUHighScene(SafeStdio):
     def __init__(self, context, report_path, task_variable_dict=None, env={}):
         self.context = context

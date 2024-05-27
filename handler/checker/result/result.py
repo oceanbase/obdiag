@@ -24,8 +24,9 @@ import re
 # validation process, handle it as fail); VerifyException (verification failed, report needs to be combined with
 # report_type)
 
+
 class CheckResult:
-    def __init__(self,context, step_result_info, variable_dict):
+    def __init__(self, context, step_result_info, variable_dict):
         self.context = context
         self.stdio = context.stdio
         self.step_result_info = step_result_info
@@ -42,8 +43,7 @@ class CheckResult:
         # if verify in step.result[]
         if "verify" in self.step_result_info:
             try:
-                verify = VerifyResult(self.context,self.step_result_info["verify"],
-                                      self.variable_dict, self.step_result_info["set_value"], verify_type)
+                verify = VerifyResult(self.context, self.step_result_info["verify"], self.variable_dict, self.step_result_info["set_value"], verify_type)
                 result = verify.execute()
                 self.stdio.verbose("verify.execute end. and result is {0}".format(result))
 
@@ -52,11 +52,8 @@ class CheckResult:
                 raise ResultFailException(e)
             if not result:
                 err_msg = self.build_msg()
-                self.stdio.verbose(
-                    "verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
+                self.stdio.verbose("verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
                 raise ResultFalseException(err_msg)
-
-
 
     def build_msg(self):
         s = "the step is not pass"
@@ -69,5 +66,3 @@ class CheckResult:
             return str(d.get(key, match.group(0)))
 
         return re.sub(r'#\{(\w+)\}', replacer, s)
-
-

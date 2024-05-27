@@ -34,16 +34,12 @@ class CheckListHandler:
         files = [f for f in entries if os.path.isfile(os.path.join(self.work_path, f))]
         for file in files:
             if "check_package" in file:
-                cases_map = {"all": {"name": "all", "command": "obdiag check",
-                                     "info_en": "default check all task without filter",
-                                     "info_cn": "默认执行除filter组里的所有巡检项"}}
+                cases_map = {"all": {"name": "all", "command": "obdiag check", "info_en": "default check all task without filter", "info_cn": "默认执行除filter组里的所有巡检项"}}
                 # Obtain which files match and corresponding header files
                 # Using string segmentation methods
                 parts = file.split('_')
                 if len(parts) < 1:
-                    self.stdio.warn(
-                        "invalid check package name :{0} , Please don't add file, which 'check_package' in the name".format(
-                            file))
+                    self.stdio.warn("invalid check package name :{0} , Please don't add file, which 'check_package' in the name".format(file))
                     continue
                 target = parts[0]
                 file = "{0}/{1}".format(self.work_path, file)
@@ -63,10 +59,11 @@ class CheckListHandler:
                         else:
                             package_target = "{0}_cases".format(target)
 
-                        cases_map[package_data] = {"name": package_data,
-                                                   "command": "obdiag check --{0}={1}".format(package_target,
-                                                                                              package_data),
-                                                   "info_en": package_file_data[package_data].get("info_en") or "",
-                                                   "info_cn": package_file_data[package_data].get("info_cn") or ""}
+                        cases_map[package_data] = {
+                            "name": package_data,
+                            "command": "obdiag check --{0}={1}".format(package_target, package_data),
+                            "info_en": package_file_data[package_data].get("info_en") or "",
+                            "info_cn": package_file_data[package_data].get("info_cn") or "",
+                        }
                 Util.print_title("check cases about {0}".format(target))
                 Util.print_scene(cases_map)

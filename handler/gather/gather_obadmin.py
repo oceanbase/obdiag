@@ -48,8 +48,8 @@ class GatherObAdminHandler(BaseShellHandler):
         self.grep_args = None
         self.zip_encrypt = False
         self.config_path = const.DEFAULT_CONFIG_PATH
-        if self.context.get_variable("gather_timestamp", None) :
-            self.gather_timestamp=self.context.get_variable("gather_timestamp")
+        if self.context.get_variable("gather_timestamp", None):
+            self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
@@ -60,7 +60,7 @@ class GatherObAdminHandler(BaseShellHandler):
             self.nodes = new_nodes
         self.inner_config = self.context.inner_config
         self.ob_admin_mode = 'clog'
-        if self.context.get_variable("gather_obadmin_mode", None) :
+        if self.context.get_variable("gather_obadmin_mode", None):
             self.ob_admin_mode = self.context.get_variable("gather_obadmin_mode")
         if self.inner_config is None:
             self.file_number_limit = 20
@@ -131,11 +131,7 @@ class GatherObAdminHandler(BaseShellHandler):
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"],
-                                  file_size,
-                                  resp["zip_password"],
-                                  int(time.time() - st),
-                                  resp["gather_pack_path"]))
+            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
 
         if self.is_ssh:
             for node in self.nodes:
@@ -159,18 +155,13 @@ class GatherObAdminHandler(BaseShellHandler):
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
 
     def __handle_from_node(self, local_stored_path, node):
-        resp = {
-            "skip": False,
-            "error": "",
-            "gather_pack_path": ""
-        }
+        resp = {"skip": False, "error": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
         remote_password = node.get("ssh_password")
         remote_port = node.get("ssh_port")
         remote_private_key = node.get("ssh_key_file")
-        self.stdio.verbose(
-            "Sending Collect Shell Command to node {0} ...".format(remote_ip))
+        self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         if self.ob_admin_mode == "slog":
@@ -182,10 +173,7 @@ class GatherObAdminHandler(BaseShellHandler):
         try:
             ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
         except Exception as e:
-            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(
-                remote_user, 
-                remote_ip, 
-                self.config_path))
+            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
@@ -194,8 +182,7 @@ class GatherObAdminHandler(BaseShellHandler):
             SshClient(self.stdio).run(ssh_helper, mkdir_cmd) if self.is_ssh else LocalClient(self.stdio).run(mkdir_cmd)
             ob_version = get_observer_version(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
             if (ob_version != "" and not StringUtils.compare_versions_lower(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN, self.stdio)) or ob_version == "":
-                self.stdio.verbose("This version {0} does not support gather clog/slog . The max supported version less than {1}".
-                            format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
+                self.stdio.verbose("This version {0} does not support gather clog/slog . The max supported version less than {1}".format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
                 resp["error"] = "{0} not support gather clog/slog".format(ob_version)
                 resp["gather_pack_path"] = "{0}".format(local_stored_path)
                 resp["zip_password"] = ""
@@ -216,17 +203,13 @@ class GatherObAdminHandler(BaseShellHandler):
     def __handle_log_list(self, ssh, node, resp):
         log_list = self.__get_log_name(ssh, node)
         if len(log_list) > 20:
-            self.stdio.warn(
-                "{0} The number of log files is {1}, out of range (0,20], "
-                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
-            resp["skip"] = True,
+            self.stdio.warn("{0} The number of log files is {1}, out of range (0,20], " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
+            resp["skip"] = (True,)
             resp["error"] = "Too many files {0} > 20".format(len(log_list))
             return log_list, resp
         elif len(log_list) <= 0:
-            self.stdio.warn(
-                "{0} The number of log files is {1}, out of range (0,20], "
-                "Please adjust the query limit".format(node.get("ip"), len(log_list)))
-            resp["skip"] = True,
+            self.stdio.warn("{0} The number of log files is {1}, out of range (0,20], " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
+            resp["skip"] = (True,)
             resp["error"] = "No files found"
             return log_list, resp
         return log_list, resp
@@ -253,8 +236,7 @@ class GatherObAdminHandler(BaseShellHandler):
         rm_rf_file(self.is_ssh, ssh, gather_package_dir, self.stdio)
         resp["gather_pack_path"] = local_path
 
-        self.stdio.verbose(
-            "Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
+        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
         return resp
 
     def __get_log_name(self, ssh_helper, node):
@@ -269,7 +251,7 @@ class GatherObAdminHandler(BaseShellHandler):
             get_log = "ls -l SLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("SLOG_DIR", slog_dir)
         else:
             get_log = "ls -l CLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("CLOG_DIR", clog_dir)
-        log_files =  SshClient(self.stdio).run(ssh_helper, get_log) if self.is_ssh else LocalClient(self.stdio).run(get_log)
+        log_files = SshClient(self.stdio).run(ssh_helper, get_log) if self.is_ssh else LocalClient(self.stdio).run(get_log)
         log_name_list = []
         for file_name in log_files.split('\n'):
             if file_name == "":
@@ -283,8 +265,7 @@ class GatherObAdminHandler(BaseShellHandler):
                 if (log_time > from_time) and (log_time < to_time):
                     log_name_list.append(str(log_name_fields[0]).rstrip())
         if len(log_name_list):
-            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], "
-                        "wait for the next step".format(log_name_list, ssh_helper.get_name()))
+            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, ssh_helper.get_name()))
         else:
             self.stdio.warn("No found the qualified log file on Server [{0}]".format(ssh_helper.get_name()))
         return log_name_list
@@ -293,18 +274,14 @@ class GatherObAdminHandler(BaseShellHandler):
         home_path = node.get("home_path")
         obadmin_install_dir = os.path.join(home_path, "/bin")
         if self.ob_admin_mode == "slog":
-            cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && cd {store_dir} && {obadmin_dir}/ob_admin slog_tool -f {slog_name}".format(
-                ob_install_dir=home_path,
-                store_dir=remote_dir,
-                obadmin_dir=obadmin_install_dir,
-                slog_name=log_name)
+            cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && cd {store_dir} && {obadmin_dir}/ob_admin slog_tool -f {slog_name}".format(ob_install_dir=home_path, store_dir=remote_dir, obadmin_dir=obadmin_install_dir, slog_name=log_name)
         else:
             cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && cd {store_dir} && {obadmin_dir}/ob_admin clog_tool dump_all {clog_name}".format(
                 ob_install_dir=home_path,
                 store_dir=remote_dir,
                 obadmin_dir=obadmin_install_dir,
                 clog_name=log_name,
-                )
+            )
         self.stdio.verbose("gather obadmin info, run cmd = [{0}]".format(cmd))
         SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
 
@@ -335,14 +312,10 @@ class GatherObAdminHandler(BaseShellHandler):
             except:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             if is_zip_encrypt:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, tup[4], "{0} s".format(int(consume_time)), pack_path))
             else:
-                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed",
-                                    format_file_size, "{0} s".format(int(consume_time)), pack_path))
+                summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         if mode == "slog":
-            return "\nGather slog Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid",
-                                                                  showindex=False)
+            return "\nGather slog Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
         else:
-            return "\nGather clog Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid",
-                                                                  showindex=False)
+            return "\nGather clog Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

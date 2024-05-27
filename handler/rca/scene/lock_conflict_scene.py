@@ -15,17 +15,14 @@
 @file: lock_conflict_scene.py
 @desc:
 """
-import json
-
 from handler.rca.rca_exception import RCAInitException, RCANotNeedExecuteException
 from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
-from common.tool import StringUtils, DateTimeEncoder
+from common.tool import StringUtils
 
 
 class LockConflictScene(RcaScene):
     def __init__(self):
         super().__init__()
-        self.local_path = ""
 
     def init(self, context):
         try:
@@ -120,7 +117,6 @@ class LockConflictScene(RcaScene):
                     trans_record.add_suggest(
                         "holding_lock_session_id: {0}; wait_lock_session_id : {1}, sql_info: {2}. Lock conflicts can be ended by killing holding_lock_session_id or wait_lock_session_id".format(holding_lock_session_id, wait_lock_session_id, sql_info)
                     )
-
             except Exception as e:
                 trans_record.add_record("get SESSION_ID panic. OB_LOCKS_data:{0} error: {1}".format(OB_LOCKS_data, e))
                 trans_record.add_suggest("get SESSION_ID panic. OB_LOCKS_data:{0} error: {1}".format(OB_LOCKS_data, e))

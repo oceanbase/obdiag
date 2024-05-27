@@ -17,6 +17,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+
 class OBDIAGErrorCode(object):
 
     def __init__(self, code, msg):
@@ -24,7 +25,7 @@ class OBDIAGErrorCode(object):
         self.msg = msg
 
     def __str__(self):
-        return  self.msg
+        return self.msg
 
 
 class OBDIAGErrorCodeTemplate(object):
@@ -55,6 +56,7 @@ class FixEval(object):
         self.value = value
         self.is_global = is_global
 
+
 class OBDIAGErrorSuggestion(object):
 
     def __init__(self, msg, auto_fix=False, fix_eval=[]):
@@ -71,14 +73,11 @@ class OBDIAGErrorSuggestionTemplate(object):
         self.fix_eval = fix_eval if isinstance(fix_eval, list) else [fix_eval]
 
     def format(self, *args, **kwargs):
-        return OBDIAGErrorSuggestion(
-            self._msg.format(*args, **kwargs),
-            auto_fix=kwargs.get('auto_fix', self.auto_fix),
-            fix_eval=kwargs.get('fix_eval', self.fix_eval)
-        )
+        return OBDIAGErrorSuggestion(self._msg.format(*args, **kwargs), auto_fix=kwargs.get('auto_fix', self.auto_fix), fix_eval=kwargs.get('fix_eval', self.fix_eval))
+
 
 class CheckStatus(object):
-    
+
     FAIL = "FAIL"
     PASS = "PASS"
     WAIT = "WAIT"
@@ -87,6 +86,7 @@ class CheckStatus(object):
         self.status = status
         self.error = error
         self.suggests = suggests
+
 
 SUG_SSH_FAILED = OBDIAGErrorSuggestionTemplate('Please check user config and network')
 EC_SSH_CONNECT = OBDIAGErrorCodeTemplate(1013, '{user}@{ip} connect failed: {message}')

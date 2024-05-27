@@ -1,0 +1,29 @@
+name: Black Code Formatter Check
+
+on:
+  pull_request:
+    branches: "*"
+  push:
+    branches: "*"
+
+jobs:
+  format_check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+
+    - name: Install Black
+      run: |
+        python -m pip install --upgrade pip
+        pip install black
+
+    - name: Run Black Formatter Check
+      run: black --check -S -l 256 .
+      # `--check`选项会让black检查代码而不做实际修改，如果格式不符合black规范，则此步骤会失败
