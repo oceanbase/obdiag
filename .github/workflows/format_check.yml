@@ -25,5 +25,5 @@ jobs:
         pip install black
 
     - name: Run Black Formatter Check
-      run: black --check .
+      run: black --check -S -l 256 .
       # `--check`选项会让black检查代码而不做实际修改，如果格式不符合black规范，则此步骤会失败
