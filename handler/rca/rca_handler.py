@@ -234,6 +234,7 @@ class RCAHandler:
 
 class RcaScene:
     def __init__(self):
+        self.record = None
         self.gather_log = None
         self.stdio = None
         self.input_parameters = None
@@ -252,6 +253,7 @@ class RcaScene:
     def init(self, context):
         self.context = context
         self.stdio = context.stdio
+        self.record = RCA_ResultRecord(self.stdio)
         self.Result = Result(self.context)
         self.observer_nodes = context.get_variable("observer_nodes")
         self.obproxy_nodes = context.get_variable("obproxy_nodes")

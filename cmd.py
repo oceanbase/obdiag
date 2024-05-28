@@ -627,6 +627,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
+        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
