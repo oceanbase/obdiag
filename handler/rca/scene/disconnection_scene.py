@@ -48,9 +48,6 @@ class DisconnectionScene(RcaScene):
             self.__execute_obproxy_one_node(node)
         self.stdio.verbose("end disconnectionScene execute all nodes")
 
-    def export_result(self):
-        return self.Result.export()
-
     def get_scene_info(self):
         # 设定场景分析的返回场景使用说明，需要的参数等等
         return {

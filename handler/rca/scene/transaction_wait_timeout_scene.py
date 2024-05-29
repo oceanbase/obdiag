@@ -36,7 +36,7 @@ class TransactionWaitTimeoutScene(RcaScene):
         self.error_msg_type = None
         self.error_msg = None
         self.data_trans_id = None
-        self.work_path = None
+        self.work_path = self.store_dir
 
     def init(self, context):
         super().init(context)
@@ -153,9 +153,6 @@ class TransactionWaitTimeoutScene(RcaScene):
         finally:
             self.stdio.verbose("end TransactionWaitTimeoutScene execute")
             self.Result.records.append(self.record)
-
-    def export_result(self):
-        super().export_result()
 
     def get_scene_info(self):
         return {

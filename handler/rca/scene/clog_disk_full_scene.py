@@ -108,9 +108,6 @@ class ClogDiskFullScene(RcaScene):
         finally:
             self.stdio.verbose("end ClogDiskFullScene execute")
 
-    def export_result(self):
-        super().export_result()
-
     def get_scene_info(self):
 
         return {

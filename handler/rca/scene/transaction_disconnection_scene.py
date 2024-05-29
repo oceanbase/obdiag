@@ -26,7 +26,7 @@ from common.tool import StringUtils
 class TransactionDisconnectionScene(RcaScene):
     def __init__(self):
         super().__init__()
-        self.work_path = None
+        self.work_path = self.store_dir
 
     def init(self, context):
         super().init(context)

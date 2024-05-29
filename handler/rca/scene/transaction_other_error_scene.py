@@ -32,8 +32,8 @@ class TransactionOtherErrorScene(RcaScene):
         self.error_code = None
         self.error_msg_type = None
         self.error_msg = None
-        self.work_path = None
         self.trans_is_killed_log = None
+        self.work_path = self.store_dir
 
     def init(self, context):
         super().init(context)

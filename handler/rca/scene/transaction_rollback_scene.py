@@ -31,7 +31,7 @@ from common.tool import StringUtils
 class TransactionRollbackScene(RcaScene):
     def __init__(self):
         super().__init__()
-        self.work_path = None
+        self.work_path = self.store_dir
         self.trans_is_killed_log = None
 
     def init(self, context):
@@ -118,9 +118,6 @@ class TransactionRollbackScene(RcaScene):
         finally:
             self.stdio.verbose("end TransactionRollbackScene execute")
             self.Result.records.append(self.record)
-
-    def export_result(self):
-        super().export_result()
 
     def get_scene_info(self):
 

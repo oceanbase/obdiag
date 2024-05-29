@@ -28,14 +28,13 @@ from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
 from common.tool import StringUtils
 
 
-
 class TransactionExecuteTimeoutScene(RcaScene):
     def __init__(self):
         super().__init__()
         self.tenant_id = None
         self.err_type = None
         self.time_tag = None
-        self.work_path = None
+        self.work_path = self.store_dir
         self.trans_is_killed_log = None
 
     def init(self, context):
@@ -127,7 +126,6 @@ class TransactionExecuteTimeoutScene(RcaScene):
         else:
             self.record.add_record("timeout_timestamp - cur_query_start_time != ob_query_timeout")
             self.record.add_suggest("Not meet expectations")
-
 
     def execute_transaction(self):
         # gather log about "dump tenant"

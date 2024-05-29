@@ -386,9 +386,6 @@ class MajorHoldScene(RcaScene):
         else:
             tenant_record.add_record("diagnose_info type is Unknown.")
 
-    def export_result(self):
-        return self.Result.export()
-
     def get_scene_info(self):
         return {
             "name": "major_hold",
