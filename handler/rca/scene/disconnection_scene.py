@@ -92,7 +92,9 @@ class DisconnectionScene(RcaScene):
 class DisconnectionLog:
     def __init__(self, context, log, record):
         self.context = context
+        self.store_dir = self.context.get_variable("store_dir")
         self.stdio = context.stdio
+        self.gather_log = context.get_variable("gather_log")
         self.record = record
         self.stdio.verbose("DisconnectionLog base:{0}".format(log))
         if log is None or len(log.strip()) == 0:
@@ -127,6 +129,30 @@ class DisconnectionLog:
                 if self.trace_type == "SERVER_INTERNAL_TRACE":
                     self.trace_type = "PROXY_INTERNAL_TRACE"
                 record.add_record("cs_id:{0}, server_session_id:{1}".format(cs_id, server_session_id))
+
+                # v2.0 add : gather observer log by server_session_id
+                workpath_server_session_id = self.store_dir + "/server_session_id_{0}".format(str(server_session_id))
+                self.gather_log.grep("session_id:{0}".format(server_session_id))
+                logs_name = self.gather_log.execute(save_path=workpath_server_session_id)
+                # check trace_id, if trace_id==Y0-0000000000000000-0-0, continue next
+                observer_trace_id = "Y0-0000000000000000-0-0"
+                for log_name in logs_name:
+                    if observer_trace_id != "Y0-0000000000000000-0-0":
+                        break
+                    with open(log_name, 'r') as f:
+                        log_list = f.read().strip().split('\n')
+                        for line in log_list:
+                            if "session_id:" in line and "trace_id:" in line:
+                                observer_trace_id = line.split("trace_id:")[1].split(",")[0]
+                                if observer_trace_id != "Y0-0000000000000000-0-0":
+                                    break
+                if observer_trace_id == "Y0-0000000000000000-0-0":
+                    self.record.add_record("observer_trace_id is {0}, Not reaching the working thread".format(observer_trace_id))
+                else:
+                    work_path_observer_trace_log = self.store_dir + "/observer_trace_id_{0}_observer_log_{1}".format(str(server_session_id), observer_trace_id)
+                    self.gather_log.grep("{0}".format(observer_trace_id))
+                    self.gather_log.execute(save_path=work_path_observer_trace_log)
+                    self.record.add_record("observer_trace_id is {0}, save observer's log on '{1}'".format(observer_trace_id, work_path_observer_trace_log))
 
         except Exception as e:
             self.stdio.error("DisconnectionLog err: {0}".format(e))
