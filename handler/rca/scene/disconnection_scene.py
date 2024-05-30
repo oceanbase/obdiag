@@ -23,6 +23,7 @@ from common.tool import StringUtils
 class DisconnectionScene(RcaScene):
     def __init__(self):
         super().__init__()
+        self.max_parses_number = None
 
     def init(self, context):
         super().init(context)
@@ -42,6 +43,7 @@ class DisconnectionScene(RcaScene):
 
             if not (obproxy_version == "4.2.2.0" or StringUtils.compare_versions_greater(obproxy_version, "4.2.2.0")):
                 raise Exception("DisconnectionScene's obproxy version must be greater than 4.2.2.0. Please check the NODES conf.")
+        self.max_parses_number = self.input_parameters.get("max_parses_number") or 10
 
     def execute(self):
         for node in self.obproxy_nodes:
@@ -70,8 +72,11 @@ class DisconnectionScene(RcaScene):
             self.stdio.warn("not found log about disconnection. On node: {0}".format(node["ip"]))
             return
         self.stdio.verbose("logs_name:{0}".format(logs_name))
+        parses_number = 0
         # read the log file
         for name in logs_name:
+            if parses_number >= self.max_parses_number:
+                break
             self.stdio.verbose("read the log file: {0}".format(name))
             with open(name, 'r') as f:
                 log_list = f.read().strip().split('\n')
@@ -84,6 +89,9 @@ class DisconnectionScene(RcaScene):
                         record.add_suggest(suggest)
                         self.stdio.verbose("suggest:{0}".format(suggest))
                         self.Result.records.append(record)
+                        if parses_number >= self.max_parses_number:
+                            break
+                        parses_number += 1
                     except Exception as e:
                         self.stdio.warn("line in log_list is error, log: {0} ,err:{1}".format(line, e))
                         continue
