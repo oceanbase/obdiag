@@ -43,7 +43,12 @@ class DisconnectionScene(RcaScene):
 
             if not (obproxy_version == "4.2.2.0" or StringUtils.compare_versions_greater(obproxy_version, "4.2.2.0")):
                 raise Exception("DisconnectionScene's obproxy version must be greater than 4.2.2.0. Please check the NODES conf.")
-        self.max_parses_number = self.input_parameters.get("max_parses_number") or 10
+        try:
+            max_parses_number = self.input_parameters.get("max_parses_number") or 10
+            self.max_parses_number = int(max_parses_number)
+        except ValueError as e:
+            self.stdio.warn("max_parses_number should be an integer. Error message: {0}\n max_parses_number use default (10)".format(e))
+            self.max_parses_number = 10
 
     def execute(self):
         for node in self.obproxy_nodes:
@@ -99,11 +104,16 @@ class DisconnectionScene(RcaScene):
 
 class DisconnectionLog:
     def __init__(self, context, log, record):
+        self.input_parameters = None
+        self.input_parameters = context.get_variable("input_parameters") or {}
         self.context = context
         self.store_dir = self.context.get_variable("store_dir")
         self.stdio = context.stdio
         self.gather_log = context.get_variable("gather_log")
         self.record = record
+        if self.input_parameters.get("since") is not None:
+            since = self.input_parameters.get("since")
+            self.gather_log.set_parameters("since", since)
         self.stdio.verbose("DisconnectionLog base:{0}".format(log))
         if log is None or len(log.strip()) == 0:
             self.stdio.verbose("log is None or len(log.strip()) == 0")
@@ -112,20 +122,17 @@ class DisconnectionLog:
         self.timeout_event = ""
         try:
             self.log = log
-
             pattern = re.compile(r'trace_type="(.*?)".*' r'cs_id:(\d+).*' r'server_session_id:(\d+).*' r'error_code:([-0-9]+).*' r'error_msg:"(.*?)"')
-
-            # 搜索日志条目
+            # Search log entries
             matches = pattern.search(log)
-
-            # 如果找到匹配项，则提取所需信息
+            # If a match is found, extract the required information
             if matches:
                 trace_type = matches.group(1)
                 cs_id = matches.group(2)
                 server_session_id = matches.group(3)
                 error_code = matches.group(4)
                 error_msg = matches.group(5)
-                # 打印所需信息
+                # print log_info
                 self.trace_type = trace_type
                 self.error_code = error_code
                 self.error_msg = error_msg
@@ -137,7 +144,6 @@ class DisconnectionLog:
                 if self.trace_type == "SERVER_INTERNAL_TRACE":
                     self.trace_type = "PROXY_INTERNAL_TRACE"
                 record.add_record("cs_id:{0}, server_session_id:{1}".format(cs_id, server_session_id))
-
                 # v2.0 add : gather observer log by server_session_id
                 workpath_server_session_id = self.store_dir + "/server_session_id_{0}".format(str(server_session_id))
                 self.gather_log.grep("session_id:{0}".format(server_session_id))
@@ -161,6 +167,29 @@ class DisconnectionLog:
                     self.gather_log.grep("{0}".format(observer_trace_id))
                     self.gather_log.execute(save_path=work_path_observer_trace_log)
                     self.record.add_record("observer_trace_id is {0}, save observer's log on '{1}'".format(observer_trace_id, work_path_observer_trace_log))
+            # else:
+            #     # for 4410
+            #     trace_type = None
+            #     cs_id = None
+            #     server_session_id = None
+            #     error_code = None
+            #     error_msg = None
+            #
+            #     match_trace_type = re.search(r'trace_type="(.*?)".*', log)
+            #     if match_trace_type:
+            #         trace_type = match_trace_type.group(1)
+            #     match_cs_id = re.search(r'cs_id:(\d+).*', log)
+            #     if match_cs_id:
+            #         cs_id = match_cs_id.group(1)
+            #     match_server_session_id = re.search(r'server_session_id:(\d+).*', log)
+            #     if match_server_session_id:
+            #         server_session_id = match_server_session_id.group(1)
+            #     match_error_code = re.search(r'error_code:([-0-9]+).*', log)
+            #     if match_error_code:
+            #         error_code = match_error_code.group(1)
+            #     match_error_msg = re.search(r'error_msg:"(.*?)"', log)
+            #     if match_error_msg:
+            #         error_msg = match_error_msg.group(1)
 
         except Exception as e:
             self.stdio.error("DisconnectionLog err: {0}".format(e))

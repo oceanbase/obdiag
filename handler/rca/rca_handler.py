@@ -194,7 +194,7 @@ class RCAHandler:
                 raise Exception("rca_scene :{0} is not exist".format(scene_name))
 
             self.store_dir = os.path.expanduser(
-                "{0}/{1}_{2}".format(
+                "{0}/obdiag_{1}_{2}".format(
                     self.store_dir,
                     scene_name,
                     datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
@@ -279,6 +279,10 @@ class RcaScene:
 
     def export_result(self):
         return self.Result.export()
+
+    def save_data(self, data, save_path):
+        with open(save_path, "w") as f:
+            f.write(str(data))
 
     def get_all_tenants_id(self):
         try:
