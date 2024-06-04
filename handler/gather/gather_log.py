@@ -140,7 +140,7 @@ class GatherLogHandler(BaseShellHandler):
         if self.is_scene:
             pack_dir_this_command = self.gather_pack_dir
         else:
-            pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.gather_pack_dir, "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
             DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         self.stdio.verbose('Use {0} as pack dir.'.format(pack_dir_this_command))
         gather_tuples = []

@@ -91,7 +91,7 @@ class AnalyzeFltTraceHandler(object):
         if not self.init_config():
             self.stdio.error('init config failed')
             return False
-        local_store_parent_dir = os.path.join(self.gather_pack_dir, "analyze_flt_result_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+        local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_flt_result_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
         node_files = []
