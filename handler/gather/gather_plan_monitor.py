@@ -101,7 +101,7 @@ class GatherPlanMonitorHandler(object):
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.local_stored_path, "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.report_file_path = os.path.join(pack_dir_this_command, "sql_plan_monitor_report.html")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
@@ -816,7 +816,7 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception(repr(e))
 
     def report_plan_explain(self, db_name, raw_sql):
-        explain_sql = "explain %s" % raw_sql
+        explain_sql = "explain extended %s" % raw_sql
         try:
             sql_explain_cursor = self.db_connector.execute_sql_return_cursor(explain_sql)
             self.stdio.verbose("execute SQL: %s", explain_sql)
