@@ -142,7 +142,7 @@ class GatherSceneHandler(SafeStdio):
 
     def __init_report_path(self):
         try:
-            self.report_path = os.path.join(self.gather_pack_dir, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp), self.stdio))
+            self.report_path = os.path.join(self.gather_pack_dir, "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp), self.stdio))
             self.stdio.verbose("Use {0} as pack dir.".format(self.report_path))
             DirectoryUtil.mkdir(path=self.report_path, stdio=self.stdio)
         except Exception as e:

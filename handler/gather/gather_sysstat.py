@@ -89,7 +89,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
-            pack_dir_this_command = os.path.join(self.local_stored_path, "gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            pack_dir_this_command = os.path.join(self.local_stored_path, "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
