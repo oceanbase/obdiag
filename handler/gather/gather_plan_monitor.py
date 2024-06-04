@@ -816,7 +816,7 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception(repr(e))
 
     def report_plan_explain(self, db_name, raw_sql):
-        explain_sql = "explain %s" % raw_sql
+        explain_sql = "explain extended %s" % raw_sql
         try:
             sql_explain_cursor = self.db_connector.execute_sql_return_cursor(explain_sql)
             self.stdio.verbose("execute SQL: %s", explain_sql)
