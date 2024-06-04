@@ -75,7 +75,8 @@ class ClogDiskFullScene(RcaScene):
                     self.verbose("the tenant_id clog_disk_full is {0}".format(tenant_ids_data_sql))
                     tenant_ids_data = tenant_ids_data_sql
             if len(tenant_ids_data) <= 0:
-                raise RCANotNeedExecuteException("can not find tenant_ids about clog_disk_full. Need not execute.")
+                init_record.add_record("Not find tenant_ids about clog_disk_full.")
+                raise RCANotNeedExecuteException("Not find tenant_ids about clog_disk_full.")
             self.verbose("tenant_ids about clog_disk_full is {0}".format(tenant_ids_data))
             # find ls,node by tenant_id
             tenant_ls_datas = []
@@ -89,7 +90,8 @@ class ClogDiskFullScene(RcaScene):
                 for ls_data in ls_datas:
                     tenant_ls_datas.append({"tenant_id": tenant_id, "ls_id": ls_data["ls_id"], "ip": ls_data["svr_ip"], "port": ls_data["svr_port"]})
             if len(tenant_ls_datas) <= 0:
-                raise RCANotNeedExecuteException("can not find tenant_ls_datas about clog_disk_full.")
+                init_record.add_record("Not find tenant_ls_datas about clog_disk_full.")
+                raise RCANotNeedExecuteException("Not find tenant_ls_datas about clog_disk_full.")
             self.verbose("tenant_ls_datas is {0}".format(tenant_ls_datas))
             init_record.add_record("tenant_ls_datas is {0}".format(tenant_ls_datas))
             init_record.add_suggest("init data end. Please check the other record.")
@@ -103,6 +105,8 @@ class ClogDiskFullScene(RcaScene):
                 if record.suggest_is_empty():
                     record.add_suggest("not found stuck about clog disk full. You can package the files under '{0}' and upload them to the OceanBase community for further analysis.".format(self.work_path))
                 self.Result.records.append(record)
+        except RCANotNeedExecuteException as e:
+            self.stdio.print("[Not Need Execute]ClogDiskFullScene need not execute: {0}".format(e))
         except Exception as e:
             raise RCAExecuteException("ClogDiskFullScene execute error: {0}".format(e))
         finally:
