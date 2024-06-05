@@ -51,6 +51,7 @@ class SQLProblemScene(SafeStdio):
         try:
             self.stdio.verbose("gather observer log start")
             handler = GatherLogHandler(self.context, self.report_path, is_scene=True)
+            self.context.set_variable('gather_grep', self.trace_id)
             handler.handle()
             self.stdio.verbose("gather observer log end")
         except Exception as e:
@@ -62,10 +63,8 @@ class SQLProblemScene(SafeStdio):
             self.stdio.verbose("gather obproxy log start")
             handler = GatherObProxyLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
             if self.scene_name:
-                if self.scene_name == "observer.sql_err":
-                    pass
-                elif self.scene_name == "observer.perf_sql":
-                    self.context.set_variable('gather_scope', self.trace_id)
+                if self.scene_name == "observer.sql_err" or self.scene_name == "observer.perf_sql":
+                    self.context.set_variable('gather_grep', self.trace_id)
                 else:
                     self.stdio.warn("unsupported scene {0}".format(self.scene_name))
                     return
