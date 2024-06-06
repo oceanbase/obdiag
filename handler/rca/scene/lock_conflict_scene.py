@@ -27,6 +27,7 @@ class LockConflictScene(RcaScene):
     def init(self, context):
         try:
             super().init(context)
+            self.local_path = context.get_variable("store_dir")
             if self.observer_version is None or len(self.observer_version.strip()) == 0 or self.observer_version == "":
                 raise Exception("observer version is None. Please check the NODES conf.")
         except Exception as e:
@@ -57,38 +58,65 @@ class LockConflictScene(RcaScene):
             trans_record.records.extend(first_record_records)
             self.Result.records.append(trans_record)
             try:
-                if OB_LOCKS_data.get('ID1') is None:  # Holding lock session id
+                if OB_LOCKS_data.get("ID1") is None:  # Holding lock session id
                     trans_record.add_record("Holding lock trans_id is null")
                     trans_record.add_suggest("Holding lock trans_id is null. can not do next")
                     continue
                 else:
-                    trans_id = OB_LOCKS_data['ID1']
-                    trans_record.add_record("holding lock trans_id is {0}".format(trans_id))
-                    wait_lock_trans_id = OB_LOCKS_data['TRANS_ID']
-                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(wait_lock_trans_id))
-                    self.stdio.verbose("get SESSION_ID by trans_id:{0}".format(trans_id))
-                    trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
-                    session_datas = cursor_by_trans_id.fetchall()
-                    trans_record.add_record("get SESSION_ID by wait_lock_trans_id:{0}. get data:{0}".format(trans_id, session_datas))
-                    if len(session_datas) != 1:
-                        trans_record.add_suggest(
-                            "wait_lock_session_id is not get. The holding lock trans_id is {0}. You can resolve lock conflicts by killing this locked session, but this may cause business exceptions. Please use with caution.".format(trans_id)
-                        )
-                        continue
-                    if session_datas[0].get("SESSION_ID") is not None:
-                        trans_record.add_record("get SESSION_ID:{0}".format(session_datas[0].get("SESSION_ID")))
-                        trans_record.add_suggest(
-                            "Sessions corresponding to lock transactions. The ID is {0}, "
-                            "which may be a lock conflict issue.You can be accessed through kill "
-                            "session to rollback the corresponding transaction with ID. Please "
-                            "note that this will result in corresponding transaction regression! "
-                            "".format(session_datas[0].get("SESSION_ID"))
-                        )
+                    trans_id = OB_LOCKS_data["ID1"]
+                    trans_record.add_record("get holding_lock trans_id:{0}".format(trans_id))
+                    holding_lock_session_id = trans_id
+                    self.stdio.verbose("get holding lock SESSION_ID by trans_id:{0}".format(trans_id))
+                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(holding_lock_session_id))
+                    holding_lock_session_id_datas = cursor_by_trans_id.fetchall()
+                    holding_lock_session_id = "not get"
+                    self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id_datas))
+                    if len(holding_lock_session_id_datas) > 0:
+                        holding_lock_session_id = holding_lock_session_id_datas[0].get("SESSION_ID")
                     else:
-                        trans_record.add_record(
-                            "wait_lock_session_id is not get. The holding lock trans_id is {0}. You can resolve lock conflicts by killing this locked session, but this may cause business exceptions. Please use with caution.".format(trans_id)
-                        )
+                        trans_record.add_record("holding_lock_session_id is {0}".format(holding_lock_session_id_datas))
+                        trans_record.add_suggest("holding_lock_session_id is null. maybe the session is closed")
+                        continue
+                    trans_record.add_record("get holding_lock_session_id:{0}".format(holding_lock_session_id))
 
+                    wait_lock_trans_id = OB_LOCKS_data["TRANS_ID"]
+                    trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
+                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.V$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(wait_lock_trans_id))
+
+                    wait_lock_session_datas = cursor_by_trans_id.fetchall()
+                    self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id))
+                    wait_lock_session_id = "not get"
+                    if len(wait_lock_session_datas) == 0:
+                        trans_record.add_record("wait_lock_session_id is null")
+                        trans_record.add_suggest("wait_lock_session_id is null. maybe the session is closed, you can kill holding_lock_session_id: {0}".format(holding_lock_session_id))
+                        continue
+
+                    wait_lock_session_id = wait_lock_session_datas[0].get("SESSION_ID")
+                    trans_record.add_record("get wait_lock_session_id:{0}".format(wait_lock_session_datas[0].get("SESSION_ID")))
+                    self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id))
+                    # check SQL_AUDIT switch
+                    sql_info = "not find"
+
+                    cursor_check_switch = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE '%enable_sql_audit%';")
+                    audit_switch_value = cursor_check_switch.fetchone().get("value")
+                    if audit_switch_value.strip().upper() == "TRUE":
+                        holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.v$OB_SQL_AUDIT where SID="{0}";'.format(holding_lock_session_id))
+                        holding_lock_sql_info = holding_lock_sql_info_cursor.fetchall()
+                        if len(holding_lock_sql_info) == 0:
+                            trans_record.add_record("holding_lock_session_id: {0}; not find sql_info on v$OB_SQL_AUDIT".format(holding_lock_session_id))
+                        else:
+                            holding_lock_sql_info_json_data = json.dumps(holding_lock_sql_info, cls=DateTimeEncoder)
+                            file_name = "{0}/rca_holding_lock_sql_info_{1}.json".format(self.local_path, holding_lock_session_id)
+                            with open(file_name, "w+") as f:
+                                f.write(str(holding_lock_sql_info_json_data))
+                            trans_record.add_record("holding_lock_session_id: {0}. holding_lock_sql_info save on {1}".format(holding_lock_session_id, file_name))
+                            sql_info = "save on {0}".format(file_name)
+                    else:
+                        self.stdio.verbose("SQL_AUDIT switch is False")
+                        trans_record.add_record("SQL_AUDIT switch is False. can't get sql_info")
+                    trans_record.add_suggest(
+                        "holding_lock_session_id: {0}; wait_lock_session_id : {1}, sql_info: {2}. Lock conflicts can be ended by killing holding_lock_session_id or wait_lock_session_id".format(holding_lock_session_id, wait_lock_session_id, sql_info)
+                    )
             except Exception as e:
                 trans_record.add_record("get SESSION_ID panic. OB_LOCKS_data:{0} error: {1}".format(OB_LOCKS_data, e))
                 trans_record.add_suggest("get SESSION_ID panic. OB_LOCKS_data:{0} error: {1}".format(OB_LOCKS_data, e))
@@ -130,9 +158,6 @@ class LockConflictScene(RcaScene):
             "info_en": "root cause analysis of lock conflict",
             "info_cn": "针对锁冲突的根因分析",
         }
-
-    def export_result(self):
-        return self.Result.export()
 
 
 lock_conflict = LockConflictScene()

@@ -1,0 +1,11 @@
+info: 'Check whether there is any observer have CPU oversold.'
+task:
+  - version: "[4.3.1.0,*]"
+    steps:
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(CONCAT(SVR_IP, ':', SVR_PORT) SEPARATOR ', ') AS IP_PORT_COMBINATIONSFROM from oceanbase.GV$OB_SERVERS WHERE CPU_ASSIGNED > CPU_CAPACITY;"
+      result:
+        set_value: CPU_oversold
+        verify: '[ -z "$CPU_oversold" ]'
+        report_type: warning
+        err_msg: 'Some observers have CPU oversold. There are #{CPU_oversold}'

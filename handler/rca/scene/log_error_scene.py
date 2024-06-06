@@ -286,9 +286,6 @@ class LogErrorScene(RcaScene):
         except Exception as e:
             raise RCAExecuteException("check_election_leader_by_tenant_id: {1}. execute error: {0}".format(e, tenant_id))
 
-    def export_result(self):
-        super().export_result()
-
     def get_scene_info(self):
 
         return {
