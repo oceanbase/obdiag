@@ -64,7 +64,8 @@ class TransactionExecuteTimeoutScene(RcaScene):
 
     def execute(self):
         try:
-            self.record = RCA_ResultRecord(self.stdio)
+            syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary('SHOW PARAMETERS like "syslog_level"').fetchall()
+            self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
             if self.err_type == "statement is timeout":
                 self.verbose("start to check backlog")
                 self.execute_statement()
@@ -76,22 +77,25 @@ class TransactionExecuteTimeoutScene(RcaScene):
             raise RCAExecuteException("TransactionExecuteTimeoutScene execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end TransactionExecuteTimeoutScene execute")
-            self.Result.records.append(self.record)
 
     def execute_statement(self):
         # get ob_query_timeout
-        tenant_id = self.input_parameters.get('tenant_id')
-        if tenant_id is None or len(self.tenant_id.strip()) == 0:
+        self.tenant_id = self.input_parameters.get('tenant_id')
+        if type(self.tenant_id) in [int, str]:
+            self.tenant_id = int(self.tenant_id)
+        if self.tenant_id is None or self.tenant_id == 0:
             raise RCAInitException("tenant_id is None. 'statement_is_timeout_scene' need it. Please check the --input_parameters.")
         self.record.add_record("tenant_id is {0}".format(self.tenant_id))
         ob_query_timeout_cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.CDB_OB_SYS_VARIABLES where tenant_id='{0}' and NAME = \"ob_query_timeout\";".format(self.tenant_id))
         ob_query_timeout_data = ob_query_timeout_cursor.fetchall()
+        if len(ob_query_timeout_data) == 0:
+            raise RCAInitException("ob_query_timeout is None. Please check the tenant_id of --input_parameters .")
         ob_query_timeout = ob_query_timeout_data[0].get("VALUE")
         self.record.add_record("ob_query_timeout is {0}".format(ob_query_timeout))
         # get trace_id
         trace_id = self.input_parameters.get('trace_id')
         if trace_id is None or len(trace_id.strip()) == 0:
-            raise RCAInitException("trace_id is None. 'statement_is_timeout_scene' need it. Please check the --input_parameters.")
+            raise RCAInitException("trace_id is None. 'statement_is_timeout_scene' need it. Please check the --input_parameters='{\"trace_id\":\"xxxxxxxxxx\"}'.")
         self.record.add_record("trace_id is {0}".format(trace_id))
         # gather log about trace_id and "cur_query_start_time"
         self.gather_log.grep("{0}".format(trace_id))
@@ -106,26 +110,27 @@ class TransactionExecuteTimeoutScene(RcaScene):
             with open(log_name, 'r', encoding='utf-8') as f:
                 content = f.readlines()
                 for line in content:
-                    if "cur_query_start_time" in line:
-                        match = re.search(r'cur_query_start_time=(\d+)', line)
+                    if "current_time" in line:
+                        match = re.search(r'current_time=(\d+)', line)
                         if match:
                             cur_query_start_time = match.group(1)
-                            self.record.add_record("cur_query_start_time is {0}".format(cur_query_start_time))
+                            self.record.add_record("current_time is {0}".format(cur_query_start_time))
                     if "timeout_timestamp" in line:
                         match = re.search(r'timeout_timestamp=(\d+)', line)
                         if match:
-                            report_timeout_time = match.group(1)
-                            self.record.add_record("timeout_timestamp is {0}".format(report_timeout_time))
+                            timeout_timestamp = match.group(1)
+                            self.record.add_record("timeout_timestamp is {0}".format(timeout_timestamp))
         if cur_query_start_time is None or timeout_timestamp is None:
             self.record.add_record("can not find cur_query_start_time or timeout_timestamp")
+            self.record.add_suggest("Can not find cur_query_start_time or timeout_timestamp")
             return
         self.record.add_record("cur_query_start_time is {0}, timeout_timestamp is {1}".format(cur_query_start_time, timeout_timestamp))
-        if int(timeout_timestamp or 0) - int(cur_query_start_time or 0) == int(ob_query_timeout or 0):
-            self.record.add_record("timeout_timestamp - cur_query_start_time == ob_query_timeout")
+        if int(timeout_timestamp or 0) - int(cur_query_start_time or 0) >= int(ob_query_timeout or 0):
+            self.record.add_record("timeout_timestamp - cur_query_start_time={0} >= ob_query_timeout".format(int(timeout_timestamp or 0) - int(cur_query_start_time or 0)))
             self.record.add_suggest("Meets expectations")
         else:
-            self.record.add_record("timeout_timestamp - cur_query_start_time != ob_query_timeout")
-            self.record.add_suggest("Not meet expectations")
+            self.record.add_record("timeout_timestamp - cur_query_start_time={0} =< ob_query_timeout".format(int(timeout_timestamp or 0) - int(cur_query_start_time or 0)))
+            self.record.add_suggest("Not meet expectations. Please send it to Oceanbase Community")
 
     def execute_transaction(self):
         # gather log about "dump tenant"

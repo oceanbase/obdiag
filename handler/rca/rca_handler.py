@@ -42,7 +42,6 @@ class RCAHandler:
         self.ob_cluster = self.context.cluster_config
         self.options = self.context.options
         observer_nodes = self.context.cluster_config.get("servers")
-
         # build observer_nodes ,add ssher
         context_observer_nodes = []
         if observer_nodes is not None:
@@ -99,7 +98,6 @@ class RCAHandler:
         report = Result(self.context)
         report.set_save_path(store_dir)
         self.context.set_variable("report", report)
-
         # build observer_version by sql or ssher. If using SSHer, the observer_version is set to node[0].
         observer_version = ""
         try:
@@ -115,13 +113,11 @@ class RCAHandler:
             else:
                 self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
-
         if observer_version != "":
             self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
             self.context.set_variable("observer_version", observer_version)
         else:
             self.stdio.warn("RCAHandler.init Failed to get observer version.")
-
         # build obproxy_version. just by ssh
         if self.context.get_variable("obproxy_version", default="") == "":
             if len(obproxy_nodes) > 0:
@@ -141,22 +137,18 @@ class RCAHandler:
                 else:
                     self.stdio.warn("RCAHandler.init Failed to get obproxy version.")
                 self.context.set_variable("obproxy_version", obproxy_version)
-
         self.context.set_variable("ob_cluster", self.ob_cluster)
-
         # set rca_deep_limit
         rca_list = RcaScenesListHandler(self.context)
         all_scenes_info, all_scenes_item = rca_list.get_all_scenes()
         self.context.set_variable("rca_deep_limit", len(all_scenes_info))
         self.all_scenes = all_scenes_item
-
         self.rca_scene_parameters = None
         self.rca_scene = None
         self.cluster = self.context.get_variable("ob_cluster")
         self.nodes = self.context.get_variable("observer_nodes")
         self.obproxy_nodes = self.context.get_variable("obproxy_nodes")
         self.store_dir = store_dir
-
         # init input parameters
         self.report = None
         self.tasks = None
@@ -184,7 +176,6 @@ class RCAHandler:
         return self.store_dir
 
     def handle(self):
-
         scene_name = Util.get_option(self.options, "scene", None)
         if scene_name:
             scene_name = scene_name.strip()
@@ -202,7 +193,6 @@ class RCAHandler:
             )
             if not os.path.exists(self.store_dir):
                 os.mkdir(self.store_dir)
-
             self.context.set_variable("store_dir", self.store_dir)
             self.stdio.verbose("{1} store_dir:{0}".format(self.store_dir, scene_name))
             # build gather_log
@@ -255,6 +245,7 @@ class RcaScene:
         self.stdio = context.stdio
         self.record = RCA_ResultRecord(self.stdio)
         self.Result = Result(self.context)
+        self.Result.records.append(self.record)
         self.observer_nodes = context.get_variable("observer_nodes")
         self.obproxy_nodes = context.get_variable("obproxy_nodes")
         self.report = context.get_variable("report")

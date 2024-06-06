@@ -44,6 +44,9 @@ class TransactionDisconnectionScene(RcaScene):
             os.makedirs(self.work_path)
 
     def execute(self):
+        # get the syslog_level
+        syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary(' SHOW PARAMETERS like "syslog_level"').fetchall()
+        self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
         # gather log about "session is kill"
         work_path_session_killed_log = self.work_path + "/session_killed_log"
         self.gather_log.grep("session is kill")
@@ -78,12 +81,11 @@ class TransactionDisconnectionScene(RcaScene):
         else:
             self.record.add_record("the session id list is {0}".format(str(sessid_list)))
             for sessid in sessid_list:
-                work_path_session_id = self.work_path + "/session_killed_log_{0}"
+                work_path_session_id = self.work_path + "/session_killed_log_{0}".format(sessid)
                 self.gather_log.grep(sessid)
                 self.gather_log.execute(save_path=work_path_session_id)
                 self.record.add_record("the session id {0} has been gathered. the log save on {1}.".format(sessid, work_path_session_id))
             self.record.add_suggest("please check the log file on {0}. And send it to the oceanbase community to get more support.".format(work_path_session_killed_log))
-        self.Result.records.append(self.record)
 
     def get_scene_info(self):
 

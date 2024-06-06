@@ -48,6 +48,7 @@ class TransactionNotEndingScene(RcaScene):
             raise RCAInitException("ob_connector is None. Please check the NODES conf.")
         if not os.path.exists(self.work_path):
             os.makedirs(self.work_path)
+        self.stdio.warn("[TransactionNotEndingScene] is a beta scene. It may not work well.")
         # tx_id
         self.tx_id = self.input_parameters.get("tx_id")
         self.phase = self.input_parameters.get("phase")
@@ -58,19 +59,29 @@ class TransactionNotEndingScene(RcaScene):
     # The problem of incomplete transactions can be divided into three categories, depending on whether the transaction is in the commit phase.
     def execute(self):
         try:
-            self.record = RCA_ResultRecord(self.stdio)
+            syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary('SHOW PARAMETERS like "syslog_level"').fetchall()
+            self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
             transaction = None
-
             if self.tx_id is not None:
                 self.record.add_record("tx_id is {0}".format(self.tx_id))
                 transaction_datas = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_trans_stat where tx_id!='{0}';".format(self.tx_id)).fetchall()
                 pass
+            if self.phase is None:
+                raise RCANotNeedExecuteException("phase is None. Please check --input_parameters")
+            else:
+                if self.phase.strip().upper() == "UNSUBMITTED":
+                    self.execute_unsubmitted_phase()
+                elif self.phase.strip().upper() == "COMMIT":
+                    self.execute_commit_phase()
+                elif self.phase.strip().upper() == "REPLAY":
+                    self.execute_replay_phase()
+                else:
+                    raise RCANotNeedExecuteException("phase is {0}, not support. Just support 'UNSUBMITTED', 'COMMIT', 'REPLAY'. Please check --input_parameters".format(self.phase))
 
         except Exception as e:
             raise RCAExecuteException("TransactionNotEndingScene execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end TransactionNotEndingScene execute")
-            self.Result.records.append(self.record)
 
     # Transactions in the non commit phase do not have a corresponding transaction ID
     def execute_unsubmitted_phase(self):

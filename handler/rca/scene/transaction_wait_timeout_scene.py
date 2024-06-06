@@ -71,7 +71,8 @@ class TransactionWaitTimeoutScene(RcaScene):
 
     def execute(self):
         try:
-            self.record = RCA_ResultRecord(self.stdio)
+            syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary('SHOW PARAMETERS like "syslog_level"').fetchall()
+            self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
             if self.error_msg_type == "Shared lock conflict":
                 # gather log about "lock_for_read need retry".
                 work_path_trans_is_killed = self.work_path + "/lock_for_read"
@@ -136,8 +137,8 @@ class TransactionWaitTimeoutScene(RcaScene):
                     self.record.add_suggest("can not find 'conflict_tx_id' in log.")
                     return False
                 else:
-                    self.record.add_record("find conflict_tx_id in {0}".format(self.data_trans_id))
-                    match = re.search(r"conflict_tx_id=\{txid:(\d+)}", self.data_trans_id)
+                    self.record.add_record("find conflict_tx_id in {0}".format(self.conflict_tx_id))
+                    match = re.search(r"conflict_tx_id=\{txid:(\d+)}", self.conflict_tx_id)
                     if match:
                         self.conflict_tx_id_value = match.group(1)
                     if self.conflict_tx_id_value is None:
@@ -145,8 +146,8 @@ class TransactionWaitTimeoutScene(RcaScene):
                         self.record.add_suggest("can not find conflict_tx_id value in log.")
                         return False
                     else:
-                        self.record.add_record("find conflict_tx_id value in {0}".format(self.conflict_tx_id_value))
-                        self.record.add_suggest("The reason is that there is a session holding a row lock and the submission has been unsuccessful (tx_id:{0}). Please check it.")
+                        self.record.add_record("find conflict_tx_id in {0}".format(self.conflict_tx_id_value))
+                        self.record.add_suggest("A transaction that holds a row lock and does not end: (tx_id:{0}). Please check it.".format(self.conflict_tx_id_value))
 
         except Exception as e:
             raise RCAExecuteException("TransactionWaitTimeoutScene execute error: {0}".format(e))

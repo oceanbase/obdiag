@@ -54,6 +54,9 @@ class TransactionRollbackScene(RcaScene):
 
     def execute(self):
         try:
+            # get the syslog_level
+            syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary(' SHOW PARAMETERS like "syslog_level"').fetchall()
+            self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
             # gather log about "trans is killed".
             work_path_trans_is_killed = self.work_path + "/trans_is_killed"
             self.gather_log.grep("trans is killed")
@@ -70,12 +73,14 @@ class TransactionRollbackScene(RcaScene):
                         if "trans is killed" in line:
                             self.trans_is_killed_log = line
                             break
-            if self.trans_is_killed_log is None:
-                self.record.add_record("can not find trans is killed in {0}".format(logs_name))
-                self.record.add_suggest("can not find trans is killed. ".format(logs_name))
+            if self.trans_is_killed_log is not None:
+                self.record.add_record("find trans is killed in {0}".format(self.trans_is_killed_log))
+                self.record.add_suggest("The transaction was killed by the leader change ")
                 return False
             else:
-                self.record.add_record("find trans is killed in {0}".format(self.trans_is_killed_log))
+                self.record.add_record("can not find trans is killed in {0}".format(logs_name))
+                self.record.add_suggest("can not find trans is killed. ".format(logs_name))
+                self.record.add_record("The transaction was killed by timeout")
             # gather log about switch to follower forcedly success, about leader revoke timeout
             work_path_switch_to_follower_forcedly_success = self.work_path + "/switch_to_follower_forcedly_success"
             self.gather_log.grep("switch to follower forcedly success")
@@ -102,8 +107,7 @@ class TransactionRollbackScene(RcaScene):
                         if "trans_expired_time" in line:
                             match = re.search(r'trans_expired_time:(\d+)', line)
                             if match:
-                                date_str = match.group()
-
+                                date_str = match.group(1)
                                 date_int = int(date_str) / 1e9
                                 date_obj = datetime.datetime.utcfromtimestamp(date_int)
                                 now = datetime.datetime.now()
@@ -117,10 +121,8 @@ class TransactionRollbackScene(RcaScene):
             raise RCAExecuteException("TransactionRollbackScene execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end TransactionRollbackScene execute")
-            self.Result.records.append(self.record)
 
     def get_scene_info(self):
-
         return {
             "name": "transaction_rollback",
             "info_en": "transaction rollback error. error_code like -6002",

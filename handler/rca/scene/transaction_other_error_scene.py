@@ -68,6 +68,8 @@ class TransactionOtherErrorScene(RcaScene):
 
     def execute(self):
         try:
+            syslog_level_data = self.ob_connector.execute_sql_return_cursor_dictionary('SHOW PARAMETERS like "syslog_level"').fetchall()
+            self.record.add_record("syslog_level data is {0}".format(syslog_level_data[0].get("value") or None))
             # The three types of error codes, RPC send error, RPC post error, and Connect error, are most likely caused by RPC issues
             if self.error_code == "-4021" or self.error_code == "-4122" or self.error_code == "-4124":
                 self.record.add_record("error_code is {0}, error_msg_type is {1}")
