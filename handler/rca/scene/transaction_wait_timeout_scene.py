@@ -158,7 +158,7 @@ class TransactionWaitTimeoutScene(RcaScene):
     def get_scene_info(self):
         return {
             "name": "transaction_wait_timeout",
-            "info_en": "transaction wait timeout error, error_code like -4012",
+            "info_en": "transaction wait timeout error, error_msg like 'Shared lock conflict' or 'Lock wait timeout exceeded'",
             "info_cn": "事务等待超时报错",
         }
 

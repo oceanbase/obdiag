@@ -167,6 +167,7 @@ class DisconnectionLog:
                     self.gather_log.grep("{0}".format(observer_trace_id))
                     self.gather_log.execute(save_path=work_path_observer_trace_log)
                     self.record.add_record("observer_trace_id is {0}, save observer's log on '{1}'".format(observer_trace_id, work_path_observer_trace_log))
+            # todo: for error_code=4410
             # else:
             #     # for 4410
             #     trace_type = None
