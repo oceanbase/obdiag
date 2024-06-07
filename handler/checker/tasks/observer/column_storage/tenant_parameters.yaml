@@ -2,10 +2,107 @@ info: 'Check whether there is any observer have CPU oversold.'
 task:
   - version: "[4.3.1.0,*]"
     steps:
+      # utf8mb4_bin‘value is 46
     - type: sql
-      sql: "SELECT GROUP_CONCAT(CONCAT(SVR_IP, ':', SVR_PORT) SEPARATOR ', ') AS IP_PORT_COMBINATIONSFROM from oceanbase.GV$OB_SERVERS WHERE CPU_ASSIGNED > CPU_CAPACITY;"
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="collation_connection" and TENANT_ID>1000 and VALUE<>46;'
       result:
-        set_value: CPU_oversold
-        verify: '[ -z "$CPU_oversold" ]'
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
         report_type: warning
-        err_msg: 'Some observers have CPU oversold. There are #{CPU_oversold}'
+        err_msg: 'collation_connection is recommended utf8mb4_bin. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="collation_server" and TENANT_ID>1000 and VALUE<>46;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'collation_server is recommended utf8mb4_bin. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="ob_query_timeout" and TENANT_ID>1000 and VALUE<=10000000000;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'ob_query_timeout is recommended 10000000000. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="ob_trx_timeout" and TENANT_ID>1000 and VALUE<=100000000000;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'ob_query_timeout is recommended 100000000000. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="ob_sql_work_area_percentage" and TENANT_ID>1000 and VALUE<=30;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'ob_sql_work_area_percentage is recommended 30. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="max_allowed_packet" and TENANT_ID>1000 and VALUE<=67108864;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'max_allowed_packet is recommended 67108864. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.CDB_OB_SYS_VARIABLES where name ="max_allowed_packet" and TENANT_ID>1000 and VALUE<=67108864;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'max_allowed_packet is recommended 67108864. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.GV$OB_PARAMETERS  where name ="default_table_store_format" and value<>"column";'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'default_table_store_format is recommended "column". There are some tenant need change: #{tenant_ids}'
+    # auto’s value is 1
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.CDB_OB_SYS_VARIABLES  where name ="parallel_degree_policy" and TENANT_ID>1000 and value<>1;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'parallel_degree_policy is recommended "auto". There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.CDB_OB_SYS_VARIABLES  where name ="parallel_min_scan_time_threshold" and TENANT_ID>1000 and value>10;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'parallel_min_scan_time_threshold is recommended "10". There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT a.TENANT_ID) from oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b , oceanbase.CDB_OB_SYS_VARIABLES c WHERE a.TENANT_ID=b.TENANT_ID and a.TENANT_ID=c.TENANT_ID and a.TENANT_ID>1000 and b.MAX_CPU >0 and c.name ="parallel_servers_target"  and b.MAX_CPU*10<>c.value;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'parallel_servers_target is recommended cpu_count*10. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT a.TENANT_ID) from oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b , oceanbase.CDB_OB_SYS_VARIABLES c WHERE a.TENANT_ID=b.TENANT_ID and a.TENANT_ID=c.TENANT_ID and a.TENANT_ID>1000 and b.MAX_CPU >0 and c.name ="parallel_degree_limit"  and b.MAX_CPU*2<>c.value;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'parallel_degree_limit is recommended cpu_count*2. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT a.TENANT_ID) FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b , oceanbase.GV$OB_PARAMETERS c WHERE a.TENANT_ID=b.TENANT_ID and a.TENANT_ID=c.TENANT_ID and a.TENANT_ID>1000 and b.MAX_CPU >0 and c.name ="compaction_low_thread_score" and b.MAX_CPU<>c.value;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'compaction_low_thread_score is recommended equal cpu_count. There are some tenant need change: #{tenant_ids}'
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT a.TENANT_ID) FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b , oceanbase.GV$OB_PARAMETERS c WHERE a.TENANT_ID=b.TENANT_ID and a.TENANT_ID=c.TENANT_ID and a.TENANT_ID>1000 and b.MAX_CPU >0 and c.name ="compaction_mid_thread_score" and b.MAX_CPU<>c.value;'
+      result:
+        set_value: tenant_ids
+        verify: '[ -z "$tenant_ids" ]'
+        report_type: warning
+        err_msg: 'compaction_mid_thread_score is recommended equal cpu_count. There are some tenant need change: #{tenant_ids}'
+
+
+
+
