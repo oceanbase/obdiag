@@ -50,6 +50,9 @@ class TransactionDisconnectionScene(RcaScene):
         # gather log about "session is kill"
         work_path_session_killed_log = self.work_path + "/session_killed_log"
         self.gather_log.grep("session is kill")
+        if self.input_parameters.get("since") is not None:
+            since = self.input_parameters.get("since")
+            self.gather_log.set_parameters("since", since)
         logs_name = self.gather_log.execute(save_path=work_path_session_killed_log)
         # get the session id on logfile
         if logs_name is None or len(logs_name) <= 0:
@@ -83,6 +86,9 @@ class TransactionDisconnectionScene(RcaScene):
             for sessid in sessid_list:
                 work_path_session_id = self.work_path + "/session_killed_log_{0}".format(sessid)
                 self.gather_log.grep(sessid)
+                if self.input_parameters.get("since") is not None:
+                    since = self.input_parameters.get("since")
+                    self.gather_log.set_parameters("since", since)
                 self.gather_log.execute(save_path=work_path_session_id)
                 self.record.add_record("the session id {0} has been gathered. the log save on {1}.".format(sessid, work_path_session_id))
             self.record.add_suggest("please check the log file on {0}. And send it to the oceanbase community to get more support.".format(work_path_session_killed_log))
