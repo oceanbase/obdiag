@@ -13,7 +13,7 @@ task:
       result:
         set_value: data_dir_disk
     - type: ssh
-      ssh: 'find #{remote_redo_dir} -name "clog"'
+      ssh: 'find #{remote_redo_dir}/ -name "clog"'
       result:
         set_value: log_dir_path
         verify: '[ -n "${log_dir_path}" ]'
