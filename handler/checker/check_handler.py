@@ -138,7 +138,6 @@ class CheckHandler:
                 if self.export_report_type not in ["table", "json", "xml", "yaml"]:
                     raise CheckException("report_type must be table, json, xml, yaml")
             self.stdio.verbose("export_report_path is " + self.export_report_path)
-
             # get package's by package_name
             self.tasks = {}
             if package_name:
@@ -160,10 +159,13 @@ class CheckHandler:
                 if len(filter_tasks) > 0:
                     self.tasks = {key: value for key, value in self.tasks.items() if key not in filter_tasks}
                     new_tasks = {}
-                    for filter_task in filter_tasks:
-                        for task_name, task_value in self.tasks.items():
-                            if re.match(filter_task.strip(), task_name.strip()) is None:
-                                new_tasks[task_name] = task_value
+                    for task_name, task_value in self.tasks.items():
+                        filter_tag = False
+                        for filter_task in filter_tasks:
+                            if re.match(filter_task.strip(), task_name.strip()):
+                                filter_tag = True
+                        if not filter_tag:
+                            new_tasks[task_name] = task_value
                     self.tasks = new_tasks
             self.stdio.verbose("tasks is {0}".format(self.tasks.keys()))
         except Exception as e:
