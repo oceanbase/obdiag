@@ -2,13 +2,6 @@ info: 'To detect dependent software, refer to: https://www.oceanbase.com/docs/en
 task:
   - steps:
     - type: ssh
-      ssh: 'swapon --summary | grep -q "^" && echo "used" || echo "not used"'
-      result:
-        set_value: swapon_switch
-        report_type: warning
-        verify: '[ "not used" == "${swapon_switch}" ]'
-        err_msg: 'swapon need be closed. Now , it is #{swapon_switch}.'
-    - type: ssh
       ssh: "getenforce"
       result:
         set_value: SELinux_switch
