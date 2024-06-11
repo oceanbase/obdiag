@@ -47,7 +47,6 @@ class TaskBase(object):
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
             raise Exception("node is not exist")
-        # TODO: 这里的逻辑需要优化，如果一个节点执行失败了，那么后续的步骤就不会被执行了。
         work_threads = []
         for node in self.nodes:
             t = threading.Thread(target=self.execute_one_node, args=(steps_nu, node))

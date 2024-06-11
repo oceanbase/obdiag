@@ -123,7 +123,6 @@ class CheckHandler:
             package_name = None
             if self.check_target_type == "obproxy" and Util.get_option(self.options, 'obproxy_cases'):
                 package_name = Util.get_option(self.options, 'obproxy_cases')
-
             if self.check_target_type == "observer" and Util.get_option(self.options, 'cases'):
                 package_name = Util.get_option(self.options, 'cases')
             if Util.get_option(self.options, 'store_dir'):
@@ -152,7 +151,7 @@ class CheckHandler:
                         end_tasks[package_task] = self.tasks[package_task]
                     for task_name, value in self.tasks.items():
                         if re.match(package_task, task_name):
-                            end_tasks[package_task] = self.tasks[task_name]
+                            end_tasks[task_name] = self.tasks[task_name]
                 self.tasks = end_tasks
             else:
                 self.stdio.verbose("tasks_package is all")

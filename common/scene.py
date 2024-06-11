@@ -37,8 +37,8 @@ def filter_by_version(scene, cluster, stdio=None):
                 stdio.verbose("version_int is {0} steps_versions is {1}".format(version_real, steps_versions))
 
                 steps_versions = steps_versions.replace(" ", "")
-                steps_versions = steps_versions[1:-1]
-                steps_versions_list = steps_versions.split(",")
+                steps_versions_data = steps_versions[1:-1]
+                steps_versions_list = steps_versions_data.split(",")
                 minVersion = steps_versions_list[0]
                 maxVersion = steps_versions_list[1]
                 # min
@@ -46,6 +46,11 @@ def filter_by_version(scene, cluster, stdio=None):
                     minVersion = "-1"
                 if maxVersion == "*":
                     maxVersion = "999"
+                stdio.verbose("minVersion is {0}, maxVersion is {1}".format(minVersion, maxVersion))
+                if steps_versions[0] == "[" and version_real == minVersion:
+                    break
+                if steps_versions[-1] == "]" and version_real == maxVersion:
+                    break
                 if StringUtils.compare_versions_greater(version_real, minVersion) and StringUtils.compare_versions_greater(maxVersion, version_real):
                     break
             else:
