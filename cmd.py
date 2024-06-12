@@ -211,7 +211,11 @@ class ObdiagOriginCommand(BaseCommand):
             config_path = os.path.expanduser('~/.obdiag/config.yml')
             custom_config = Util.get_option(self.opts, 'c')
             if custom_config:
-                config_path = custom_config
+                if os.path.exists(os.path.abspath(custom_config)):
+                    config_path = custom_config
+                else:
+                    ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
+                    return
             obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
