@@ -115,7 +115,7 @@ class TransactionWaitTimeoutScene(RcaScene):
                     )
             elif self.error_msg_type == "Lock wait timeout exceeded":
                 # gather log about "mvcc_write conflict"
-                work_path_mvcc_write_conflict = self.work_path + "/mvcc_write conflict"
+                work_path_mvcc_write_conflict = self.work_path + "/mvcc_write_conflict"
                 self.gather_log.grep("mvcc_write conflict")
                 logs_name = self.gather_log.execute(save_path=work_path_mvcc_write_conflict)
                 if logs_name is None or len(logs_name) <= 0:
