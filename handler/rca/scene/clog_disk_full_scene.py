@@ -52,7 +52,7 @@ class ClogDiskFullScene(RcaScene):
 
     def execute(self):
         try:
-            init_record = RCA_ResultRecord(self.stdio)
+            init_record = self.record
             # get log_disk_utilization_threshold
             sql = "select SVR_IP,SVR_PORT,TENANT_ID,value/100 as value from oceanbase.GV$OB_PARAMETERS where name = 'log_disk_utilization_threshold';"
             self.verbose("get log_disk_utilization_threshold execute_sql is {0}".format(sql))
