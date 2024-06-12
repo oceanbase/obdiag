@@ -43,6 +43,7 @@ class Gather_log:
         self.conf_map["gather_scope"] = ""
         self.conf_map["store_dir"] = self.work_path
         self.conf_map["gather_target"] = "observer"
+        self.greps_key = []
 
     def grep(self, key):
         if key is None or len(key) < 1 or type(key) != str:

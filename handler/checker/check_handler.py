@@ -123,7 +123,6 @@ class CheckHandler:
             package_name = None
             if self.check_target_type == "obproxy" and Util.get_option(self.options, 'obproxy_cases'):
                 package_name = Util.get_option(self.options, 'obproxy_cases')
-
             if self.check_target_type == "observer" and Util.get_option(self.options, 'cases'):
                 package_name = Util.get_option(self.options, 'cases')
             if Util.get_option(self.options, 'store_dir'):
@@ -133,8 +132,12 @@ class CheckHandler:
             if not os.path.exists(self.export_report_path):
                 self.stdio.warn("{0} not exists. mkdir it!".format(self.export_report_path))
                 os.mkdir(self.export_report_path)
+            # change self.export_report_type
+            if Util.get_option(self.options, 'report_type'):
+                self.export_report_type = Util.get_option(self.options, 'report_type')
+                if self.export_report_type not in ["table", "json", "xml", "yaml"]:
+                    raise CheckException("report_type must be table, json, xml, yaml")
             self.stdio.verbose("export_report_path is " + self.export_report_path)
-
             # get package's by package_name
             self.tasks = {}
             if package_name:
@@ -147,7 +150,7 @@ class CheckHandler:
                         end_tasks[package_task] = self.tasks[package_task]
                     for task_name, value in self.tasks.items():
                         if re.match(package_task, task_name):
-                            end_tasks[package_task] = self.tasks[task_name]
+                            end_tasks[task_name] = self.tasks[task_name]
                 self.tasks = end_tasks
             else:
                 self.stdio.verbose("tasks_package is all")
@@ -156,10 +159,13 @@ class CheckHandler:
                 if len(filter_tasks) > 0:
                     self.tasks = {key: value for key, value in self.tasks.items() if key not in filter_tasks}
                     new_tasks = {}
-                    for filter_task in filter_tasks:
-                        for task_name, task_value in self.tasks.items():
-                            if re.match(filter_task.strip(), task_name.strip()) is None:
-                                new_tasks[task_name] = task_value
+                    for task_name, task_value in self.tasks.items():
+                        filter_tag = False
+                        for filter_task in filter_tasks:
+                            if re.match(filter_task.strip(), task_name.strip()):
+                                filter_tag = True
+                        if not filter_tag:
+                            new_tasks[task_name] = task_value
                     self.tasks = new_tasks
             self.stdio.verbose("tasks is {0}".format(self.tasks.keys()))
         except Exception as e:

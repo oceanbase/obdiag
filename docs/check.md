@@ -27,6 +27,17 @@ Example:
 obdiag check --cases= ad
 obdiag check --obproxy_cases= proxy
 obdiag check --cases=ad --obproxy_cases=proxy
+
+--report_type={ReportType}
+
+report_type是生成报告的格式，目前支持"table", "json", "xml"三种格式
+若未设定则默认为table
+
+--store_dir={StoreDir}
+
+store_dir是生成报告的存放路径，若未设定则默认为当前工作目录下的check_report文件夹内
+
+
 ```
 
 ### 关联持久化参数：

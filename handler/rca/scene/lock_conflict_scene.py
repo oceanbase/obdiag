@@ -159,8 +159,5 @@ class LockConflictScene(RcaScene):
             "info_cn": "针对锁冲突的根因分析",
         }
 
-    def export_result(self):
-        return self.Result.export()
-
 
 lock_conflict = LockConflictScene()

@@ -108,13 +108,6 @@ task:
         verify: "[ 15 -le  ${parameter}  ] && [ ${parameter} -le 60 ]"
         err_msg: 'net.ipv4.tcp_fin_timeout : #{parameter}. recommended: 15 ≤ value ≤ 60.'
     - type: get_system_parameter
-      parameter: net.ipv4.tcp_tw_reuse
-      result:
-        set_value: parameter
-        report_type: warning
-        verify: "[ ${parameter} -eq 1 ]"
-        err_msg: 'net.ipv4.tcp_tw_reuse: #{parameter}. recommended: 1'
-    - type: get_system_parameter
       parameter: net.ipv4.tcp_slow_start_after_idle
       result:
         set_value: parameter

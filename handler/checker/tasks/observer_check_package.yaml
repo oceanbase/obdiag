@@ -3,6 +3,11 @@ ad:
   info_cn: "测试巡检任务"
   tasks:
     - system.*
+column_storage_poc:
+  info_en: "column storage poc"
+  info_cn: "列存POC检查"
+  tasks:
+    - column_storage.*
 build_before:
   info_en: "Deployment environment check"
   info_cn: "部署环境检查"
@@ -40,3 +45,4 @@ filter:
   info_cn: "需要忽略的检查"
   tasks:
     - sysbench.*
+    - column_storage.*
