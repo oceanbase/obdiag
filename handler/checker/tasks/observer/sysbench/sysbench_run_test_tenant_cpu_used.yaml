@@ -1,4 +1,4 @@
-info: 'Check when sysbench free , cluster info about network_speed'
+info: 'Check when sysbench run , cluster info about cpu'
 task:
   - version: "[4.0.0.0,*]"
     steps:
@@ -9,6 +9,8 @@ FROM oceanbase.DBA_OB_TENANTS
 WHERE TENANT_TYPE='USER' limit 1;"
       result:
         set_value: tenant_id
+        verify: '[ -n "${tenant_id}" ]'
+        err_msg: "tenant_id is null . Please check your tenant without sys"
     - type: sql
       sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where Name="cpu_quota_concurrency"
                                            and TENANT_ID="#{tenant_id}"
