@@ -167,7 +167,7 @@ class DDlDiskFullScene(RcaScene):
                 # data_disk_usage_limit_percentage is a Cluster level configuration items
                 self.verbose("data_disk_usage_limit_percentage is {0}".format(data_disk_usage_limit_percentage))
                 record.add_record("data_disk_usage_limit_percentage is {0}".format(data_disk_usage_limit_percentage))
-                if self.observer_version == "4.3.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.3.0.0"):
+                if self.observer_version == "4.2.3.0" or StringUtils.compare_versions_greater(self.observer_version, "4.2.3.0"):
                     target_server_estimated_size = int(target_server_estimated_size * 15 / 10)
                 else:
                     target_server_estimated_size = int(target_server_estimated_size * 55 / 10)
