@@ -153,7 +153,6 @@ class TransactionWaitTimeoutScene(RcaScene):
             raise RCAExecuteException("TransactionWaitTimeoutScene execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end TransactionWaitTimeoutScene execute")
-            self.Result.records.append(self.record)
 
     def get_scene_info(self):
         return {

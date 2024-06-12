@@ -52,7 +52,6 @@ class ClogDiskFullScene(RcaScene):
 
     def execute(self):
         try:
-            init_record = self.record
             # get log_disk_utilization_threshold
             sql = "select SVR_IP,SVR_PORT,TENANT_ID,value/100 as value from oceanbase.GV$OB_PARAMETERS where name = 'log_disk_utilization_threshold';"
             self.verbose("get log_disk_utilization_threshold execute_sql is {0}".format(sql))
@@ -75,7 +74,7 @@ class ClogDiskFullScene(RcaScene):
                     self.verbose("the tenant_id clog_disk_full is {0}".format(tenant_ids_data_sql))
                     tenant_ids_data = tenant_ids_data_sql
             if len(tenant_ids_data) <= 0:
-                init_record.add_record("Not find tenant_ids about clog_disk_full.")
+                self.record.add_record("Not find tenant_ids about clog_disk_full.")
                 raise RCANotNeedExecuteException("Not find tenant_ids about clog_disk_full.")
             self.verbose("tenant_ids about clog_disk_full is {0}".format(tenant_ids_data))
             # find ls,node by tenant_id
@@ -90,12 +89,11 @@ class ClogDiskFullScene(RcaScene):
                 for ls_data in ls_datas:
                     tenant_ls_datas.append({"tenant_id": tenant_id, "ls_id": ls_data["ls_id"], "ip": ls_data["svr_ip"], "port": ls_data["svr_port"]})
             if len(tenant_ls_datas) <= 0:
-                init_record.add_record("Not find tenant_ls_datas about clog_disk_full.")
+                self.record.add_record("Not find tenant_ls_datas about clog_disk_full.")
                 raise RCANotNeedExecuteException("Not find tenant_ls_datas about clog_disk_full.")
             self.verbose("tenant_ls_datas is {0}".format(tenant_ls_datas))
-            init_record.add_record("tenant_ls_datas is {0}".format(tenant_ls_datas))
-            init_record.add_suggest("init data end. Please check the other record.")
-            self.Result.records.append(init_record)
+            self.record.add_record("tenant_ls_datas is {0}".format(tenant_ls_datas))
+            self.record.add_suggest("init data end. Please check the other record.")
             for tenant_ls_data in tenant_ls_datas:
                 record = RCA_ResultRecord(self.stdio)
                 record.add_record("check error tenant_ls_data is {0}".format(tenant_ls_data))

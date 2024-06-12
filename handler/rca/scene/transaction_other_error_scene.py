@@ -101,7 +101,6 @@ class TransactionOtherErrorScene(RcaScene):
             raise RCAExecuteException("TransactionOtherErrorScene execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end TransactionOtherErrorScene execute")
-            self.Result.records.append(self.record)
 
     def get_scene_info(self):
         return {
