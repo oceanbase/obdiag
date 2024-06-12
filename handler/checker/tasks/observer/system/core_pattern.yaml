@@ -7,3 +7,18 @@ task:
           set_value: core_pattern
           verify: '[[ $core_pattern != *" "* ]]'
           err_msg: 'kernel.core_pattern: #{core_pattern} , is not recommended for configuring functions other than the specified core path'
+      - type: ssh
+        ssh: 'dirname ${core_pattern}'
+        result:
+          set_value: core_path
+          verify: '[ -d "$core_path" ]'
+          err_msg: 'core_path: #{core_path}  is not exist. Please create it.'
+#d
+      - type: ssh
+        ssh: "df \"$directory\" | awk 'NR==2 {print $4}'"
+        result:
+          set_value: core_path_free_space
+          verify_type: min
+          verify: 10485760
+          err_msg: 'core_path: #{core_path}  free_space: core_path_free_space need > 10485760KB (10GB)'
+
