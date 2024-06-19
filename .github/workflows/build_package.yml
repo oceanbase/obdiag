@@ -1,4 +1,4 @@
-name: build rpm
+name: build package
 
 on:
   pull_request:
