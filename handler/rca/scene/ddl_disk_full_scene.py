@@ -15,10 +15,9 @@
 @file: ddl_disk_full_scene.py
 @desc:
 """
-import re
 
 from handler.rca.rca_exception import RCAInitException, RCAExecuteException
-from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
+from handler.rca.rca_handler import RcaScene
 from common.tool import StringUtils
 
 
@@ -108,12 +107,14 @@ class DDlDiskFullScene(RcaScene):
             ## if the action is not add_index
             # 获取各个节点上的源表大小，单位为B
             # self.stdio._call_stdio('start_loading', 'gstart query estimated_data_size, please wait some minutes...')
+            self.stdio.start_loading('start query estimated_data_size, please wait some minutes...')
             sql = "select svr_ip, svr_port, sum(original_size) as estimated_data_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where table_id = {0}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
                 self.table_id
             )
             self.verbose("execute_sql is {0}".format(sql))
             tablet_size_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             # self.stdio._call_stdio('stop_loading', 'succeed')
+            self.stdio.stop_loading('succeed')
             for item in tablet_size_data:
                 tablet_size_data_ip = item["svr_ip"]
                 tablet_size_data_port = item["svr_port"]
