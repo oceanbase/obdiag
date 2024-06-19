@@ -201,7 +201,7 @@ class DDlDiskFullScene(RcaScene):
                     if target_server_estimated_size > available_disk_space:
                         self.record.add_suggest("the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(target_server_ip, target_server_port))
                     else:
-                        self.record.add_suggest("the disk space of server({0}:{1}) is enough. Don't warn ".format(target_server_ip, target_server_port))
+                        self.record.add_suggest("the disk space of server({0}:{1}) is enough. Don't warn. If there are still errors, please contact the OceanBase community.".format(target_server_ip, target_server_port))
         except Exception as e:
             raise RCAExecuteException("DDlDiskFullScene execute error: {0}".format(e))
         finally:
