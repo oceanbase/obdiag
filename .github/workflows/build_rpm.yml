@@ -9,46 +9,84 @@ on:
       - master
 
 jobs:
-  build-and-package-x86_64:
+  build-rpm:
+    name: Run on CentOS 7
     runs-on: ubuntu-latest
+    container:
+      image: "centos:7"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.8'
-
       - name: Install dependencies
         run: |
+          yum -y install centos-release-scl-rh centos-release-scl
+          yum install rh-python38 rh-python38-python-devel -y
+          echo "source /opt/rh/rh-python38/enable" >/etc/profile.d/python38.sh
+          echo "export X_SCLS=\"rh-python38\"" >>/etc/profile.d/python38.sh
+          source /etc/profile.d/python38.sh 
+          ldd --version
           python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
-
-      - name: Set up RPM build env
-        run: |
-          sudo apt-get update && sudo apt-get install -y rpm alien fakeroot
+          python3 --version
+          yum install rpm-build -y
 
       - name: Build package
         run: |
           pwd
           ls -lh
           export RELEASE=`date +%Y%m%d%H%M`
+          sed -i 's/pip install -r requirements3.txt/source \/etc\/profile.d\/python38.sh\n\
+          curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+          python3 get-pip.py\n\
+          pip3 uninstall urllib3\n\
+          pip3 install urllib3==1.26.6\n\
+          pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
           cat ./rpm/oceanbase-diagnostic-tool.spec
+          source /etc/profile.d/python38.sh
+          python3 -m pip install --upgrade pip setuptools wheel
+          cat /etc/profile.d/python38.sh
+          python3 --version
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
-      - name: Convert RPM to DEB
+      - name: Find rpm
         run: |
-          mkdir -p /home/runner/artifacts
-          fakeroot alien --scripts --to-deb /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          find / -name oceanbase-diagnostic-tool-*.rpm
 
-      - name: 'Upload Artifacts'
+      - name: "Upload rpm"
         uses: actions/upload-artifact@v3
         with:
-          name: obdiag-packages
+          name: obdiag-rpm-packages
           path: |
-            /home/runner/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
-            /home/runner/work/oceanbase-diagnostic-tool/oceanbase-diagnostic-tool/oceanbase-diagnostic-tool_*.deb
+            /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
           debug: true
+
+  convert-to-deb:
+    needs: build-rpm
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download RPM Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: obdiag-rpm-packages
+          path: .
+
+      - name: Install Alien
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y alien
+
+      - name: Convert RPM to DEB
+        run: sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
+
+      - name: Upload DEB Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: obdiag-deb-package
+          path: /home/runner/work/obdiag/obdiag/oceanbase-diagnostic-tool_*.deb
