@@ -18,7 +18,7 @@
 
 import os
 import queue
-import time
+import traceback
 
 import yaml
 
@@ -168,11 +168,15 @@ class CheckHandler:
                             new_tasks[task_name] = task_value
                     self.tasks = new_tasks
             self.stdio.verbose("tasks is {0}".format(self.tasks.keys()))
+            return True
         except Exception as e:
-            self.stdio.error(e)
+            self.stdio.error("Get package tasks failed. Error info is {0}".format(e))
+            self.stdio.verbose(traceback.format_exc())
+            return False
 
     # get all tasks
     def get_all_tasks(self):
+        self.stdio.verbose("get all tasks")
         current_path = self.tasks_base_path
         tasks = {}
         for root, dirs, files in os.walk(current_path):
@@ -239,6 +243,7 @@ class CheckHandler:
             self.stdio.error("Report error :{0}".format(e))
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
+            self.stdio.verbose(traceback.format_exc())
 
 
 class checkOBConnectorPool:

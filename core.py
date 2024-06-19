@@ -18,6 +18,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import traceback
 from optparse import Values
 from copy import copy
 
@@ -319,7 +320,8 @@ class ObdiagHome(object):
                 handler.handle()
                 handler.execute()
             except Exception as e:
-                self.stdio.error(e)
+                self.stdio.error("rca run Exception: {0}".format(e))
+                self.stdio.verbose(traceback.format_exc())
 
     def rca_list(self, opts):
         config = self.config_manager
