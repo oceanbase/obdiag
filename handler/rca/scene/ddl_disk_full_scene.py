@@ -168,13 +168,14 @@ class DDlDiskFullScene(RcaScene):
                         self.record.add_record("magnification is 5.5")
                         target_server_estimated_size = int(estimiated_index_size * 55 / 10)
                     self.record.add_record("estimated_index_size with magnification is {0}B as {1}".format(target_server_estimated_size, translate_byte(target_server_estimated_size)))
-                    new_node_estimated_size["estimiated_index_size"] = estimiated_index_size
+                    new_node_estimated_size["estimiated_index_size"] = target_server_estimated_size
                     new_estimated_size.append(new_node_estimated_size)
                     self.record.add_record(
-                        "On target_server_ip is {0}, target_server_port is {1}, estimiated_index_size is {2}B as {3}".format(node_estimated_size["svr_ip"], node_estimated_size["svr_port"], estimiated_index_size, translate_byte(estimiated_index_size))
+                        "On target_server_ip is {0}, target_server_port is {1}, estimiated_index_size is {2}B as {3}".format(
+                            node_estimated_size["svr_ip"], node_estimated_size["svr_port"], target_server_estimated_size, translate_byte(target_server_estimated_size)
+                        )
                     )
-                self.estimated_size = new_estimated_size
-                for estimated_size in self.estimated_size:
+                for estimated_size in new_estimated_size:
                     target_server_ip = estimated_size["svr_ip"]
                     target_server_port = estimated_size["svr_port"]
                     target_server_estimated_size = int(estimated_size["estimiated_index_size"])
