@@ -329,7 +329,7 @@ class RCA_ResultRecord:
             self.stdio.verbose("add record: {0}".format(fill(record, width=100)))
 
     def add_suggest(self, suggest):
-        self.suggest += suggest
+        self.suggest += suggest + "\n"
         if self.stdio is not None:
             self.stdio.verbose("add suggest: {0}".format(suggest))
 
