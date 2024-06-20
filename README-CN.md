@@ -85,12 +85,6 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 |3.2.0|2024.11| - |<ul><li> 根因分析场景扩展 </li><li> SQL 诊断二期，支持SQL问题的根因分析 </li></ul>|
 |3.3.0|2024.12| - |<ul><li> AI 化探索 </li></ul>|
 
-
-# 许可证
-
-OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
-您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
-
 # 支持
 
 如果您在使用 OceanBase LogProxy 时遇到任何问题，欢迎联系我们寻求帮助：
@@ -98,5 +92,41 @@ OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/Mu
 - [GitHub Issue](https://github.com/oceanbase/obdiag/issues)
 - [官方网站](https://www.oceanbase.com/docs/obdiag-cn)
 
-# 加入我们
+# 开发者专区
+
+## 加入我们
 请添加 OB社区小助手（微信号：obce666）并备注“obdiag SIG”，工作人员会联系并指引您加入 SIG 的相关事宜。期待您的积极参与与宝贵贡献！
+
+## 开发者行动指南
+
+1. Fork并克隆你的专属副本：在我们的GitHub仓库页面右上角点击“Fork”按钮，这样就在你的账号下创建了一份仓库副本。接下来，使用Git命令将这份副本克隆到你的本地计算机上：
+
+```bash
+git clone https://github.com/your_username/your_repo_here.git
+```
+
+2. 修改代码：无论是修正漏洞还是增添新功能，你的每一份贡献都至关重要。
+
+3. 通过 black 工具统一格式化你的代码 🎨
+
+```bash
+black -S -l 256 {source_file_or_directory}
+```
+
+4. 提交你的改动：完成优化后，利用Git提交你的修改。
+
+5. 推送到你的Fork仓库：将你的改动推送到GitHub上的Fork仓库中。
+
+6. 发起合并请求（PR）：回到你的GitHub分叉页面，点击“Open pull request”按钮。对比你的分支与原始仓库的主分支，描述你的改动内容，然后提交PR！
+
+7. 🚀 自动化流程接棒此处 🤖
+
+接下来，就交给我们的GitHub Actions流水线：
+- 代码检查：PR一旦触发，流水线会自动代码格式化检查以及安全检查。
+- 自动构建：PR一旦触发，就会自动将你的改动编译成RPM和DEB两种软件包。
+
+
+# 许可证
+
+OceanBase Diagnostic Tool 使用 [MulanPSL - 2.0](http://license.coscl.org.cn/MulanPSL2) 许可证。
+您可以免费复制及使用源代码。当您修改或分发源代码时，请遵守木兰协议。
