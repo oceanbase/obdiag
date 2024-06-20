@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - master
-      - dev
+      - dev1
 
 jobs:
   build-rpm:
