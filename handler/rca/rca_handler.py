@@ -308,6 +308,8 @@ class Result:
         self.stdio.verbose("save record to {0}".format(record_file_name))
         with open(record_file_name, "w") as f:
             for record in self.records:
+                if record.records is None or len(record.records) == 0:
+                    continue
                 record_data = record.export_record()
                 f.write(record_data.get_string())
                 f.write("\n")
@@ -327,7 +329,7 @@ class RCA_ResultRecord:
             self.stdio.verbose("add record: {0}".format(fill(record, width=100)))
 
     def add_suggest(self, suggest):
-        self.suggest += suggest
+        self.suggest += suggest + "\n"
         if self.stdio is not None:
             self.stdio.verbose("add suggest: {0}".format(suggest))
 

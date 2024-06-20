@@ -114,12 +114,22 @@ class TransactionExecuteTimeoutScene(RcaScene):
                         match = re.search(r'current_time=(\d+)', line)
                         if match:
                             cur_query_start_time = match.group(1)
-                            self.record.add_record("current_time is {0}".format(cur_query_start_time))
+                    elif "query_start_time" in line:
+                        match = re.search(r'query_start_time=(\d+)', line)
+                        if match:
+                            cur_query_start_time = match.group(1)
+                    if cur_query_start_time is not None:
+                        self.record.add_record("cur_query_start_time is {0}".format(cur_query_start_time))
+                        break
+            with open(log_name, 'r', encoding='utf-8') as f:
+                content = f.readlines()
+                for line in content:
                     if "timeout_timestamp" in line:
                         match = re.search(r'timeout_timestamp=(\d+)', line)
                         if match:
                             timeout_timestamp = match.group(1)
                             self.record.add_record("timeout_timestamp is {0}".format(timeout_timestamp))
+                            break
         if cur_query_start_time is None or timeout_timestamp is None:
             self.record.add_record("can not find cur_query_start_time or timeout_timestamp")
             self.record.add_suggest("Can not find cur_query_start_time or timeout_timestamp")
@@ -127,7 +137,7 @@ class TransactionExecuteTimeoutScene(RcaScene):
         self.record.add_record("cur_query_start_time is {0}, timeout_timestamp is {1}".format(cur_query_start_time, timeout_timestamp))
         if int(timeout_timestamp or 0) - int(cur_query_start_time or 0) >= int(ob_query_timeout or 0):
             self.record.add_record("timeout_timestamp - cur_query_start_time={0} >= ob_query_timeout".format(int(timeout_timestamp or 0) - int(cur_query_start_time or 0)))
-            self.record.add_suggest("Meets expectations")
+            self.record.add_suggest("Meets expectations. If you still have any doubts about this, you can contact the Oceanbase community.")
         else:
             self.record.add_record("timeout_timestamp - cur_query_start_time={0} =< ob_query_timeout".format(int(timeout_timestamp or 0) - int(cur_query_start_time or 0)))
             self.record.add_suggest("Not meet expectations. Please send it to Oceanbase Community")
