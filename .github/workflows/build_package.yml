@@ -92,4 +92,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: obdiag-deb-package
-          path: /home/runner/work/obdiag/obdiag/oceanbase-diagnostic-tool_*.deb
+          path: ./oceanbase-diagnostic-tool_*.deb
