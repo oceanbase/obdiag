@@ -93,3 +93,4 @@ jobs:
         with:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
+          retention-days: 3
