@@ -244,6 +244,7 @@ class CheckHandler:
             self.report.export_report()
         except CheckrReportException as e:
             self.stdio.error("Report error :{0}".format(e))
+            self.stdio.verbose(traceback.format_exc())
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
             self.stdio.verbose(traceback.format_exc())
