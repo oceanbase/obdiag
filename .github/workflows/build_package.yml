@@ -84,7 +84,9 @@ jobs:
           sudo apt-get install -y alien
 
       - name: Convert RPM to DEB
-        run: sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
+        run: |
+          sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
+          pwd
 
       - name: Upload DEB Artifact
         uses: actions/upload-artifact@v3
