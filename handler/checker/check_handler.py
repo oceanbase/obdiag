@@ -108,7 +108,7 @@ class CheckHandler:
             new_node.append(node)
         self.nodes = new_node
         self.version = get_version(self.nodes, self.check_target_type, self.cluster, self.stdio)
-
+        obConnectorPool = None
         # add OBConnectorPool
         try:
             obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
@@ -184,8 +184,11 @@ class CheckHandler:
                 if file.endswith('.yaml'):
                     folder_name = os.path.basename(root)
                     task_name = "{}.{}".format(folder_name, file.split('.')[0])
-                    task_data = YamlUtils.read_yaml_data(os.path.join(root, file))
-                    tasks[task_name] = task_data
+                    with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
+                        task_data = yaml.safe_load(f)
+                        if task_data is None:
+                            continue
+                        tasks[task_name] = task_data
         if len(tasks) == 0:
             raise Exception("the len of tasks is 0")
         self.tasks = tasks
@@ -241,6 +244,7 @@ class CheckHandler:
             self.report.export_report()
         except CheckrReportException as e:
             self.stdio.error("Report error :{0}".format(e))
+            self.stdio.verbose(traceback.format_exc())
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
             self.stdio.verbose(traceback.format_exc())

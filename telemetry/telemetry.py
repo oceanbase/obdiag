@@ -154,7 +154,7 @@ class Telemetry:
             re = {"content": report_data, "component": "obdiag"}
 
             # put to /tmp
-            with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'w', encoding="utf8") as f:
+            with open(const.OBDIAG_TELEMETRY_FILE_NAME, 'w', encoding="UTF-8") as f:
                 f.write(json.dumps(re, ensure_ascii=False))
             self.put_info_to_oceanbase()
 
