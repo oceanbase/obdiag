@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2024/06/01
+@time: 2024/06/02
 @file: index_ddl_error_scene.py
 @desc:
 """
