@@ -44,6 +44,7 @@ class LocalClient(SsherClient):
             shutil.copy(remote_path, local_path)
         except Exception as e:
             self.stdio.error("download file from localhost, remote_path=[{0}], local_path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
+            raise Exception("download file from localhost, remote_path=[{0}], local_path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
 
     def upload(self, remote_path, local_path):
         try:
@@ -60,6 +61,7 @@ class LocalClient(SsherClient):
             stdout, stderr = out.communicate()
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
+                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format(cmd, stderr))
             return stdout
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))

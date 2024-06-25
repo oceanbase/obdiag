@@ -28,7 +28,7 @@ class KubernetesClient(SsherClient):
         config.kube_config.load_kube_config()
         self.namespace = self.node.get("namespace")
         self.pod_name = self.node.get("pod_name")
-        self.container_name = self.node.get("container_name")
+        self.container_name = self.node.get("container_name") or "observer"
         self.client = client.CoreV1Api()
 
     def exec_cmd(self, cmd):
@@ -84,13 +84,12 @@ class KubernetesClient(SsherClient):
             resp.close()
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
-        raise Exception("the client type is not support ssh invoke shell switch user")
+        return self.__ssh_invoke_shell_switch_user(new_user, cmd, time_out)
 
     def __ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         command = ['/bin/sh', '-c', cmd]
         # 构建执行tar命令串，该命令串在切换用户后执行
         exec_command = ['su', '-u', new_user, "&"] + command
-
         resp = stream(self.client.connect_get_namespaced_pod_exec, self.pod_name, self.namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=self.container_name)
         parts = resp.split('\n', maxsplit=1)
         if len(parts) < 2:

@@ -72,7 +72,7 @@ class RemoteClient(SsherClient):
             self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
             self._ssh_fd.load_system_host_keys()
             self.need_password = True
-            self._ssh_fd.connect(hostname=host_ip, username=username, password=password, port=ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
+            self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
 
     def exec_cmd(self, cmd):
         try:

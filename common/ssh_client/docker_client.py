@@ -58,15 +58,13 @@ class DockerClient(SsherClient):
     def upload(self, remote_path, local_path):
         try:
             self.stdio.verbose(" local_path:{0} to remote_path:{1}:{2}".format(local_path, self.node["container_name"], remote_path))
-
             self.client.containers.get(self.node["container_name"]).put_archive(remote_path, local_path)
-
             return
         except Exception as e:
             self.stdio.error("sshHelper upload docker Exception: {0}".format(e))
             raise Exception("sshHelper upload docker Exception: {0}".format(e))
 
-    def ssh_invoke_shell_switch_user(self, new_user, cmd):
+    def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         try:
             exec_id = self.client.exec_create(container=self.node["container_name"], command=['su', '- ' + new_user])
             response = self.client.exec_start(exec_id)

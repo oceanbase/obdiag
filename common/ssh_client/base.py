@@ -41,3 +41,6 @@ class SsherClient(SafeStdio):
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         raise Exception("the client type is not support ssh invoke shell switch user")
+
+    def ssh_close(self):
+        return

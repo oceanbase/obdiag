@@ -76,3 +76,11 @@ class SshClient(SafeStdio):
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         return self.client.ssh_invoke_shell_switch_user(new_user, cmd, time_out)
+
+    def ssh_close(self):
+        return self.client.ssh_close()
+
+    def ssh_reconnect(self):
+        self.client = None
+        self.init()
+        return
