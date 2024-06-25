@@ -23,7 +23,7 @@ import traceback
 import yaml
 
 from common.ob_connector import OBConnector
-from common.ssh import SshHelper
+from common.ssh_client.ssh import SshClient
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
@@ -101,7 +101,8 @@ class CheckHandler:
             # add ssher
             ssher = None
             try:
-                ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+                # ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+                ssher = SshClient(context, node)
             except Exception as e:
                 self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
             node["ssher"] = ssher

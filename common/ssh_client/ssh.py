@@ -23,7 +23,7 @@ from common.ssh_client.remote_client import RemoteClient
 from stdio import SafeStdio
 
 
-class SshHelper(SafeStdio):
+class SshClient(SafeStdio):
     def __init__(self, context=None, node=None):
         if node is None:
             raise Exception("SshHelper init error: node is None")

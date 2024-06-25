@@ -47,7 +47,7 @@ class SshHandler:
                 raise StepExecuteFailException("SshHandler execute ssh is not set")
             ssh_cmd = StringUtils.build_str_on_expr_by_dict(self.step["ssh"], self.task_variable_dict)
             self.stdio.verbose("step SshHandler execute :{0} ".format(ssh_cmd))
-            ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
+            ssh_report_value = self.ssh_helper.exec_cmd(ssh_cmd)
             if ssh_report_value is None:
                 ssh_report_value = ""
             if len(ssh_report_value) > 0:
