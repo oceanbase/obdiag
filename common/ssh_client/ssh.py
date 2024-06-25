@@ -46,7 +46,7 @@ class SshClient(SafeStdio):
         try:
             self.ssh_type = self.node.get("ssh_type") or "remote"
             # where ssh_type is remote, maybe use local client.
-            if self.ssh_type == 'remote':
+            if self.ssh_type == 'remote' or self.ssh_type == 'ssh':
                 node_ip = self.node.get("ip") or ""
                 if node_ip == "":
                     raise Exception("the node ip is None")
@@ -76,5 +76,3 @@ class SshClient(SafeStdio):
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         return self.client.ssh_invoke_shell_switch_user(new_user, cmd, time_out)
-
-
