@@ -19,7 +19,6 @@ import os.path
 import zipfile
 
 from handler.gather.gather_log import GatherLogHandler
-from common.tool import Util
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 
 

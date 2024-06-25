@@ -30,7 +30,6 @@ from common.ssh_client.ssh import SshClient
 from handler.rca.plugins.gather import Gather_log
 from handler.rca.rca_exception import RCANotNeedExecuteException
 from handler.rca.rca_list import RcaScenesListHandler
-from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
