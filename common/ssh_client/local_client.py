@@ -33,7 +33,7 @@ class LocalClient(SsherClient):
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
             if len(stderr):
-                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format( cmd, stderr))
+                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format(cmd, stderr))
             return stdout.decode(errors='replace')
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
