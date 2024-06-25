@@ -197,7 +197,7 @@ class CheckHandler:
     # need  package_name
     def get_package_tasks(self, package_name):
         # Obtain information within the package file
-        with open(self.package_file_name, 'r') as file:
+        with open(self.package_file_name, 'r', encoding='utf-8') as file:
             package_file_data = yaml.safe_load(file)
             packege_tasks = package_file_data
         if package_name not in packege_tasks:
