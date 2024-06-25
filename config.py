@@ -221,7 +221,7 @@ class ConfigManager(Manager):
                 'ssh_port': node_config.get('ssh_port', global_config.get('ssh_port', 22)),
                 'home_path': node_config.get('home_path', global_config.get('home_path', '/root/obproxy')),
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
-                'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'ssh')),
+                'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
                 'container_name': node_config.get('container_name', global_config.get('container_name')),
                 'host_type': 'OBPROXY',
             }
