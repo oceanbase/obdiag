@@ -84,10 +84,13 @@ jobs:
           sudo apt-get install -y alien
 
       - name: Convert RPM to DEB
-        run: sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
+        run: |
+          sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
+          pwd
 
       - name: Upload DEB Artifact
         uses: actions/upload-artifact@v3
         with:
           name: obdiag-deb-package
-          path: /home/runner/work/obdiag/obdiag/oceanbase-diagnostic-tool_*.deb
+          path: ./oceanbase-diagnostic-tool_*.deb
+          retention-days: 3
