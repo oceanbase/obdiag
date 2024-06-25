@@ -48,7 +48,7 @@ class GetSystemParameterHandler:
     def get_parameter(self, parameter_name):
         try:
             parameter_name = parameter_name.replace(".", "/")
-            parameter_value = self.ssh_helper.ssh_exec_cmd("cat /proc/sys/" + parameter_name).strip()
+            parameter_value = self.ssh_helper.exec_cmd("cat /proc/sys/" + parameter_name).strip()
             self.ssh_helper.ssh_close()
         except Exception as e:
             self.stdio.warn("get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))
@@ -68,7 +68,7 @@ class GetSystemParameterHandler:
             else:
                 s = self.step["parameter"]
             # SystemParameter exist?
-            if self.ssh_helper.ssh_exec_cmd('find /proc/sys/ -name "{0}"'.format(s)) == "":
+            if self.ssh_helper.exec_cmd('find /proc/sys/ -name "{0}"'.format(s)) == "":
                 self.stdio.warn("{0} is not exist".format(self.step["parameter"]))
                 if "result" in self.step and "set_value" in self.step["result"]:
                     self.task_variable_dict[self.step["result"]["set_value"]] = ""

@@ -28,13 +28,16 @@ class LocalClient(SsherClient):
     def exec_cmd(self, cmd):
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = out.communicate()
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
-            return stdout
+            if len(stderr):
+                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format( cmd, stderr))
+            return stdout.decode(errors='replace')
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
+            raise Exception("[localhost] Execute Shell command failed, " "command=[{0}]".format(cmd))
 
     def download(self, remote_path, local_path):
         try:
