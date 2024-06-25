@@ -12,7 +12,7 @@
 
 """
 @time: 2024/6/24
-@file: __init__.py
+@file: ssh.py
 @desc:
 """
 import socket
@@ -78,26 +78,3 @@ class SshClient(SafeStdio):
         return self.client.ssh_invoke_shell_switch_user(new_user, cmd, time_out)
 
 
-class SsherClient(SafeStdio):
-    def __init__(self, context, node):
-        super().__init__()
-        self.context = context
-        if context is not None:
-            self.stdio = self.context.stdio
-        else:
-            self.stdio = None
-        self.node = node
-        self.ssh_type = node.get("ssh_type") or "remote"
-        self.client = None
-
-    def exec_cmd(self, cmd):
-        raise Exception("the client type is not support exec_cmd")
-
-    def download(self, remote_path, local_path):
-        raise Exception("the client type is not support download")
-
-    def upload(self, remote_path, local_path):
-        raise Exception("the client type is not support upload")
-
-    def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
-        raise Exception("the client type is not support ssh invoke shell switch user")
