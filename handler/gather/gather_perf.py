@@ -25,7 +25,6 @@ from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, down
 from common.command import LocalClient, SshClient
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
-from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
@@ -128,75 +127,74 @@ class GatherPerfHandler(BaseShellHandler):
         remote_dir_name = "perf_{0}_{1}".format(node.get("ip"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
+        ssh_client=None
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            ssh_client = SshClient(self.context, node)
         except Exception as e:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
+            return resp
         if not ssh_failed:
-            mkdir(self.is_ssh, ssh_helper, remote_dir_full_path, self.stdio)
-
-            pid_observer_list = get_observer_pid(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
+            mkdir(ssh_client, remote_dir_full_path, self.stdio)
+            pid_observer_list = get_observer_pid(ssh_client, node.get("home_path"), self.stdio)
             if len(pid_observer_list) == 0:
                 resp["error"] = "can't find observer"
                 return resp
             for pid_observer in pid_observer_list:
                 if self.scope == "sample":
-                    self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
+                    self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
                 elif self.scope == "flame":
-                    self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
+                    self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
                 else:
-                    self.__gather_perf_sample(ssh_helper, remote_dir_full_path, pid_observer)
-                    self.__gather_perf_flame(ssh_helper, remote_dir_full_path, pid_observer)
-                self.__gather_top(ssh_helper, remote_dir_full_path, pid_observer)
+                    self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
+                    self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
+                self.__gather_top(ssh_client, remote_dir_full_path, pid_observer)
 
-            zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name, self.stdio)
+            zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
             remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
-            file_size = get_file_size(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
+            file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
                 local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                download_file(self.is_ssh, ssh_helper, remote_file_full_path, local_file_path, self.stdio)
+                download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
-            delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
-            ssh_helper.ssh_close()
+            delete_file_force(ssh_client, remote_file_full_path, self.stdio)
             resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
         return resp
 
-    def __gather_perf_sample(self, ssh_helper, gather_path, pid_observer):
+    def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
-            SshClient(self.stdio).run_ignore_err(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
-
+            ssh_client.exec_cmd(cmd)
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
-            SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
+            ssh_client.exec_cmd(generate_data)
         except:
-            self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_helper.get_name()))
+            self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
 
-    def __gather_perf_flame(self, ssh_helper, gather_path, pid_observer):
+    def __gather_perf_flame(self, ssh_client, gather_path, pid_observer):
         try:
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf, run cmd = [{0}]".format(perf_cmd))
-            SshClient(self.stdio).run_ignore_err(ssh_helper, perf_cmd) if self.is_ssh else LocalClient(self.stdio).run(perf_cmd)
+            ssh_client.exec_cmd(perf_cmd)
 
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
-            SshClient(self.stdio).run_ignore_err(ssh_helper, generate_data) if self.is_ssh else LocalClient(self.stdio).run(generate_data)
+            ssh_client.exec_cmd(generate_data)
         except:
-            self.stdio.error("generate perf data on server [{0}] failed".format(ssh_helper.get_name()))
+            self.stdio.error("generate perf data on server [{0}] failed".format(ssh_client.get_name()))
 
-    def __gather_top(self, ssh_helper, gather_path, pid_observer):
+    def __gather_top(self, ssh_client, gather_path, pid_observer):
         try:
             cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather top, run cmd = [{0}]".format(cmd))
-            SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+            ssh_client.exec_cmd(cmd)
         except:
-            self.stdio.error("gather top on server failed [{0}]".format(ssh_helper.get_name()))
+            self.stdio.error("gather top on server failed [{0}]".format(ssh_client.get_name()))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):

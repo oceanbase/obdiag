@@ -16,8 +16,9 @@
 @desc:
 """
 import os
+
+from common.ssh_client.ssh import SshClient
 from stdio import SafeStdio
-from common.ssh import SshHelper
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -60,10 +61,10 @@ class CPUHighScene(SafeStdio):
         try:
             self.stdio.print("gather current_clocksource start")
             for node in self.nodes:
-                ssh_helper = SshHelper(self.is_ssh, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+                ssh_client = SshClient(self.context,node)
                 cmd = 'cat /sys/devices/system/clocksource/clocksource0/current_clocksource'
                 self.stdio.verbose("gather current_clocksource, run cmd = [{0}]".format(cmd))
-                result = ssh_helper.ssh_exec_cmd(cmd)
+                result = ssh_client.exec_cmd(cmd)
                 file_path = os.path.join(self.report_path, "current_clocksource_{ip}_result.txt".format(ip=str(node.get("ip")).replace('.', '_')))
                 self.report(file_path, cmd, result)
             self.stdio.print("gather current_clocksource end")

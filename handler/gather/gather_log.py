@@ -23,7 +23,7 @@ from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
 from common.command import get_file_size, download_file, is_empty_dir, rm_rf_file, get_logfile_name_list, mkdir, delete_empty_file, zip_encrypt_dir, zip_dir
-from common.command import SshClient, LocalClient
+from common.command import SshClient
 from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
@@ -243,7 +243,6 @@ class GatherLogHandler(BaseShellHandler):
     def __grep_log(self, ssh_client, home_path, log_name, gather_path):
         """
         处理传入的日志文件，将满足条件的日志文件归集到一起，并返回grep结果是否为空
-        :param ssh_helper, log_name, gather_path
         :return is_empty:
         """
         log_path = os.path.join(home_path, "log")

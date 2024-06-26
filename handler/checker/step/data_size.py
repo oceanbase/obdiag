@@ -17,9 +17,7 @@
 """
 from common.types import Capacity
 from handler.checker.check_exception import StepExecuteFailException
-from common.ssh import SshHelper
 from handler.checker.check_report import TaskReport
-from common.tool import Util
 
 
 class DataSizeHandler:

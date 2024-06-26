@@ -17,7 +17,6 @@
 """
 import os
 from stdio import SafeStdio
-from common.ssh import SshHelper
 from common.tool import StringUtils
 
 

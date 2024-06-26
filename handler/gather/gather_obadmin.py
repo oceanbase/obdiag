@@ -25,7 +25,6 @@ from common.constant import const
 from common.command import LocalClient, SshClient, is_empty_dir
 from handler.base_shell_handler import BaseShellHandler
 from common.command import download_file, rm_rf_file, get_file_size, zip_encrypt_dir, zip_dir, get_observer_version
-from common.ssh import SshHelper
 from common.tool import TimeUtils
 from common.tool import StringUtils
 from common.tool import Util
@@ -170,16 +169,18 @@ class GatherObAdminHandler(BaseShellHandler):
             remote_dir_name = "clog_{0}_{1}".format(remote_ip, now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
+        ssh_client=None
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            ssh_client = SshClient(self.context, node)
         except Exception as e:
             self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
+            return resp
         if not ssh_failed:
             mkdir_cmd = "mkdir -p {0}".format(remote_dir_full_path)
-            SshClient(self.stdio).run(ssh_helper, mkdir_cmd) if self.is_ssh else LocalClient(self.stdio).run(mkdir_cmd)
+            ssh_client.exec_cmd(mkdir_cmd)
             ob_version = get_observer_version(self.context)
             if (ob_version != "" and not StringUtils.compare_versions_lower(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN, self.stdio)) or ob_version == "":
                 self.stdio.verbose("This version {0} does not support gather clog/slog . The max supported version less than {1}".format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
@@ -187,17 +188,17 @@ class GatherObAdminHandler(BaseShellHandler):
                 resp["gather_pack_path"] = "{0}".format(local_stored_path)
                 resp["zip_password"] = ""
                 return resp
-            log_list, resp = self.__handle_log_list(ssh_helper, remote_ip, resp)
+            log_list, resp = self.__handle_log_list(ssh_client, remote_ip, resp)
             for slog in log_list:
-                self.__gather_log_info(ssh_helper, node, slog, remote_dir_full_path)
+                self.__gather_log_info(ssh_client, node, slog, remote_dir_full_path)
 
-            self.__mv_log(ssh_helper, remote_dir_full_path)
-            if is_empty_dir(self.is_ssh, ssh_helper, "/tmp/{0}".format(remote_dir_name), self.stdio):
+            self.__mv_log(ssh_client, remote_dir_full_path)
+            if is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio):
                 resp["error"] = "gather failed, folder is empty"
                 resp["zip_password"] = ""
             else:
-                resp = self.__handle_zip_file(remote_ip, ssh_helper, resp, remote_dir_name, local_stored_path)
-                rm_rf_file(self.is_ssh, ssh_helper, remote_dir_full_path, self.stdio)
+                resp = self.__handle_zip_file(remote_ip, ssh_client, resp, remote_dir_name, local_stored_path)
+                rm_rf_file(ssh_client, remote_dir_full_path, self.stdio)
         return resp
 
     def __handle_log_list(self, ssh, node, resp):
@@ -214,29 +215,29 @@ class GatherObAdminHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __handle_zip_file(self, ip, ssh, resp, gather_dir_name, pack_dir_this_command):
+    def __handle_zip_file(self, ssh_client, resp, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            zip_encrypt_dir(self.is_ssh, ssh, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         else:
-            zip_dir(self.is_ssh, ssh, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
-        gather_log_file_size = get_file_size(self.is_ssh, ssh, gather_package_dir, self.stdio)
-        self.stdio.print(FileUtil.show_file_size_tabulate(ip, gather_log_file_size, self.stdio))
+        gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
+        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size, self.stdio))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
-            local_path = download_file(self.is_ssh, ssh, gather_package_dir, pack_dir_this_command, self.stdio)
+            local_path = download_file(ssh_client, gather_package_dir, pack_dir_this_command, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
             resp["error"] = "File too large"
             resp["zip_password"] = ""
-        rm_rf_file(self.is_ssh, ssh, gather_package_dir, self.stdio)
+        rm_rf_file(ssh_client, gather_package_dir, self.stdio)
         resp["gather_pack_path"] = local_path
 
-        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
+        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ssh_client.get_name(), gather_package_dir))
         return resp
 
     def __get_log_name(self, ssh_helper, node):
