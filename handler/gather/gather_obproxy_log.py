@@ -26,7 +26,6 @@ from common.obdiag_exception import OBDIAGFormatException
 from common.command import LocalClient, SshClient
 from common.constant import const
 from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, zip_encrypt_dir, zip_dir
-from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
@@ -178,46 +177,44 @@ class GatherObProxyLogHandler(BaseShellHandler):
         resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
         remote_home_path = node.get("home_path")
         ssh_failed = False
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
+        ssh_client = None
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            ssh_client = SshClient(self.context,node)
         except Exception as e:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
+            return resp
         if not ssh_failed:
             from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
             to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-            gather_dir_name = "obproxy_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
+            gather_dir_name = "obproxy_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
             gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-            mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+            mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
-            log_list, resp = self.__handle_log_list(ssh, node, resp)
+            log_list, resp = self.__handle_log_list(ssh_client, node, resp)
             if resp["skip"]:
                 return resp
             for log_name in log_list:
-                self.__pharse_log(ssh_helper=ssh, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
-            delete_empty_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+                self.__pharse_log(ssh_client=ssh_client, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
+            delete_empty_file(ssh_client, gather_dir_full_path, self.stdio)
 
-            is_empty = is_empty_dir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+            is_empty = is_empty_dir(ssh_client, gather_dir_full_path, self.stdio)
             if is_empty:
                 resp["error"] = "Empty file"
                 resp["zip_password"] = ""
-                rm_rf_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+                rm_rf_file(ssh_client, gather_dir_full_path, self.stdio)
             else:
-                self.__handle_zip_file(remote_ip, ssh, resp, gather_dir_name, pack_dir_this_command)
-            ssh.ssh_close()
+                self.__handle_zip_file(ssh_client, resp, gather_dir_name, pack_dir_this_command)
         return resp
 
-    def __handle_log_list(self, ssh, node, resp):
-        log_list = self.__get_log_name(ssh, node)
+    def __handle_log_list(self, ssh_client, node, resp):
+        log_list = self.__get_log_name(ssh_client, node)
         ip = node.get("ip")
         if len(log_list) > self.file_number_limit:
             self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}], " "Please adjust the query limit".format(ip, len(log_list), self.file_number_limit))
@@ -231,7 +228,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __get_log_name(self, ssh_helper, node):
+    def __get_log_name(self, ssh_client, node):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_diagnosis" or self.scope == "obproxy_error":
@@ -246,21 +243,18 @@ class GatherObProxyLogHandler(BaseShellHandler):
                 log_path,
                 log_path,
             )
-        if self.is_ssh:
-            log_files = SshClient(self.stdio).run(ssh_helper, get_obproxy_log).strip()
-        else:
-            log_files = LocalClient(self.stdio).run(get_obproxy_log).strip()
+        log_files = ssh_client.exec_cmd(get_obproxy_log)
         log_name_list = []
         if log_files:
-            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
+            log_name_list = get_logfile_name_list(ssh_client, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
         else:
             self.stdio.error("Unable to find the log file. Please provide the correct home_path config and check obproxy {0} log exist".format(log_path))
         return log_name_list
 
-    def __pharse_log(self, ssh_helper, home_path, log_name, gather_path):
+    def __pharse_log(self, ssh_client, home_path, log_name, gather_path):
         """
         处理传入的日志文件，将满足条件的日志文件归集到一起
-        :param ssh_helper, log_name, gather_path
+        :param ssh_client, log_name, gather_path
         :return:
         """
         log_path = os.path.join(home_path, "log")
@@ -281,36 +275,36 @@ class GatherObProxyLogHandler(BaseShellHandler):
 
                 grep_cmd = "cat {log_dir}/{log_name} {grep_args} >> {gather_path}/{log_name} ".format(grep_args=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
         else:
             cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
-            SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
+            ssh_client.exec_cmd(cp_cmd)
 
-    def __handle_zip_file(self, ip, ssh, resp, gather_dir_name, pack_dir_this_command):
+    def __handle_zip_file(self, ssh_client, resp, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_log_temporary_dir, gather_dir_name)
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            zip_encrypt_dir(self.is_ssh, ssh, zip_password, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_encrypt_dir(ssh_client, zip_password, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
         else:
-            zip_dir(self.is_ssh, ssh, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_dir(ssh_client, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
 
-        gather_log_file_size = get_file_size(self.is_ssh, ssh, gather_package_dir, self.stdio)
-        self.stdio.print(FileUtil.show_file_size_tabulate(ip, gather_log_file_size))
+        gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
+        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client.get_name(), gather_log_file_size))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
             local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
-            local_path = download_file(self.is_ssh, ssh, gather_package_dir, local_store_path, self.stdio)
+            local_path = download_file(ssh_client, gather_package_dir, local_store_path, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
             resp["error"] = "File too large"
             resp["zip_password"] = ""
-        rm_rf_file(self.is_ssh, ssh, gather_package_dir, self.stdio)
+        rm_rf_file(ssh_client, gather_package_dir, self.stdio)
         resp["gather_pack_path"] = local_path
-        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
+        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ssh_client.get_name(), gather_package_dir))
         return resp
 
     @staticmethod

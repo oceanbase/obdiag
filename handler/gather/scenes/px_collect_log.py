@@ -15,9 +15,9 @@
 @file: px_collect_log.py
 @desc:
 """
+from common.ssh_client.ssh import SshClient
 from handler.gather.gather_log import GatherLogHandler
 from common.command import uzip_dir_local, analyze_log_get_sqc_addr, delete_file_in_folder, find_home_path_by_port
-from common.ssh import SshHelper
 import datetime
 
 
@@ -112,14 +112,11 @@ class SQLPXCollectLogScene(object):
             if node["ip"] == ip_str:
                 remote_ip = node.get("ip")
                 remote_user = node.get("ssh_username")
-                remote_password = node.get("ssh_password")
-                remote_port = node.get("ssh_port")
-                remote_private_key = node.get("ssh_key_file")
                 try:
-                    ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+                    ssh_client = SshClient(self.context,node)
+                    return find_home_path_by_port(ssh_client, internal_port_str, self.stdio)
                 except Exception as e:
                     self.stdio.error("ssh {0}@{1}: failed, Please check the config".format(remote_user, remote_ip))
-                return find_home_path_by_port(True, ssh, internal_port_str, self.stdio)
 
     def parse_trace_id(self, trace_id):
         id_ = trace_id.split('-')[0].split('Y')[1]

@@ -27,7 +27,6 @@ from common.command import LocalClient, SshClient
 from common.ob_log_level import OBLogLevel
 from handler.meta.ob_error import OB_RET_DICT
 from common.command import download_file, get_logfile_name_list, mkdir, delete_file
-from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
