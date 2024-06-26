@@ -16,6 +16,8 @@
 @desc:
 """
 import os
+
+from common.ssh_client.ssh import SshClient
 from stdio import SafeStdio
 from common.tool import StringUtils
 
@@ -30,8 +32,7 @@ class SshHandler(SafeStdio):
         self.node = node
         self.report_path = report_path
         try:
-            is_ssh = True
-            self.ssh_helper = SshHelper(is_ssh, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+            self.ssh_client = SshClient(self.context, node)
         except Exception as e:
             self.stdio.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
         self.task_variable_dict = task_variable_dict
@@ -45,7 +46,7 @@ class SshHandler(SafeStdio):
                 return
             ssh_cmd = StringUtils.build_str_on_expr_by_dict_2(self.step["ssh"], self.task_variable_dict)
             self.stdio.verbose("step SshHandler execute :{0} ".format(ssh_cmd))
-            ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
+            ssh_report_value = self.ssh_client.exec_cmd(ssh_cmd)
             if ssh_report_value is None:
                 ssh_report_value = ""
             if len(ssh_report_value) > 0:
@@ -54,7 +55,7 @@ class SshHandler(SafeStdio):
         except Exception as e:
             self.stdio.error("ssh execute Exception:{0}".format(e).strip())
         finally:
-            self.ssh_helper.ssh_close()
+            self.ssh_client.ssh_close()
         self.stdio.verbose("gather step SshHandler ssh_report_value:{0}".format(self.ssh_report_value))
 
     def update_step_variable_dict(self):

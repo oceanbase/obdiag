@@ -39,7 +39,6 @@ class GatherObstack2Handler(BaseShellHandler):
         super(GatherObstack2Handler, self).__init__()
         self.context = context
         self.stdio = context.stdio
-        self.is_ssh = True
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
         self.is_scene = is_scene
@@ -97,15 +96,8 @@ class GatherObstack2Handler(BaseShellHandler):
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
+        for node in self.nodes:
+            handle_from_node(node)
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
@@ -115,11 +107,8 @@ class GatherObstack2Handler(BaseShellHandler):
 
     def __handle_from_node(self, local_stored_path, node):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
-        remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
+        remote_ip = node.get("ip")
         remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -139,7 +128,6 @@ class GatherObstack2Handler(BaseShellHandler):
             resp["error"] = "remote server {0} arch not support gather obstack".format(ssh_client.get_name())
             return resp
         mkdir(ssh_client, remote_dir_full_path)
-
         # install and chmod obstack2
         ob_version = get_observer_version(self.context)
         if not StringUtils.compare_versions_greater(ob_version, const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK):
@@ -147,7 +135,7 @@ class GatherObstack2Handler(BaseShellHandler):
             resp["error"] = "{0} not support gather obstack".format(ob_version)
             resp["gather_pack_path"] = "{0}".format(local_stored_path)
             return resp
-        is_need_install_obstack = self.__is_obstack_exists(self.is_ssh, ssh_client)
+        is_need_install_obstack = self.__is_obstack_exists(ssh_client)
         if is_need_install_obstack:
             self.stdio.verbose("There is no obstack2 on the host {0}. It needs to be installed. " "Please wait a moment ...".format(remote_ip))
             if getattr(sys, 'frozen', False):
@@ -194,15 +182,14 @@ class GatherObstack2Handler(BaseShellHandler):
         return resp
 
     @Util.retry(5, 2)
-    def is_ready(self, ssh_helper, pid, remote_dir_name):
+    def is_ready(self, ssh_client, pid, remote_dir_name):
         try:
             self.stdio.verbose("Check whether the directory /tmp/{dir_name} or " "file /tmp/{dir_name}/observer_{pid}_obstack.txt is empty".format(dir_name=remote_dir_name, pid=pid))
-            is_empty_dir_res = is_empty_dir(self.is_ssh, ssh_helper, "/tmp/{0}".format(remote_dir_name), self.stdio)
-            is_empty_file_res = is_empty_file(self.is_ssh, ssh_helper, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
+            is_empty_dir_res = is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio)
+            is_empty_file_res = is_empty_file(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
             if is_empty_dir_res or is_empty_file_res:
                 self.stdio.verbose(
-                    "The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt"
-                    " is empty, waiting for the collection to complete".format(host_ip=ssh_helper.get_name() if self.is_ssh else NetUtils.get_inner_ip(self.stdio), dir_name=remote_dir_name, pid=pid)
+                    "The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid)
                 )
                 raise
         except Exception as e:

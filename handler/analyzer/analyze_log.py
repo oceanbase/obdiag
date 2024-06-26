@@ -196,11 +196,11 @@ class AnalyzeLogHandler(BaseShellHandler):
         ssh_client.ssh_close()
         return resp, node_results
 
-    def __handle_log_list(self, ssh, node, resp):
+    def __handle_log_list(self, ssh_client, node, resp):
         if self.directly_analyze_files:
             log_list = self.__get_log_name_list_offline()
         else:
-            log_list = self.__get_log_name_list(ssh, node)
+            log_list = self.__get_log_name_list(ssh_client, node)
         if len(log_list) > self.file_number_limit:
             self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list), self.file_number_limit))
             resp["skip"] = (True,)
@@ -215,9 +215,9 @@ class AnalyzeLogHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __get_log_name_list(self, ssh_helper, node):
+    def __get_log_name_list(self, ssh_client, node):
         """
-        :param ssh_helper:
+        :param ssh_client:
         :return: log_name_list
         """
         home_path = node.get("home_path")
@@ -227,9 +227,9 @@ class AnalyzeLogHandler(BaseShellHandler):
         else:
             get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
         log_name_list = []
-        log_files = SshClient(self.stdio).run(ssh_helper, get_oblog) if self.is_ssh else LocalClient(self.stdio).run(get_oblog)
+        log_files = ssh_client.exec_cmd(get_oblog)
         if log_files:
-            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
+            log_name_list = get_logfile_name_list(ssh_client, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
         else:
             self.stdio.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
         return log_name_list

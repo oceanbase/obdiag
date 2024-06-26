@@ -31,10 +31,8 @@ class LocalClient(SsherClient):
             out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = out.communicate()
             if stderr:
-                self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
-            if len(stderr):
-                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format(cmd, stderr))
-            return stdout.decode(errors='replace')
+                return stderr.decode('utf-8')
+            return stdout.decode('utf-8')
         except Exception as e:
             self.stdio.error("run cmd = [{0}] on localhost, Exception = [{1}]".format(cmd, e))
             raise Exception("[localhost] Execute Shell command failed, command=[{0}]  Exception = [{1}]".format(cmd, e))
@@ -60,9 +58,8 @@ class LocalClient(SsherClient):
             out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
             stdout, stderr = out.communicate()
             if stderr:
-                self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
-                raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format(cmd, stderr))
-            return stdout
+                return stderr.decode('utf-8')
+            return stdout.decode('utf-8')
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
         raise Exception("the client type is not support ssh invoke shell switch user")

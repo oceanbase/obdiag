@@ -26,16 +26,16 @@ class GetSystemParameterHandler:
         self.context = context
         self.stdio = context.stdio
         self.stdio.verbose("init GetSystemParameterHandler")
-        self.ssh_helper = None
+        self.ssh_client = None
         self.parameters = None
         self.step = step
         self.node = node
         self.task_variable_dict = task_variable_dict
 
         try:
-            self.ssh_helper = self.node["ssher"]
-            if self.ssh_helper is None:
-                raise Exception("self.ssh_helper is None.")
+            self.ssh_client = self.node["ssher"]
+            if self.ssh_client is None:
+                raise Exception("self.ssh_client is None.")
         except Exception as e:
             self.stdio.error("GetSystemParameterHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
             raise Exception("GetSystemParameterHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))
@@ -47,8 +47,8 @@ class GetSystemParameterHandler:
     def get_parameter(self, parameter_name):
         try:
             parameter_name = parameter_name.replace(".", "/")
-            parameter_value = self.ssh_helper.exec_cmd("cat /proc/sys/" + parameter_name).strip()
-            self.ssh_helper.ssh_close()
+            parameter_value = self.ssh_client.exec_cmd("cat /proc/sys/" + parameter_name).strip()
+            self.ssh_client.ssh_close()
         except Exception as e:
             self.stdio.warn("get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))
             parameter_value = str("-1")
@@ -67,7 +67,7 @@ class GetSystemParameterHandler:
             else:
                 s = self.step["parameter"]
             # SystemParameter exist?
-            if self.ssh_helper.exec_cmd('find /proc/sys/ -name "{0}"'.format(s)) == "":
+            if self.ssh_client.exec_cmd('find /proc/sys/ -name "{0}"'.format(s)) == "":
                 self.stdio.warn("{0} is not exist".format(self.step["parameter"]))
                 if "result" in self.step and "set_value" in self.step["result"]:
                     self.task_variable_dict[self.step["result"]["set_value"]] = ""

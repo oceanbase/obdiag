@@ -174,7 +174,6 @@ class GatherObAdminHandler(BaseShellHandler):
             ssh_client = SshClient(self.context, node)
         except Exception as e:
             self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
-            ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
             return resp
@@ -197,7 +196,7 @@ class GatherObAdminHandler(BaseShellHandler):
                 resp["error"] = "gather failed, folder is empty"
                 resp["zip_password"] = ""
             else:
-                resp = self.__handle_zip_file(remote_ip, ssh_client, resp, remote_dir_name, local_stored_path)
+                resp = self.__handle_zip_file(remote_ip, ssh_client, resp, remote_dir_name)
                 rm_rf_file(ssh_client, remote_dir_full_path, self.stdio)
         return resp
 
@@ -240,10 +239,10 @@ class GatherObAdminHandler(BaseShellHandler):
         self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ssh_client.get_name(), gather_package_dir))
         return resp
 
-    def __get_log_name(self, ssh_helper, node):
+    def __get_log_name(self, ssh_client, node):
         """
         通过传入的from to的时间来过滤一遍slog文件列表，提取出文件创建的时间
-        :param ssh_helper:
+        :param ssh_client:
         :return: list
         """
         slog_dir = os.path.join(node.get("data_dir"), "/slog")
@@ -252,7 +251,7 @@ class GatherObAdminHandler(BaseShellHandler):
             get_log = "ls -l SLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("SLOG_DIR", slog_dir)
         else:
             get_log = "ls -l CLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("CLOG_DIR", clog_dir)
-        log_files = SshClient(self.stdio).run(ssh_helper, get_log) if self.is_ssh else LocalClient(self.stdio).run(get_log)
+        log_files = ssh_client.exec_cmd(get_log)
         log_name_list = []
         for file_name in log_files.split('\n'):
             if file_name == "":
@@ -266,12 +265,12 @@ class GatherObAdminHandler(BaseShellHandler):
                 if (log_time > from_time) and (log_time < to_time):
                     log_name_list.append(str(log_name_fields[0]).rstrip())
         if len(log_name_list):
-            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, ssh_helper.get_name()))
+            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, ssh_client.get_name()))
         else:
-            self.stdio.warn("No found the qualified log file on Server [{0}]".format(ssh_helper.get_name()))
+            self.stdio.warn("No found the qualified log file on Server [{0}]".format(ssh_client.get_name()))
         return log_name_list
 
-    def __gather_log_info(self, ssh_helper, node, log_name, remote_dir):
+    def __gather_log_info(self, ssh_client, node, log_name, remote_dir):
         home_path = node.get("home_path")
         obadmin_install_dir = os.path.join(home_path, "/bin")
         if self.ob_admin_mode == "slog":
@@ -284,15 +283,15 @@ class GatherObAdminHandler(BaseShellHandler):
                 clog_name=log_name,
             )
         self.stdio.verbose("gather obadmin info, run cmd = [{0}]".format(cmd))
-        SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+        ssh_client.exec_cmd(cmd)
 
-    def __mv_log(self, ssh_helper, remote_dir):
+    def __mv_log(self, ssh_client, remote_dir):
         if self.ob_admin_mode == "slog":
             cmd = "cd {remote_dir} && mv ob_admin.log ob_admin_slog.log".format(remote_dir=remote_dir)
         else:
             cmd = "cd {remote_dir} && mv ob_admin.log ob_admin_clog.log".format(remote_dir=remote_dir)
         self.stdio.verbose("mv log info, run cmd = [{0}]".format(cmd))
-        SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+        ssh_client.exec_cmd(cmd)
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple, mode, is_zip_encrypt):

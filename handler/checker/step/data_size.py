@@ -25,16 +25,16 @@ class DataSizeHandler:
         self.context = context
         self.stdio = context.stdio
         self.stdio.verbose("init DataSizeHandler")
-        self.ssh_helper = None
+        self.ssh_client = None
         self.parameters = None
         self.step = step
         self.node = node
         self.task_variable_dict = task_variable_dict
 
         try:
-            self.ssh_helper = self.node["ssher"]
-            if self.ssh_helper is None:
-                raise Exception("self.ssh_helper is None.")
+            self.ssh_client = self.node["ssher"]
+            if self.ssh_client is None:
+                raise Exception("self.ssh_client is None.")
         except Exception as e:
             self.stdio.error("DataSizeHandler ssh init fail  . Please check the NODES conf Exception : {0} .".format(e))
             raise Exception("DataSizeHandler ssh init fail . Please check the NODES conf  Exception : {0} .".format(e))

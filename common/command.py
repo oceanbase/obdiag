@@ -203,7 +203,7 @@ def mkdir(ssh_client, dir, stdio=None):
     :return:
     """
     cmd = "mkdir -p {0}".format(dir)
-    ssh_client.run(cmd)
+    ssh_client.exec_cmd(cmd)
 
 
 def delete_empty_file(ssh_client, dir):

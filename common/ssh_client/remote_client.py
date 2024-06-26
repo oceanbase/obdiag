@@ -109,4 +109,4 @@ class RemoteClient(SsherClient):
         return result
 
     def get_name(self):
-        return "remote: {0}".format(self.host_ip)
+        return "remote_{0}".format(self.host_ip)
