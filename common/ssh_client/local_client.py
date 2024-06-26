@@ -35,9 +35,9 @@ class LocalClient(SsherClient):
             if len(stderr):
                 raise Exception("[localhost] Execute Shell command failed, " "command=[{0}], exception:{1}".format(cmd, stderr))
             return stdout.decode(errors='replace')
-        except:
-            self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
-            raise Exception("[localhost] Execute Shell command failed, " "command=[{0}]".format(cmd))
+        except Exception as e:
+            self.stdio.error("run cmd = [{0}] on localhost, Exception = [{1}]".format(cmd, e))
+            raise Exception("[localhost] Execute Shell command failed, command=[{0}]  Exception = [{1}]".format(cmd, e))
 
     def download(self, remote_path, local_path):
         try:
@@ -68,4 +68,4 @@ class LocalClient(SsherClient):
         raise Exception("the client type is not support ssh invoke shell switch user")
 
     def get_name(self):
-        return "local: {0}".format(self.host_ip)
+        return "local"

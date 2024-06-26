@@ -23,11 +23,11 @@ import traceback
 import yaml
 
 from common.ob_connector import OBConnector
+from common.scene import get_version_by_type
 from common.ssh_client.ssh import SshClient
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
-from common.scene import get_version
 import re
 from common.tool import Util
 from common.tool import YamlUtils
@@ -108,7 +108,7 @@ class CheckHandler:
             node["ssher"] = ssher
             new_node.append(node)
         self.nodes = new_node
-        self.version = get_version(self.nodes, self.check_target_type, self.cluster, self.stdio)
+        self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
         obConnectorPool = None
         # add OBConnectorPool
         try:

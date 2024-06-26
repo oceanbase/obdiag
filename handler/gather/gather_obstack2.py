@@ -160,37 +160,36 @@ class GatherObstack2Handler(BaseShellHandler):
 
         self.__chmod_obstack2(ssh_client)
         # get observer_pid
-        observer_pid_list = get_observer_pid(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
+        observer_pid_list = get_observer_pid(ssh_client, node.get("home_path"), self.stdio)
         # gather obstack2 info
         for observer_pid in observer_pid_list:
-            user = self.__get_observer_execute_user(ssh_helper, observer_pid)
-            self.__gather_obstack2_info(self.is_ssh, ssh_helper, user, observer_pid, remote_dir_name, node)
+            user = self.__get_observer_execute_user(ssh_client, observer_pid)
+            self.__gather_obstack2_info(ssh_client, user, observer_pid, remote_dir_name, node)
             try:
                 self.stdio.start_loading('gather obstack info')
-                self.is_ready(ssh_helper, observer_pid, remote_dir_name)
+                self.is_ready(ssh_client, observer_pid, remote_dir_name)
                 self.stdio.stop_loading('gather obstack info sucess')
             except:
                 self.stdio.stop_loading('gather info failed')
                 self.stdio.error("Gather obstack info on the host {0} observer pid {1}".format(remote_ip, observer_pid))
-                delete_file_force(self.is_ssh, ssh_helper, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=observer_pid), self.stdio)
+                delete_file_force(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=observer_pid), self.stdio)
                 pass
-        if is_empty_dir(self.is_ssh, ssh_helper, "/tmp/{0}".format(remote_dir_name), self.stdio):
+        if is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio):
             resp["error"] = "gather failed, folder is empty"
             return resp
 
-        zip_dir(self.is_ssh, ssh_helper, "/tmp", remote_dir_name, self.stdio)
+        zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
         remote_zip_file_path = "{0}.zip".format(remote_dir_full_path)
 
-        file_size = get_file_size(self.is_ssh, ssh_helper, remote_zip_file_path, self.stdio)
+        file_size = get_file_size(ssh_client, remote_zip_file_path, self.stdio)
         remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
         if int(file_size) < self.file_size_limit:
             local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-            download_file(self.is_ssh, ssh_helper, remote_file_full_path, local_file_path, self.stdio)
+            download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
             resp["error"] = ""
         else:
             resp["error"] = "File too large"
-        delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path, self.stdio)
-        ssh_helper.ssh_close()
+        delete_file_force(ssh_client, remote_file_full_path, self.stdio)
         resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
         return resp
 
@@ -228,22 +227,17 @@ class GatherObstack2Handler(BaseShellHandler):
         self.stdio.verbose("get observer execute user, run cmd = [{0}], result:{1} ".format(cmd, user))
         return user
 
-    def __gather_obstack2_info(self, ssh_client, is_ssh, ssh_helper, user, observer_pid, remote_gather_dir, node):
+    def __gather_obstack2_info(self, ssh_client, user, observer_pid, remote_gather_dir, node):
         cmd = "{obstack} {pid} > /tmp/{gather_dir}/observer_{pid}_obstack.txt".format(obstack=const.OBSTACK2_DEFAULT_INSTALL_PATH, pid=observer_pid, gather_dir=remote_gather_dir)
-
-        if is_ssh:
-            if user == ssh_helper.username:
-                self.stdio.verbose("gather obstack info on server {0}, run cmd = [{1}]".format(ssh_helper.get_name(), cmd))
-                SshClient(self.stdio).run_ignore_err(ssh_helper, cmd)
-            else:
-                ssh_helper_new = SshHelper(ssh_helper.host_ip, ssh_helper.username, ssh_helper.password, ssh_helper.ssh_port, ssh_helper.key_file, node)
-                chown_cmd = "chown {user} /tmp/{gather_dir}/".format(user=user, gather_dir=remote_gather_dir)
-                SshClient(self.stdio).run(ssh_helper_new, chown_cmd)
-                self.stdio.verbose("gather obstack info on server {0}, run cmd = [su {1}, {2}]".format(ssh_helper.get_name(), user, cmd))
-                ssh_helper_new.ssh_invoke_shell_switch_user(user, cmd, 10)
+        if user == ssh_client.exec_cmd('whoami'):
+            self.stdio.verbose("gather obstack info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), cmd))
+            ssh_client.exec_cmd(cmd)
         else:
-            LocalClient(self.stdio).run(cmd)
-        ssh_client.exec_cmd("rm -rf /tmp/{0}".format(remote_gather_Dir))
+            chown_cmd = "chown {user} /tmp/{gather_dir}/".format(user=user, gather_dir=remote_gather_dir)
+            ssh_client.exec_cmd(chown_cmd)
+            self.stdio.verbose("gather obstack info on server {0}, run cmd = [su {1}, {2}]".format(ssh_client.get_name(), user, cmd))
+            ssh_client.ssh_invoke_shell_switch_user(user, cmd, 10)
+        ssh_client.exec_cmd("rm -rf /tmp/{0}".format(remote_gather_dir))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):

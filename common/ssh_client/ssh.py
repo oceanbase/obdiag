@@ -66,7 +66,7 @@ class SshClient(SafeStdio):
             raise Exception("init ssh client error: {}".format(e))
 
     def exec_cmd(self, cmd):
-        return self.client.exec_cmd(cmd)
+        return self.client.exec_cmd(cmd).strip()
 
     def download(self, remote_path, local_path):
         return self.client.download(remote_path, local_path)
