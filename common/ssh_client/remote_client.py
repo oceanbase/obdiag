@@ -18,6 +18,7 @@
 
 
 import os
+import sys
 import time
 
 import paramiko
@@ -89,6 +90,18 @@ class RemoteClient(SsherClient):
         self.stdio.verbose('Download {0}:{1}'.format(self.host_ip, remote_path))
         self._sftp_client.get(remote_path, local_path, callback=self.progress_bar)
         self._sftp_client.close()
+
+    def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        bar_len = 20
+        filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
+        percents = round(20.0 * transferred / float(to_be_transferred), 1)
+        bar = '\033[32;1m%s\033[0m' % '=' * filled_len + '-' * (bar_len - filled_len)
+        print_percents = round((percents * 5), 1)
+        sys.stdout.flush()
+        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+        if transferred == to_be_transferred:
+            sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+            print()
 
     def upload(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()
