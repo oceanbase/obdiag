@@ -333,7 +333,7 @@ class GatherLogHandler(BaseShellHandler):
             zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         self.stdio.stop_loading('[{0}] zip observer log end'.format(ssh_client.get_name()))
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
-        resp={}
+        resp = {}
         gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
         self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size))
         local_store_path = ""
