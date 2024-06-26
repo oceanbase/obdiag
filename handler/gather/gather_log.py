@@ -23,7 +23,6 @@ from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
 from common.command import get_file_size, download_file, is_empty_dir, rm_rf_file, get_logfile_name_list, mkdir, delete_empty_file, zip_encrypt_dir, zip_dir
-from common.ssh import SshHelper
 from common.command import SshClient, LocalClient
 from common.tool import TimeUtils
 from common.tool import Util
@@ -179,22 +178,22 @@ class GatherLogHandler(BaseShellHandler):
         ssh_failed = False
         try:
             ssh_client = SshClient(self.context, node)
-            local_store_dir = "{0}/{1}".format(pack_dir_this_command, ssh.get_name())
+            local_store_dir = "{0}/{1}".format(pack_dir_this_command, ssh_client.get_name())
         except Exception as e:
             raise e
 
         # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
+        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
         gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-        mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+        mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
-        log_list, resp = self.__handle_log_list(ssh, node, resp)
+        log_list, resp = self.__handle_log_list(ssh_client, node, resp)
         if resp["skip"]:
             return resp
         if self.context.get_variable("gather_mode") == "trace_id_log":
-            self.__grep_log_until_empty(ssh_helper=ssh, home_path=remote_home_path, log_list=log_list, gather_path=gather_dir_full_path)
+            self.__grep_log_until_empty(ssh_client=ssh_client, home_path=remote_home_path, log_list=log_list, gather_path=gather_dir_full_path)
         else:
             for log_name in log_list:
                 self.__pharse_log(ssh_client=ssh_client, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
@@ -209,10 +208,10 @@ class GatherLogHandler(BaseShellHandler):
 
         return resp
 
-    def __grep_log_until_empty(self, ssh_helper, home_path, log_list, gather_path):
+    def __grep_log_until_empty(self, ssh_client, home_path, log_list, gather_path):
         """
         按时间顺序排序日志，从最新的时间（或者从设置的时间）开始往前找日志，直到grep的结果不为空，再直到grep的结果为空，则停止
-        :param ssh_helper, home_path, log_list, gather_path
+        :param ssh_client, home_path, log_list, gather_path
         :return:
         """
         log_type_list = ['observer', 'election', 'rootservice']
@@ -220,7 +219,7 @@ class GatherLogHandler(BaseShellHandler):
         # 理论上只有上述三种日志，other_log_list应该为空
         other_log_list = [log_name for log_name in log_list if not any(log_name.startswith(prefix) for prefix in log_type_list)]
         for log_name in other_log_list:
-            self.__pharse_log(ssh_helper=ssh_helper, log_name=log_name, home_path=home_path, gather_path=gather_path)
+            self.__pharse_log(ssh_client=ssh_client, log_name=log_name, home_path=home_path, gather_path=gather_path)
 
         # wf结尾的日志非全量日志，不排查
         # 形如observer.log等日志不方便排序，暂时删除，在后续重新加上
@@ -234,14 +233,14 @@ class GatherLogHandler(BaseShellHandler):
             cur_type_log_list.insert(0, f'{log_type}.log')
             has_res = False
             for log_name in cur_type_log_list:
-                is_empty = self.__grep_log(ssh_helper=ssh_helper, log_name=log_name, home_path=home_path, gather_path=gather_path)
+                is_empty = self.__grep_log(ssh_client=ssh_client, log_name=log_name, home_path=home_path, gather_path=gather_path)
                 if not is_empty:
                     has_res = True
                 elif has_res:
                     # 已有结果且grep结果为空，说明相关日志已集齐
                     break
 
-    def __grep_log(self, ssh_helper, home_path, log_name, gather_path):
+    def __grep_log(self, ssh_client, home_path, log_name, gather_path):
         """
         处理传入的日志文件，将满足条件的日志文件归集到一起，并返回grep结果是否为空
         :param ssh_helper, log_name, gather_path
@@ -253,8 +252,8 @@ class GatherLogHandler(BaseShellHandler):
             find_file_cmd = "find {gather_path} -type f -name {log_name} ! -empty".format(gather_path=gather_path, log_name=log_name)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             self.stdio.verbose("grep files, run cmd = [{0}]".format(find_file_cmd))
-            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
-            find_file_res = SshClient(self.stdio).run(ssh_helper, find_file_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
+            find_file_res = ssh_client.exec_cmd(find_file_cmd)
             return find_file_res == ""
         else:
             raise Exception("grep arg is none.")
@@ -294,10 +293,10 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.error('Unable to find the log file. Please provide the correct home_path, the default is [/root/observer]')
         return log_name_list
 
-    def __pharse_log(self, ssh_helper, home_path, log_name, gather_path):
+    def __pharse_log(self, ssh_client, home_path, log_name, gather_path):
         """
         处理传入的日志文件，将满足条件的日志文件归集到一起
-        :param ssh_helper, log_name, gather_path
+        :param ssh_client, log_name, gather_path
         :return:
         """
         log_path = os.path.join(home_path, "log")
@@ -317,38 +316,38 @@ class GatherLogHandler(BaseShellHandler):
                     grep_litter_cmd += "| grep -e '{0}'".format(grep_option)
                 grep_cmd = "cat {log_dir}/{log_name} {grep_options} >> {gather_path}/{log_name} ".format(grep_options=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
-            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
         else:
             cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
-            SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
+            ssh_client.exec_cmd(cp_cmd)
 
     def __handle_zip_file(self, ssh_client, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
-        self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ip))
+        self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ssh_client.get_name()))
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            zip_encrypt_dir(self.is_ssh, ssh, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         else:
-            zip_dir(self.is_ssh, ssh, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
-        self.stdio.stop_loading('[ip: {0}] zip observer log end'.format(ip))
+            zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+        self.stdio.stop_loading('[{0}] zip observer log end'.format(ssh_client.get_name()))
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
-
-        gather_log_file_size = get_file_size(self.is_ssh, ssh, gather_package_dir, self.stdio)
-        self.stdio.print(FileUtil.show_file_size_tabulate(ip, gather_log_file_size))
+        resp={}
+        gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
+        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size))
         local_store_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
             local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
-            download_file(self.is_ssh, ssh, gather_package_dir, local_store_path, self.stdio)
+            download_file(ssh_client, gather_package_dir, local_store_path, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
             resp["error"] = "File too large"
             resp["zip_password"] = ""
-        rm_rf_file(self.is_ssh, ssh, gather_package_dir, self.stdio)
+        rm_rf_file(ssh_client, gather_package_dir, self.stdio)
         resp["gather_pack_path"] = local_store_path
-        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
+        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ssh_client.get_name(), gather_package_dir))
         return resp
 
     @staticmethod

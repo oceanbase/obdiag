@@ -197,7 +197,7 @@ def get_logfile_name_list(ssh_client, from_time_str, to_time_str, log_dir, log_f
     return log_name_list
 
 
-def mkdir(ssh_client, dir):
+def mkdir(ssh_client, dir, stdio=None):
     """
     Create a folder when it does not exist
     :return:
@@ -215,7 +215,7 @@ def delete_empty_file(ssh_client, dir):
     ssh_client.exec_cmd(cmd)
 
 
-def zip_dir(ssh_client, father_dir, zip_dir):
+def zip_dir(ssh_client, father_dir, zip_dir, stdio=None):
     """
     Compress files through zip
     :return:
@@ -224,7 +224,7 @@ def zip_dir(ssh_client, father_dir, zip_dir):
     ssh_client.exec_cmd(cmd)
 
 
-def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir):
+def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir, stdio=None):
     """
     Compress files by encryption
     :return:
