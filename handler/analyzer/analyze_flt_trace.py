@@ -140,7 +140,7 @@ class AnalyzeFltTraceHandler(object):
         ssh_failed = False
         ssh_client = None
         try:
-            ssh_client = SshClient(self.context,node)
+            ssh_client = SshClient(self.context, node)
         except Exception as e:
             ssh = None
             self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))

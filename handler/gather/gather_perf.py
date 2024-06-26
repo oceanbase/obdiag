@@ -127,7 +127,7 @@ class GatherPerfHandler(BaseShellHandler):
         remote_dir_name = "perf_{0}_{1}".format(node.get("ip"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
-        ssh_client=None
+        ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:

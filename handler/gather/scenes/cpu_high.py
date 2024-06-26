@@ -61,7 +61,7 @@ class CPUHighScene(SafeStdio):
         try:
             self.stdio.print("gather current_clocksource start")
             for node in self.nodes:
-                ssh_client = SshClient(self.context,node)
+                ssh_client = SshClient(self.context, node)
                 cmd = 'cat /sys/devices/system/clocksource/clocksource0/current_clocksource'
                 self.stdio.verbose("gather current_clocksource, run cmd = [{0}]".format(cmd))
                 result = ssh_client.exec_cmd(cmd)
