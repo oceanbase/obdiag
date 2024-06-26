@@ -113,7 +113,7 @@ class SQLPXCollectLogScene(object):
                 remote_ip = node.get("ip")
                 remote_user = node.get("ssh_username")
                 try:
-                    ssh_client = SshClient(self.context,node)
+                    ssh_client = SshClient(self.context, node)
                     return find_home_path_by_port(ssh_client, internal_port_str, self.stdio)
                 except Exception as e:
                     self.stdio.error("ssh {0}@{1}: failed, Please check the config".format(remote_user, remote_ip))
