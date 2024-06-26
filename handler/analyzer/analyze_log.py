@@ -132,20 +132,9 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
-
-        def handle_from_node(node):
+        for node in self.nodes:
             resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
             analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
-
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = '127.0.0.1'
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            handle_from_node(node)
-
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
@@ -164,53 +153,48 @@ class AnalyzeLogHandler(BaseShellHandler):
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
-        node_results = []
-        remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
-        remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
-        remote_home_path = node.get("home_path")
-        self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
-        DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
-        if "ssh_type" in node and node["ssh_type"] == "docker":
-            local_store_dir = "{0}/docker_{1}".format(local_store_parent_dir, node["container_name"])
-        else:
-            local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip.replace(".", "_"))
-        DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
-        ssh_failed = False
-        ssh = None
+        ssh_client = SshClient(self.context, node)
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            node_results = []
+            remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
+            remote_user = node.get("ssh_username")
+            remote_password = node.get("ssh_password")
+            remote_port = node.get("ssh_port")
+            remote_private_key = node.get("ssh_key_file")
+            remote_home_path = node.get("home_path")
+            self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
+            DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
+            local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name())
+            DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         except Exception as e:
-            self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
-        if not ssh_failed:
-            from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
-            to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-            gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-            mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+            raise Exception("Please check the {0}".format(self.config_path))
 
-            log_list, resp = self.__handle_log_list(ssh, node, resp)
-            if resp["skip"]:
-                return resp, node_results
-            self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
-            for log_name in log_list:
-                if self.directly_analyze_files:
-                    self.__pharse_offline_log_file(ssh_helper=ssh, log_name=log_name, local_store_dir=local_store_dir)
-                    analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
-                else:
-                    self.__pharse_log_file(ssh_helper=ssh, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
-                    analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
-                self.stdio.start_loading('analyze log start')
-                file_result = self.__parse_log_lines(analyze_log_full_path)
-                self.stdio.stop_loading('analyze log sucess')
-                node_results.append(file_result)
-            delete_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
-            ssh.ssh_close()
+        from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
+        to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
+        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
+        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        mkdir(ssh_client, gather_dir_full_path)
+
+        log_list, resp = self.__handle_log_list(ssh_client, node, resp)
+        if resp["skip"]:
+            return resp, node_results
+        self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
+        for log_name in log_list:
+            if self.directly_analyze_files:
+                self.__pharse_offline_log_file(ssh_client, log_name=log_name, local_store_dir=local_store_dir)
+                analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
+            else:
+                self.__pharse_log_file(ssh_client, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
+                analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
+            self.stdio.start_loading('analyze log start')
+            file_result = self.__parse_log_lines(analyze_log_full_path)
+            self.stdio.stop_loading('analyze log sucess')
+            node_results.append(file_result)
+        delete_file(ssh_client, gather_dir_full_path, self.stdio)
+        ssh_client.ssh_close()
         return resp, node_results
 
     def __handle_log_list(self, ssh, node, resp):
@@ -269,33 +253,29 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.verbose("get log list {}".format(log_name_list))
         return log_name_list
 
-    def __pharse_log_file(self, ssh_helper, node, log_name, gather_path, local_store_dir):
-        """
-        :param ssh_helper, log_name, gather_path
-        :return:
-        """
+    def __pharse_log_file(self, ssh_client, node, log_name, gather_path, local_store_dir):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         local_store_path = "{0}/{1}".format(local_store_dir, log_name)
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
             log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
-            download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
+            download_file(ssh_client, log_full_path, local_store_path, self.stdio)
         else:
             real_time_logs = ["observer.log", "rootservice.log", "election.log", "trace.log", "observer.log.wf", "rootservice.log.wf", "election.log.wf", "trace.log.wf"]
             if log_name in real_time_logs:
                 cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
                 self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
-                SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
+                ssh_client.exec_cmd(cp_cmd)
                 log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
-                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
+                download_file(ssh_client, log_full_path, local_store_path, self.stdio)
             else:
                 log_full_path = "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
-                download_file(self.is_ssh, ssh_helper, log_full_path, local_store_path, self.stdio)
+                download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
-    def __pharse_offline_log_file(self, ssh_helper, log_name, local_store_dir):
+    def __pharse_offline_log_file(self, ssh_client, log_name, local_store_dir):
         """
         :param ssh_helper, log_name
         :return:
@@ -304,9 +284,9 @@ class AnalyzeLogHandler(BaseShellHandler):
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            SshClient(self.stdio).run(ssh_helper, grep_cmd) if self.is_ssh else LocalClient(self.stdio).run(grep_cmd)
+            ssh_client.exec_cmd(ssh_client, grep_cmd)
         else:
-            download_file(self.is_ssh, ssh_helper, log_name, local_store_path, self.stdio)
+            download_file(ssh_client, log_name, local_store_path, self.stdio)
 
     def __get_observer_ret_code(self, log_line):
         """

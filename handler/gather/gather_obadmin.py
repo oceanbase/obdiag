@@ -180,7 +180,7 @@ class GatherObAdminHandler(BaseShellHandler):
         if not ssh_failed:
             mkdir_cmd = "mkdir -p {0}".format(remote_dir_full_path)
             SshClient(self.stdio).run(ssh_helper, mkdir_cmd) if self.is_ssh else LocalClient(self.stdio).run(mkdir_cmd)
-            ob_version = get_observer_version(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
+            ob_version = get_observer_version(self.context)
             if (ob_version != "" and not StringUtils.compare_versions_lower(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN, self.stdio)) or ob_version == "":
                 self.stdio.verbose("This version {0} does not support gather clog/slog . The max supported version less than {1}".format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
                 resp["error"] = "{0} not support gather clog/slog".format(ob_version)

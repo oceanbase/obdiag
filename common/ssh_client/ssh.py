@@ -84,3 +84,9 @@ class SshClient(SafeStdio):
         self.client = None
         self.init()
         return
+
+    def run(self, cmd):
+        return self.exec_cmd(cmd)
+
+    def get_name(self):
+        return self.client.get_name()

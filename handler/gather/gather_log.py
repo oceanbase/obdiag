@@ -175,50 +175,38 @@ class GatherLogHandler(BaseShellHandler):
         resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
         remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
         remote_home_path = node.get("home_path")
         ssh_failed = False
-        self.stdio.verbose('Sending Collect Shell Command to node {0} ...'.format(remote_ip))
-        if "ssh_type" in node and node["ssh_type"] == "docker":
-            local_store_dir = "{0}/docker_{1}".format(pack_dir_this_command, node["container_name"])
-        else:
-            local_store_dir = "{0}/{1}".format(pack_dir_this_command, remote_ip)
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            ssh_client = SshClient(self.context, node)
+            local_store_dir = "{0}/{1}".format(pack_dir_this_command, ssh.get_name())
         except Exception as e:
-            self.stdio.exception('ssh {0}@{1}: failed, Please check the {2}'.format(remote_user, remote_ip, self.config_path))
-            ssh_failed = True
-            resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            raise e
 
-        if not ssh_failed:
-            # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
-            from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
-            to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-            gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-            mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+        # transform timestamp(in us) to yyyymmddhhmmss (filename_time style)
+        from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
+        to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
+        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh.host_ip, from_datetime_timestamp, to_datetime_timestamp)
+        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
 
-            log_list, resp = self.__handle_log_list(ssh, node, resp)
-            if resp["skip"]:
-                return resp
-            if self.context.get_variable("gather_mode") == "trace_id_log":
-                self.__grep_log_until_empty(ssh_helper=ssh, home_path=remote_home_path, log_list=log_list, gather_path=gather_dir_full_path)
-            else:
-                for log_name in log_list:
-                    self.__pharse_log(ssh_helper=ssh, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
-            delete_empty_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+        log_list, resp = self.__handle_log_list(ssh, node, resp)
+        if resp["skip"]:
+            return resp
+        if self.context.get_variable("gather_mode") == "trace_id_log":
+            self.__grep_log_until_empty(ssh_helper=ssh, home_path=remote_home_path, log_list=log_list, gather_path=gather_dir_full_path)
+        else:
+            for log_name in log_list:
+                self.__pharse_log(ssh_client=ssh_client, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
+        delete_empty_file(ssh_client, gather_dir_full_path)
+        is_empty = is_empty_dir(ssh_client, gather_dir_full_path, self.stdio)
+        if is_empty:
+            resp["error"] = "Empty file"
+            resp["zip_password"] = ""
+            rm_rf_file(ssh_client, gather_dir_full_path, self.stdio)
+        else:
+            self.__handle_zip_file(ssh_client, resp, gather_dir_name, pack_dir_this_command)
 
-            is_empty = is_empty_dir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
-            if is_empty:
-                resp["error"] = "Empty file"
-                resp["zip_password"] = ""
-                rm_rf_file(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
-            else:
-                self.__handle_zip_file(node.get("ip"), ssh, resp, gather_dir_name, pack_dir_this_command)
-            ssh.ssh_close()
         return resp
 
     def __grep_log_until_empty(self, ssh_helper, home_path, log_list, gather_path):
@@ -286,7 +274,7 @@ class GatherLogHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __get_log_name(self, ssh_helper, node):
+    def __get_log_name(self, ssh_client, node):
         """
         通过传入的from to的时间来过滤一遍文件列表，提取出初步满足要求的文件列表
         :param ssh_helper:
@@ -299,9 +287,9 @@ class GatherLogHandler(BaseShellHandler):
         else:
             get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
         log_name_list = []
-        log_files = SshClient(self.stdio).run(ssh_helper, get_oblog) if self.is_ssh else LocalClient(self.stdio).run(get_oblog)
+        log_files = ssh_client.exec_cmd(get_oblog)
         if log_files:
-            log_name_list = get_logfile_name_list(self.is_ssh, ssh_helper, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
+            log_name_list = get_logfile_name_list(ssh_client, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
         else:
             self.stdio.error('Unable to find the log file. Please provide the correct home_path, the default is [/root/observer]')
         return log_name_list
@@ -335,7 +323,7 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             SshClient(self.stdio).run(ssh_helper, cp_cmd) if self.is_ssh else LocalClient(self.stdio).run(cp_cmd)
 
-    def __handle_zip_file(self, ip, ssh, resp, gather_dir_name, pack_dir_this_command):
+    def __handle_zip_file(self, ssh_client, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ip))

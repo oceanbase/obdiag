@@ -72,3 +72,6 @@ class DockerClient(SsherClient):
         except Exception as e:
             self.stdio.error("sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(e))
             raise Exception("sshHelper ssh_invoke_shell_switch_user docker Exception: {0}".format(e))
+
+    def get_name(self):
+        return "docker: {0}".format(self.container_name)

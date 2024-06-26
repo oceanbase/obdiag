@@ -48,7 +48,6 @@ class RemoteClient(SsherClient):
         self.password = self.node.get("ssh_password")
         self.key_file = self.node.get("ssh_key_file")
         self.key_file = os.path.expanduser(self.key_file)
-        self.ssh_type = self.node.get("ssh_type") or "remote"
         self._ssh_fd = None
         self._sftp_client = None
         DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
@@ -108,3 +107,6 @@ class RemoteClient(SsherClient):
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
         return result
+
+    def get_name(self):
+        return "remote: {0}".format(self.host_ip)

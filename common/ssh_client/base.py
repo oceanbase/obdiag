@@ -44,3 +44,6 @@ class SsherClient(SafeStdio):
 
     def ssh_close(self):
         return
+
+    def get_name(self):
+        return "not defined"

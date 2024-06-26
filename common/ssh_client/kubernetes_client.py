@@ -96,3 +96,6 @@ class KubernetesClient(SsherClient):
             return ""
         result = parts[1]
         return result
+
+    def get_name(self):
+        return "kubernetes: {0}".format(self.container_name)

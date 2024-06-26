@@ -66,3 +66,6 @@ class LocalClient(SsherClient):
         except:
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
         raise Exception("the client type is not support ssh invoke shell switch user")
+
+    def get_name(self):
+        return "local: {0}".format(self.host_ip)

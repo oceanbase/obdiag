@@ -21,7 +21,6 @@ import os
 from textwrap import fill
 from common.command import (
     get_obproxy_version,
-    get_observer_version_by_sql,
     get_observer_version,
 )
 from prettytable import PrettyTable
@@ -85,17 +84,9 @@ class RCAHandler:
         # build observer_version by sql or ssher. If using SSHer, the observer_version is set to node[0].
         observer_version = ""
         try:
-            observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+            observer_version = get_observer_version(self.context)
         except Exception as e:
-            if len(context_observer_nodes) > 0:
-                observer_version = get_observer_version(
-                    True,
-                    context_observer_nodes[0]["ssher"],
-                    context_observer_nodes[0]["home_path"],
-                    self.stdio,
-                )
-            else:
-                self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+            self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
         if observer_version != "":
             self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
