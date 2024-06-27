@@ -49,7 +49,7 @@ class LocalClient(SsherClient):
             shutil.copy(local_path, remote_path)
         except Exception as e:
             self.stdio.error("upload file to localhost, remote _path =[{0}], local _path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
-            raise Exception("the client type is not support upload")
+            raise Exception("[local] upload file to localhost, remote _path =[{0}], local _path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         try:
@@ -66,3 +66,6 @@ class LocalClient(SsherClient):
 
     def get_name(self):
         return "local"
+
+    def get_ip(self):
+        return self.client.get_ip()

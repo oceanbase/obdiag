@@ -190,7 +190,9 @@ class ConfigManager(Manager):
                 'redo_dir': node_config.get('redo_dir', global_config.get('redo_dir', '/root/observer/store')),
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
                 'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
-                'container_name': node_config.get('container_name', global_config.get('container_name')),
+                'container_name': node_config.get('container_name', global_config.get('container_name', '')),
+                'namespace': node_config.get('namespace', global_config.get('namespace', '')),
+                'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
                 'host_type': 'OBSERVER',
             }
 
@@ -223,6 +225,9 @@ class ConfigManager(Manager):
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
                 'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
                 'container_name': node_config.get('container_name', global_config.get('container_name')),
+                'namespace': node_config.get('namespace', global_config.get('namespace', '')),
+                'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
+
                 'host_type': 'OBPROXY',
             }
 

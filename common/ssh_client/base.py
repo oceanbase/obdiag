@@ -47,3 +47,6 @@ class SsherClient(SafeStdio):
 
     def get_name(self):
         return "not defined"
+
+    def get_ip(self):
+        return self.client.get_ip()

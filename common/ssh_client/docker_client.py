@@ -15,6 +15,7 @@
 @file: docker_client.py
 @desc:
 """
+import docker
 
 from common.obdiag_exception import OBDIAGShellCmdException
 from common.ssh_client.base import SsherClient
@@ -24,6 +25,7 @@ class DockerClient(SsherClient):
     def __init__(self, context=None, node=None):
         super().__init__(context, node)
         self.container_name = self.node.get("container_name")
+        self.client = docker.from_env()
 
     def exec_cmd(self, cmd):
         try:
@@ -75,3 +77,6 @@ class DockerClient(SsherClient):
 
     def get_name(self):
         return "docker_{0}".format(self.container_name)
+
+    def get_ip(self):
+        return self.client.containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks']['bridge']["IPAddress"]

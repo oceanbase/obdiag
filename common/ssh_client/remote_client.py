@@ -119,7 +119,7 @@ class RemoteClient(SsherClient):
             result = ssh.recv(65535)
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
-        return result
+        return result.decode('utf-8')
 
     def get_name(self):
         return "remote_{0}".format(self.host_ip)

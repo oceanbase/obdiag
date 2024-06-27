@@ -98,4 +98,9 @@ class KubernetesClient(SsherClient):
         return result
 
     def get_name(self):
-        return "kubernetes_{0}".format(self.container_name)
+        return "kubernetes_{0}_{1}".format(self.namespace, self.pod_name)
+
+    def get_ip(self):
+        if self.node.get("ip") is None:
+            raise Exception("kubernetes need set the ip of observer")
+        return self.node.get("ip")

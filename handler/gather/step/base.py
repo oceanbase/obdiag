@@ -15,8 +15,8 @@
 @file: base.py
 @desc:
 """
+from common.ssh_client.ssh import SshClient
 from stdio import SafeStdio
-import docker
 from handler.gather.step.ssh import SshHandler
 from handler.gather.step.sql import StepSQLHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -47,7 +47,8 @@ class Base(SafeStdio):
                 self.task_variable_dict["remote_ip"] = self.node["ip"]
             elif "ssh_type" in self.node and self.node["ssh_type"] == "docker":
                 self.stdio.verbose("execute ssh_type is docker")
-                self.task_variable_dict["remote_ip"] = docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks']['bridge']["IPAddress"]
+                ssh_client = SshClient(self.context, self.node)
+                self.task_variable_dict["remote_ip"] = ssh_client.get_ip()
             self.task_variable_dict["remote_home_path"] = self.node["home_path"]
 
             if "type" not in self.step:
