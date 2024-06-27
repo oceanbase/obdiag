@@ -15,6 +15,8 @@
 @file: base.py
 @desc:
 """
+import sys
+
 from stdio import SafeStdio
 
 
@@ -50,3 +52,29 @@ class SsherClient(SafeStdio):
 
     def get_ip(self):
         return self.client.get_ip()
+
+    def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        bar_len = 20
+        filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
+        percents = round(20.0 * transferred / float(to_be_transferred), 1)
+        bar = '\033[32;1m%s\033[0m' % '=' * filled_len + '-' * (bar_len - filled_len)
+        print_percents = round((percents * 5), 1)
+        sys.stdout.flush()
+        sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+        if transferred == to_be_transferred:
+            sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
+            print()
+
+    def translate_byte(self, B):
+        if B < 0:
+            B = -B
+            return '-' + self.translate_byte(B)
+        if B == 0:
+            return '0B'
+        units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+        k = 1024
+        i = 0
+        while B >= k and i < len(units) - 1:
+            B /= k
+            i += 1
+        return f"{B:.2f} {units[i]}"

@@ -17,8 +17,7 @@
 """
 import re
 import subprocess
-
-from paramiko import SSHException
+import traceback
 from common.ob_connector import OBConnector
 from common.ssh_client.ssh import SshClient
 from common.tool import TimeUtils
@@ -89,6 +88,7 @@ def download_file(ssh_client, remote_path, local_path, stdio=None):
         ssh_client.download(remote_path, local_path)
     except Exception as e:
         stdio.error("Download File Failed error: {0}".format(e))
+        stdio.verbose(traceback.format_exc())
     return local_path
 
 
