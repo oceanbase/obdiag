@@ -227,7 +227,6 @@ class ConfigManager(Manager):
                 'container_name': node_config.get('container_name', global_config.get('container_name')),
                 'namespace': node_config.get('namespace', global_config.get('namespace', '')),
                 'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
-
                 'host_type': 'OBPROXY',
             }
 
