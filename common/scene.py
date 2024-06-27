@@ -69,7 +69,7 @@ def get_version_by_type(context, type, stdio=None):
     try:
         stdio = context.stdio
         version = ""
-        if type == "observer":
+        if type == "observer" or type == "other":
             try:
                 version = get_observer_version(context)
             except Exception as e:
