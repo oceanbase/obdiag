@@ -81,8 +81,8 @@ def get_version_by_type(context, type, stdio=None):
             raise Exception("type is {0} . No support to get the version".format(type))
         return version
     except Exception as e:
-        stdio.exception("can't get {0} version, Exception: {0}".format(type, e))
-        raise Exception("can't get {0} version, Exception: {0}".format(type, e))
+        stdio.exception("can't get {0} version, Exception: {1}".format(type, e))
+        raise Exception("can't get {0} version, Exception: {1}".format(type, e))
 
 
 # def get_obproxy_and_ob_version(obproxy_nodes, nodes, type, stdio=None):

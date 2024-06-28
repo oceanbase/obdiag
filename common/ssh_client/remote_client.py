@@ -79,10 +79,10 @@ class RemoteClient(SsherClient):
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                raise Exception("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, err_text))
+                return err_text.decode('utf-8')
+            return stdout.read().decode('utf-8')
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
-        return stdout.read().decode('utf-8')
 
     def download(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()
