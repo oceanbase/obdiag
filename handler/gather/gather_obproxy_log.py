@@ -292,7 +292,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
 
         gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
-        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client.get_name(), gather_log_file_size))
+        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
             local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
