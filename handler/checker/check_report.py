@@ -83,7 +83,7 @@ class CheckReport:
 
     def export_report_xml(self):
         allMap = self.report_tobeMap()
-        with open(self.report_path + ".xml", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".xml", 'w', encoding='utf-8') as f:
             allreport = {}
             allreport["report"] = allMap
             json_str = json.dumps(allreport)
@@ -93,13 +93,13 @@ class CheckReport:
 
     def export_report_yaml(self):
         allMap = self.report_tobeMap()
-        with open(self.report_path + ".yaml", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".yaml", 'w', encoding='utf-8') as f:
             yaml.dump(allMap, f)
 
     def export_report_json(self):
         allMap = self.report_tobeMap()
         self.stdio.verbose("export_report_json allMap: {0}".format(allMap))
-        with open(self.report_path + ".json", 'w', encoding="utf8") as f:
+        with open(self.report_path + ".json", 'w', encoding='utf-8') as f:
             # for python2 and python3
             try:
                 json.dump(allMap, f, ensure_ascii=False)
@@ -167,7 +167,7 @@ class CheckReport:
                     report_all_tb.add_row([task.name, "all pass"])
             telemetry.push_check_info(self.report_target, {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases": list(set(warningMap))})
 
-            fp = open(self.report_path + ".table", 'a+', encoding="utf8")
+            fp = open(self.report_path + ".table", 'a+', encoding='utf-8')
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)

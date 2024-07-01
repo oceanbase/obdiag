@@ -91,6 +91,15 @@ DEFAULT_INNER_CONFIG = {
     'rca': {
         'result_path': './rca/',
     },
+    'analyze_sql': {
+        'output_type': 'html',
+        'result_path': './obdiag_analyze_sql/',
+        'sql_audit_limit': 2000,
+    },
+    'analyze_sql_review': {
+        'output_type': 'html',
+        'result_path': './obdiag_analyze_sql_review/',
+    },
 }
 
 
