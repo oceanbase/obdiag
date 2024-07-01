@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          yum -y install centos-release-scl-rh centos-release-scl
+
           yum install rh-python38 rh-python38-python-devel -y
           echo "source /opt/rh/rh-python38/enable" >/etc/profile.d/python38.sh
           echo "export X_SCLS=\"rh-python38\"" >>/etc/profile.d/python38.sh
