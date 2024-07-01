@@ -14,7 +14,7 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "insanesharpness/centos9-stream-develop:latest"
+      image: "openanolis/anolisos:latest"
 
     steps:
       - name: Checkout code
