@@ -13,7 +13,7 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "centos:7"
+      image: "openanolis/anolisos:latest"
 
     steps:
       - name: Checkout code
@@ -21,11 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          yum -y install centos-release-scl-rh centos-release-scl
-          yum install rh-python38 rh-python38-python-devel -y
-          echo "source /opt/rh/rh-python38/enable" >/etc/profile.d/python38.sh
-          echo "export X_SCLS=\"rh-python38\"" >>/etc/profile.d/python38.sh
-          source /etc/profile.d/python38.sh 
+          yum install -y python3.8
           ldd --version
           python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
@@ -37,16 +33,13 @@ jobs:
           pwd
           ls -lh
           export RELEASE=`date +%Y%m%d%H%M`
-          sed -i 's/pip install -r requirements3.txt/source \/etc\/profile.d\/python38.sh\n\
-          curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+          sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
           pip3 uninstall urllib3\n\
           pip3 install urllib3==1.26.6\n\
           pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
           cat ./rpm/oceanbase-diagnostic-tool.spec
-          source /etc/profile.d/python38.sh
           python3 -m pip install --upgrade pip setuptools wheel
-          cat /etc/profile.d/python38.sh
           python3 --version
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
@@ -89,4 +82,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: obdiag-deb-package
-          path: /home/runner/work/obdiag/obdiag/oceanbase-diagnostic-tool_*.deb
+          path: ./oceanbase-diagnostic-tool_*.deb
+          retention-days: 3
