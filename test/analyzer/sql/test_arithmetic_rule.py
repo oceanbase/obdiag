@@ -85,5 +85,6 @@ class TestArithmeticRuleWithRealSQL(unittest.TestCase):
         result = self.rule.match(parsed_stmt, None)
         self.assertFalse(result, "Should not detect arithmetic operation in complex SQL statement.")
 
+
 if __name__ == '__main__':
     unittest.main()
