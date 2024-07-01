@@ -34,8 +34,7 @@ jobs:
           pwd
           ls -lh
           export RELEASE=`date +%Y%m%d%H%M`
-          sed -i 's/pip install -r requirements3.txt\n\
-          curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+          sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
           pip3 uninstall urllib3\n\
           pip3 install urllib3==1.26.6\n\
