@@ -67,7 +67,7 @@ class KubernetesClient(SsherClient):
         exec_command = ['tar', 'xvf', '-', '-C', '/', remote_path]
         with open(local_path, 'rb') as file:
             resp = stream(v1.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, container=container_name, _preload_content=False)
-            # 支持tar命令的数据流
+            # Support data flow for tar command
             commands = []
             commands.append(file.read())
             while resp.is_open():

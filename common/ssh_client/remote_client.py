@@ -20,7 +20,6 @@
 import os
 import sys
 import time
-
 import paramiko
 from paramiko.ssh_exception import SSHException, AuthenticationException
 from common.obdiag_exception import OBDIAGShellCmdException, OBDIAGSSHConnException
