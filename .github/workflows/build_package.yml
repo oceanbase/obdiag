@@ -14,7 +14,7 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "openanolis/anolisos:7.9-x86_64-nydus"
+      image: "centos:7"
 
     steps:
       - name: Checkout code
@@ -22,6 +22,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
+          yum makecache
           yum install -y python3.8
           ldd --version
           python3 -m pip install --upgrade pip setuptools wheel
@@ -34,13 +36,16 @@ jobs:
           pwd
           ls -lh
           export RELEASE=`date +%Y%m%d%H%M`
-          sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+          sed -i 's/pip install -r requirements3.txt/source \/etc\/profile.d\/python38.sh\n\
+          curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
           pip3 uninstall urllib3\n\
           pip3 install urllib3==1.26.6\n\
           pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
           cat ./rpm/oceanbase-diagnostic-tool.spec
+          source /etc/profile.d/python38.sh
           python3 -m pip install --upgrade pip setuptools wheel
+          cat /etc/profile.d/python38.sh
           python3 --version
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
