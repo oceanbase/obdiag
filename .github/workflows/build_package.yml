@@ -14,7 +14,7 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "openanolis/anolisos:latest"
+      image: "openanolis/anolisos:7.9-x86_64-nydus"
 
     steps:
       - name: Checkout code
