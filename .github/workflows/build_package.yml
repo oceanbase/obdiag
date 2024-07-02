@@ -27,7 +27,6 @@ jobs:
           yum clean all            
           yum install epel-release wget -y
           yum makecache
-          yum -y install centos-release-scl-rh centos-release-scl
           ldd --version
           yum -y install gcc g++ 
           pwd
