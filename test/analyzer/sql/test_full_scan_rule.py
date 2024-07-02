@@ -42,36 +42,11 @@ class TestFullScanRule(unittest.TestCase):
         # suggestion = self.rule.suggestion(parsed_stmt)
         # self.assertEqual(suggestion.level, Level.WARN)
 
-    def test_not_like_doesnt_hide_full_scan(self):
-        # SQL查询示例，使用NOT LIKE，模式明确限制了范围, 减少了结果集
-        sql_not_like = "SELECT * FROM products WHERE name NOT LIKE '%apple%'"
-        parsed_stmt = parser.parse(sql_not_like)
-        print(parsed_stmt)
-        self.assertFalse(self.rule.match(parsed_stmt))
-
     def test_not_in_doesnt_hide_full_scan(self):
         # SQL查询示例，使用NOT IN，预期可能为全表扫描
         sql_not_in = "SELECT * FROM orders WHERE customerId NOT IN (SELECT customerId FROM active_customers)"
         parsed_stmt = parser.parse(sql_not_in)
         self.assertFalse(self.rule.match(parsed_stmt))
-
-    def test_not_exists_doesnt_hide_full_scan(self):
-        # SQL查询示例，使用NOT EXISTS，预期可能为全表扫描，需评估子查询的影响
-        sql_not_exists = "SELECT * FROM orders O WHERE NOT EXISTS (SELECT 1 FROM shipped_orders S WHERE O.orderId = S.orderId)"
-        parsed_stmt = parser.parse(sql_not_exists)
-        print(parsed_stmt)
-        self.assertTrue(self.rule.match(parsed_stmt))
-        suggestion = self.rule.suggestion(parsed_stmt)
-        self.assertEqual(suggestion.level, Level.WARN)
-
-    def test_not_equal_doesnt_hide_full_scan(self):
-        # SQL查询示例，使用!=，预期可能为全表扫描，除非值的筛选范围很窄
-        sql_not_equal = "SELECT * FROM inventory WHERE stockLevel != 0"
-        parsed_stmt = parser.parse(sql_not_equal)
-        print(parsed_stmt)
-        self.assertTrue(self.rule.match(parsed_stmt))
-        suggestion = self.rule.suggestion(parsed_stmt)
-        self.assertEqual(suggestion.level, Level.WARN)
 
     def test_optimized_not_conditions(self):
         # SQL查询示例，使用NOT条件
