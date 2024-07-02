@@ -24,15 +24,18 @@ from kubernetes.stream import stream
 class KubernetesClient(SsherClient):
     def __init__(self, context=None, node=None):
         super().__init__(context, node)
-        config_file = self.node.get("kubernetes_config_file")
-        if config_file is None or config_file == "":
-            config_file = "/root/.kube/config"
-            raise Exception("KubernetesClient node.config_file is None. Please check the config file.")
-        config.kube_config.load_kube_config(config_file=config_file)
-        self.namespace = self.node.get("namespace")
-        self.pod_name = self.node.get("pod_name")
-        self.container_name = self.node.get("container_name") or "observer"
-        self.client = client.CoreV1Api()
+        try:
+            self.namespace = self.node.get("namespace")
+            self.pod_name = self.node.get("pod_name")
+            self.container_name = self.node.get("container_name") or "observer"
+            config_file = self.node.get("kubernetes_config_file")
+            if config_file is None or config_file == "":
+                config.kube_config.load_kube_config()
+            else:
+                config.kube_config.load_kube_config(config_file=config_file)
+            self.client = client.CoreV1Api()
+        except Exception as e:
+            raise Exception("KubernetesClient load_kube_config error. Please check the config file. {0}".format(e))
 
     def exec_cmd(self, cmd):
         exec_command = ['/bin/sh', '-c', cmd]
