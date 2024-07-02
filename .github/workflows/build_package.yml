@@ -29,6 +29,7 @@ jobs:
           yum makecache
           yum -y install centos-release-scl-rh centos-release-scl
           ldd --version
+          yum -y install gcc g++ 
           pwd
           cd ../
           wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
