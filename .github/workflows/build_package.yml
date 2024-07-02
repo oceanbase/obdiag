@@ -28,7 +28,7 @@ jobs:
           yum install epel-release wget -y
           yum makecache
           ldd --version
-          yum -y install gcc g++ 
+          yum -y install gcc g++ make
           pwd
           cd ../
           wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
