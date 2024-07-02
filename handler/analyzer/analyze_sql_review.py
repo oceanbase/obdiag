@@ -39,6 +39,7 @@ class AnalyzeSQLReviewHandler(object):
         self.config_path = const.DEFAULT_CONFIG_PATH
         self.analyze_files_list = None
         self.directly_analyze_files = False
+        self.level = 'notice'
 
     def init_inner_config(self):
         self.stdio.verbose("init inner config start")
@@ -81,6 +82,9 @@ class AnalyzeSQLReviewHandler(object):
         tenant_name_option = Util.get_option(options, 'tenant_name')
         if tenant_name_option is not None:
             self.tenant_name = tenant_name_option
+        level_option = Util.get_option(options, 'level')
+        if level_option:
+            self.level = level_option
         self.db_user = db_user_option
         self.db_password = db_password_option
         return True
@@ -120,7 +124,7 @@ class AnalyzeSQLReviewHandler(object):
             sql_list = self.__parse_sql_file(file)
             for sql in sql_list:
                 rules = SQLReviewRuleManager()
-                result = rules.manager.analyze_sql_statement(sql)
+                result = rules.manager.analyze_sql_statement(sql, self.stdio, self.level)
                 sql_results[sql] = result
             file_results[file] = sql_results
         return file_results

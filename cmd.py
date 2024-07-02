@@ -656,6 +656,7 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
         self.parser.add_option('--password', type='string', help="tenant connection user password", default='')
         self.parser.add_option('--user', type='string', help="tenant connection user name")
         self.parser.add_option('--files', type='string', action="append", help="specify files")
+        self.parser.add_option('--level', type='string', help="The alarm level, optional parameters [critical, warn, notice, ok]", default='notice')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):

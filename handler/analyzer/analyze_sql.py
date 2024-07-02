@@ -267,7 +267,7 @@ class AnalyzeSQLHandler(object):
 
     def __parse_sql_review(self, sql):
         rules = SQLReviewRuleManager()
-        result = rules.manager.analyze_sql_statement(sql, self.level)
+        result = rules.manager.analyze_sql_statement(sql, self.stdio, self.level)
         return result
 
     def __generate_current_row_selected_keys(self, diagnostics, keys, rowspan_length):

@@ -41,7 +41,7 @@ class RuleManager(object):
         """
         self._registered_rules[rule_class.rule_name] = rule_class
 
-    def analyze_sql_statement(self, sql_statement, level_str='notice') -> List[Result]:
+    def analyze_sql_statement(self, sql_statement, stdio, level_str='notice') -> List[Result]:
         """
         对SQL语句列表应用所有已注册的规则，并收集结果。
         :param sql_statements: SQL语句的列表。
@@ -55,6 +55,7 @@ class RuleManager(object):
             suggestion = rule_instance.suggestion(sql_statement)
             if result:
                 if suggestion.level >= level:
+                    stdio.verbose("rule_name:{0}, suggestion_level:{1}, suggestion:{2}".format(suggestion.rule_name, suggestion.level, suggestion.suggestion))
                     rule_results.append(suggestion)
             else:
                 if level <= Level.OK:
