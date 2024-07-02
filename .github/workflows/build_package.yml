@@ -22,13 +22,12 @@ jobs:
 
       - name: Install dependencies
         run: |
+          rm -rf /etc/yum.repos.d/*
           curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
+          yum clean all            
+          yum install epel-release
           yum makecache
           yum -y install centos-release-scl-rh centos-release-scl
-          yum install rh-python38 rh-python38-python-devel -y
-          echo "source /opt/rh/rh-python38/enable" >/etc/profile.d/python38.sh
-          echo "export X_SCLS=\"rh-python38\"" >>/etc/profile.d/python38.sh
-          source /etc/profile.d/python38.sh 
           ldd --version
           python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
@@ -40,8 +39,7 @@ jobs:
           pwd
           ls -lh
           export RELEASE=`date +%Y%m%d%H%M`
-          sed -i 's/pip install -r requirements3.txt/source \/etc\/profile.d\/python38.sh\n\
-          curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+          sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
           pip3 uninstall urllib3\n\
           pip3 install urllib3==1.26.6\n\
