@@ -177,10 +177,10 @@ class AnalyzeSQLReviewHandler(object):
         for idx, diag in enumerate(diagnostics):
             if idx == 0:
                 # Start a new row with SQL text having rowspan equal to the number of diagnostics.
-                row = current_row + [f"<td>{diag['ruleClassName']}</td>", f"<td>{diag['ruleDescription']}</td>", f"<td class='{diag['ruleLevel'].string.lower()}'>{diag['ruleLevel'].string}</td>", f"<td>{diag['suggestion']}</td>"]
+                row = current_row + [f"<td>{diag['ruleClassName']}</td>", f"<td>{diag['ruleDescription']}</td>", f"<td class='{diag['ruleLevel'][1]}'>{diag['ruleLevel'][1]}</td>", f"<td>{diag['suggestion']}</td>"]
                 rows.append("<tr>" + "".join(row) + "</tr>")
             else:
-                rows.append("<tr class='merge'>" + f"<td>{diag['ruleClassName']}</td>" + f"<td>{diag['ruleDescription']}</td>" + f"<td class='{diag['ruleLevel'].string.lower()}'>{diag['ruleLevel'].string}</td>" + f"<td>{diag['suggestion']}</td>" + "</tr>")
+                rows.append("<tr class='merge'>" + f"<td>{diag['ruleClassName']}</td>" + f"<td>{diag['ruleDescription']}</td>" + f"<td class='{diag['ruleLevel'][1]}'>{diag['ruleLevel'][1]}</td>" + f"<td>{diag['suggestion']}</td>" + "</tr>")
         return "".join(rows)
 
     def __generate_html_result(self, all_results):
