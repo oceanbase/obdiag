@@ -25,7 +25,7 @@ jobs:
           rm -rf /etc/yum.repos.d/*
           curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
           yum clean all            
-          yum install epel-release
+          yum install epel-release -y
           yum makecache
           yum -y install centos-release-scl-rh centos-release-scl
           ldd --version
@@ -45,9 +45,7 @@ jobs:
           pip3 install urllib3==1.26.6\n\
           pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
           cat ./rpm/oceanbase-diagnostic-tool.spec
-          source /etc/profile.d/python38.sh
           python3 -m pip install --upgrade pip setuptools wheel
-          cat /etc/profile.d/python38.sh
           python3 --version
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 
