@@ -25,10 +25,18 @@ jobs:
           rm -rf /etc/yum.repos.d/*
           curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
           yum clean all            
-          yum install epel-release -y
+          yum install epel-release wget -y
           yum makecache
           yum -y install centos-release-scl-rh centos-release-scl
           ldd --version
+          pwd
+          cd ../
+          wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
+          tar -xzf Python-3.8.12.tgz
+          cd Python-3.8.12
+          ./configure
+          make && make install
+          cd -
           python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
           python3 --version
