@@ -22,8 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          yum -y install wget
-          wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
+          curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
           yum makecache
           yum -y install centos-release-scl-rh centos-release-scl
           yum install rh-python38 rh-python38-python-devel -y
