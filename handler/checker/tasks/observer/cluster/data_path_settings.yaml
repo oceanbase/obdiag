@@ -45,17 +45,9 @@ task:
         verify_type: equal
         verify: 0
         err_msg: "the log_dir_path of disk size over 16TB ,the type must be xfs"
-
     - type: ssh
       ssh: "df -Th  #{data_dir_path} | grep '/' | awk '{print $2}'"
       result:
         set_value:  file_system
         verify: '[ "${file_system}" == "xfs" ] || [ "${file_system}" == "ext4" ]'
         err_msg: "ip:#{remote_ip} ,data_dir_path: #{data_dir_path} file_system is not xfs or ext4."
-    - type: ssh
-      ssh: "df -Th  #{remote_home_path} | grep '/' | awk '{print $2}'"
-      result:
-        set_value:  file_system
-        verify: '[ "${file_system}" == "xfs" ] || [ "${file_system}" == "ext4" ]'
-        err_msg: "ip:#{remote_ip} ,home_path: #{remote_home_path} file_system is not xfs or ext4."
-

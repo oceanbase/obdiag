@@ -24,8 +24,10 @@ from kubernetes.stream import stream
 class KubernetesClient(SsherClient):
     def __init__(self, context=None, node=None):
         super().__init__(context, node)
-        # TODO support other config_file
-        config.kube_config.load_kube_config()
+        config_file = self.node.get("kubernetes_config_file")
+        if config_file is None or config_file == "":
+            raise Exception("KubernetesClient node.config_file is None. Please check the config file.")
+        config.kube_config.load_kube_config(config_file=config_file)
         self.namespace = self.node.get("namespace")
         self.pod_name = self.node.get("pod_name")
         self.container_name = self.node.get("container_name") or "observer"
@@ -33,12 +35,12 @@ class KubernetesClient(SsherClient):
 
     def exec_cmd(self, cmd):
         exec_command = ['/bin/sh', '-c', cmd]
+        self.stdio.verbose("KubernetesClient exec_cmd: {0}".format(cmd))
         resp = stream(self.client.connect_get_namespaced_pod_exec, self.pod_name, self.namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=self.container_name)
-        parts = resp.split('\n', maxsplit=1)
-        if len(parts) < 2:
-            return ""
-        result = parts[1]
-        return result
+        self.stdio.verbose("KubernetesClient exec_cmd.resp: {0}".format(resp))
+        if "init system (PID 1). Can't operate." in resp:
+            return "KubernetesClient can't get the resp by {0}".format(cmd)
+        return resp
 
     def download(self, remote_path, local_path):
         return self.__download_file_from_pod(self.namespace, self.pod_name, self.container_name, remote_path, local_path)
