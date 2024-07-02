@@ -1396,3 +1396,59 @@ class Util(object):
                 return None
             return new_nodes
         return None
+
+
+class SQLUtil(object):
+    re_trace = re.compile(r'''\/\*.*trace_id((?!\/\*).)*rpc_id.*\*\/''', re.VERBOSE)
+    re_annotation = re.compile(r'''\/\*((?!\/\*).)*\*\/''', re.VERBOSE)
+    re_interval = re.compile(
+        r'''interval\s?(\?|\-?\d+)\s?(day|hour|minute|second|microsecond|week|month|quarter|year|second_microsecond|minute_microsecond|minute_second|hour_microsecond|hour_second|hour_minute|day_microsecond|day_second|day_minute|day_hour|year_month)''',
+        re.VERBOSE,
+    )
+    re_force_index = re.compile(r'''force[\s]index[\s][(]\w+[)]''', re.VERBOSE)
+    re_cast_1 = re.compile(r'''cast\(.*?\(.*?\)\)''', re.VERBOSE)
+    re_cast_2 = re.compile(r'''cast\(.*?\)''', re.VERBOSE)
+    re_now = re.compile(r'''now\(\)''', re.VERBOSE)
+
+    def remove_sql_text_affects_parser(self, sql):
+        sql = sql.lower().strip()
+        sql = self.remove_hint_and_annotate(sql)
+        sql = self.remove_force_index(sql)
+        sql = self.remove_now_in_insert(sql)
+        sql = self.remove_semicolon(sql)
+        return sql
+
+    def remove_hint_and_annotate(self, sql):
+        sql = sql.lower()
+        sql = re.sub(self.re_annotation, '', sql)
+        sql = re.sub(self.re_trace, '', sql)
+        return sql
+
+    def replace_interval_day(self, sql):
+        sql = sql.lower()
+        sql = re.sub(self.re_interval, '?', sql)
+        return sql
+
+    def remove_force_index(self, sql):
+        sql = sql.lower()
+        sql = re.sub(self.re_force_index, '', sql)
+        return sql
+
+    def remove_cast(self, sql):
+        sql = sql.lower()
+        sql = re.sub(self.re_cast_1, '?', sql)
+        sql = re.sub(self.re_cast_2, '?', sql)
+        return sql
+
+    def remove_now_in_insert(self, sql):
+        sql = sql.lower().lstrip()
+        if sql.startswith('insert'):
+            sql = re.sub(self.re_now, '?', sql)
+        return sql
+
+    def remove_semicolon(self, sql):
+        sql = sql.strip()
+        return sql[:-1] if sql[-1] == ';' else sql
+
+    def get_db_id(self, database_alias, user_id):
+        return database_alias + '-' + user_id

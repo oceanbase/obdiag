@@ -46,6 +46,16 @@ class OBConnector(object):
         except Exception as e:
             self.stdio.verbose(e)
 
+    def __enter__(self):
+        """Ensures the database connection is open upon entering the 'with' block."""
+        self._connect_to_db()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        """Automatically closes the database connection when exiting the 'with' block."""
+        if self.connection:
+            self.connection.close()
+
     def _connect_db(self):
         try:
             self.conn = mysql.connect(
@@ -82,17 +92,28 @@ class OBConnector(object):
         cursor.close()
         return ret
 
-    def execute_sql_return_columns_and_data(self, sql):
+    def execute_sql_return_columns_and_data(self, sql, params=None):
+        """
+        Executes an SQL query and returns column names and data.
+
+        :param sql: The SQL statement to execute, using %s as a placeholder for parameters.
+        :param parameters: A tuple or list of parameters to substitute into the SQL statement.
+        :return: A tuple containing a list of column names and a list of rows (each a tuple).
+        """
         if self.conn is None:
             self._connect_db()
         else:
             self.conn.ping(reconnect=True)
-        cursor = self.conn.cursor()
-        cursor.execute(sql)
-        column_names = [col[0] for col in cursor.description]
-        ret = cursor.fetchall()
-        cursor.close()
-        return column_names, ret
+
+        with self.conn.cursor() as cursor:
+            if params:
+                cursor.execute(sql, params)
+            else:
+                cursor.execute(sql)
+
+            column_names = [col[0] for col in cursor.description]
+            data = cursor.fetchall()
+        return column_names, data
 
     def execute_sql_return_cursor_dictionary(self, sql):
         if self.conn is None:

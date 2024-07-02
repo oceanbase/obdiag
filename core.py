@@ -31,6 +31,8 @@ from config import ConfigManager, InnerConfigManager
 from err import CheckStatus, SUG_SSH_FAILED
 from handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from handler.analyzer.analyze_log import AnalyzeLogHandler
+from handler.analyzer.analyze_sql import AnalyzeSQLHandler
+from handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -266,6 +268,14 @@ class ObdiagHome(object):
             elif function_type == 'analyze_flt_trace':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
+                handler.handle()
+            elif function_type == 'analyze_sql':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeSQLHandler(self.context)
+                handler.handle()
+            elif function_type == 'analyze_sql_review':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeSQLReviewHandler(self.context)
                 handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))

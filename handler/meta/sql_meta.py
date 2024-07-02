@@ -1003,3 +1003,395 @@ ORDER BY
   ##REPLACE_ORDER_BY##;
     ''',
 )
+
+sql_dict.set_value(
+    "select_all_gv_database_view",
+    '''
+  SELECT /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(60000000) */ 
+  tenant_id, 
+  tenant_name, 
+  database_id, 
+  database_name, 
+  `comment`, 
+  in_recyclebin 
+  FROM  oceanbase.`gv$database`
+    ''',
+)
+
+sql_dict.set_value(
+    "select_cdb_database",
+    '''
+  SELECT/*+ QUERY_TIMEOUT(10000000) */ 
+  con_id as tenant_id, 
+  object_id as database_id, 
+  object_name as database_name 
+  FROM  oceanbase.cdb_objects 
+  where 
+  con_id = ##REPLACE_CON_ID## 
+  and OBJECT_TYPE = 'DATABASE' 
+    ''',
+)
+
+sql_dict.set_value(
+    "select_tenant_cdb_database",
+    '''
+  SELECT/*+ QUERY_TIMEOUT(10000000) */ 
+  con_id as tenant_id, 
+  object_id as database_id, 
+  object_name as database_name 
+  FROM  oceanbase.DBA_OBJECTS 
+  where OBJECT_TYPE = 'DATABASE' 
+    ''',
+)
+
+sql_dict.set_value(
+    "select_tenant_gv_database_view",
+    '''
+  SELECT /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(60000000) */ 
+  tenant_id, 
+  tenant_name, 
+  database_id, 
+  database_name, 
+  `comment`, 
+  in_recyclebin 
+  FROM  oceanbase.`gv$database` 
+  WHERE tenant_id = ##REPLACE_TENANT_ID##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_table_id",
+    '''
+  select 
+  table_id 
+  from oceanbase.gv$table 
+  where 
+  tenant_id = ? 
+  and database_id = ##REPLACE_DATABASE_ID## 
+  and table_name = '##REPLACE_TABLE_NAME'
+  limit 1
+    ''',
+)
+
+sql_dict.set_value(
+    "get_table_id_for_ob4",
+    '''
+  select 
+  t3.table_id as table_id
+  from (select con_id, owner, table_name, partitioned from oceanbase.CDB_TABLES) t1 
+  left join (select con_id, owner, object_name, object_id from oceanbase.CDB_OBJECTS where object_type = 'database') t2 ON t1.con_id =t2.con_id and t1.owner = t2.owner 
+  left join (select con_id, owner, object_name, object_id as table_id from oceanbase.CDB_OBJECTS where object_type = 'table') t3 ON t1.con_id = t3.con_id and t1.owner = t3.owner and t1.table_name = t3.object_name 
+   where t1.con_id = ##REPLACE_CON_ID## and t2.object_id = ##REPLACE_OBJECT_ID## t1.table_name = ##REPLACE_TABLE_NAME## limit 1
+    ''',
+)
+
+sql_dict.set_value(
+    "get_table_index",
+    '''
+select 
+  key_name as index_name, 
+  group_concat(column_name order by seq_in_index separator ',') as column_name 
+  from 
+  oceanbase.__tenant_virtual_table_index 
+  where 
+  table_id = ##REPLACE_TABLE_ID##
+  group by key_name
+    ''',
+)
+
+sql_dict.set_value(
+    "get_database_name",
+    '''
+select 
+  database_name 
+  from oceanbase.gv$database 
+  where 
+  tenant_id = ##REPLACE_TENANT_ID##
+  and database_id = ##REPLACE_DATABASE_ID##
+  limit 1
+    ''',
+)
+
+sql_dict.set_value(
+    "get_sql_audit_for_sql_review",
+    '''
+select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
+  max(case when length(sql_id) > 0 then svr_ip else 0 end) as svrIp,
+  max(case when length(sql_id) > 0 then svr_port else 0 end) as svrPort,
+  max(case when length(sql_id) > 0 then request_id else 0 end) as requestId,
+  max(case when length(sql_id) > 0 then client_ip else 0 end) as clientIp,
+  max(case when length(sql_id) > 0 then tenant_name else 0 end) as tenantName,
+  max(case when length(sql_id) > 0 then tenant_id else 0 end) as tenantId,
+  max(case when length(sql_id) > 0 then db_name else 0 end) as dbName,
+  max(case when length(sql_id) > 0 then db_id else 0 end) as dbId,
+  max(case when length(sql_id) > 0 then query_sql else 0 end) as querySql,
+  max(case when length(sql_id) > 0 then plan_id else 0 end) as planId,
+  max(case when length(sql_id) > 0 then sql_id else '' end) as sqlId,
+  max(case when length(sql_id) > 0 then trace_id else '' end) as traceId,
+  min(request_time) as requestTime,
+  sum(case when length(sql_id) > 0 then return_rows else 0 end) as returnRows,
+  sum(case when length(sql_id) > 0 then affected_rows else 0 end) as affectedRows,
+  sum(partition_cnt) as partitionCount,
+  sum(case when length(sql_id) > 0 then ret_code else 0 end) as retCode,
+  sum(case event when 'system internal wait' then WAIT_TIME_MICRO else 0 end) as event0WaitTimeUs,
+  sum(case event when 'mysql response wait client' then WAIT_TIME_MICRO else 0 end) as event1WaitTimeUs,
+  sum(case event when 'sync rpc' then WAIT_TIME_MICRO else 0 end) as event2WaitTimeUs,
+  sum(case event when 'db file data read' then WAIT_TIME_MICRO else 0 end) as event3WaitTimeUs,
+  sum(total_wait_time_micro) as totalWaitTimeMicro,
+  sum(total_waits) as totalWaits,
+  sum(rpc_count) as rpcCount,
+  sum(case when length(sql_id) > 0 then plan_type else 0 end) as planType,
+  sum(case when length(sql_id) > 0 then is_inner_sql else 0 end) as isInnerSql,
+  sum(case when length(sql_id) > 0 then is_executor_rpc else 0 end) as isExecutorRpc,
+  sum(case when length(sql_id) > 0 then is_hit_plan else 0 end) as isHitPlan,
+  sum(case when length(sql_id) > 0 then elapsed_time else 0 end) as elapsedTime,
+  sum(execute_time)-sum(total_wait_time_micro)+sum(get_plan_time) as cpuTime,
+  sum(net_time) as netTime,
+  sum(net_wait_time) as netWaitTime,
+  sum(queue_time) as queueTime,
+  sum(decode_time) as decodeTime,
+  sum(get_plan_time) as getPlanTime,
+  sum(execute_time) as executeTime,
+  sum(application_wait_time) as applicationWaitTime,
+  sum(concurrency_wait_time) as concurrencyWaitTime,
+  sum(user_io_wait_time) as userIoWaitTime,
+  sum(schedule_time) as scheduleTime,
+  sum(row_cache_hit) as rowCacheHit,
+  sum(bloom_filter_cache_hit) as bloomFilterCacheHit,
+  sum(block_cache_hit) as blockCacheHit,
+  sum(block_index_cache_hit) as blockIndexCacheHit,
+  sum(disk_reads) as diskReads,
+  sum(case when length(sql_id) > 0 then retry_cnt else 0 end) as retryCount,
+  sum(case when length(sql_id) > 0 then table_scan else 0 end) as tableScan,
+  sum(case when length(sql_id) > 0 then consistency_level else 0 end) as consistencyLevel,
+  sum(memstore_read_row_count) as memstoreReadRowCount,
+  sum(ssstore_read_row_count) as ssstoreReadRowCount
+  from oceanbase.gv$sql_audit
+  where  request_time >= ##REPLACE_REQUEST_FROM_TIME##
+  and  request_time <= ##REPLACE_REQUEST_TO_TIME## 
+  and length(sql_id) > 0 
+  and length(query_sql) > 0 
+  and length(db_name) > 0 
+  and query_sql not like 'show%' 
+  and query_sql not like 'alter%' 
+  and query_sql not like 'set%' 
+  and query_sql not like 'commit%' 
+  and query_sql not like 'roll%' 
+  and query_sql not like 'begin%' 
+  and query_sql not like 'end%' 
+  and query_sql not like 'drop%' 
+  group by trace_id
+  having elapsedTime >= ##REPLACE_ELAPSED_TIME##
+  and length(sqlId) > 0
+  limit ##REPLACE_LIMIT##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_sql_audit_ob4_for_sql_review",
+    '''
+select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
+  max(case when length(sql_id) > 0 then svr_ip else 0 end) as svrIp,
+  max(case when length(sql_id) > 0 then svr_port else 0 end) as svrPort,
+  max(case when length(sql_id) > 0 then request_id else 0 end) as requestId,
+  max(case when length(sql_id) > 0 then client_ip else 0 end) as clientIp,
+  max(case when length(sql_id) > 0 then tenant_name else 0 end) as tenantName,
+  max(case when length(sql_id) > 0 then tenant_id else 0 end) as tenantId,
+  max(case when length(sql_id) > 0 then db_name else 0 end) as dbName,
+  max(case when length(sql_id) > 0 then db_id else 0 end) as dbId,
+  max(case when length(sql_id) > 0 then query_sql else 0 end) as querySql,
+  max(case when length(sql_id) > 0 then plan_id else 0 end) as planId,
+  max(case when length(sql_id) > 0 then sql_id else '' end) as sqlId,
+  max(case when length(sql_id) > 0 then trace_id else '' end) as traceId,
+  min(request_time) as requestTime,
+  sum(case when length(sql_id) > 0 then return_rows else 0 end) as returnRows,
+  sum(case when length(sql_id) > 0 then affected_rows else 0 end) as affectedRows,
+  sum(partition_cnt) as partitionCount,
+  sum(case when length(sql_id) > 0 then ret_code else 0 end) as retCode,
+  sum(case event when 'system internal wait' then WAIT_TIME_MICRO else 0 end) as event0WaitTimeUs,
+  sum(case event when 'mysql response wait client' then WAIT_TIME_MICRO else 0 end) as event1WaitTimeUs,
+  sum(case event when 'sync rpc' then WAIT_TIME_MICRO else 0 end) as event2WaitTimeUs,
+  sum(case event when 'db file data read' then WAIT_TIME_MICRO else 0 end) as event3WaitTimeUs,
+  sum(total_wait_time_micro) as totalWaitTimeMicro,
+  sum(total_waits) as totalWaits,
+  sum(rpc_count) as rpcCount,
+  sum(case when length(sql_id) > 0 then plan_type else 0 end) as planType,
+  sum(case when length(sql_id) > 0 then is_inner_sql else 0 end) as isInnerSql,
+  sum(case when length(sql_id) > 0 then is_executor_rpc else 0 end) as isExecutorRpc,
+  sum(case when length(sql_id) > 0 then is_hit_plan else 0 end) as isHitPlan,
+  max(case when length(sql_id) > 0 then elapsed_time else 0 end) as elapsedTime,
+  sum(execute_time) - sum(total_wait_time_micro) + max(get_plan_time) as cpuTime,
+  sum(net_time) as netTime,
+  sum(net_wait_time) as netWaitTime,
+  sum(queue_time) as queueTime,
+  sum(decode_time) as decodeTime,
+  sum(get_plan_time) as getPlanTime,
+  sum(execute_time) as executeTime,
+  sum(application_wait_time) as applicationWaitTime,
+  sum(concurrency_wait_time) as concurrencyWaitTime,
+  sum(user_io_wait_time) as userIoWaitTime,
+  sum(schedule_time) as scheduleTime,
+  sum(row_cache_hit) as rowCacheHit,
+  sum(bloom_filter_cache_hit) as bloomFilterCacheHit,
+  sum(block_cache_hit) as blockCacheHit,
+  0 as blockIndexCacheHit,
+  sum(disk_reads) as diskReads,
+  sum(case when length(sql_id) > 0 then retry_cnt else 0 end) as retryCount,
+  sum(case when length(sql_id) > 0 then table_scan else 0 end) as tableScan,
+  sum(case when length(sql_id) > 0 then consistency_level else 0 end) as consistencyLevel,
+  sum(memstore_read_row_count) as memstoreReadRowCount,
+  sum(ssstore_read_row_count) as ssstoreReadRowCount
+  from oceanbase.gv$ob_sql_audit
+  where  request_time >= ##REPLACE_REQUEST_FROM_TIME##
+  and  request_time <= ##REPLACE_REQUEST_TO_TIME##
+  and length(sql_id) > 0 
+  and length(query_sql) > 0 
+  and length(db_name) > 0 
+  and query_sql not like 'show%' 
+  and query_sql not like 'alter%' 
+  and query_sql not like 'set%' 
+  and query_sql not like 'commit%' 
+  and query_sql not like 'roll%' 
+  and query_sql not like 'begin%' 
+  and query_sql not like 'end%' 
+  and query_sql not like 'drop%' 
+  and query_sql not like 'commit%' 
+  and query_sql not like 'select 1%' 
+  group by trace_id
+  having elapsedTime >= ##REPLACE_ELAPSED_TIME##
+  and length(sqlId) > 0
+  limit ##REPLACE_LIMIT##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_plan_explains",
+    '''
+select /*+ READ_CONSISTENCY(WEAK) */ 
+  plan_depth as planDepth, 
+  plan_line_id as planLineId, 
+  operator, name as objectName 
+  from 
+  oceanbase.gv$plan_cache_plan_explain 
+  where 
+  tenant_id = ##REPLACE_TENANT_ID## and ip = '##REPLACE_SVR_IP##' and port = ##REPLACE_SVR_PORT## and plan_id = ##REPLACE_PLAN_ID##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_plan_explains_for_ob4",
+    '''
+select /*+ READ_CONSISTENCY(WEAK) */ 
+  plan_depth as planDepth, 
+  plan_line_id as planLineId, 
+  operator, 
+  name as objectName,
+  rows,
+  cost
+  from 
+  oceanbase.gv$ob_plan_cache_plan_explain 
+  where 
+  tenant_id = ##REPLACE_TENANT_ID## and svr_ip = '##REPLACE_SVR_IP##' and svr_port = ##REPLACE_SVR_PORT## and 
+  plan_id = ##REPLACE_PLAN_ID##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_tables",
+    '''
+select 
+  table_name as tableName, 
+  table_id as tableId 
+  from oceanbase.gv$table 
+  where database_name = '##REPLACE_DATABASE_NAME##' limit 1
+    ''',
+)
+
+sql_dict.set_value(
+    "get_tables_for_ob4",
+    '''
+select 
+  table_schema databaseName, 
+  table_name tableName 
+  from oceanbase.information_schema.tables  
+  where table_schema = '##REPLACE_DATABASE_NAME##' and table_type='BASE TABLE' limit 1
+    ''',
+)
+
+sql_dict.set_value(
+    "get_tenants",
+    '''
+select 
+  tenant_name as tenantName, 
+  tenant_id as tenantId 
+  from oceanbase.gv$tenant
+    ''',
+)
+
+sql_dict.set_value(
+    "get_colum_list_on_lower_version",
+    '''
+select  /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
+  b.data_type dataType, 
+  a.column_id columnId,
+  b.column_name columnName ,
+  max(a.num_distinct) ndvCount 
+  FROM 
+  oceanbase.__all_column_statistic a,
+  oceanbase.__all_column b 
+  WHERE 
+  a.tenant_id=b.tenant_id 
+  and a.table_id=b.table_id 
+  and a.column_id=b.column_id 
+  and b.column_name not like '%__substr%' 
+  and a.tenant_id=? and a.table_id=? 
+    ''',
+)
+
+sql_dict.set_value(
+    "get_colum_list",
+    '''
+select  /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
+  b.data_type dataType, 
+  a.column_id columnId, 
+  b.column_name columnName,
+  max(a.num_distinct) ndvCount
+  FROM 
+  oceanbase.__all_virtual_column_statistic a,
+  oceanbase.__all_virtual_column b 
+  WHERE 
+  a.tenant_id=b.tenant_id 
+  and a.table_id=b.table_id 
+  and a.column_id=b.column_id 
+  and b.column_name not like '%__substr%' 
+  and a.tenant_id=? and a.table_id=? 
+  GROUP BY b.column_name
+    ''',
+)
+
+sql_dict.set_value(
+    "get_column_min_and_max_value_list_on_lower_version",
+    '''
+select /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
+ column_id columnId, 
+ des_hex_str(case min_value when '19070000FDFFFFFFFFFFFFFFFF01' then '0' else min_value end) `minValue`,
+ des_hex_str(case max_value when '19070000FEFFFFFFFFFFFFFFFF01' then '0' else max_value end) `maxValue` 
+ from 
+ oceanbase.__all_column_statistic 
+ where tenant_id = ? and table_id = ?
+    ''',
+)
+
+sql_dict.set_value(
+    "get_column_min_and_max_value_list",
+    '''
+select /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
+ column_id columnId, 
+ des_hex_str(case min_value when '19070000FDFFFFFFFFFFFFFFFF01' then '0' else min_value end) `minValue`,
+ des_hex_str(case max_value when '19070000FEFFFFFFFFFFFFFFFF01' then '0' else max_value end) `maxValue` 
+ from 
+ oceanbase.__all_virtual_column_statistic 
+ where 
+ tenant_id = ? and table_id = ?
+    ''',
+)

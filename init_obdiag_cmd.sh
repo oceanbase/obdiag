@@ -18,7 +18,7 @@ _obdiag_completion() {
                     fi
                     ;;
                 analyze)
-                    type_list="log flt_trace"
+                    type_list="log flt_trace sql sql_review"
                     ;;
                 rca)
                     type_list="list run"

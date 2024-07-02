@@ -23,3 +23,11 @@ gather:
   scenes_base_path: "~/.obdiag/gather/tasks"
 rca:
   result_path: "./rca/"
+analyze_sql:
+  output_type: "html"
+  result_path: "./obdiag_analyze_sql/"
+  sql_audit_limit: 10
+  elapsed_time: 100
+analyze_sql_review:
+  output_type: "html"
+  result_path: "./obdiag_analyze_sql_review/"

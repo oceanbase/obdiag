@@ -624,6 +624,49 @@ class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
         return obdiag.analyze_fuction('analyze_flt_trace', self.opts)
 
 
+class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagAnalyzeSQLCommand, self).__init__('sql', 'Analyze oceanbase sql from sql_audit ')
+        self.parser.add_option('--host', type='string', help="tenant connection host")
+        self.parser.add_option('--port', type='string', help="tenant connection port")
+        self.parser.add_option('--password', type='string', help="tenant connection user password", default='')
+        self.parser.add_option('--user', type='string', help="tenant connection user name")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--level', type='string', help="The alarm level, optional parameters [critical, warn, notice, ok]", default='notice')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeSQLCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_sql', self.opts)
+
+
+class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagAnalyzeSQLReviewCommand, self).__init__('sql_review', 'Analyze oceanbase sql from sql_audit ')
+        self.parser.add_option('--host', type='string', help="tenant connection host")
+        self.parser.add_option('--port', type='string', help="tenant connection port")
+        self.parser.add_option('--password', type='string', help="tenant connection user password", default='')
+        self.parser.add_option('--user', type='string', help="tenant connection user name")
+        self.parser.add_option('--files', type='string', action="append", help="specify files")
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeSQLReviewCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_sql_review', self.opts)
+
+
 class ObdiagCheckCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -748,6 +791,8 @@ class ObdiagAnalyzeCommand(MajorCommand):
         super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze oceanbase diagnostic info')
         self.register_command(ObdiagAnalyzeLogCommand())
         self.register_command(ObdiagAnalyzeFltTraceCommand())
+        self.register_command(ObdiagAnalyzeSQLCommand())
+        self.register_command(ObdiagAnalyzeSQLReviewCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
