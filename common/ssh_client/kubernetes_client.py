@@ -26,6 +26,7 @@ class KubernetesClient(SsherClient):
         super().__init__(context, node)
         config_file = self.node.get("kubernetes_config_file")
         if config_file is None or config_file == "":
+            config_file = "/root/.kube/config"
             raise Exception("KubernetesClient node.config_file is None. Please check the config file.")
         config.kube_config.load_kube_config(config_file=config_file)
         self.namespace = self.node.get("namespace")
