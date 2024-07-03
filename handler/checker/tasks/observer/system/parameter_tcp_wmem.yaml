@@ -30,4 +30,4 @@ task:
         report_type: warning
         verify_type: between
         verify: "[8388608,16777216]"
-        err_msg: 'net.ipv4.tcp_wmem_max : #{tcp_wmem_max}. recommended: 65536 ≤ max≤ 131072'
+        err_msg: 'net.ipv4.tcp_wmem_max : #{tcp_wmem_max}. recommended: 8388608 ≤ max≤ 16777216'

@@ -74,6 +74,7 @@ class VerifyResult(object):
                 else:
                     real_shell = env + '="' + str(self.env_dict[env]) + '"\n' + real_shell
             self.stdio.verbose("real_shell: {0}".format(real_shell))
+            real_shell = "bash -c '{0}'".format(real_shell)
             process = subprocess.Popen(real_shell, shell=True, stdout=subprocess.PIPE)
             out, err = process.communicate()
             process.stdout.close()

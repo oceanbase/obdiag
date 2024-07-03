@@ -28,6 +28,7 @@ class LocalClient(SsherClient):
     def exec_cmd(self, cmd):
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
+            cmd = "bash -c '{0}'".format(cmd)
             out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = out.communicate()
             if stderr:
@@ -55,6 +56,7 @@ class LocalClient(SsherClient):
         try:
             cmd = "su - {0} -c '{1}'".format(new_user, cmd)
             self.stdio.verbose("[local host] ssh_invoke_shell_switch_user cmd = [{0}] on localhost".format(cmd))
+            cmd = "bash -c '{0}'".format(cmd)
             out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
             stdout, stderr = out.communicate()
             if stderr:
