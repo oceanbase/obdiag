@@ -83,25 +83,3 @@ def get_version_by_type(context, type, stdio=None):
     except Exception as e:
         stdio.exception("can't get {0} version, Exception: {1}".format(type, e))
         raise Exception("can't get {0} version, Exception: {1}".format(type, e))
-
-
-# def get_obproxy_and_ob_version(obproxy_nodes, nodes, type, stdio=None):
-#     try:
-#         if type == "observer" or type == "other":
-#             if len(nodes) < 1:
-#                 raise Exception("input nodes is empty, please check your config")
-#             node = nodes[0]
-#             ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
-#             version = get_observer_version(True, ssh, nodes[0]["home_path"], stdio)
-#         elif type == "obproxy":
-#             if len(nodes) < 1:
-#                 raise Exception("input obproxy nodes is empty, please check your config")
-#             node = obproxy_nodes[0]
-#             ssh = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
-#             version = get_obproxy_version(True, ssh, nodes[0]["home_path"], stdio)
-#         else:
-#             raise Exception("type is {0} . No func to get the version".format(type))
-#         return version
-#     except Exception as e:
-#         stdio.exception("can't get version, Exception: {0}".format(e))
-#         raise Exception("can't get version, Exception: {0}".format(e))
