@@ -30,8 +30,7 @@ class LocalClient(object):
     def run(self, cmd):
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
-            cmd = "bash -c '{0}'".format(cmd)
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
             stdout, stderr = out.communicate()
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
@@ -42,8 +41,7 @@ class LocalClient(object):
     def run_get_stderr(self, cmd):
         try:
             self.stdio.verbose("run cmd = [{0}] on localhost".format(cmd))
-            cmd = "bash -c '{0}'".format(cmd)
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
             stdout, stderr = out.communicate()
             return stderr
         except:
@@ -351,7 +349,6 @@ def get_observer_version_by_sql(ob_cluster, stdio=None):
         ob_version_info = ob_connector.execute_sql("select version();")
     except Exception as e:
         raise Exception("get_observer_version_by_sql Exception. Maybe cluster'info is error: " + e.__str__())
-
     ob_version = ob_version_info[0]
     stdio.verbose("get_observer_version_by_sql ob_version_info is {0}".format(ob_version))
     version = re.findall(r'OceanBase(_)?(.CE)?-v(.+)', ob_version[0])
