@@ -30,8 +30,8 @@ class LocalClient(object):
     def run(self, cmd):
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
-            cmd = "bash -c '{0}'".format(cmd)
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+
+            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
             stdout, stderr = out.communicate()
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
@@ -42,8 +42,7 @@ class LocalClient(object):
     def run_get_stderr(self, cmd):
         try:
             self.stdio.verbose("run cmd = [{0}] on localhost".format(cmd))
-            cmd = "bash -c '{0}'".format(cmd)
-            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+            out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
             stdout, stderr = out.communicate()
             return stderr
         except:
