@@ -39,13 +39,6 @@ task:
         report_type: warning
         err_msg: 'ob_sql_work_area_percentage is recommended 30. There are some tenant need change: #{tenant_ids}'
     - type: sql
-      sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.`CDB_OB_SYS_VARIABLES` where name ="max_allowed_packet" and TENANT_ID>1000 and VALUE<=67108864;'
-      result:
-        set_value: tenant_ids
-        verify: '[ -z "$tenant_ids" ]'
-        report_type: warning
-        err_msg: 'max_allowed_packet is recommended 67108864. There are some tenant need change: #{tenant_ids}'
-    - type: sql
       sql: 'SELECT GROUP_CONCAT(DISTINCT tenant_id) from oceanbase.CDB_OB_SYS_VARIABLES where name ="max_allowed_packet" and TENANT_ID>1000 and VALUE<=67108864;'
       result:
         set_value: tenant_ids

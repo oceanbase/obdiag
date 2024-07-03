@@ -24,7 +24,6 @@ from common.constant import const
 from common.command import LocalClient, SshClient, delete_file
 from handler.analyzer.log_parser.tree import Tree
 from common.command import download_file, mkdir
-from common.ssh import SshHelper
 from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
@@ -139,30 +138,31 @@ class AnalyzeFltTraceHandler(object):
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, remote_ip)
         DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         ssh_failed = False
+        ssh_client = None
         try:
-            ssh = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node)
+            ssh_client = SshClient(self.context, node)
         except Exception as e:
             ssh = None
             self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
+            return resp, node_files
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
             gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-            mkdir(self.is_ssh, ssh, gather_dir_full_path, self.stdio)
+            mkdir(ssh_client, gather_dir_full_path, self.stdio)
             if self.is_ssh:
-                self.__get_online_log_file(ssh, node, gather_dir_full_path, local_store_dir)
+                self.__get_online_log_file(ssh_client, node, gather_dir_full_path, local_store_dir)
             else:
-                self.__get_offline_log_file(ssh, gather_dir_full_path, local_store_dir)
-            delete_file(self.is_ssh, ssh, os.path.join(gather_dir_full_path, str(node.get("host_type")) + '-' + str(self.flt_trace_id)), self.stdio)
-            ssh.ssh_close()
+                self.__get_offline_log_file(ssh_client, gather_dir_full_path, local_store_dir)
+            delete_file(ssh_client, os.path.join(gather_dir_full_path, str(node.get("host_type")) + '-' + str(self.flt_trace_id)), self.stdio)
             for file in FileUtil.find_all_file(local_store_dir):
                 if self.flt_trace_id in file and (file not in old_files):
                     node_files.append(file)
         return resp, node_files
 
-    def __get_online_log_file(self, ssh_helper, node, gather_path, local_store_dir):
+    def __get_online_log_file(self, ssh_client, node, gather_path, local_store_dir):
         """
         :param ssh_helper, log_name, gather_path
         :return:
@@ -188,13 +188,13 @@ class AnalyzeFltTraceHandler(object):
         local_store_path = check_filename(local_store_path)
         grep_cmd = "grep '{grep_args}' {log_dir}/*trace.log* > {gather_path}/{log_name} ".format(grep_args=self.flt_trace_id, gather_path=gather_path, log_name=self.flt_trace_id, log_dir=log_path)
         self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-        SshClient(self.stdio).run(ssh_helper, grep_cmd)
+        ssh_client.exec_cmd(grep_cmd)
         log_full_path = "{gather_path}/{log_name}".format(log_name=self.flt_trace_id, gather_path=gather_path)
-        download_file(True, ssh_helper, log_full_path, local_store_path, self.stdio)
+        download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
-    def __get_offline_log_file(self, ssh_helper, log_full_path, local_store_dir):
+    def __get_offline_log_file(self, ssh_client, log_full_path, local_store_dir):
         """
-        :param ssh_helper, log_name
+        :param ssh_client, log_name
         :return:
         """
         local_store_path = os.path.join(local_store_dir, self.flt_trace_id)
@@ -202,7 +202,7 @@ class AnalyzeFltTraceHandler(object):
         if self.flt_trace_id is not None and (len(log_name_list) > 0):
             grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(grep_args=self.flt_trace_id, log_file=' '.join(log_name_list), local_store_path=local_store_path)
             LocalClient(self.stdio).run(grep_cmd)
-            download_file(False, ssh_helper, log_full_path, local_store_path, self.stdio)
+            download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
     def __get_log_name_list_offline(self):
         """

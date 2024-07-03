@@ -25,7 +25,7 @@ from common.obdiag_exception import OBDIAGFormatException
 from handler.gather.scenes.list import GatherScenesListHandler
 from common.tool import DirectoryUtil
 from common.tool import StringUtils
-from common.scene import get_obproxy_and_ob_version
+from common.scene import get_version_by_type
 from colorama import Fore, Style
 from common.tool import Util
 from common.tool import TimeUtils
@@ -89,7 +89,7 @@ class GatherSceneHandler(SafeStdio):
         try:
             self.stdio.print("execute tasks: {0}".format(task_name))
             task_type = self.__get_task_type(task_name)
-            version = get_obproxy_and_ob_version(self.obproxy_nodes, self.ob_nodes, self.task_type, self.stdio)
+            version = get_version_by_type(self.context, task_type)
             if version:
                 match = re.search(r'\d+(\.\d+){2}(?:\.\d+)?', version)
                 if match:

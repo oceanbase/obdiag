@@ -35,3 +35,4 @@ progressbar==2.5
 halo==0.0.31
 inspect2==0.1.2
 netifaces==0.11.0
+kubernetes==30.1.0

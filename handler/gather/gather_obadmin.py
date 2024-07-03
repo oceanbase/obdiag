@@ -25,7 +25,6 @@ from common.constant import const
 from common.command import LocalClient, SshClient, is_empty_dir
 from handler.base_shell_handler import BaseShellHandler
 from common.command import download_file, rm_rf_file, get_file_size, zip_encrypt_dir, zip_dir, get_observer_version
-from common.ssh import SshHelper
 from common.tool import TimeUtils
 from common.tool import StringUtils
 from common.tool import Util
@@ -170,34 +169,35 @@ class GatherObAdminHandler(BaseShellHandler):
             remote_dir_name = "clog_{0}_{1}".format(remote_ip, now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
+        ssh_client = None
         try:
-            ssh_helper = SshHelper(self.is_ssh, remote_ip, remote_user, remote_password, remote_port, remote_private_key, node, self.stdio)
+            ssh_client = SshClient(self.context, node)
         except Exception as e:
             self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
-            ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the {0}".format(self.config_path)
+            return resp
         if not ssh_failed:
             mkdir_cmd = "mkdir -p {0}".format(remote_dir_full_path)
-            SshClient(self.stdio).run(ssh_helper, mkdir_cmd) if self.is_ssh else LocalClient(self.stdio).run(mkdir_cmd)
-            ob_version = get_observer_version(self.is_ssh, ssh_helper, node.get("home_path"), self.stdio)
+            ssh_client.exec_cmd(mkdir_cmd)
+            ob_version = get_observer_version(self.context)
             if (ob_version != "" and not StringUtils.compare_versions_lower(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN, self.stdio)) or ob_version == "":
                 self.stdio.verbose("This version {0} does not support gather clog/slog . The max supported version less than {1}".format(ob_version, const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN))
                 resp["error"] = "{0} not support gather clog/slog".format(ob_version)
                 resp["gather_pack_path"] = "{0}".format(local_stored_path)
                 resp["zip_password"] = ""
                 return resp
-            log_list, resp = self.__handle_log_list(ssh_helper, remote_ip, resp)
+            log_list, resp = self.__handle_log_list(ssh_client, remote_ip, resp)
             for slog in log_list:
-                self.__gather_log_info(ssh_helper, node, slog, remote_dir_full_path)
+                self.__gather_log_info(ssh_client, node, slog, remote_dir_full_path)
 
-            self.__mv_log(ssh_helper, remote_dir_full_path)
-            if is_empty_dir(self.is_ssh, ssh_helper, "/tmp/{0}".format(remote_dir_name), self.stdio):
+            self.__mv_log(ssh_client, remote_dir_full_path)
+            if is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio):
                 resp["error"] = "gather failed, folder is empty"
                 resp["zip_password"] = ""
             else:
-                resp = self.__handle_zip_file(remote_ip, ssh_helper, resp, remote_dir_name, local_stored_path)
-                rm_rf_file(self.is_ssh, ssh_helper, remote_dir_full_path, self.stdio)
+                resp = self.__handle_zip_file(remote_ip, ssh_client, resp, remote_dir_name)
+                rm_rf_file(ssh_client, remote_dir_full_path, self.stdio)
         return resp
 
     def __handle_log_list(self, ssh, node, resp):
@@ -214,35 +214,35 @@ class GatherObAdminHandler(BaseShellHandler):
             return log_list, resp
         return log_list, resp
 
-    def __handle_zip_file(self, ip, ssh, resp, gather_dir_name, pack_dir_this_command):
+    def __handle_zip_file(self, ssh_client, resp, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            zip_encrypt_dir(self.is_ssh, ssh, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         else:
-            zip_dir(self.is_ssh, ssh, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+            zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         gather_package_dir = "{0}.zip".format(gather_dir_full_path)
-        gather_log_file_size = get_file_size(self.is_ssh, ssh, gather_package_dir, self.stdio)
-        self.stdio.print(FileUtil.show_file_size_tabulate(ip, gather_log_file_size, self.stdio))
+        gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
+        self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size, self.stdio))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
-            local_path = download_file(self.is_ssh, ssh, gather_package_dir, pack_dir_this_command, self.stdio)
+            local_path = download_file(ssh_client, gather_package_dir, pack_dir_this_command, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
             resp["error"] = "File too large"
             resp["zip_password"] = ""
-        rm_rf_file(self.is_ssh, ssh, gather_package_dir, self.stdio)
+        rm_rf_file(ssh_client, gather_package_dir, self.stdio)
         resp["gather_pack_path"] = local_path
 
-        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ip, gather_package_dir))
+        self.stdio.verbose("Collect pack gathered from node {0}: stored in {1}".format(ssh_client.get_name(), gather_package_dir))
         return resp
 
-    def __get_log_name(self, ssh_helper, node):
+    def __get_log_name(self, ssh_client, node):
         """
         通过传入的from to的时间来过滤一遍slog文件列表，提取出文件创建的时间
-        :param ssh_helper:
+        :param ssh_client:
         :return: list
         """
         slog_dir = os.path.join(node.get("data_dir"), "/slog")
@@ -251,7 +251,7 @@ class GatherObAdminHandler(BaseShellHandler):
             get_log = "ls -l SLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("SLOG_DIR", slog_dir)
         else:
             get_log = "ls -l CLOG_DIR --time-style '+.%Y%m%d%H%M%S' | awk '{print $7,$6}'".replace("CLOG_DIR", clog_dir)
-        log_files = SshClient(self.stdio).run(ssh_helper, get_log) if self.is_ssh else LocalClient(self.stdio).run(get_log)
+        log_files = ssh_client.exec_cmd(get_log)
         log_name_list = []
         for file_name in log_files.split('\n'):
             if file_name == "":
@@ -265,12 +265,12 @@ class GatherObAdminHandler(BaseShellHandler):
                 if (log_time > from_time) and (log_time < to_time):
                     log_name_list.append(str(log_name_fields[0]).rstrip())
         if len(log_name_list):
-            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, ssh_helper.get_name()))
+            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, ssh_client.get_name()))
         else:
-            self.stdio.warn("No found the qualified log file on Server [{0}]".format(ssh_helper.get_name()))
+            self.stdio.warn("No found the qualified log file on Server [{0}]".format(ssh_client.get_name()))
         return log_name_list
 
-    def __gather_log_info(self, ssh_helper, node, log_name, remote_dir):
+    def __gather_log_info(self, ssh_client, node, log_name, remote_dir):
         home_path = node.get("home_path")
         obadmin_install_dir = os.path.join(home_path, "/bin")
         if self.ob_admin_mode == "slog":
@@ -283,15 +283,15 @@ class GatherObAdminHandler(BaseShellHandler):
                 clog_name=log_name,
             )
         self.stdio.verbose("gather obadmin info, run cmd = [{0}]".format(cmd))
-        SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+        ssh_client.exec_cmd(cmd)
 
-    def __mv_log(self, ssh_helper, remote_dir):
+    def __mv_log(self, ssh_client, remote_dir):
         if self.ob_admin_mode == "slog":
             cmd = "cd {remote_dir} && mv ob_admin.log ob_admin_slog.log".format(remote_dir=remote_dir)
         else:
             cmd = "cd {remote_dir} && mv ob_admin.log ob_admin_clog.log".format(remote_dir=remote_dir)
         self.stdio.verbose("mv log info, run cmd = [{0}]".format(cmd))
-        SshClient(self.stdio).run(ssh_helper, cmd) if self.is_ssh else LocalClient(self.stdio).run(cmd)
+        ssh_client.exec_cmd(cmd)
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple, mode, is_zip_encrypt):

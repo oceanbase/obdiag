@@ -1,0 +1,37 @@
+obcluster:
+  db_host: 127.0.0.1
+  db_port: 2881 # 2881
+  ob_cluster_name: obtest
+  tenant_sys:
+    user: root@sys
+    password: ''
+  servers:
+    nodes:
+    - namespace: oceanbase
+      ssh_type: "kubernetes"
+      pod_name: obcluster-1-zone1-xxxx
+      container_name: observer
+      home_path: /home/admin/oceanbase
+      data_dir: /home/admin/oceanbase/store
+      redo_dir: /home/admin/oceanbase/store
+      ip: xx.xx.xx.xx
+    - namespace: oceanbase
+      ssh_type: "kubernetes"
+      pod_name: obcluster-1-zone2-xxxx
+      container_name: observer
+      home_path: /home/admin/oceanbase
+      data_dir: /home/admin/oceanbase/store
+      redo_dir: /home/admin/oceanbase/store
+      ip: xx.xx.xx.xx
+    - namespace: oceanbase
+      ssh_type: "kubernetes"
+      pod_name: obcluster-1-zone3-xxxx
+      container_name: observer
+      home_path: /home/admin/oceanbase
+      data_dir: /home/admin/oceanbase/store
+      redo_Dir: /home/admin/oceanbase/store
+      ip: xx.xx.xx.xx
+    global:
+      # if running obdiag in kubernetes, please delete the kubernetes_config_file
+      kubernetes_config_file: "~/.kube/config/config.yaml"
+

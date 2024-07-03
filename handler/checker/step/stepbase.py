@@ -23,6 +23,7 @@ from handler.checker.result.result import CheckResult
 from handler.checker.step.ssh import SshHandler
 from handler.checker.step.sql import StepSQLHandler
 import docker
+from common.ssh_client.ssh import SshClient
 
 
 class StepBase(object):
@@ -44,7 +45,8 @@ class StepBase(object):
                 self.task_variable_dict["remote_ip"] = self.node["ip"]
             elif "ssh_type" in self.node and self.node["ssh_type"] == "docker":
                 self.stdio.verbose("execute ssh_type is docker")
-                self.task_variable_dict["remote_ip"] = docker.from_env().containers.get(self.node["container_name"]).attrs['NetworkSettings']['Networks']['bridge']["IPAddress"]
+                ssh_client = SshClient(self.context, self.node)
+                self.task_variable_dict["remote_ip"] = ssh_client.get_ip()
             for node in self.node:
                 self.task_variable_dict["remote_{0}".format(node)] = self.node[node]
             if "type" not in self.step:
@@ -102,7 +104,7 @@ class StepBase(object):
             if self.step["type"] == "sql":
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get("obproxy_cluster_name") or no_cluster_name_msg, resultException), level)
             else:
-                report.add("[{0}:{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "", resultException), level)
+                report.add("[{0}] {1}".format(SshClient(self.context, self.node).get_name(), resultException), level)
             if level == "critical":
                 raise StepResultFailException(resultException)
             raise StepResultFalseException(resultException)
@@ -113,7 +115,7 @@ class StepBase(object):
             if self.step["type"] == "sql":
                 report.add("[cluster:{0}] {1}".format(self.cluster.get("ob_cluster_name") or self.cluster.get("obproxy_cluster_name") or no_cluster_name_msg, resultFailException), "fail")
             else:
-                report.add("[{0}:{1}] {2}".format(self.node.get("ssh_type") or "", self.node.get("container_name") or self.task_variable_dict.get("remote_ip") or "", resultFailException), "fail")
+                report.add("[{0}] {1}".format(SshClient(self.context, self.node).get_name(), resultFailException), "fail")
             raise StepResultFailException(resultFailException)
 
         except Exception as e:

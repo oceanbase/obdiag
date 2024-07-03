@@ -232,7 +232,7 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.exception('Running Error: %s' % e)
         if self.has_trace:
             ROOT_IO.print('Trace ID: %s' % trace_id)
-            ROOT_IO.print('If you want to view detailed obdiag logs, please run: obdiag display-trace %s' % trace_id)
+            ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, trace_id))
         return ret
 
     def _do_command(self, obdiag):
@@ -279,6 +279,9 @@ class DisplayTraceCommand(ObdiagOriginCommand):
         return True
 
 
+obdiag_bin = "obdiag"
+
+
 class MajorCommand(BaseCommand):
 
     def __init__(self, name, summary):
@@ -311,6 +314,9 @@ class MajorCommand(BaseCommand):
             return False
         cmd = '%s %s' % (self.prev_cmd, base)
         ROOT_IO.track_limit += 1
+        global obdiag_bin
+        obdiag_bin_list = cmd.split()
+        obdiag_bin = obdiag_bin_list[0]
         if "main.py" in cmd:
             telemetry.work_tag = False
         telemetry.push_cmd_info("cmd: {0}. args:{1}".format(cmd, args))
