@@ -46,8 +46,7 @@ jobs:
           export RELEASE=`date +%Y%m%d%H%M`
           sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
-          pip3 uninstall urllib3\n\
-          pip3 install urllib3==1.26.6\n\
+
           pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
           cat ./rpm/oceanbase-diagnostic-tool.spec
           python3 -m pip install --upgrade pip setuptools wheel
