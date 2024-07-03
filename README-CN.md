@@ -32,7 +32,17 @@ OceanBase Diagnostic Tool (obdiag) 是一款专门OceanBase打造的敏捷诊断
 
 可通过如下方式安装obdiag
 
-## 方式一: 通过rpm包安装
+## 方式1: 用 obd 直接运行
+
+在 oceanbase 集群部署服务器上可以直接运行下面的命令：
+
+```
+obd obdiag check 集群名
+```
+
+不记得集群名字，可以用 `ls ~/.obd/cluster` 查看现有的集群。
+
+## 方式2: 通过rpm包安装
 ```shell script
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://mirrors.aliyun.com/oceanbase/OceanBase.repo
@@ -40,7 +50,7 @@ sudo yum install -y oceanbase-diagnostic-tool
 sh /usr/local/oceanbase-diagnostic-tool/init.sh
 ```
 
-## 方式二：源码安装
+## 方式3：源码安装
 源码安装需要在python >= 3.8的环境下进行
 
 ```shell
