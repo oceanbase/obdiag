@@ -2,13 +2,6 @@ info: 'To detect dependent software, refer to: https://www.oceanbase.com/docs/en
 task:
   - steps:
     - type: ssh
-      ssh: "getenforce"
-      result:
-        set_value: SELinux_switch
-        report_type: warning
-        verify: "[ 'Disabled' == ${SELinux_switch} ]"
-        err_msg: 'SELinux need Disabled. Now , it is #{SELinux_switch}.'
-    - type: ssh
       ssh: 'systemctl is-active --quiet firewalld  && echo "Running" || echo "Not Running"'
       result:
         set_value: firewalld_switch
