@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ $# == 1 && $1 == "-f" ]]; then
     FORCE_DEPLOY="1"

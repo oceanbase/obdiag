@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@file: cmd.py
+@file: diag_cmd.py
 @desc:
 """
 
