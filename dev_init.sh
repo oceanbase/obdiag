@@ -42,6 +42,8 @@ copy_file(){
     mkdir -p ${OBDIAG_HOME}/gather
     if [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
         cp -rf ${WORK_DIR}/handler/checker/tasks  ${OBDIAG_HOME}/check/
+        cp -rf ${WORK_DIR}/handler/checker/tasks/obproxy_check_package.yaml  ${OBDIAG_HOME}/check/
+        cp -rf ${WORK_DIR}/handler/checker/tasks/observer_check_package.yaml  ${OBDIAG_HOME}/check/
     fi
     if [ -d "${WORK_DIR}/handler/gather/tasks" ]; then
         cp -rf ${WORK_DIR}/handler/gather/tasks  ${OBDIAG_HOME}/gather/
@@ -51,8 +53,8 @@ copy_file(){
         cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
     fi
 
-    if [ -d "${WORK_DIR}/rca" ]; then
-        cp -rf ${WORK_DIR}/rca  ${OBDIAG_HOME}/
+    if [ -d "${WORK_DIR}/handler/rca/scene" ]; then
+        cp -rf ${WORK_DIR}/handler/rca/scene  ${OBDIAG_HOME}/rca
     fi
 
 }
