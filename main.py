@@ -16,7 +16,7 @@
 """
 
 import sys
-from obcmd import MainCommand
+from diag_cmd import MainCommand
 from stdio import IO
 
 ROOT_IO = IO(1)
