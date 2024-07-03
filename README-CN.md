@@ -45,7 +45,7 @@ sh /usr/local/oceanbase-diagnostic-tool/init.sh
 
 ```shell
 pip3 install -r requirements3.txt
-sh dev_init.sh
+./dev_init.sh
 source ~/.bashrc
 ```
 

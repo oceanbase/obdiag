@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 PROJECT_PATH=$(cd "$(dirname "$0")"; pwd)
 WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
