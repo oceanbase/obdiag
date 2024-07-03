@@ -22,10 +22,11 @@ import traceback
 from optparse import Values
 from copy import copy
 
+from common.ssh_client.remote_client import dis_rsa_algorithms
 from handler.gather.gather_ash_report import GatherAshReportHandler
 from handler.rca.rca_handler import RCAHandler
 from handler.rca.rca_list import RcaScenesListHandler
-from common.ssh import SshClient, SshConfig, dis_rsa_algorithms
+from common.ssh import SshClient, SshConfig
 from context import HandlerContextNamespace, HandlerContext
 from config import ConfigManager, InnerConfigManager
 from err import CheckStatus, SUG_SSH_FAILED

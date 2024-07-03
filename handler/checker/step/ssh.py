@@ -31,9 +31,9 @@ class SshHandler:
         self.step = step
         self.node = node
         try:
-            self.ssh_helper = self.node["ssher"]
-            if self.ssh_helper is None:
-                raise Exception("self.ssh_helper is None.")
+            self.ssh_client = self.node["ssher"]
+            if self.ssh_client is None:
+                raise Exception("self.ssh_client is None.")
         except Exception as e:
             self.stdio.error("SshHandler init fail. Please check the NODES conf. node: {0}. Exception : {1} .".format(node, e))
             raise Exception("SshHandler init fail. Please check the NODES conf node: {0}  Exception : {1} .".format(node, e))
@@ -47,7 +47,7 @@ class SshHandler:
                 raise StepExecuteFailException("SshHandler execute ssh is not set")
             ssh_cmd = StringUtils.build_str_on_expr_by_dict(self.step["ssh"], self.task_variable_dict)
             self.stdio.verbose("step SshHandler execute :{0} ".format(ssh_cmd))
-            ssh_report_value = self.ssh_helper.ssh_exec_cmd(ssh_cmd)
+            ssh_report_value = self.ssh_client.exec_cmd(ssh_cmd)
             if ssh_report_value is None:
                 ssh_report_value = ""
             if len(ssh_report_value) > 0:
@@ -60,7 +60,7 @@ class SshHandler:
             self.stdio.error("ssh execute Exception:{0}".format(e).strip())
             raise StepExecuteFailException("ssh execute Exception:{0}".format(e).strip())
         finally:
-            self.ssh_helper.ssh_close()
+            self.ssh_client.ssh_close()
         self.stdio.verbose("step SshHandler ssh_report_value:{0}".format(ssh_report_value))
 
     def update_step_variable_dict(self):

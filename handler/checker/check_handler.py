@@ -23,11 +23,11 @@ import traceback
 import yaml
 
 from common.ob_connector import OBConnector
-from common.ssh import SshHelper
+from common.scene import get_version_by_type
+from common.ssh_client.ssh import SshClient
 from handler.checker.check_exception import CheckException
 from handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
 from handler.checker.check_task import TaskBase
-from common.scene import get_version
 import re
 from common.tool import Util
 from common.tool import YamlUtils
@@ -101,13 +101,14 @@ class CheckHandler:
             # add ssher
             ssher = None
             try:
-                ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+                # ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
+                ssher = SshClient(context, node)
             except Exception as e:
                 self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
             node["ssher"] = ssher
             new_node.append(node)
         self.nodes = new_node
-        self.version = get_version(self.nodes, self.check_target_type, self.cluster, self.stdio)
+        self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
         obConnectorPool = None
         # add OBConnectorPool
         try:
@@ -196,7 +197,7 @@ class CheckHandler:
     # need  package_name
     def get_package_tasks(self, package_name):
         # Obtain information within the package file
-        with open(self.package_file_name, 'r') as file:
+        with open(self.package_file_name, 'r', encoding='utf-8') as file:
             package_file_data = yaml.safe_load(file)
             packege_tasks = package_file_data
         if package_name not in packege_tasks:

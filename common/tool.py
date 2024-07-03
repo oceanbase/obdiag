@@ -504,11 +504,11 @@ class FileUtil(object):
         return new_num, units[unit_idx]
 
     @staticmethod
-    def show_file_size_tabulate(ip, file_size, stdio=None):
+    def show_file_size_tabulate(ssh_client, file_size, stdio=None):
         format_file_size = FileUtil.size_format(int(file_size), output_str=True, stdio=stdio)
         summary_tab = []
         field_names = ["Node", "LogSize"]
-        summary_tab.append((ip, format_file_size))
+        summary_tab.append((ssh_client.get_name(), format_file_size))
         return "\nZipFileInfo:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
     @staticmethod

@@ -93,12 +93,8 @@ DEFAULT_INNER_CONFIG = {
     },
     'analyze_sql': {
         'output_type': 'html',
-        'result_path': './obdiag_analyze_sql/',
+        'result_path': './obdiag_analyze/',
         'sql_audit_limit': 2000,
-    },
-    'analyze_sql_review': {
-        'output_type': 'html',
-        'result_path': './obdiag_analyze_sql_review/',
     },
 }
 
@@ -199,7 +195,10 @@ class ConfigManager(Manager):
                 'redo_dir': node_config.get('redo_dir', global_config.get('redo_dir', '/root/observer/store')),
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
                 'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
-                'container_name': node_config.get('container_name', global_config.get('container_name')),
+                'container_name': node_config.get('container_name', global_config.get('container_name', '')),
+                'namespace': node_config.get('namespace', global_config.get('namespace', '')),
+                'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
+                "kubernetes_config_file": node_config.get('kubernetes_config_file', global_config.get('kubernetes_config_file', '')),
                 'host_type': 'OBSERVER',
             }
 
@@ -230,8 +229,11 @@ class ConfigManager(Manager):
                 'ssh_port': node_config.get('ssh_port', global_config.get('ssh_port', 22)),
                 'home_path': node_config.get('home_path', global_config.get('home_path', '/root/obproxy')),
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
-                'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'ssh')),
+                'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
                 'container_name': node_config.get('container_name', global_config.get('container_name')),
+                'namespace': node_config.get('namespace', global_config.get('namespace', '')),
+                'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
+                "kubernetes_config_file": node_config.get('kubernetes_config_file', global_config.get('kubernetes_config_file', '')),
                 'host_type': 'OBPROXY',
             }
 

@@ -1066,7 +1066,7 @@ sql_dict.set_value(
   table_id 
   from oceanbase.gv$table 
   where 
-  tenant_id = ? 
+  tenant_id = ##REPLACE_TENANT_ID##
   and database_id = ##REPLACE_DATABASE_ID## 
   and table_name = '##REPLACE_TABLE_NAME'
   limit 1
@@ -1078,9 +1078,31 @@ sql_dict.set_value(
     '''
   select 
   t3.table_id as table_id
-  from (select con_id, owner, table_name, partitioned from oceanbase.CDB_TABLES) t1 
-  left join (select con_id, owner, object_name, object_id from oceanbase.CDB_OBJECTS where object_type = 'database') t2 ON t1.con_id =t2.con_id and t1.owner = t2.owner 
-  left join (select con_id, owner, object_name, object_id as table_id from oceanbase.CDB_OBJECTS where object_type = 'table') t3 ON t1.con_id = t3.con_id and t1.owner = t3.owner and t1.table_name = t3.object_name 
+  from 
+    (select 
+      con_id, 
+      owner, 
+      table_name, 
+      partitioned 
+      from oceanbase.CDB_TABLES) 
+    t1 
+  left join 
+    (select 
+      con_id, 
+      owner, 
+      object_name, 
+      object_id 
+      from oceanbase.CDB_OBJECTS 
+      where object_type = 'database'
+    ) t2 ON t1.con_id =t2.con_id and t1.owner = t2.owner 
+  left join 
+    (select 
+      con_id, 
+      owner, 
+      object_name, 
+      object_id as table_id 
+      from oceanbase.CDB_OBJECTS where object_type = 'table'
+    ) t3 ON t1.con_id = t3.con_id and t1.owner = t3.owner and t1.table_name = t3.object_name 
    where t1.con_id = ##REPLACE_CON_ID## and t2.object_id = ##REPLACE_OBJECT_ID## t1.table_name = ##REPLACE_TABLE_NAME## limit 1
     ''',
 )
@@ -1313,7 +1335,7 @@ sql_dict.set_value(
 select 
   table_schema databaseName, 
   table_name tableName 
-  from oceanbase.information_schema.tables  
+  from information_schema.tables  
   where table_schema = '##REPLACE_DATABASE_NAME##' and table_type='BASE TABLE' limit 1
     ''',
 )
@@ -1344,7 +1366,7 @@ select  /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
   and a.table_id=b.table_id 
   and a.column_id=b.column_id 
   and b.column_name not like '%__substr%' 
-  and a.tenant_id=? and a.table_id=? 
+  and a.tenant_id=##REPLACE_TENANT_ID## and a.table_id=##REPLACE_TABLE_ID## 
     ''',
 )
 
@@ -1364,7 +1386,7 @@ select  /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
   and a.table_id=b.table_id 
   and a.column_id=b.column_id 
   and b.column_name not like '%__substr%' 
-  and a.tenant_id=? and a.table_id=? 
+  and a.tenant_id=##REPLACE_TENANT_ID## and a.table_id=##REPLACE_TABLE_ID##
   GROUP BY b.column_name
     ''',
 )
@@ -1378,7 +1400,7 @@ select /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
  des_hex_str(case max_value when '19070000FEFFFFFFFFFFFFFFFF01' then '0' else max_value end) `maxValue` 
  from 
  oceanbase.__all_column_statistic 
- where tenant_id = ? and table_id = ?
+ where tenant_id = ##REPLACE_TENANT_ID## and table_id = ##REPLACE_TABLE_ID##
     ''',
 )
 
@@ -1392,6 +1414,6 @@ select /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
  from 
  oceanbase.__all_virtual_column_statistic 
  where 
- tenant_id = ? and table_id = ?
+ tenant_id = ##REPLACE_TENANT_ID## and table_id = ##REPLACE_TABLE_ID##
     ''',
 )

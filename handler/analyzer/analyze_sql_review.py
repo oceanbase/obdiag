@@ -40,16 +40,14 @@ class AnalyzeSQLReviewHandler(object):
         self.analyze_files_list = None
         self.directly_analyze_files = False
         self.level = 'notice'
+        self.local_store_path = None
+        self.output_type = 'html'
 
     def init_inner_config(self):
         self.stdio.verbose("init inner config start")
         self.inner_config = self.context.inner_config
         basic_config = self.inner_config['obdiag']['basic']
         self.config_path = basic_config['config_path']
-        self.local_stored_parrent_path = self.inner_config['analyze_sql_review']['result_path']
-        if not os.path.exists(os.path.abspath(self.local_stored_parrent_path)):
-            self.stdio.warn('No such directory {0}, Now create it'.format(os.path.abspath(self.local_stored_parrent_path)))
-            os.makedirs(os.path.abspath(self.local_stored_parrent_path))
         self.stdio.verbose("init inner config success")
         return True
 
@@ -85,6 +83,15 @@ class AnalyzeSQLReviewHandler(object):
         level_option = Util.get_option(options, 'level')
         if level_option:
             self.level = level_option
+        store_dir_option = Util.get_option(options, 'store_dir')
+        if store_dir_option is not None:
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.local_stored_parrent_path = os.path.abspath(store_dir_option)
+        output_option = Util.get_option(options, 'output')
+        if output_option:
+            self.output_type = output_option
         self.db_user = db_user_option
         self.db_password = db_password_option
         return True
@@ -100,17 +107,15 @@ class AnalyzeSQLReviewHandler(object):
             self.stdio.error('init config failed')
             return False
         self.__init_db_connector()
-        self.local_store_dir = os.path.join(self.local_stored_parrent_path, "sql_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-        if not os.path.exists(os.path.abspath(self.local_store_dir)):
-            os.makedirs(os.path.abspath(self.local_store_dir))
-        self.stdio.print("Use {0} as result dir.".format(self.local_store_dir))
-        if self.directly_analyze_files:
-            all_results = self.__directly_analyze_files()
-            results = self.__parse_results(all_results)
+        self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_sql_review_result_{0}.html".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
+        self.stdio.print("Use {0} as result store path.".format(self.local_store_path))
+        all_results = self.__directly_analyze_files()
+        results = self.__parse_results(all_results)
+        if self.output_type == "html":
             html_result = self.__generate_html_result(results)
-            FileUtil.write_append(os.path.join(self.local_store_dir, "sql_review_result.html"), html_result)
+            FileUtil.write_append(self.local_store_path, html_result)
         else:
-            all_results = self.__analyze_sql_audit()
+            pass
         self.__print_result()
 
     def __directly_analyze_files(self):
@@ -128,9 +133,6 @@ class AnalyzeSQLReviewHandler(object):
                 sql_results[sql] = result
             file_results[file] = sql_results
         return file_results
-
-    def __analyze_sql_audit(self):
-        return {}
 
     def __get_sql_file_list(self):
         """
@@ -219,4 +221,4 @@ class AnalyzeSQLReviewHandler(object):
         return full_html
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nAnalyze sql_review results stored in this directory: {0}\n".format(self.local_store_dir) + Style.RESET_ALL)
+        self.stdio.print(Fore.YELLOW + "\nAnalyze sql_review results stored in this directory: {0}\n".format(self.local_store_path) + Style.RESET_ALL)

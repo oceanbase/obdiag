@@ -42,10 +42,12 @@ class AnalyzeSQLHandler(object):
         self.to_timestamp = None
         self.config_path = const.DEFAULT_CONFIG_PATH
         self.db_connector_provided = False
-        self.tenant_name = "all"
+        self.tenant_name = 'all'
         self.db_user = None
-        self.sql_audit_limit = 10
-        self.elapsed_time = 100
+        self.local_stored_parrent_path = os.path.abspath('./obdiag_analyze/')
+        self.sql_audit_limit = 2000
+        self.elapsed_time = 100000
+        self.output_type = 'html'
         self.level = 'notice'
         self.ob_version = '4.0.0.0'
         self.sql_audit_keys = [
@@ -106,16 +108,6 @@ class AnalyzeSQLHandler(object):
         self.inner_config = self.context.inner_config
         basic_config = self.inner_config['obdiag']['basic']
         self.config_path = basic_config['config_path']
-        self.local_stored_parrent_path = self.inner_config['analyze_sql']['result_path']
-        sql_audit_limit = int(self.inner_config['analyze_sql']['sql_audit_limit'])
-        if sql_audit_limit:
-            self.sql_audit_limit = sql_audit_limit
-        elapsed_time = int(self.inner_config['analyze_sql']['elapsed_time'])
-        if elapsed_time:
-            self.elapsed_time = elapsed_time
-        if not os.path.exists(os.path.abspath(self.local_stored_parrent_path)):
-            self.stdio.warn('No such directory {0}, Now create it'.format(os.path.abspath(self.local_stored_parrent_path)))
-            os.makedirs(os.path.abspath(self.local_stored_parrent_path))
         return True
 
     def init_config(self):
@@ -154,6 +146,21 @@ class AnalyzeSQLHandler(object):
         level_option = Util.get_option(options, 'level')
         if level_option:
             self.level = level_option
+        store_dir_option = Util.get_option(options, 'store_dir')
+        if store_dir_option is not None:
+            if not os.path.exists(os.path.abspath(store_dir_option)):
+                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                os.makedirs(os.path.abspath(store_dir_option))
+            self.local_stored_parrent_path = os.path.abspath(store_dir_option)
+        output_option = Util.get_option(options, 'output')
+        if output_option:
+            self.output_type = output_option
+        limit_option = Util.get_option(options, 'limit')
+        if limit_option:
+            self.sql_audit_limit = limit_option
+        elapsed_time_option = Util.get_option(options, 'elapsed_time')
+        if elapsed_time_option:
+            self.elapsed_time = elapsed_time_option
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -198,17 +205,18 @@ class AnalyzeSQLHandler(object):
             self.stdio.error('init ob version failed')
             return False
         self.__init_db_connector()
-        self.local_store_dir = os.path.join(self.local_stored_parrent_path, "sql_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-        if not os.path.exists(os.path.abspath(self.local_store_dir)):
-            os.makedirs(os.path.abspath(self.local_store_dir))
-        self.stdio.print("Use {0} as result dir.".format(self.local_store_dir))
+        self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_analyze_sql_result_{0}_{1}.html".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp)))
+        self.stdio.print("Use {0} as result store path.".format(self.local_store_path))
         raw_results = self.__select_sql_audit()
         results = self.__filter_max_elapsed_time_with_same_sql_id(raw_results)
         for item in results:
             item['planCachePlanExplain'] = self.__get_plan_cache_plan_explain(item)
             item['diagnosticEntries'] = self.__parse_sql_review(item["querySql"])
-        html_result = self.__generate_html_result(results)
-        FileUtil.write_append(os.path.join(self.local_store_dir, "sql_analyze_result.html"), html_result)
+        if self.output_type == "html":
+            html_result = self.__generate_html_result(results)
+            FileUtil.write_append(self.local_store_path, html_result)
+        else:
+            pass
         self.__print_result()
 
     def __extract_tenant_name(self, username):
@@ -327,4 +335,4 @@ class AnalyzeSQLHandler(object):
         return full_html
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nAnalyze sql results stored in this directory: {0}\n".format(self.local_store_dir) + Style.RESET_ALL)
+        self.stdio.print(Fore.YELLOW + "\nAnalyze sql results stored in this directory: {0}\n".format(self.local_store_path) + Style.RESET_ALL)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 python_bin='python'
 W_DIR=`pwd`

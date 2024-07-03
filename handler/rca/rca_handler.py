@@ -21,15 +21,14 @@ import os
 from textwrap import fill
 from common.command import (
     get_obproxy_version,
-    get_observer_version_by_sql,
     get_observer_version,
 )
 from prettytable import PrettyTable
 from common.ob_connector import OBConnector
+from common.ssh_client.ssh import SshClient
 from handler.rca.plugins.gather import Gather_log
 from handler.rca.rca_exception import RCANotNeedExecuteException
 from handler.rca.rca_list import RcaScenesListHandler
-from common.ssh import SshHelper
 from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
@@ -46,15 +45,7 @@ class RCAHandler:
         context_observer_nodes = []
         if observer_nodes is not None:
             for node in observer_nodes:
-                ssh = SshHelper(
-                    True,
-                    node.get("ip"),
-                    node.get("ssh_username"),
-                    node.get("ssh_password"),
-                    node.get("ssh_port"),
-                    node.get("ssh_key_file"),
-                    node,
-                )
+                ssh = SshClient(context, node)
                 node["ssher"] = ssh
                 context_observer_nodes.append(node)
             self.context.set_variable("observer_nodes", context_observer_nodes)
@@ -63,15 +54,7 @@ class RCAHandler:
         context_obproxy_nodes = []
         if obproxy_nodes is not None:
             for node in obproxy_nodes:
-                ssh = SshHelper(
-                    True,
-                    node.get("ip"),
-                    node.get("ssh_username"),
-                    node.get("ssh_password"),
-                    node.get("ssh_port"),
-                    node.get("ssh_key_file"),
-                    node,
-                )
+                ssh = SshClient(context, node)
                 node["ssher"] = ssh
                 context_obproxy_nodes.append(node)
             self.context.set_variable("obproxy_nodes", context_obproxy_nodes)
@@ -101,17 +84,9 @@ class RCAHandler:
         # build observer_version by sql or ssher. If using SSHer, the observer_version is set to node[0].
         observer_version = ""
         try:
-            observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+            observer_version = get_observer_version(self.context)
         except Exception as e:
-            if len(context_observer_nodes) > 0:
-                observer_version = get_observer_version(
-                    True,
-                    context_observer_nodes[0]["ssher"],
-                    context_observer_nodes[0]["home_path"],
-                    self.stdio,
-                )
-            else:
-                self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+            self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
         if observer_version != "":
             self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))

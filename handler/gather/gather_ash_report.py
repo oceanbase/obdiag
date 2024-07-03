@@ -18,10 +18,9 @@
 import datetime
 import os
 
-from common.command import get_observer_version, get_observer_version_by_sql
+from common.command import get_observer_version
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
-from common.ssh import SshHelper
 from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
 from stdio import SafeStdio
 from colorama import Fore, Style
@@ -72,15 +71,11 @@ class GatherAshReportHandler(SafeStdio):
     def version_check(self):
         observer_version = ""
         try:
-            observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+            observer_version = get_observer_version(self.context)
         except Exception as e:
-            if len(self.observer_nodes) > 0:
-                ssher = SshHelper(self.observer_nodes[0]["ip"], self.observer_nodes[0]["ssh_port"], self.observer_nodes[0]["ssh_username"], self.observer_nodes[0]["ssh_password"])
-                observer_version = get_observer_version(True, ssher, self.observer_nodes[0]["home_path"], self.stdio)
-            else:
-                self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+            self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+            return False
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
-
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
             self.stdio.error("observer version: {0}, must greater than 4.0.0.0".format(observer_version))
             return False

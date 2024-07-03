@@ -34,8 +34,8 @@ class DisconnectionScene(RcaScene):
             if "home_path" not in node or len(node["home_path"].strip()) == 0:
                 self.stdio.warn("obproxy_node home_path is empty")
                 raise Exception("obproxy_node home_path is empty")
-            ssh_helper = node["ssher"]
-            if ssh_helper is None:
+            ssh_client = node["ssher"]
+            if ssh_client is None:
                 raise Exception("obproxy_node:{0} ssher is None".format(node["ip"]))
             obproxy_version = self.obproxy_version
             if obproxy_version is None or len(obproxy_version.strip()) == 0:

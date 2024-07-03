@@ -178,20 +178,20 @@ class MajorHoldScene(RcaScene):
                     svr_ip = svrs[0][4]
                     svr_port = svrs[0][5]
                     node = None
-                    ssh_helper = None
+                    ssh_client = None
                     for observer_node in self.observer_nodes:
                         if observer_node["ip"] == svr_ip and observer_node["port"] == svr_port:
                             node = observer_node
-                            ssh_helper = observer_node["ssher"]
+                            ssh_client = observer_node["ssher"]
                     if node == None:
                         self.stdio.error("can not find ls_svr by TENANT_ID:{2} ip:{0},port:{1}".format(svr_ip, svr_port, err_tenant_id))
                         break
 
                     log_name = "/tmp/major_hold_scene_4_major_merge_progress_checker_{0}.log".format(err_tenant_id)
-                    ssh_helper.ssh_exec_cmd('grep "major_merge_progress_checker" {0}/log/rootservice.log* | grep T{1} -m500 >{2}'.format(node.get("home_path"), err_tenant_id, log_name))
-                    ssh_helper.download(log_name, self.local_path)
+                    ssh_client.exec_cmd('grep "major_merge_progress_checker" {0}/log/rootservice.log* | grep T{1} -m500 >{2}'.format(node.get("home_path"), err_tenant_id, log_name))
+                    ssh_client.download(log_name, self.local_path)
                     tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-                    ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
+                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             except Exception as e:
                 self.stdio.error("MajorHoldScene execute 4 exception: {0}".format(e))
                 raise RCAExecuteException("MajorHoldScene execute 4 exception: {0}".format(e))
@@ -235,20 +235,20 @@ class MajorHoldScene(RcaScene):
         diagnose_info = sql_data[8]
         if "schedule medium failed" in diagnose_info:
             node = None
-            ssh_helper = None
+            ssh_client = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
-                    ssh_helper = observer_node["ssher"]
+                    ssh_client = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
 
             log_name = "/tmp/rca_major_hold_schedule_medium_failed_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
             tenant_record.add_record("diagnose_info type is 'schedule medium failed'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            ssh_helper.ssh_exec_cmd('grep "schedule_medium_failed" {1}/log/observer.log* |grep -P  "\[\d+\]" -m 1 -o >{0}'.format(log_name, node.get("home_path")))
-            ssh_helper.download(log_name, local_path=self.local_path)
+            ssh_client.exec_cmd('grep "schedule_medium_failed" {1}/log/observer.log* |grep -P  "\[\d+\]" -m 1 -o >{0}'.format(log_name, node.get("home_path")))
+            ssh_client.download(log_name, local_path=self.local_path)
             tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-            ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
+            ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             return
         elif "error_no=" in diagnose_info and "error_trace=" in diagnose_info:
             err_no = re.search("\berror_no=(\d+)\b", diagnose_info).group(1)
@@ -280,37 +280,36 @@ class MajorHoldScene(RcaScene):
                     )
                 )
                 node = None
-                ssh_helper = None
+                ssh_client = None
                 for observer_node in self.observer_nodes:
                     if svr_ip == observer_node.get("ip"):
                         node = observer_node
-                        ssh_helper = observer_node["ssher"]
+                        ssh_client = observer_node["ssher"]
                 if node is None:
                     raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
 
                 log_name = "/tmp/rca_error_no_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
-                ssh_helper.ssh_exec_cmd('grep "{0}" {1}/log/observer.log* >{2}'.format(err_trace, node.get("home_path"), log_name))
-                ssh_helper.download(log_name, local_path=self.local_path)
+                ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* >{2}'.format(err_trace, node.get("home_path"), log_name))
+                ssh_client.download(log_name, local_path=self.local_path)
                 tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-                ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
+                ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             node = None
-            ssh_helper = None
+            ssh_client = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
-                    ssh_helper = observer_node["ssher"]
+                    ssh_client = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
 
             tenant_record.add_record("diagnose_info type is 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            ssh_helper.ssh_exec_cmd('cat observer.log* |grep "{1}" > /tmp/{0}'.format(log_name, err_trace))
-            ssh_helper.download(log_name, local_path=self.local_path)
+            ssh_client.exec_cmd('cat observer.log* |grep "{1}" > /tmp/{0}'.format(log_name, err_trace))
+            ssh_client.download(log_name, local_path=self.local_path)
             tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-            ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
+            ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             return
         elif "weak read ts is not ready" in diagnose_info:
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_ls_info where tenant_id='{0}' and ls_id='{1}';".format(tenant_id, ls_id))
-            columns = [column[0] for column in cursor.description]
             all_virtual_ls_info_data = cursor.fetchall()
             self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
             tenant_record.add_record("sql:" + "select * from oceanbase.__all_virtual_ls_info where tenant_id='{0}' and ls_id='{1}';".format(tenant_id, ls_id) + "result:{0}".format(str(self.all_virtual_ls_info)))
@@ -367,21 +366,20 @@ class MajorHoldScene(RcaScene):
                 + "result:{0}".format(str(all_virtual_tablet_compaction_info))
             )
             node = None
-            ssh_helper = None
+            ssh_client = None
             for observer_node in self.observer_nodes:
                 if svr_ip == observer_node.get("ip"):
                     node = observer_node
-                    ssh_helper = observer_node["ssher"]
+                    ssh_client = observer_node["ssher"]
             if node is None:
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-
             log_name = "/tmp/rca_major_hold_major_not_schedule_for_long_time_{1}_{2}_{0}.txt".format(create_time, svr_ip, svr_port)
             tenant_record.add_record("diagnose_info type is 'major not schedule for long time'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            thread_id = ssh_helper.ssh_exec_cmd('cat {0}/log/observer.log* |grep "MediumLoo" -m 1 |grep -P  "\[\d+\]" -m 1 -o | grep -oP "\d+"'.format(node["home_path"], tenant_id)).strip()
-            ssh_helper.ssh_exec_cmd('cat {0}/log/observer.log | grep "{1}" -m 100> {2}'.format(node["home_path"], thread_id, log_name))
-            ssh_helper.download(log_name, local_path=self.local_path)
+            thread_id = ssh_client.exec_cmd('cat {0}/log/observer.log* |grep "MediumLoo" -m 1 |grep -P  "\[\d+\]" -m 1 -o | grep -oP "\d+"'.format(node["home_path"], tenant_id)).strip()
+            ssh_client.exec_cmd('cat {0}/log/observer.log | grep "{1}" -m 100> {2}'.format(node["home_path"], thread_id, log_name))
+            ssh_client.download(log_name, local_path=self.local_path)
             tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-            ssh_helper.ssh_exec_cmd("rm -rf {0}".format(log_name))
+            ssh_client.exec_cmd("rm -rf {0}".format(log_name))
 
         else:
             tenant_record.add_record("diagnose_info type is Unknown.")
