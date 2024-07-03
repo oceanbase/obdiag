@@ -45,7 +45,7 @@ To install obdiag on Python >= 3.8, run these commands:
 
 ```shell
 pip3 install -r requirements3.txt
-sh dev_init.sh
+./dev_init.sh
 source ~/.bashrc
 ```
 
