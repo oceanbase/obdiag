@@ -38,3 +38,4 @@ sqlgpt-parser>=0.0.1a5
 netifaces==0.11.0
 netifaces==0.11.0
 kubernetes==30.1.0
+netifaces==0.11.0
