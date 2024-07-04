@@ -343,7 +343,7 @@ def get_obproxy_version(context):
 
 
 def get_observer_version_by_sql(ob_cluster, stdio=None):
-    stdio.verbose("start get_observer_version_by_sql . input: {0}".format(ob_cluster))
+    stdio.verbose("start get_observer_version_by_sql . input: {0}:{1}".format(ob_cluster.get("db_host"), ob_cluster.get("db_port")))
     try:
         ob_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=stdio, timeout=100)
         ob_version_info = ob_connector.execute_sql("select version();")
