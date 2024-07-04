@@ -55,6 +55,12 @@ class LargeInClauseAdjustedRule(AbstractRule):
                 self.rule_name,
                 Level.WARN,
                 f"The IN clause contains more than {LargeInClauseAdjustedRule.MAX_IN_ELEMENTS} elements, which may degrade query performance. " "Consider alternative strategies like breaking the query into smaller chunks or using EXISTS/JOIN clauses.",
+                self.rule_description,
             )
         else:
-            return Result(self.rule_name, Level.OK, "The IN clause does not exceed the recommended number of elements.")
+            return Result(
+                self.rule_name,
+                Level.OK,
+                "The IN clause does not exceed the recommended number of elements.",
+                self.rule_description,
+            )

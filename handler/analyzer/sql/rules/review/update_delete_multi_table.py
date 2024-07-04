@@ -61,6 +61,6 @@ class UpdateDeleteMultiTableRule(AbstractRule):
             suggestion_text = (
                 "The use of multiple tables in UPDATE or DELETE operation is not recommended. " "Consider breaking down the operation into separate single-table statements or " "using transactions to manage the update/delete across multiple tables safely."
             )
-            return Result(self.rule_name, Level.WARN, suggestion_text)
+            return Result(self.rule_name, Level.WARN, suggestion_text, self.rule_description)
         else:
-            return Result(self.rule_name, Level.OK, "No multi-table UPDATE or DELETE operation detected, following best practices.")
+            return Result(self.rule_name, Level.OK, "No multi-table UPDATE or DELETE operation detected, following best practices.", self.rule_description)

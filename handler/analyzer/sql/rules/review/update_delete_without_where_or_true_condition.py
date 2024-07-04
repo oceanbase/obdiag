@@ -72,6 +72,6 @@ class UpdateDeleteWithoutWhereOrTrueConditionRule(AbstractRule):
                 "can be extremely dangerous, potentially affecting all rows in the table. Please ensure a proper and "
                 "specific WHERE condition is used to limit the scope of the operation."
             )
-            return Result(self.rule_name, Level.CRITICAL, suggestion_text)
+            return Result(self.rule_name, Level.CRITICAL, suggestion_text, self.rule_description)
         else:
-            return Result(self.rule_name, Level.OK, "UPDATE or DELETE operations include a WHERE clause with a specific condition, adhering to best practices.")
+            return Result(self.rule_name, Level.OK, "UPDATE or DELETE operations include a WHERE clause with a specific condition, adhering to best practices.", self.rule_description)

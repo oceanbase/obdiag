@@ -63,7 +63,7 @@ class IsNullRule(AbstractRule):
         if self.match(root, catalog):
             # 如果发现不正确的NULL比较，提供具体的修改建议
             suggestion_text = "Detected comparison with NULL using =, !=, or <>. " "Use 'IS NULL' or 'IS NOT NULL' for correct NULL checks."
-            return Result(self.rule_name, Level.WARN, suggestion_text)
+            return Result(self.rule_name, Level.WARN, suggestion_text, self.rule_description)
         else:
             # 如果没有发现不正确比较，返回OK状态
-            return Result(self.rule_name, Level.OK, "No improper NULL comparisons found.")
+            return Result(self.rule_name, Level.OK, "No improper NULL comparisons found.", self.rule_description)

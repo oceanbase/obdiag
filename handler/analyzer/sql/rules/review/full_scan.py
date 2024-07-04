@@ -164,7 +164,7 @@ class FullScanRule(AbstractRule):
     def suggestion(self, root: Statement, catalog=None) -> Result:
         if self.match(root, catalog):
             suggestion_text = "Detected a potential full table scan which may impact performance. " "Consider adding indexes, refining WHERE clauses, or restructuring the query to utilize existing indexes."
-            return Result(self.rule_name, Level.WARN, suggestion_text)
+            return Result(self.rule_name, Level.WARN, suggestion_text, self.rule_description)
         else:
             suggestion_text = "The query does not involve a full table scan. It appears to be well-optimized for the given conditions."
-            return Result(self.rule_name, Level.OK, suggestion_text)
+            return Result(self.rule_name, Level.OK, suggestion_text, self.rule_description)

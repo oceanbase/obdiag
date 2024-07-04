@@ -59,7 +59,7 @@ class RuleManager(object):
                     rule_results.append(suggestion)
             else:
                 if level <= Level.OK:
-                    suggestion = Result(rule_class.rule_name, Level.OK, "No issues found with this rule.")
+                    suggestion = Result(rule_class.rule_name, Level.OK, "No issues found with this rule.", rule_class.rule_description)
                     rule_results.append(suggestion)
         return rule_results
 

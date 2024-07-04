@@ -19,12 +19,12 @@ import json
 
 
 class Result(object):
-    def __init__(self, name, level, suggestion):
+    def __init__(self, name, level, suggestion, description):
         self.class_name = name
         self.rule_name = name
         self.level = level
         self.suggestion = suggestion
-        self.description = suggestion
+        self.description = description
 
     def __str__(self):
         return json.dumps({"class_name": self.rule_name, "rule_name": self.rule_name, "level": self.level.value, "suggestion": self.suggestion, "description": self.description}, indent=5)

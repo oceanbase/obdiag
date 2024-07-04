@@ -60,6 +60,6 @@ class IndexColumnFuzzyMatchRule(AbstractRule):
         if hasattr(self, '_fuzzy_matched_columns') and self._fuzzy_matched_columns:
             column_list = ", ".join(self._fuzzy_matched_columns)
             detailed_suggestion = f"Avoid using fuzzy or left fuzzy matches on these indexed columns: {column_list}"
-            return Result(self.rule_name, Level.WARN, self.rule_description + "\n" + detailed_suggestion)
+            return Result(self.rule_name, Level.WARN, detailed_suggestion, self.rule_description)
         else:
-            return Result(self.rule_name, Level.OK, "No issues found with indexed column fuzzy matching.")
+            return Result(self.rule_name, Level.OK, "No issues found with indexed column fuzzy matching.", self.rule_description)

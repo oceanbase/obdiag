@@ -53,6 +53,6 @@ class SelectAllRule(AbstractRule):
     def suggestion(self, root: Statement, catalog=None) -> Result:
         if self.match(root, catalog):
             suggestion_text = "Using 'SELECT *' can lead to unnecessary data retrieval and potentially impact query performance. " "Consider specifying only the necessary columns explicitly to optimize your query."
-            return Result(self.rule_name, Level.WARN, suggestion_text)
+            return Result(self.rule_name, Level.WARN, suggestion_text, self.rule_description)
         else:
-            return Result(self.rule_name, Level.OK, "No 'SELECT *' usage detected, query is optimized for column selection.")
+            return Result(self.rule_name, Level.OK, "No 'SELECT *' usage detected, query is optimized for column selection.", self.rule_description)

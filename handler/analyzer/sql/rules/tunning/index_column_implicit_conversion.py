@@ -73,6 +73,6 @@ class IndexColumnImplicitConversionRule(AbstractRule):
         if hasattr(self, '_conversion_warnings_details') and self._conversion_warnings_details:
             issue_list = "\n".join(self._conversion_warnings_details)
             detailed_suggestion = f"The following indexed columns may be involved in implicit type conversions due to comparison or arithmetic operations:\n{issue_list}\nReview these to ensure optimal index usage."
-            return Result(self.rule_name, Level.WARN, self.rule_description + "\n" + detailed_suggestion)
+            return Result(self.rule_name, Level.WARN, detailed_suggestion, self.rule_description)
         else:
-            return Result(self.rule_name, Level.OK, "No implicit type conversion warnings found for indexed columns.")
+            return Result(self.rule_name, Level.OK, "No implicit type conversion warnings found for indexed columns.", self.rule_description)

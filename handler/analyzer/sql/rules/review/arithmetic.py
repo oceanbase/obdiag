@@ -45,7 +45,8 @@ class ArithmeticRule(AbstractRule):
         return visitor.match
 
     def suggestion(self, root: Statement, catalog=None):
+        suggest_text = 'Consider simplifying your expressions by moving constants out of comparisons.'
         if not self.match(root, catalog):
-            return Result(self.rule_name, Level.OK, "No improper field operations detected, query is optimized.")
+            return Result(self.rule_name, Level.OK, "No improper field operations detected, query is optimized.", self.rule_description)
         else:
-            return Result(self.rule_name, Level.NOTICE, self.rule_description)
+            return Result(self.rule_name, Level.NOTICE, suggest_text, self.rule_description)

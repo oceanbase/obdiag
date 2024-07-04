@@ -90,8 +90,8 @@ class MultiTableJoinRule(AbstractRule):
                 "- Ensure all joined columns are properly indexed for involved tables.\n"
                 "- If applicable, consider using materialized views or caching strategies for frequently accessed subsets of data."
             )
-            return Result(self.rule_name, Level.WARN, suggestion_text)
+            return Result(self.rule_name, Level.WARN, suggestion_text, self.rule_description)
         else:
             # 如果没有超过，说明查询在推荐范围内
             suggestion_text = "The number of joined tables is within the recommended limit. No further action needed."
-            return Result(self.rule_name, Level.OK, suggestion_text)
+            return Result(self.rule_name, Level.OK, suggestion_text, self.rule_description)
