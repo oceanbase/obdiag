@@ -50,7 +50,6 @@ class ConfigHelper(object):
             },
         }
         context.cluster_config = self.ob_cluster
-        self.context = context
 
     def get_cluster_name(self):
         ob_version = get_observer_version(self.context)
