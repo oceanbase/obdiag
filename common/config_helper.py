@@ -20,7 +20,7 @@ import pwinput
 import time
 from collections import OrderedDict
 
-from common.command import get_observer_version_by_sql
+from common.command import get_observer_version
 from common.constant import const
 from common.ob_connector import OBConnector
 from common.tool import DirectoryUtil
@@ -49,9 +49,11 @@ class ConfigHelper(object):
                 "user": self.sys_tenant_user,
             },
         }
+        context.cluster_config = self.ob_cluster
+        self.context = context
 
     def get_cluster_name(self):
-        ob_version = get_observer_version_by_sql(self.ob_cluster, stdio=self.stdio)
+        ob_version = get_observer_version(self.context)
         obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         if ob_version.startswith("3") or ob_version.startswith("2"):
             sql = "select cluster_name from oceanbase.v$ob_cluster"
@@ -64,7 +66,7 @@ class ConfigHelper(object):
             return "obcluster"
 
     def get_host_info_list_by_cluster(self):
-        ob_version = get_observer_version_by_sql(self.ob_cluster, stdio=self.stdio)
+        ob_version = get_observer_version(self.context)
         obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
         if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
