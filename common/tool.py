@@ -49,7 +49,7 @@ import pymysql as mysql
 from datetime import timedelta
 from random import choice
 from io import BytesIO
-from copy import copy
+import copy
 from colorama import Fore, Style
 from ruamel.yaml import YAML
 from err import EC_SQL_EXECUTE_FAILED
@@ -1207,6 +1207,24 @@ class StringUtils(object):
                 continue
             return i < j
         return len(v1.split(".")) < len(v2.split("."))
+
+    @staticmethod
+    def mask_passwords(data):
+        # Make a deep copy of the data to avoid modifying the original
+        masked_data = copy.deepcopy(data)
+
+        if isinstance(masked_data, dict):
+            for key, value in masked_data.items():
+                if 'password' in key.lower():
+                    masked_data[key] = '*' * (len(value) if value else 1)
+                elif isinstance(value, (dict, list)):
+                    masked_data[key] = StringUtils.mask_passwords(value)
+        elif isinstance(masked_data, list):
+            for index, item in enumerate(masked_data):
+                if isinstance(item, (dict, list)):
+                    masked_data[index] = StringUtils.mask_passwords(item)
+
+        return masked_data
 
 
 class Cursor(SafeStdio):

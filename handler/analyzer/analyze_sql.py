@@ -16,11 +16,11 @@
 @desc:
 """
 import datetime
+import time
 import os
 from tabulate import tabulate
-from colorama import Fore, Style
 from common.constant import const
-from common.tool import Util
+from common.tool import StringUtils, Util
 from common.tool import TimeUtils
 from common.ob_connector import OBConnector
 from handler.meta.sql_meta import GlobalSqlMeta
@@ -105,23 +105,31 @@ class AnalyzeSQLHandler(object):
         ]
 
     def init_inner_config(self):
+        self.stdio.print('init inner config start')
         self.inner_config = self.context.inner_config
+        self.stdio.verbose('inner config: {0}'.format(self.inner_config))
         basic_config = self.inner_config['obdiag']['basic']
         self.config_path = basic_config['config_path']
+        self.stdio.print('init inner config complete')
         return True
 
     def init_config(self):
+        self.stdio.print('init cluster config start')
         ob_cluster = self.context.cluster_config
+        self.stdio.verbose('cluster config: {0}'.format(StringUtils.mask_passwords(ob_cluster)))
         self.ob_cluster = ob_cluster
         self.sys_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100)
         self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
+        self.stdio.print('init cluster config complete')
         return True
 
     def init_ob_version(self):
+        self.stdio.print('get observer version start')
         self.ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+        self.stdio.print('get observer version complete, version:{0}'.format(self.ob_version))
         return True
 
-    def __init_db_connector(self):
+    def init_db_connector(self):
         if self.db_user:
             self.db_connector_provided = True
             self.db_connector = OBConnector(ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.db_user, password=self.db_password, stdio=self.stdio, timeout=100)
@@ -129,7 +137,9 @@ class AnalyzeSQLHandler(object):
             self.db_connector = self.sys_connector
 
     def init_option(self):
+        self.stdio.print('init option start')
         options = self.context.options
+        self.stdio.verbose('options:[{0}]'.format(options))
         from_option = Util.get_option(options, 'from')
         to_option = Util.get_option(options, 'to')
         since_option = Util.get_option(options, 'since')
@@ -179,7 +189,7 @@ class AnalyzeSQLHandler(object):
             self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(since_option))).strftime('%Y-%m-%d %H:%M:%S')
             self.stdio.print('analyze sql from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         else:
-            self.stdio.warn('No time option provided, default processing is based on the last 30 minutes')
+            self.stdio.warn('no time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             if since_option is not None:
@@ -189,9 +199,11 @@ class AnalyzeSQLHandler(object):
             self.stdio.print('analyze sql from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         self.from_timestamp = TimeUtils.datetime_to_timestamp(self.from_time_str, self.stdio)
         self.to_timestamp = TimeUtils.datetime_to_timestamp(self.to_time_str, self.stdio)
+        self.stdio.print('init option complete')
         return True
 
     def handle(self):
+        self.start_time = time.time()
         if not self.init_option():
             self.stdio.error('init option failed')
             return False
@@ -204,20 +216,23 @@ class AnalyzeSQLHandler(object):
         if not self.init_ob_version():
             self.stdio.error('init ob version failed')
             return False
-        self.__init_db_connector()
+        self.init_db_connector()
         self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_analyze_sql_result_{0}_{1}.html".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp)))
-        self.stdio.print("Use {0} as result store path.".format(self.local_store_path))
+        self.stdio.print("use {0} as result store path.".format(self.local_store_path))
+        self.stdio.print('select sql audit start')
         raw_results = self.__select_sql_audit()
+        self.stdio.print('select sql audit complete')
         results = self.__filter_max_elapsed_time_with_same_sql_id(raw_results)
         for item in results:
             item['planCachePlanExplain'] = self.__get_plan_cache_plan_explain(item)
             item['diagnosticEntries'] = self.__parse_sql_review(item["querySql"])
         if self.output_type == "html":
             html_result = self.__generate_html_result(results)
-            FileUtil.write_append(self.local_store_path, html_result)
+            if html_result:
+                FileUtil.write_append(self.local_store_path, html_result)
+                self.__print_result()
         else:
             pass
-        self.__print_result()
 
     def __extract_tenant_name(self, username):
         """
@@ -239,7 +254,7 @@ class AnalyzeSQLHandler(object):
             if len(parts) >= 3:
                 return parts[1]
 
-        self.stdio.error("Unable to recognize the user name format")
+        self.stdio.error("unable to recognize the user name format")
         return None
 
     def __select_sql_audit(self):
@@ -301,6 +316,10 @@ class AnalyzeSQLHandler(object):
         return headers_html
 
     def __generate_html_result(self, all_results):
+        if len(all_results) == 0:
+            self.stdio.error('sql audit result is empty, unable to generate HTML')
+            return None
+        self.stdio.print('generate html result start')
         full_html = ""
         table_headers = self.__generate_table_headers()
         all_sql_entries_html = ""
@@ -332,7 +351,14 @@ class AnalyzeSQLHandler(object):
             """
         )
         full_html += GlobalHtmlMeta().get_value(key="html_footer_temple")
+        self.stdio.print('generate html result complete')
         return full_html
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nAnalyze sql results stored in this directory: {0}\n".format(self.local_store_path) + Style.RESET_ALL)
+        self.end_time = time.time()
+        elapsed_time = self.end_time - self.start_time
+        data = [["Status", "Result Details", "Time"], ["Completed", self.local_store_path, f"{elapsed_time:.2f} s"]]
+        table = tabulate(data, headers="firstrow", tablefmt="grid")
+        self.stdio.print("\nAnalyze SQL Summary:")
+        self.stdio.print(table)
+        self.stdio.print("\n")

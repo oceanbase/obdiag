@@ -16,11 +16,12 @@
 @desc:
 """
 import os
+import time
 import sqlparse
-import json
+from tabulate import tabulate
 from colorama import Fore, Style
 from common.constant import const
-from common.tool import Util
+from common.tool import StringUtils, Util
 from common.tool import TimeUtils
 from common.tool import FileUtil
 from common.ob_connector import OBConnector
@@ -44,33 +45,37 @@ class AnalyzeSQLReviewHandler(object):
         self.output_type = 'html'
 
     def init_inner_config(self):
-        self.stdio.verbose("init inner config start")
+        self.stdio.print("init inner config start")
         self.inner_config = self.context.inner_config
+        self.stdio.verbose('inner config: {0}'.format(self.inner_config))
         basic_config = self.inner_config['obdiag']['basic']
         self.config_path = basic_config['config_path']
-        self.stdio.verbose("init inner config success")
+        self.stdio.print("init inner config complete")
         return True
 
     def init_config(self):
-        self.stdio.verbose("Init config start")
+        self.stdio.print('init cluster config start')
         ob_cluster = self.context.cluster_config
+        self.stdio.verbose('cluster config: {0}'.format(StringUtils.mask_passwords(ob_cluster)))
         self.ob_cluster = ob_cluster
         self.sys_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100)
         self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
-        self.stdio.verbose("Init config success")
+        self.stdio.print('init cluster config complete')
         return True
 
-    def __init_db_connector(self):
+    def init_db_connector(self):
         if self.db_user:
-            self.stdio.verbose("Init db connector start")
+            self.stdio.verbose("init db connector start")
             self.db_connector_provided = True
             self.db_connector = OBConnector(ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.db_user, password=self.db_password, stdio=self.stdio, timeout=100)
-            self.stdio.verbose("Init db connector end")
+            self.stdio.verbose("init db connector complete")
         else:
             self.db_connector = self.sys_connector
 
     def init_option(self):
+        self.stdio.print('init option start')
         options = self.context.options
+        self.stdio.verbose('options:[{0}]'.format(options))
         files_option = Util.get_option(options, 'files')
         if files_option:
             self.directly_analyze_files = True
@@ -94,9 +99,11 @@ class AnalyzeSQLReviewHandler(object):
             self.output_type = output_option
         self.db_user = db_user_option
         self.db_password = db_password_option
+        self.stdio.print('init option complete')
         return True
 
     def handle(self):
+        self.start_time = time.time()
         if not self.init_option():
             self.stdio.error('init option failed')
             return False
@@ -106,9 +113,9 @@ class AnalyzeSQLReviewHandler(object):
         if not self.init_config():
             self.stdio.error('init config failed')
             return False
-        self.__init_db_connector()
+        self.init_db_connector()
         self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_sql_review_result_{0}.html".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-        self.stdio.print("Use {0} as result store path.".format(self.local_store_path))
+        self.stdio.print("use {0} as result store path.".format(self.local_store_path))
         all_results = self.__directly_analyze_files()
         results = self.__parse_results(all_results)
         if self.output_type == "html":
@@ -121,7 +128,7 @@ class AnalyzeSQLReviewHandler(object):
     def __directly_analyze_files(self):
         sql_files = self.__get_sql_file_list()
         if len(sql_files) == 0:
-            self.stdio.warn("Failed to find SQL files from the --files option provided")
+            self.stdio.warn("failed to find SQL files from the --files option provided")
             return None
         file_results = {}
         sql_results = {}
@@ -149,7 +156,7 @@ class AnalyzeSQLReviewHandler(object):
                         sql_file_list = FileUtil.find_all_file(path)
                         if len(sql_file_list) > 0:
                             sql_files.extend(sql_file_list)
-            self.stdio.print("The list of SQL files to be processed is as follows: {0}".format(sql_files))
+            self.stdio.print("files to be processed: {0}".format(sql_files))
         return sql_files
 
     def __parse_sql_file(self, file_path):
@@ -221,4 +228,10 @@ class AnalyzeSQLReviewHandler(object):
         return full_html
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nAnalyze sql_review results stored in this directory: {0}\n".format(self.local_store_path) + Style.RESET_ALL)
+        self.end_time = time.time()
+        elapsed_time = self.end_time - self.start_time
+        data = [["Status", "Result Details", "Time"], ["Completed", self.local_store_path, f"{elapsed_time:.2f} s"]]
+        table = tabulate(data, headers="firstrow", tablefmt="grid")
+        self.stdio.print("\nAnalyze SQL Review Summary:")
+        self.stdio.print(table)
+        self.stdio.print("\n")
