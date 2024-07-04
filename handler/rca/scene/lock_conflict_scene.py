@@ -18,21 +18,14 @@
 import json
 from handler.rca.rca_exception import RCAInitException, RCANotNeedExecuteException
 from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
-from common.tool import StringUtils, DateTimeEncoder
+from common.tool import StringUtils,DateTimeEncoder
 
 
 class LockConflictScene(RcaScene):
     def __init__(self):
         super().__init__()
+
     def init(self, context):
-        tenant_name = self.input_parameters.get("tenant_name")
-        if tenant_name is None or tenant_name=="" :
-            raise RCAInitException("tenant_name is None. Please check the input parameters.")
-        tenant_data = self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
-        if len(tenant_data) == 0:
-            raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
-        self.tenant_id = tenant_data[0][0]
-        self.verbose("tenant_id is {0}".format(self.tenant_id))
         try:
             super().init(context)
             self.local_path = context.get_variable("store_dir")
@@ -52,7 +45,7 @@ class LockConflictScene(RcaScene):
     def __execute_4_2(self):
         first_record = RCA_ResultRecord()
         # get trans_id
-        cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" and tenant_id="{0}" limit 50;'.format(self.tenant_id))
+        cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" limit 50;')
         data = cursor.fetchall()
         if len(data) == 0:
             first_record.add_record("on GV$OB_LOCKS result is null")
