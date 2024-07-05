@@ -233,7 +233,7 @@ class ObdiagOriginCommand(BaseCommand):
         if self.has_trace:
             ROOT_IO.print('Trace ID: %s' % trace_id)
             ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, trace_id))
-        return ret
+        return ret or True
 
     def _do_command(self, obdiag):
         raise NotImplementedError
