@@ -662,7 +662,6 @@ class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
         return obdiag.analyze_fuction('analyze_flt_trace', self.opts)
 
 
-
 class ObdiagAnalyzeParameterDiffCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagAnalyzeParameterDiffCommand, self).__init__('diff', 'Analyze the parameter configurations between observers and identify the parameters with different values among the observers')
@@ -703,7 +702,6 @@ class ObdiagAnalyzeParameterCommand(MajorCommand):
 
 
 class ObdiagAnalyzeVariableCommand(ObdiagOriginCommand):
-
     def __init__(self):
         super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze and identify variables that have changed compared to the specified variable file')
         self.parser.add_option('--file', type='string', help="specify initialization parameter file")
@@ -830,6 +828,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
 
+
 class ObdiagGatherSceneCommand(MajorCommand):
 
     def __init__(self):
@@ -846,6 +845,7 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())
+
 
 class ObdiagRCACommand(MajorCommand):
 

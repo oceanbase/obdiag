@@ -256,7 +256,6 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
         else:
             self.stdio.print("Analyze parameter diff finished. All parameter settings are consistent among observers")
 
-
     def execute(self):
         try:
             if self.analyze_type == 'non_default':
