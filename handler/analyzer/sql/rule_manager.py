@@ -17,6 +17,7 @@
 """
 
 from typing import Dict, Type, List
+from sqlgpt_parser.parser.oceanbase_parser import parser
 from handler.analyzer.sql.rules.abstract_rule import AbstractRule
 from handler.analyzer.sql.rules.result import Result
 from handler.analyzer.sql.rules.review.arithmetic import ArithmeticRule
@@ -28,6 +29,7 @@ from handler.analyzer.sql.rules.review.select_all import SelectAllRule
 from handler.analyzer.sql.rules.review.update_delete_multi_table import UpdateDeleteMultiTableRule
 from handler.analyzer.sql.rules.review.update_delete_without_where_or_true_condition import UpdateDeleteWithoutWhereOrTrueConditionRule
 from handler.analyzer.sql.rules.level import Level
+from common.tool import SQLUtil
 
 
 class RuleManager(object):
@@ -41,12 +43,19 @@ class RuleManager(object):
         """
         self._registered_rules[rule_class.rule_name] = rule_class
 
-    def analyze_sql_statement(self, sql_statement, stdio, level_str='notice') -> List[Result]:
+    def analyze_sql_statement(self, sql, stdio, level_str='notice') -> List[Result]:
         """
         对SQL语句列表应用所有已注册的规则，并收集结果。
         :param sql_statements: SQL语句的列表。
         :return: 二维列表，每个内部列表包含对应SQL语句的所有规则检查结果。
         """
+        sql = SQLUtil().remove_sql_text_affects_parser(sql)
+        try:
+            sql_statement = parser.parse(sql)
+            stdio.verbose("sql_statement:[{0}]".format(sql_statement))
+        except Exception as e:
+            stdio.exception("parse sql Exception : {0}".format(e))
+            return None
         level = Level.from_string(level_str)
         rule_results = []
         for rule_class in self._registered_rules.values():
