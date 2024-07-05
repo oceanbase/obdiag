@@ -18,7 +18,7 @@
 import json
 from handler.rca.rca_exception import RCAInitException, RCANotNeedExecuteException
 from handler.rca.rca_handler import RcaScene, RCA_ResultRecord
-from common.tool import StringUtils,DateTimeEncoder
+from common.tool import StringUtils, DateTimeEncoder
 
 
 class LockConflictScene(RcaScene):
