@@ -44,6 +44,7 @@ from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from handler.gather.gather_scenes import GatherSceneHandler
 from handler.gather.scenes.list import GatherScenesListHandler
+from handler.gather.gather_tabledump import GatherTableDumpHandler
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
@@ -229,6 +230,9 @@ class ObdiagHome(object):
                 return handler.handle()
             elif function_type == 'gather_ash_report':
                 handler = GatherAshReportHandler(self.context)
+                return handler.handle()
+            elif function_type == 'gather_tabledump':
+                handler = GatherTableDumpHandler(self.context)
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
