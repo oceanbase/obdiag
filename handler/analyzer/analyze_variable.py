@@ -89,7 +89,7 @@ class AnalyzeVariableHandler(object):
 
     def alalyze_variable(self):
         sql = '''select version(), tenant_id, zone, name,gmt_modified, value, flags, min_val, max_val, now() 
-        from __all_virtual_sys_variable order by 2, 4, 5'''
+        from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         db_variable_info = self.obconn.execute_sql(sql)
         db_variable_dict = dict()
         for row in db_variable_info:

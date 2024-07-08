@@ -72,7 +72,7 @@ class GatherVariablesHandler(object):
     def get_cluster_name(self):
         cluster_name = ""
         try:
-            sql = '''select value from __all_virtual_tenant_parameter_stat t2 where name = 'cluster' '''
+            sql = '''select value from oceanbase.__all_virtual_tenant_parameter_stat t2 where name = 'cluster' '''
             cluster_info = self.obconn.execute_sql(sql)
             cluster_name = cluster_info[0][0]
         except Exception as e:
@@ -83,7 +83,7 @@ class GatherVariablesHandler(object):
     def get_variables_info(self):
         cluster_name = self.get_cluster_name()
         sql = '''select version(), tenant_id, zone, name,gmt_modified, value, flags, min_val, max_val, now() 
- from __all_virtual_sys_variable order by 2, 4, 5'''
+ from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         variable_info = self.obconn.execute_sql(sql)
         self.variable_file_name = self.gather_pack_dir + '/{0}_variables_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
         with open(self.variable_file_name, 'w', newline='') as file:
