@@ -54,10 +54,14 @@ class IsNullRule(AbstractRule):
                     self.match = True
                 return None
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+            return visitor.match
+        except Exception as e:
+            pass
 
-        return visitor.match
+        return False
 
     def suggestion(self, root: Statement, catalog=None):
         if self.match(root, catalog):

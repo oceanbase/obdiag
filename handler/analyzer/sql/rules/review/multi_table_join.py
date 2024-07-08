@@ -52,8 +52,11 @@ class MultiTableJoinRule(AbstractRule):
 
                 return None
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         return visitor.match
 
@@ -74,8 +77,11 @@ class MultiTableJoinRule(AbstractRule):
                 elif isinstance(node.criteria, JoinUsing):
                     self.process(node.criteria.columns)
 
-        visitor = CountJoinVisitor()
-        visitor.process(root, None)
+        try:
+            visitor = CountJoinVisitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
         return visitor.join_count
 
     def suggestion(self, root: Statement, catalog=None) -> Result:

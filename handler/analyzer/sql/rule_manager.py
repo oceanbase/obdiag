@@ -29,7 +29,6 @@ from handler.analyzer.sql.rules.review.select_all import SelectAllRule
 from handler.analyzer.sql.rules.review.update_delete_multi_table import UpdateDeleteMultiTableRule
 from handler.analyzer.sql.rules.review.update_delete_without_where_or_true_condition import UpdateDeleteWithoutWhereOrTrueConditionRule
 from handler.analyzer.sql.rules.level import Level
-from common.tool import SQLUtil
 
 
 class RuleManager(object):
@@ -49,7 +48,6 @@ class RuleManager(object):
         :param sql_statements: SQL语句的列表。
         :return: 二维列表，每个内部列表包含对应SQL语句的所有规则检查结果。
         """
-        sql = SQLUtil().remove_sql_text_affects_parser(sql)
         try:
             sql_statement = parser.parse(sql)
             stdio.verbose("sql_statement:[{0}]".format(sql_statement))

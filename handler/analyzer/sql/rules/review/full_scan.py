@@ -153,13 +153,17 @@ class FullScanRule(AbstractRule):
                 self.match = True
                 return None
 
-        remove_visitor = Remove_Visitor()
-        remove_visitor.process(root, None)
+        try:
+            remove_visitor = Remove_Visitor()
+            remove_visitor.process(root, None)
 
-        query_range_visitor = Query_Range_Visitor()
-        query_range_visitor.process(root, None)
+            query_range_visitor = Query_Range_Visitor()
+            query_range_visitor.process(root, None)
+            return query_range_visitor.match
+        except Exception as e:
+            pass
 
-        return query_range_visitor.match
+        return False
 
     def suggestion(self, root: Statement, catalog=None) -> Result:
         if self.match(root, catalog):

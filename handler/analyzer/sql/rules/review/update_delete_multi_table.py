@@ -51,8 +51,11 @@ class UpdateDeleteMultiTableRule(AbstractRule):
                 if table and isinstance(table[0], Join):
                     self.match = True
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         return visitor.match
 

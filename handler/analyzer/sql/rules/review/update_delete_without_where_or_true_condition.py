@@ -59,8 +59,11 @@ class UpdateDeleteWithoutWhereOrTrueConditionRule(AbstractRule):
                     # Valid WHERE clause found
                     self.visited_where = True
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         # Only consider it a match if there was no valid WHERE clause encountered
         return visitor.match and not visitor.visited_where

@@ -30,7 +30,7 @@ class KubernetesClient(SsherClient):
             self.container_name = self.node.get("container_name") or "observer"
             config_file = self.node.get("kubernetes_config_file")
             if config_file is None or config_file == "":
-                config.load_kube_config()
+                config.kube_config.load_kube_config()
             else:
                 config.kube_config.load_kube_config(config_file=config_file)
             self.client = client.CoreV1Api()

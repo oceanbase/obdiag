@@ -39,8 +39,11 @@ class ArithmeticRule(AbstractRule):
                 if isinstance(node.left, QualifiedNameReference) or isinstance(node.right, QualifiedNameReference):
                     self.match = True
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         return visitor.match
 

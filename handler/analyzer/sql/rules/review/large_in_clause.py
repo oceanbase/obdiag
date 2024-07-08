@@ -44,8 +44,11 @@ class LargeInClauseAdjustedRule(AbstractRule):
                         return self.match
                 return self.match
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         return visitor.match
 

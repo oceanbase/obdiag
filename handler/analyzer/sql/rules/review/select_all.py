@@ -45,8 +45,11 @@ class SelectAllRule(AbstractRule):
                                 self.is_select_all = True
                                 break
 
-        visitor = Visitor()
-        visitor.process(root, None)
+        try:
+            visitor = Visitor()
+            visitor.process(root, None)
+        except Exception as e:
+            pass
 
         return visitor.is_select_all
 
