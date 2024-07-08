@@ -11,20 +11,14 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2024/04/15
-@file: gather_tabledump_handler.py
+@time: 2024/07/08
+@file: gather_tabledump.py
 @desc:
 """
 
 import os
-import re
 from stdio import SafeStdio
-import datetime
 from common.ob_connector import OBConnector
-from handler.gather.scenes.base import SceneBase
-from common.obdiag_exception import OBDIAGFormatException
-from handler.gather.scenes.list import GatherScenesListHandler
-from common.tool import DirectoryUtil
 from common.tool import StringUtils
 from common.command import get_observer_version
 from colorama import Fore, Style
@@ -40,15 +34,8 @@ class GatherTableDumpHandler(SafeStdio):
     def __init__(self, context, task_type="observer", export_report_path="./gather_report"):
         self.context = context
         self.stdio = context.stdio
-        self.is_ssh = True
         self.report = None
         self.report_path = None
-        self.yaml_tasks = {}
-        self.code_tasks = []
-        self.env = {}
-        self.scene = None
-        self.task_type = task_type
-        self.variables = {}
         self.ob_cluster = {}
         self.ob_connector = {}
         self.tenant_connector = {}
@@ -61,7 +48,7 @@ class GatherTableDumpHandler(SafeStdio):
                 os.makedirs(export_report_path)
         except Exception as e:
             self.stdio.error("init gather_report {0}".format(e))
-            raise CheckrReportException("int gather_report {0}".format(e))
+            raise Exception("int gather_report {0}".format(e))
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -80,7 +67,7 @@ class GatherTableDumpHandler(SafeStdio):
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
             password = Util.get_option(options, 'password')
-            ## 获取租户名
+            self.export_report_path = Util.get_option(options, 'store_dir')
             self.tenant_name = self.__extract_string(user)
             self.ob_connector = OBConnector(
                 ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
@@ -101,10 +88,7 @@ class GatherTableDumpHandler(SafeStdio):
     def execute(self):
         try:
             self.version = get_observer_version(self.context)
-            ## 获取建表语句
             self.__get_table_schema()
-
-            ## 获取表信息
             if self.version == "4.0.0.0" or StringUtils.compare_versions_greater(self.version, "4.0.0.0"):
                 self.__get_table_info()
             else:
@@ -188,8 +172,6 @@ class GatherTableDumpHandler(SafeStdio):
                 self.stdio.error("table is None")
                 return
             self.table_id = table_data.fetchall()[0].get("table_id")
-
-            ## 查询行数 和 数据量
             query_count = '''select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ m.svr_ip,m.role,m.data_size total_data_size, m.row_count as total_rows_count from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
                             where m.table_id = t.table_id and m.tenant_id = '{0}' and m.table_id = '{1}' and t.table_name = '{2}' order by total_rows_count desc limit 1'''.format(
                 self.tenant_id, self.table_id, self.table
@@ -215,28 +197,15 @@ class GatherTableDumpHandler(SafeStdio):
             self.stdio.error("report sql result to file: {0} failed, error: ".format(self.file_name))
 
     def __extract_string(self, s):
-        # 检查字符串是否包含'@'
         if '@' in s:
-            # 查找'@'和'#'的索引
             at_index = s.index('@')
-            # 检查是否包含'#'
             if '#' in s:
                 hash_index = s.index('#')
-                # 确保'#'在'@'之后
                 if hash_index > at_index:
-                    # 截取'@'和'#'之间的内容
                     return s[at_index + 1 : hash_index]
                 else:
-                    # 如果'#'在'@'之前，仅截取'@'之后的内容
                     return s[at_index + 1 :]
             else:
-                # 如果不包含'#'，截取'@'之后的内容
                 return s[at_index + 1 :]
         else:
-            # 如果不包含'@'，则返回原字符串或空字符串，根据需要决定
-            return s  # 或者 return ''
-
-
-class CheckrReportException(CheckException):
-    def __init__(self, msg=None, obj=None):
-        super(CheckrReportException, self).__init__(msg, obj)
+            return s
