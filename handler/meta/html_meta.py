@@ -403,23 +403,60 @@ html_dict.set_value(
             /* 使用等宽字体，模拟代码字体 */
             font-size: 0.9em;
             /* 字体大小，可根据需要调整 */
+            max-height: 500px;
+            overflow-y: auto;
         }
       /* 添加此规则以防止倒数三列的单元格内容换行 */
       td:last-child, td:nth-last-child(2), td:nth-last-child(3) {
           white-space: nowrap;
       }
-      /* 添加滚动条到倒数第四列 */
-      td:nth-last-child(4) {
-          width: 30px;
+      /* 添加滚动条到倒数第五列 */
+      td:nth-last-child(5) {
+          width: 300px;
           /* 设置列宽 */
           overflow: auto;
           /* 显示滚动条 */
       }
+        #collapsibleSection h3.header {
+            cursor: pointer;
+            color: blue;
+            /* Change text color to a light blue */
+            text-decoration: none;
+            /* Remove underline by default */
+            transition: color 0.3s, text-decoration 0.3s;
+        }
+
+        #collapsibleSection h3.header:hover {
+            color: blue;
+            /* Change text color to a darker blue on hover */
+            text-decoration: underline;
+            /* Underline the text on hover */
+        }
+
+        #collapsibleSection h3.header.active {
+            background-color: blue;
+            /* Change background color to blue */
+            color: white;
+            /* Change text color to white */
+        }
+
+        #collapsibleSection .content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+
+        #collapsibleSection.expanded .content {
+            max-height: 500px;
+            /* Adjust this value based on your content size */
+            transition: max-height 0.5s ease-in;
+        }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 </body>
-    <h1>SQL 诊断报告</h1>
+    <h1>SQL Diagnostic Result</h1>
     ''',
 )
 
@@ -430,4 +467,18 @@ html_dict.set_value(
 
 </html>
     ''',
+)
+
+html_dict.set_value(
+    "html_script_templete",
+    '''
+  <script>
+    $(document).ready(function () {
+        $("#collapsibleSection h3.header").click(function () {
+            $(this).toggleClass("active");
+            $(this).parent().toggleClass("expanded");
+        });
+    });
+  </script>
+  ''',
 )

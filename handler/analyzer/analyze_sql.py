@@ -28,6 +28,7 @@ from handler.meta.html_meta import GlobalHtmlMeta
 from common.tool import FileUtil
 from handler.analyzer.sql.rule_manager import SQLReviewRuleManager
 from handler.analyzer.sql.meta.sys_tenant_meta import SysTenantMeta
+from handler.gather.gather_scenes import GatherSceneHandler
 from common.command import get_observer_version_by_sql
 
 
@@ -227,7 +228,8 @@ class AnalyzeSQLHandler(object):
             item['planCachePlanExplain'] = self.__get_plan_cache_plan_explain(item)
             item['diagnosticEntries'] = self.__parse_sql_review(item["querySql"])
         if self.output_type == "html":
-            html_result = self.__generate_html_result(results)
+            data = self.__gather_cluster_info()
+            html_result = self.__generate_html_result(results, data)
             if html_result:
                 FileUtil.write_append(self.local_store_path, html_result)
                 self.__print_result()
@@ -315,13 +317,30 @@ class AnalyzeSQLHandler(object):
         headers_html = "".join([f"<th>{item}</th>" for item in self.sql_audit_keys])
         return headers_html
 
-    def __generate_html_result(self, all_results):
+    def __generate_cluster_info_html(self, data):
+        result = f"""
+          <div id="collapsibleSection">
+            <h3 class="header">Cluster Info</h3>
+            <div class="content">
+                <pre class="markdown-code-block">{data}</pre>
+            </div>
+        </div>
+        """
+        result += GlobalHtmlMeta().get_value(key="html_script_templete")
+        return result
+
+    def __gather_cluster_info(self):
+        handler = GatherSceneHandler(context=self.context, gather_pack_dir=self.local_stored_parrent_path, is_inner=True)
+        return handler.handle()
+
+    def __generate_html_result(self, all_results, cluster_data):
         if len(all_results) == 0:
             self.stdio.error('sql audit result is empty, unable to generate HTML')
             return None
         self.stdio.print('generate html result start')
         full_html = ""
         table_headers = self.__generate_table_headers()
+        cluster_info = self.__generate_cluster_info_html(cluster_data)
         all_sql_entries_html = ""
         i = 0
         for data in all_results:
@@ -331,9 +350,19 @@ class AnalyzeSQLHandler(object):
         full_html += (
             GlobalHtmlMeta().get_value(key="analyze_sql_html_head_template")
             + f"""
-            <p>Command: "obdiag analyze sql"</p>
-            <p>Files: "obdiag analyze sql"</p>
-            <h3>租户诊断结果</h3>
+            <div id="collapsibleSection">
+            <h3 class="header">Command Information</h3>
+            <div class="content">
+                <pre class="markdown-code-block">
+                <p>Command: "obdiag analyze sql"</p>
+                <p>Options: {self.context.options}</p>
+                </pre>
+            </div>
+            </div>
+            """
+            + f"""
+            {cluster_info}
+            <h3>Tenant SQL Diagnostic Result</h3>
             <table>
                 <thead>
                     <tr>
