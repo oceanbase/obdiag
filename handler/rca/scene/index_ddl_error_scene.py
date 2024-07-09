@@ -91,8 +91,6 @@ class IndexDDLErrorScene(RcaScene):
 
     def verbose(self, info):
         self.stdio.verbose("[IndexDDLErrorScene] {0}".format(info))
-        # self.stdio.print("[IndexDDLErrorScene] {0}".format(info))
-
     def execute(self):
         try:
             record = RCA_ResultRecord()
@@ -106,7 +104,6 @@ class IndexDDLErrorScene(RcaScene):
             trace_id_data = self.ob_connector.execute_sql("select trace_id from oceanbase.__all_virtual_ddl_error_message where tenant_id = '{0}' and object_id='{1}';".format(self.tenant_id, self.index_table_id))
             self.verbose("trace_id_data is {0}".format(trace_id_data))
             if len(trace_id_data) == 0:
-                # record.add_suggest("创建索引失败发生在发送RPC阶段。此时需要人工介入排查,请把该文件包上传到OcenBase社区{0}".format(self.store_dir))
                 record.add_suggest("The index creation failure occurs during the RPC sending phase. Manual intervention is required to troubleshoot this issue. Please upload the package to the OcenBase community{0}".format(self.store_dir))
                 return
             self.trace_id = trace_id_data[0][0]
@@ -117,7 +114,6 @@ class IndexDDLErrorScene(RcaScene):
             task_id_data = self.ob_connector.execute_sql("select task_id from oceanbase.__all_virtual_ddl_error_message where tenant_id = '{0}' and object_id='{1}';".format(self.tenant_id, self.index_table_id))
             self.verbose("task_id_data is {0}".format(task_id_data))
             if task_id_data is None:
-                # record.add_suggest("创建索引失败发生在发送RPC阶段。此时需要人工介入排查,请把该文件包上传到OcenBase社区{0}".format(self.store_dir))
                 record.add_suggest("The index creation failure occurs during the RPC sending phase. Manual intervention is required to troubleshoot this issue. Please upload the package to the OcenBase community{0}".format(self.store_dir))
                 return
             self.task_id = task_id_data[0][0]
@@ -127,7 +123,6 @@ class IndexDDLErrorScene(RcaScene):
             record.add_record("task_id is {0}".format(self.task_id))
             self.verbose("start to get event...")
             # event_data=self.ob_connector.execute_sql("select event, value6,rs_svr_ip, rs_svr_port from oceanbase.__all_rootservice_event_history where value4 = '{0}' and value2 != 0 and event != 'switch_state' and event not like 'index build task process fail' order by gmt_create desc limit 1;".format(self.task_id))
-            # 新方法
             sql = "select event, value6,rs_svr_ip, rs_svr_port from oceanbase.__all_rootservice_event_history where value4 = '{0}' and value1='{1}' and value2 != 0 and event != 'switch_state' and event not like 'index build task process fail' order by gmt_create desc limit 1;".format(
                 self.task_id, self.tenant_id
             )
@@ -135,7 +130,6 @@ class IndexDDLErrorScene(RcaScene):
             self.verbose("event_data is{0}".format(event_data))
             if event_data is None:
                 record.add_record("gather rootservice.log  by {0}".format(self.trace_id))
-                # 收集RS日志
                 # rs
                 self.verbose("event_data is None")
                 self.verbose("gather rootservice.log  by {0}".format(self.trace_id))
@@ -147,7 +141,6 @@ class IndexDDLErrorScene(RcaScene):
                     self.verbose("no log_disk_full about trace_id:{0}".format(self.trace_id))
                     return False
                 record.add_record("Log saving location：{0}".format(work_path_rs))
-                # record.add_suggest("创建索引失败发生在其他阶段,请上传{0}到OceanBase社区".format(self.store_dir))
                 record.add_suggest("The index creation failed during the other phase. Please upload {0} to the OceanBase community".format(self.store_dir))
             else:
                 record.add_record("event_data is {0}".format(event_data))
@@ -162,13 +155,10 @@ class IndexDDLErrorScene(RcaScene):
                 record.add_record("ip is {0}".format(ip_address))
                 if self.event == 'ddl wait trans end ctx try wait':
                     self.verbose("ok,event is ddl wait trans end ctx try wait")
-                    # record.add_record("event is {0},即创建索引失败发生在事务结束阶段,此时要根据trace_id:{1}捞取observer日志".format(self.event,self.trace_id))
                     record.add_record("event is {0},The failure of index creation occurred during the transaction end phase. In this case, the observer logs need to be retrieved based on the trace_id: {1}".format(self.event, self.trace_id))
-                    # 收集日志
                     # ddl_wait_trans_end_ctx_try_wait
                     self.verbose("gather observer.log  by {0}".format(self.trace_id))
                     work_path_ddl_wait_trans_end_ctx_try_wait = self.store_dir + "/{0}_on_obs/".format(self.trace_id)
-                    # work_path_ddl_wait_trans_end_ctx_try_wait = self.store_dir + "/checkpoint/"
                     self.gather_log.set_parameters("scope", "observer")
                     self.gather_log.grep("{0}".format(self.trace_id))
                     logs_name = self.gather_log.execute(save_path=work_path_ddl_wait_trans_end_ctx_try_wait)
@@ -176,17 +166,13 @@ class IndexDDLErrorScene(RcaScene):
                         self.verbose("no log_disk_full about trace_id:{0}".format(self.trace_id))
                         return False
                     record.add_record(" Log saving location：{0}".format(work_path_ddl_wait_trans_end_ctx_try_wait))
-                    # record.add_suggest("创建索引失败发生在事务结束阶段,请上传{0}到OceanBase社区".format(self.store_dir))
                     record.add_suggest("The failure of index creation occurred during the transaction completion phase. Please upload {0} to the OceanBase community".format(self.store_dir))
 
                 elif self.event == 'index sstable build task finish':
                     self.verbose("ok,event is index sstable build task finish")
-                    # record.add_record("event is {0},即创建索引失败发生在补数据阶段,此时要根据trace_id:{1}捞取observer日志".format(self.event,self.trace_id))
                     record.add_record("event is {0},The failure of index creation occurred during the data replenishment phase. In this case, the observer logs need to be retrieved based on the trace_id: {1}".format(self.event, self.trace_id))
                     self.verbose("gather observer.log  by {0}".format(self.trace_id))
-                    # 收集日志
                     # index_sstable_build_task_finish
-                    # self.verbose("__check_checkpoint")
                     work_path_index_sstable_build_task_finish = self.store_dir + "/{0}_on_obs/".format(self.trace_id)
                     self.gather_log.set_parameters("scope", "observer")
                     self.gather_log.grep("{0}".format(self.trace_id))
@@ -195,12 +181,10 @@ class IndexDDLErrorScene(RcaScene):
                         self.verbose("no log_disk_full about trace_id:{0}".format(self.trace_id))
                         return False
                     record.add_record(" Log saving location：{0}".format(work_path_index_sstable_build_task_finish))
-                    # record.add_suggest("创建索引失败发生在补数据阶段,请上传{0}到OceanBase社区".format(self.store_dir))
                     record.add_suggest("The index creation failed during the data replenishment phase. Please upload {0} to the OceanBase community".format(self.store_dir))
 
                 else:
                     record.add_record("gather rootservice.log  by {0}".format(self.trace_id))
-                    # 收集RS日志
                     # rs
                     self.verbose("event_data is None")
                     self.verbose("gather rootservice.log  by {0}".format(self.trace_id))
@@ -212,7 +196,6 @@ class IndexDDLErrorScene(RcaScene):
                         self.verbose("no log_disk_full about trace_id:{0}".format(self.trace_id))
                         return False
                     record.add_record("Log saving location：{0}".format(work_path_rs))
-                    # record.add_suggest("创建索引失败发生在其他阶段,请上传{0}到OceanBase社区".format(self.store_dir))
                     record.add_suggest("The index creation failed during the other phase. Please upload {0} to the OceanBase community".format(self.store_dir))
 
             self.Result.records.append(record)
