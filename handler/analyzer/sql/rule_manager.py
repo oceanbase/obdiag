@@ -54,8 +54,8 @@ class RuleManager(object):
             sql_statement = parser.parse(sql)
             stdio.verbose("sql [{0}]; sql_statement:[{1}]".format(sql, sql_statement))
         except Exception as e:
-            stdio.exception("parse sql Exception : {0}".format(e))
-            return None
+            stdio.verbose("parse sql Exception : {0}".format(e))
+            return []
         level = Level.from_string(level_str)
         rule_results = []
         for rule_class in self._registered_rules.values():

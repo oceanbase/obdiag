@@ -1264,7 +1264,8 @@ select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
   sum(memstore_read_row_count) as memstoreReadRowCount,
   sum(ssstore_read_row_count) as ssstoreReadRowCount
   from oceanbase.gv$ob_sql_audit
-  where  request_time >= ##REPLACE_REQUEST_FROM_TIME##
+  where tenant_name = '##REPLACE_TENANT_NAME##'
+  and request_time >= ##REPLACE_REQUEST_FROM_TIME##
   and  request_time <= ##REPLACE_REQUEST_TO_TIME##
   and length(sql_id) > 0 
   and length(query_sql) > 0 
@@ -1415,5 +1416,19 @@ select /*+ READ_CONSISTENCY(weak),leading(a,b) use_hash(a,b) */
  oceanbase.__all_virtual_column_statistic 
  where 
  tenant_id = ##REPLACE_TENANT_ID## and table_id = ##REPLACE_TABLE_ID##
+    ''',
+)
+
+sql_dict.set_value(
+    "get_tenant_name_list",
+    '''
+    select tenant_name from oceanbase.__all_tenant;
+    ''',
+)
+
+sql_dict.set_value(
+    "get_tenant_name_list_for_v4",
+    '''
+    SELECT tenant_name FROM oceanbase.DBA_OB_TENANTS where TENANT_TYPE != 'META';
     ''',
 )

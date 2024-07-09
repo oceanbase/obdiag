@@ -38,46 +38,6 @@ class SysTenantMeta(object):
         results = dict(zip(columns, rows))
         return results
 
-    def get_table_ddl(self, tenant_id: int, db_name: str, table_name: str):
-        if StringUtils.compare_versions_greater(self.ob_version, '4.0.0.0'):
-            sql = str(GlobalSqlMeta().get_value(key="get_tables_for_ob4"))
-        else:
-            sql = str(GlobalSqlMeta().get_value(key="get_tables"))
-        sql = sql.replace('##REPLACE_DATABASE_NAME##', db_name)
-        columns, rows = self.sys_connector.execute_sql_return_columns_and_data(sql)
-        results = dict(zip(columns, rows))
-        return results
-
-    def get_databases(self, tenant_id: int):
-        if StringUtils.compare_versions_greater(self.ob_version, '4.0.0.0'):
-            sql = str(GlobalSqlMeta().get_value(key="get_tables_for_ob4"))
-        else:
-            sql = str(GlobalSqlMeta().get_value(key="get_tables"))
-        sql = sql.replace('##REPLACE_DATABASE_NAME##', str(tenant_id))
-        columns, rows = self.sys_connector.execute_sql_return_columns_and_data(sql)
-        results = dict(zip(columns, rows))
-        return results
-
-    def get_ob_database_id(self, key):
-        if StringUtils.compare_versions_greater(self.ob_version, '4.0.0.0'):
-            sql = str(GlobalSqlMeta().get_value(key="get_tables_for_ob4"))
-        else:
-            sql = str(GlobalSqlMeta().get_value(key="get_tables"))
-        sql = sql.replace('##REPLACE_DATABASE_NAME##', str(key))
-        columns, rows = self.sys_connector.execute_sql_return_columns_and_data(sql)
-        results = dict(zip(columns, rows))
-        return results
-
-    def get_ob_tenant_id(self, key):
-        if StringUtils.compare_versions_greater(self.ob_version, '4.0.0.0'):
-            sql = str(GlobalSqlMeta().get_value(key="get_tables_for_ob4"))
-        else:
-            sql = str(GlobalSqlMeta().get_value(key="get_tables"))
-        sql = sql.replace('##REPLACE_DATABASE_NAME##', str(key))
-        columns, rows = self.sys_connector.execute_sql_return_columns_and_data(sql)
-        results = dict(zip(columns, rows))
-        return results
-
     def get_database_name(self, tenant_id, database_id):
         sql = str(GlobalSqlMeta().get_value(key="get_database_name"))
         sql = sql.replace('##REPLACE_TENANT_ID##', str(tenant_id)).replace('REPLACE_DATABASE_ID', str(database_id))
@@ -107,3 +67,11 @@ class SysTenantMeta(object):
             sql = sql.replace(old, new)
         columns, rows = self.sys_connector.execute_sql_return_columns_and_data(sql)
         return columns, rows
+
+    def get_ob_tenant_name_list(self):
+        if StringUtils.compare_versions_greater(self.ob_version, '4.0.0.0'):
+            sql = str(GlobalSqlMeta().get_value(key="get_tenant_name_list_for_v4"))
+        else:
+            sql = str(GlobalSqlMeta().get_value(key="get_tenant_name_list"))
+        results = self.sys_connector.execute_sql(sql)
+        return results

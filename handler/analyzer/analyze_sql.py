@@ -43,7 +43,7 @@ class AnalyzeSQLHandler(object):
         self.to_timestamp = None
         self.config_path = const.DEFAULT_CONFIG_PATH
         self.db_connector_provided = False
-        self.tenant_name = 'all'
+        self.tenant_name = 'sys'
         self.db_user = None
         self.local_stored_parrent_path = os.path.abspath('./obdiag_analyze/')
         self.sql_audit_limit = 2000
@@ -150,10 +150,11 @@ class AnalyzeSQLHandler(object):
             if tenant_name:
                 self.db_user = db_user_option
                 self.tenant_name = tenant_name
-            else:
-                return False
         db_password_option = Util.get_option(options, 'password')
         self.db_password = db_password_option
+        tenant_name_option = Util.get_option(options, 'tenant_name')
+        if tenant_name_option:
+            self.tenant_name = tenant_name_option
         level_option = Util.get_option(options, 'level')
         if level_option:
             self.level = level_option
@@ -220,16 +221,27 @@ class AnalyzeSQLHandler(object):
         self.init_db_connector()
         self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_analyze_sql_result_{0}_{1}.html".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp)))
         self.stdio.print("use {0} as result store path.".format(self.local_store_path))
-        self.stdio.print('select sql audit start')
-        raw_results = self.__select_sql_audit()
-        self.stdio.print('select sql audit complete')
-        results = self.__filter_max_elapsed_time_with_same_sql_id(raw_results)
-        for item in results:
-            item['planCachePlanExplain'] = self.__get_plan_cache_plan_explain(item)
-            item['diagnosticEntries'] = self.__parse_sql_review(item["querySql"])
+        all_tenant_results = {}
+        if self.tenant_name:
+            meta = SysTenantMeta(self.sys_connector, self.stdio, self.ob_version)
+            self.stdio.print('select sql tenant name list start')
+            tenant_names = meta.get_ob_tenant_name_list()
+            self.stdio.print('select sql tenant name list end, result:{0}'.format(tenant_names))
+        else:
+            tenant_names = [self.tenant_name]
+        for tenant_name in tenant_names:
+            self.stdio.print('select tenant:{0} sql audit start'.format(tenant_name[0]))
+            inner_results = self.__select_sql_audit(tenant_name[0])
+            self.stdio.print('select tenant:{0} sql audit complete'.format(tenant_name[0]))
+            filter_results = self.__filter_max_elapsed_time_with_same_sql_id(inner_results)
+            all_tenant_results[tenant_name] = filter_results
+        for tenant_name, results in all_tenant_results.items():
+            for item in results:
+                item['planCachePlanExplain'] = self.__get_plan_cache_plan_explain(item)
+                item['diagnosticEntries'] = self.__parse_sql_review(item["querySql"])
         if self.output_type == "html":
             data = self.__gather_cluster_info()
-            html_result = self.__generate_html_result(results, data)
+            html_result = self.__generate_html_result(all_tenant_results, data)
             if html_result:
                 FileUtil.write_append(self.local_store_path, html_result)
                 self.__print_result()
@@ -259,9 +271,15 @@ class AnalyzeSQLHandler(object):
         self.stdio.error("unable to recognize the user name format")
         return None
 
-    def __select_sql_audit(self):
+    def __select_sql_audit(self, tenant_name):
         sql = str(GlobalSqlMeta().get_value(key="get_sql_audit_ob4_for_sql_review"))
-        replacements = {"##REPLACE_REQUEST_FROM_TIME##": str(self.from_timestamp), "##REPLACE_REQUEST_TO_TIME##": str(self.to_timestamp), "##REPLACE_ELAPSED_TIME##": str(self.elapsed_time), "##REPLACE_LIMIT##": str(self.sql_audit_limit)}
+        replacements = {
+            "##REPLACE_TENANT_NAME##": tenant_name,
+            "##REPLACE_REQUEST_FROM_TIME##": str(self.from_timestamp),
+            "##REPLACE_REQUEST_TO_TIME##": str(self.to_timestamp),
+            "##REPLACE_ELAPSED_TIME##": str(self.elapsed_time),
+            "##REPLACE_LIMIT##": str(self.sql_audit_limit),
+        }
         for old, new in replacements.items():
             sql = sql.replace(old, new)
         self.stdio.verbose("excute SQL: {0}".format(sql))
@@ -320,7 +338,7 @@ class AnalyzeSQLHandler(object):
     def __generate_cluster_info_html(self, data):
         result = f"""
           <div id="collapsibleSection">
-            <h3 class="header">Cluster Info</h3>
+            <h3 class="header">Cluster Information</h3>
             <div class="content">
                 <pre class="markdown-code-block">{data}</pre>
             </div>
@@ -343,10 +361,38 @@ class AnalyzeSQLHandler(object):
         cluster_info = self.__generate_cluster_info_html(cluster_data)
         all_sql_entries_html = ""
         i = 0
-        for data in all_results:
-            i += 1
-            sql_entries_html = "".join(self.__generate_html_table(data))
-            all_sql_entries_html += sql_entries_html
+        for key, value in all_results.items():
+            tenant_sql_entries_html = ""
+            for data in value:
+                i += 1
+                sql_entries_html = "".join(self.__generate_html_table(data))
+                tenant_sql_entries_html += sql_entries_html
+
+            if len(tenant_sql_entries_html) > 0:
+                all_sql_entries_html += f"""
+                <div id="collapsibleSection">
+                    <h3 class="header">Tenant[{key[0]}] SQL Diagnostic Result</h3>
+                        <div class="content">
+                            <pre class="markdown-code-block">
+                <table>
+                    <thead>
+                        <tr>
+                            {table_headers}
+                            <th>诊断规则</th>
+                            <th>规则描述</th>
+                            <th>规则级别</th>
+                            <th>诊断建议</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tenant_sql_entries_html}
+                    </tbody>
+                </table>
+                </pre>
+                </div>
+                </div>
+                """
+
         full_html += (
             GlobalHtmlMeta().get_value(key="analyze_sql_html_head_template")
             + f"""
@@ -359,25 +405,9 @@ class AnalyzeSQLHandler(object):
                 </pre>
             </div>
             </div>
-            """
-            + f"""
             {cluster_info}
-            <h3>Tenant SQL Diagnostic Result</h3>
-            <table>
-                <thead>
-                    <tr>
-                        {table_headers}
-                        <th>诊断规则</th>
-                        <th>规则描述</th>
-                        <th>规则级别</th>
-                        <th>诊断建议</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {all_sql_entries_html}
-                </tbody>
-            </table>
             """
+            + all_sql_entries_html
         )
         full_html += GlobalHtmlMeta().get_value(key="html_footer_temple")
         self.stdio.print('generate html result complete')

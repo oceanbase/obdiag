@@ -717,6 +717,7 @@ class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagAnalyzeSQLCommand, self).__init__('sql', 'Analyze oceanbase sql from sql_audit ')
+        self.parser.add_option('--tenant_name', type='string', help="tenant name")
         self.parser.add_option('--host', type='string', help="tenant connection host")
         self.parser.add_option('--port', type='string', help="tenant connection port")
         self.parser.add_option('--password', type='string', help="tenant connection user password", default='')
