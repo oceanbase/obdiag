@@ -12,7 +12,7 @@ _obdiag_completion() {
             case "${COMP_WORDS[1]}" in
                 gather)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash"
+                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump"
                     elif [ "${COMP_WORDS[2]}" = "scene" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="list run"
                     fi

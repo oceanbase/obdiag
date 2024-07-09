@@ -374,6 +374,38 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
         return obdiag.gather_function('gather_log', self.opts)
 
 
+class ObdiagGatherParameterCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherParameterCommand, self).__init__('parameter', 'Gather oceanbase parameters from oceanbase database')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherParameterCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_parameters', self.opts)
+
+
+class ObdiagGatherVariableCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherVariableCommand, self).__init__('variable', 'Gather oceanbase variables from oceanbase database')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherVariableCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_variables', self.opts)
+
+
 class ObdiagGatherSysStatCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -582,6 +614,25 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         return obdiag.gather_function('gather_ash_report', self.opts)
 
 
+class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherTableDumpHandler, self).__init__('tabledump', 'gather tabledump')
+        self.parser.add_option('--database', type='string', help="Specifies the name of the database to connect to.")
+        self.parser.add_option('--table', type='string', help="Specifies the name of the table in the database to operate on.")
+        self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
+        self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./gather_report')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherTableDumpHandler, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_tabledump', self.opts)
+
+
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -628,6 +679,61 @@ class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         return obdiag.analyze_fuction('analyze_flt_trace', self.opts)
+
+
+class ObdiagAnalyzeParameterDiffCommand(ObdiagOriginCommand):
+    def __init__(self):
+        super(ObdiagAnalyzeParameterDiffCommand, self).__init__('diff', 'Analyze the parameter configurations between observers and identify the parameters with different values among the observers')
+        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeParameterDiffCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_parameter_diff', self.opts)
+
+
+class ObdiagAnalyzeParameterNonDefaultCommand(ObdiagOriginCommand):
+    def __init__(self):
+        super(ObdiagAnalyzeParameterNonDefaultCommand, self).__init__('non-default', 'Analyze the parameter to identify parameters with non-default values')
+        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeParameterNonDefaultCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_parameter_non_default', self.opts)
+
+
+class ObdiagAnalyzeParameterCommand(MajorCommand):
+    def __init__(self):
+        super(ObdiagAnalyzeParameterCommand, self).__init__('parameter', 'Analyze oceanbase parameters info')
+        self.register_command(ObdiagAnalyzeParameterDiffCommand())
+        self.register_command(ObdiagAnalyzeParameterNonDefaultCommand())
+
+
+class ObdiagAnalyzeVariableCommand(ObdiagOriginCommand):
+    def __init__(self):
+        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze and identify variables that have changed compared to the specified variable file')
+        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeVariableCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_variable', self.opts)
 
 
 class ObdiagCheckCommand(ObdiagOriginCommand):
@@ -738,6 +844,9 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
         self.register_command(ObdiagGatherAshReportCommand())
+        self.register_command(ObdiagGatherTableDumpHandler())
+        self.register_command(ObdiagGatherParameterCommand())
+        self.register_command(ObdiagGatherVariableCommand())
 
 
 class ObdiagGatherSceneCommand(MajorCommand):
@@ -754,6 +863,8 @@ class ObdiagAnalyzeCommand(MajorCommand):
         super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze oceanbase diagnostic info')
         self.register_command(ObdiagAnalyzeLogCommand())
         self.register_command(ObdiagAnalyzeFltTraceCommand())
+        self.register_command(ObdiagAnalyzeParameterCommand())
+        self.register_command(ObdiagAnalyzeVariableCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
