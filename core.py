@@ -32,6 +32,8 @@ from config import ConfigManager, InnerConfigManager
 from err import CheckStatus, SUG_SSH_FAILED
 from handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from handler.analyzer.analyze_log import AnalyzeLogHandler
+from handler.analyzer.analyze_parameter import AnalyzeParameterHandler
+from handler.analyzer.analyze_variable import AnalyzeVariableHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -45,6 +47,8 @@ from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from handler.gather.gather_scenes import GatherSceneHandler
 from handler.gather.scenes.list import GatherScenesListHandler
 from handler.gather.gather_tabledump import GatherTableDumpHandler
+from handler.gather.gather_parameters import GatherParametersHandler
+from handler.gather.gather_variables import GatherVariablesHandler
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
@@ -233,6 +237,11 @@ class ObdiagHome(object):
                 return handler.handle()
             elif function_type == 'gather_tabledump':
                 handler = GatherTableDumpHandler(self.context)
+            elif function_type == 'gather_parameters':
+                handler = GatherParametersHandler(self.context)
+                return handler.handle()
+            elif function_type == 'gather_variables':
+                handler = GatherVariablesHandler(self.context)
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
@@ -271,6 +280,18 @@ class ObdiagHome(object):
             elif function_type == 'analyze_flt_trace':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
+                handler.handle()
+            elif function_type == 'analyze_parameter_non_default':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeParameterHandler(self.context, 'non_default')
+                handler.handle()
+            elif function_type == 'analyze_parameter_diff':
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzeParameterHandler(self.context, 'diff')
+                handler.handle()
+            elif function_type == 'analyze_variable':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeVariableHandler(self.context)
                 handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
