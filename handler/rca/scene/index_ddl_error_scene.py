@@ -91,6 +91,7 @@ class IndexDDLErrorScene(RcaScene):
 
     def verbose(self, info):
         self.stdio.verbose("[IndexDDLErrorScene] {0}".format(info))
+
     def execute(self):
         try:
             record = RCA_ResultRecord()
