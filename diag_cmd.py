@@ -614,6 +614,25 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         return obdiag.gather_function('gather_ash_report', self.opts)
 
 
+class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherTableDumpHandler, self).__init__('tabledump', 'gather tabledump')
+        self.parser.add_option('--database', type='string', help="Specifies the name of the database to connect to.")
+        self.parser.add_option('--table', type='string', help="Specifies the name of the table in the database to operate on.")
+        self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
+        self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./gather_report')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+
+    def init(self, cmd, args):
+        super(ObdiagGatherTableDumpHandler, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_tabledump', self.opts)
+
+
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -825,6 +844,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
         self.register_command(ObdiagGatherAshReportCommand())
+        self.register_command(ObdiagGatherTableDumpHandler())
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
 

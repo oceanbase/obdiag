@@ -46,6 +46,7 @@ from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from handler.gather.gather_scenes import GatherSceneHandler
 from handler.gather.scenes.list import GatherScenesListHandler
+from handler.gather.gather_tabledump import GatherTableDumpHandler
 from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
 from telemetry.telemetry import telemetry
@@ -234,6 +235,8 @@ class ObdiagHome(object):
             elif function_type == 'gather_ash_report':
                 handler = GatherAshReportHandler(self.context)
                 return handler.handle()
+            elif function_type == 'gather_tabledump':
+                handler = GatherTableDumpHandler(self.context)
             elif function_type == 'gather_parameters':
                 handler = GatherParametersHandler(self.context)
                 return handler.handle()
