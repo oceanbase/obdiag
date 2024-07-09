@@ -35,10 +35,13 @@ class SshClient(SafeStdio):
 
     def local_ip(self):
         local_ip_list = []
-        hostname = socket.gethostname()
-        addresses = socket.getaddrinfo(hostname, None)
-        for address in addresses:
-            local_ip_list.append(address[4][0])
+        try:
+            hostname = socket.gethostname()
+            addresses = socket.getaddrinfo(hostname, None)
+            for address in addresses:
+                local_ip_list.append(address[4][0])
+        except Exception as e:
+            self.stdio.watn("get local ip warn: {} . Set local_ip is 127.0.0.1".format(e))
         local_ip_list.append('127.0.0.1')
         return list(set(local_ip_list))
 
