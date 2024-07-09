@@ -31,7 +31,7 @@ class KubernetesClient(SsherClient):
             config_file = self.node.get("kubernetes_config_file")
             if config_file is None or config_file == "":
                 context.stdio.verbose("KubernetesClient load_kube_config from default config file in cluster.")
-                config.load_kube_config()
+                config.load_incluster_config()
             else:
                 context.stdio.verbose("KubernetesClient load_kube_config from {0}".format(config_file))
                 config.kube_config.load_kube_config(config_file=config_file)
