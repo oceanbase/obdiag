@@ -29,7 +29,7 @@ from common.tool import FileUtil
 from handler.analyzer.sql.rule_manager import SQLReviewRuleManager
 from handler.analyzer.sql.meta.sys_tenant_meta import SysTenantMeta
 from handler.gather.gather_scenes import GatherSceneHandler
-from common.command import get_observer_version_by_sql
+from common.command import get_observer_version
 
 
 class AnalyzeSQLHandler(object):
@@ -126,7 +126,7 @@ class AnalyzeSQLHandler(object):
 
     def init_ob_version(self):
         self.stdio.print('get observer version start')
-        self.ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+        self.ob_version = get_observer_version(self.context)
         self.stdio.print('get observer version complete, version:{0}'.format(self.ob_version))
         return True
 
