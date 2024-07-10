@@ -42,7 +42,7 @@ class RemoteClient(SsherClient):
         self._sftp_client = None
         self._disabled_rsa_algorithms = None
         self.host_ip = self.node.get("ip")
-        self.username = self.node.get("username")
+        self.username = self.node.get("ssh_username")
         self.ssh_port = self.node.get("ssh_port")
         self.need_password = True
         self.password = self.node.get("ssh_password")
