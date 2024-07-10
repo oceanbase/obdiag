@@ -126,11 +126,7 @@ class AnalyzeSQLHandler(object):
 
     def init_ob_version(self):
         self.stdio.print('get observer version start')
-<<<<<<< HEAD
-        self.ob_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
-=======
         self.ob_version = get_observer_version(self.context)
->>>>>>> origin/master
         self.stdio.print('get observer version complete, version:{0}'.format(self.ob_version))
         return True
 
