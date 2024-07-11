@@ -239,6 +239,7 @@ class ObdiagHome(object):
                 return handler.handle()
             elif function_type == 'gather_tabledump':
                 handler = GatherTableDumpHandler(self.context)
+                return handler.handle()
             elif function_type == 'gather_parameters':
                 handler = GatherParametersHandler(self.context)
                 return handler.handle()
@@ -290,6 +291,7 @@ class ObdiagHome(object):
             elif function_type == 'analyze_sql_review':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLReviewHandler(self.context)
+                handler.handle()
             elif function_type == 'analyze_parameter_non_default':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeParameterHandler(self.context, 'non_default')

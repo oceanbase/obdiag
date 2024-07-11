@@ -17,6 +17,7 @@
 """
 
 import os
+import time
 from stdio import SafeStdio
 from common.ob_connector import OBConnector
 from common.tool import StringUtils
@@ -93,12 +94,13 @@ class GatherTableDumpHandler(SafeStdio):
             return False
 
     def handle(self):
+        self.start_time = time.time()
         if not self.init_config():
             self.stdio.error('init config failed')
             return False
         self.execute()
         if not self.is_innner:
-            self.stdio.print("get table info finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(self.file_name) + Style.RESET_ALL + "'")
+            self.__print_result()
 
     def execute(self):
         try:
@@ -227,3 +229,12 @@ class GatherTableDumpHandler(SafeStdio):
                 return s[at_index + 1 :]
         else:
             return s
+
+    def __print_result(self):
+        self.end_time = time.time()
+        elapsed_time = self.end_time - self.start_time
+        data = [["Status", "Result Details", "Time"], ["Completed", self.file_name, f"{elapsed_time:.2f} s"]]
+        table = tabulate(data, headers="firstrow", tablefmt="grid")
+        self.stdio.print("\nAnalyze SQL Summary:")
+        self.stdio.print(table)
+        self.stdio.print("\n")
