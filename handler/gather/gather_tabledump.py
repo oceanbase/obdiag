@@ -25,13 +25,12 @@ from colorama import Fore, Style
 from common.tool import Util
 from common.tool import TimeUtils
 from tabulate import tabulate
-from handler.checker.check_exception import CheckException
 from colorama import Fore, Style
 
 
 class GatherTableDumpHandler(SafeStdio):
 
-    def __init__(self, context, task_type="observer", export_report_path="./gather_report"):
+    def __init__(self, context, store_dir="./obdiag_gather_report", is_inner=False):
         self.context = context
         self.stdio = context.stdio
         self.report = None
@@ -42,10 +41,11 @@ class GatherTableDumpHandler(SafeStdio):
         self.database = None
         self.table = None
         self.result_list = []
-        self.export_report_path = export_report_path
+        self.store_dir = store_dir
+        self.is_innner = is_inner
         try:
-            if not os.path.exists(export_report_path):
-                os.makedirs(export_report_path)
+            if not os.path.exists(store_dir):
+                os.makedirs(store_dir)
         except Exception as e:
             self.stdio.error("init gather_report {0}".format(e))
             raise Exception("int gather_report {0}".format(e))
@@ -67,15 +67,29 @@ class GatherTableDumpHandler(SafeStdio):
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
             password = Util.get_option(options, 'password')
-            self.export_report_path = Util.get_option(options, 'store_dir')
-            self.tenant_name = self.__extract_string(user)
+            self.store_dir = Util.get_option(options, 'store_dir')
+            if self.context.get_variable("gather_database", None):
+                self.database = self.context.get_variable("gather_database")
+            if self.context.get_variable("gather_table", None):
+                self.table = self.context.get_variable("gather_table")
+            if self.context.get_variable("gather_user", None):
+                user = self.context.get_variable("gather_user")
+            if self.context.get_variable("gather_password", None):
+                password = self.context.get_variable("gather_password")
+            if self.context.get_variable("store_dir", None):
+                self.store_dir = self.context.get_variable("store_dir")
+            if self.context.get_variable("gather_tenant_name", None):
+                self.tenant_name = self.context.get_variable("gather_tenant_name")
+            else:
+                self.tenant_name = self.__extract_string(user)
             self.ob_connector = OBConnector(
                 ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
             )
             self.tenant_connector = OBConnector(ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=user, password=password, stdio=self.stdio, timeout=100)
-            self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.export_report_path, self.gather_timestamp)
+            self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.store_dir, self.gather_timestamp)
             return True
         except Exception as e:
+            self.stdio.error(e)
             return False
 
     def handle(self):
@@ -83,7 +97,8 @@ class GatherTableDumpHandler(SafeStdio):
             self.stdio.error('init config failed')
             return False
         self.execute()
-        self.stdio.print("get table info finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(self.file_name) + Style.RESET_ALL + "'")
+        if not self.is_innner:
+            self.stdio.print("get table info finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(self.file_name) + Style.RESET_ALL + "'")
 
     def execute(self):
         try:
@@ -106,8 +121,9 @@ class GatherTableDumpHandler(SafeStdio):
 
     def __get_table_info(self):
         try:
-            tenant_data = self.ob_connector.execute_sql_return_cursor_dictionary("select tenant_id from oceanbase.__all_tenant where tenant_name='{0}'".format(self.tenant_name))
-            if tenant_data is None:
+            sql = "select tenant_id from oceanbase.__all_tenant where tenant_name='{0}'".format(self.tenant_name)
+            tenant_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+            if tenant_data.rowcount == 0:
                 self.stdio.error("tenant is None")
                 return
             self.tenant_id = tenant_data.fetchall()[0].get("tenant_id")
@@ -115,7 +131,7 @@ class GatherTableDumpHandler(SafeStdio):
             database_data = self.ob_connector.execute_sql_return_cursor_dictionary(
                 "SELECT con_id as tenant_id, object_id as database_id, object_name as database_name FROM  oceanbase.cdb_objects where OBJECT_TYPE = 'DATABASE' and con_id = '{0}' and object_name='{1}' ".format(self.tenant_id, self.database)
             )
-            if database_data is None:
+            if database_data.rowcount == 0:
                 self.stdio.error("database is None")
                 return
             self.database_id = database_data.fetchall()[0].get("database_id")
@@ -124,18 +140,20 @@ class GatherTableDumpHandler(SafeStdio):
                     self.tenant_id, self.database_id, self.table
                 )
             )
-            if table_data is None:
+            if table_data.rowcount == 0:
                 self.stdio.error("table is None")
                 return
             self.table_id = table_data.fetchall()[0].get("table_id")
 
             ## 查询行数
-            query_count = "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ table_name as 'Table' , ifnull(num_rows,0) as num_rows from oceanbase.cdb_tables where con_id = '{0}' and owner = '{1}' and table_name = '{2}' order by num_rows desc limit 1".format(
-                self.tenant_id, self.database, self.table
+            query_count = (
+                "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ table_name , ifnull(num_rows,0) as num_rows from oceanbase.cdb_tables where con_id = '{0}' and owner = '{1}' and table_name = '{2}' order by num_rows desc limit 1".format(
+                    self.tenant_id, self.database, self.table
+                )
             )
             columns, result = self.ob_connector.execute_sql_return_columns_and_data(query_count)
-            if result is None:
-                self.stdio.error("line Count is None")
+            if result.count == 0:
+                self.stdio.error("line count is None")
                 return
             self.stdio.print("table count {0}".format(result))
 
@@ -146,7 +164,7 @@ class GatherTableDumpHandler(SafeStdio):
             )
 
             columns, result = self.ob_connector.execute_sql_return_columns_and_data(query_data)
-            if result is None:
+            if result.count == 0:
                 self.stdio.error("dataSize is None")
                 return
             self.stdio.print("data size {0}".format(result))
@@ -158,17 +176,17 @@ class GatherTableDumpHandler(SafeStdio):
     def __get_table_info_v3(self):
         try:
             tenant_data = self.ob_connector.execute_sql_return_cursor_dictionary("select tenant_id from oceanbase.__all_tenant where tenant_name='{0}'".format(self.tenant_name))
-            if tenant_data is None:
+            if tenant_data.rowcount == 0:
                 self.stdio.error("tenant is None")
                 return
             self.tenant_id = tenant_data.fetchall()[0].get("tenant_id")
             database_data = self.ob_connector.execute_sql_return_cursor_dictionary("select tenant_id,database_id,database_name from oceanbase.gv$database where tenant_name = '{0}' and database_name = '{1}' ".format(self.tenant_name, self.database))
-            if database_data is None:
+            if database_data.rowcount == 0:
                 self.stdio.error("database is None")
                 return
             self.database_id = database_data.fetchall()[0].get("database_id")
             table_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_table where table_name='{0}' and database_id='{1}' and tenant_id='{2}'".format(self.table, self.database_id, self.tenant_id))
-            if table_data is None:
+            if table_data.rowcount == 0:
                 self.stdio.error("table is None")
                 return
             self.table_id = table_data.fetchall()[0].get("table_id")
@@ -177,7 +195,7 @@ class GatherTableDumpHandler(SafeStdio):
                 self.tenant_id, self.table_id, self.table
             )
             columns, result = self.ob_connector.execute_sql_return_columns_and_data(query_count)
-            if result is None:
+            if result.count == 0:
                 self.stdio.error("dataSize and line count is None")
                 return
             self.stdio.print("table count {0}".format(result))
