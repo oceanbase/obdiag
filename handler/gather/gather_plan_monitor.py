@@ -259,7 +259,7 @@ class GatherPlanMonitorHandler(object):
                 data = f.read()
             return data
         except Exception as e:
-            self.stdio.error(e)
+            self.stdio.warn(e)
             return None
 
     def report_schema(self, sql, tenant_name):

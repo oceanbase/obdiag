@@ -224,7 +224,6 @@ class GatherObstack2Handler(BaseShellHandler):
             ssh_client.exec_cmd(chown_cmd)
             self.stdio.verbose("gather obstack info on server {0}, run cmd = [su {1}, {2}]".format(ssh_client.get_name(), user, cmd))
             ssh_client.ssh_invoke_shell_switch_user(user, cmd, 10)
-        ssh_client.exec_cmd("rm -rf /tmp/{0}".format(remote_gather_dir))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
