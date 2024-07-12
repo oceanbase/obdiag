@@ -59,8 +59,8 @@ class AnalyzeParameterHandler(object):
         try:
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
-            self.stdio.warn("AnalyzeHandler Failed to get observer version:{0}".format(e))
-        self.stdio.verbose("AnalyzeHandler.init get observer version: {0}".format(observer_version))
+            self.stdio.warn("failed to get observer version:{0}".format(e))
+        self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
 
     def handle(self):

@@ -48,8 +48,8 @@ class AnalyzeVariableHandler(object):
                 database="oceanbase",
             )
         except Exception as e:
-            self.stdio.error("Failed to connect to database: {0}".format(e))
-            raise OBDIAGFormatException("Failed to connect to database: {0}".format(e))
+            self.stdio.error("failed to connect to database: {0}".format(e))
+            raise OBDIAGFormatException("failed to connect to database: {0}".format(e))
 
     def handle(self):
         if not self.init_option():

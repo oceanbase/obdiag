@@ -112,7 +112,7 @@ class GatherTableDumpHandler(SafeStdio):
                 self.__get_table_info_v3()
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error: ".format(self.file_name))
-            self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
+            self.stdio.error("GatherTableDumpHandler execute Exception: {0}".format(e).strip())
 
     def __get_table_schema(self):
         sql = "show create table " + self.database + "." + self.table
