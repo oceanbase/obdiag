@@ -86,8 +86,11 @@ class GatherVariablesHandler(object):
  from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         variable_info = self.obconn.execute_sql(sql)
         self.variable_file_name = self.gather_pack_dir + '/{0}_variables_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+        header = ['VERSION', 'TENANT_ID', 'ZONE', 'NAME', 'GMT_MODIFIED', 'VALUE', 'FLAGS',
+                  'MIN_VALUE', 'MAX_VALUE', 'RECORD_TIME']
         with open(self.variable_file_name, 'w', newline='') as file:
             writer = csv.writer(file)
+            writer.writerow(header)
             for row in variable_info:
                 writer.writerow(row)
         self.stdio.print("Gather variables finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.variable_file_name) + Style.RESET_ALL + "'")
