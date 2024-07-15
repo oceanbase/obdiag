@@ -294,17 +294,17 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 handler.handle()
-            elif function_type == 'analyze_parameter_non_default':
+            elif function_type == 'analyze_parameter_default':
                 self.set_context(function_type, 'analyze', config)
-                handler = AnalyzeParameterHandler(self.context, 'non_default')
+                handler = AnalyzeParameterHandler(self.context, 'default')
                 handler.handle()
             elif function_type == 'analyze_parameter_diff':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeParameterHandler(self.context, 'diff')
                 handler.handle()
-            elif function_type == 'analyze_variable':
+            elif function_type == 'analyze_variable_diff':
                 self.set_context(function_type, 'analyze', config)
-                handler = AnalyzeVariableHandler(self.context)
+                handler = AnalyzeVariableHandler(self.context, 'diff')
                 handler.handle()
             elif function_type == 'analyze_sql':
                 self.set_context(function_type, 'analyze', config)

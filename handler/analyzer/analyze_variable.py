@@ -26,11 +26,12 @@ from colorama import Fore, Style
 
 
 class AnalyzeVariableHandler(object):
-    def __init__(self, context):
+    def __init__(self, context, analyze_type='diff'):
         self.context = context
         self.stdio = self.context.stdio
         self.export_report_path = None
         self.variable_file_name = None
+        self.analyze_type = analyze_type
         self.ob_cluster = self.context.cluster_config
         if self.context.get_variable("gather_timestamp", None):
             self.analyze_timestamp = self.context.get_variable("gather_timestamp")
@@ -87,7 +88,7 @@ class AnalyzeVariableHandler(object):
 
         return True
 
-    def alalyze_variable(self):
+    def analyze_variable(self):
         sql = '''select version(), tenant_id, zone, name,gmt_modified, value, flags, min_val, max_val, now() 
         from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         db_variable_info = self.obconn.execute_sql(sql)
@@ -131,6 +132,6 @@ class AnalyzeVariableHandler(object):
 
     def execute(self):
         try:
-            self.alalyze_variable()
+            self.analyze_variable()
         except Exception as e:
             self.stdio.error("variable info analyze failed, error message: {0}".format(e))

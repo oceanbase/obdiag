@@ -66,8 +66,7 @@ class GatherParametersHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(
-                    os.path.abspath(store_dir_option)))
+                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
         self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True
@@ -110,11 +109,8 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
                 EDIT_LEVEL, now(), '','' from oceanbase.__all_virtual_sys_parameter_stat where scope='CLUSTER' 
 '''
             parameter_info = self.obconn.execute_sql(sql)
-            self.parameter_file_name = self.gather_pack_dir + '/{0}_parameters_{1}.csv'.format(cluster_name,
-                                                                                               TimeUtils.timestamp_to_filename_time(
-                                                                                                   self.gather_timestamp))
-            header = ['VERSION', 'SVR_IP', 'SVR_PORT', 'ZONE', 'SCOPE', 'TENANT_ID', 'NAME', 'VALUE', 'SECTION',
-                      'EDIT_LEVEL', 'RECORD_TIME', 'DEFAULT_VALUE', 'ISDEFAULT']
+            self.parameter_file_name = self.gather_pack_dir + '/{0}_parameters_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            header = ['VERSION', 'SVR_IP', 'SVR_PORT', 'ZONE', 'SCOPE', 'TENANT_ID', 'NAME', 'VALUE', 'SECTION', 'EDIT_LEVEL', 'RECORD_TIME', 'DEFAULT_VALUE', 'ISDEFAULT']
             with open(self.parameter_file_name, 'w', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(header)
@@ -125,12 +121,9 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
                         writer.writerow(tmp_row)
                     else:
                         writer.writerow(row)
-            self.stdio.print(
-                "Gather parameters finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(
-                    self.parameter_file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Gather parameters finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.parameter_file_name) + Style.RESET_ALL + "'")
         else:
-            self.stdio.warn(
-                "Failed to retrieve the database version. Please check if the database connection is normal.")
+            self.stdio.warn("Failed to retrieve the database version. Please check if the database connection is normal.")
 
     def execute(self):
         try:

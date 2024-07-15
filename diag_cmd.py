@@ -697,75 +697,49 @@ class ObdiagAnalyzeParameterDiffCommand(ObdiagOriginCommand):
         return obdiag.analyze_fuction('analyze_parameter_diff', self.opts)
 
 
-class ObdiagAnalyzeParameterNonDefaultCommand(ObdiagOriginCommand):
+class ObdiagAnalyzeParameterDefaultCommand(ObdiagOriginCommand):
     def __init__(self):
-        super(ObdiagAnalyzeParameterNonDefaultCommand, self).__init__('non-default', 'Analyze the parameter to identify parameters with non-default values')
+        super(ObdiagAnalyzeParameterDefaultCommand, self).__init__('default', 'Analyze the parameter to identify parameters with non-default values')
         self.parser.add_option('--file', type='string', help="specify initialization parameter file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
-        super(ObdiagAnalyzeParameterNonDefaultCommand, self).init(cmd, args)
+        super(ObdiagAnalyzeParameterDefaultCommand, self).init(cmd, args)
         self.parser.set_usage('%s [options]' % self.prev_cmd)
         return self
 
     def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_parameter_non_default', self.opts)
+        return obdiag.analyze_fuction('analyze_parameter_default', self.opts)
 
 
 class ObdiagAnalyzeParameterCommand(MajorCommand):
     def __init__(self):
         super(ObdiagAnalyzeParameterCommand, self).__init__('parameter', 'Analyze oceanbase parameters info')
         self.register_command(ObdiagAnalyzeParameterDiffCommand())
-        self.register_command(ObdiagAnalyzeParameterNonDefaultCommand())
+        self.register_command(ObdiagAnalyzeParameterDefaultCommand())
 
 
-class ObdiagAnalyzeVariableCommand(ObdiagOriginCommand):
+class ObdiagAnalyzeVariableDiffCommand(ObdiagOriginCommand):
     def __init__(self):
-        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze and identify variables that have changed compared to the specified variable file')
+        super(ObdiagAnalyzeVariableDiffCommand, self).__init__('diff', 'Analyze and identify variables that have changed compared to the specified variable file')
         self.parser.add_option('--file', type='string', help="specify initialization parameter file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):
-        super(ObdiagAnalyzeVariableCommand, self).init(cmd, args)
+        super(ObdiagAnalyzeVariableDiffCommand, self).init(cmd, args)
         self.parser.set_usage('%s [options]' % self.prev_cmd)
         return self
 
     def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_variable', self.opts)
+        return obdiag.analyze_fuction('analyze_variable_diff', self.opts)
 
 
-class ObdiagAnalyzeParameterDiffCommand(ObdiagOriginCommand):
+class ObdiagAnalyzeVariableCommand(MajorCommand):
     def __init__(self):
-        super(ObdiagAnalyzeParameterDiffCommand, self).__init__('diff', 'Analyze the parameter configurations between observers and identify the parameters with different values among the observers')
-        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
-        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-
-    def init(self, cmd, args):
-        super(ObdiagAnalyzeParameterDiffCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
-        return self
-
-    def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_parameter_diff', self.opts)
-
-
-class ObdiagAnalyzeParameterNonDefaultCommand(ObdiagOriginCommand):
-    def __init__(self):
-        super(ObdiagAnalyzeParameterNonDefaultCommand, self).__init__('non-default', 'Analyze the parameter to identify parameters with non-default values')
-        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
-        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-
-    def init(self, cmd, args):
-        super(ObdiagAnalyzeParameterNonDefaultCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
-        return self
-
-    def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_parameter_non_default', self.opts)
+        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze oceanbase variables info')
+        self.register_command(ObdiagAnalyzeVariableDiffCommand())
 
 
 class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
@@ -817,29 +791,6 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         return obdiag.analyze_fuction('analyze_sql_review', self.opts)
-
-
-class ObdiagAnalyzeParameterCommand(MajorCommand):
-    def __init__(self):
-        super(ObdiagAnalyzeParameterCommand, self).__init__('parameter', 'Analyze oceanbase parameters info')
-        self.register_command(ObdiagAnalyzeParameterDiffCommand())
-        self.register_command(ObdiagAnalyzeParameterNonDefaultCommand())
-
-
-class ObdiagAnalyzeVariableCommand(ObdiagOriginCommand):
-    def __init__(self):
-        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze and identify variables that have changed compared to the specified variable file')
-        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
-        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-
-    def init(self, cmd, args):
-        super(ObdiagAnalyzeVariableCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
-        return self
-
-    def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_variable', self.opts)
 
 
 class ObdiagCheckCommand(ObdiagOriginCommand):
