@@ -22,7 +22,7 @@ import datetime
 import tabulate
 
 from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
 from common.tool import Util
@@ -70,7 +70,7 @@ class GatherPerfHandler(BaseShellHandler):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         self.scope_option = Util.get_option(options, 'scope')
@@ -118,9 +118,6 @@ class GatherPerfHandler(BaseShellHandler):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
         remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
         remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -167,17 +164,20 @@ class GatherPerfHandler(BaseShellHandler):
 
     def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
+            self.stdio.start_loading('gather perf sample')
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
             ssh_client.exec_cmd(cmd)
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
+            self.stdio.stop_loading('gather perf sample')
         except:
             self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
 
     def __gather_perf_flame(self, ssh_client, gather_path, pid_observer):
         try:
+            self.stdio.start_loading('gather perf flame')
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf, run cmd = [{0}]".format(perf_cmd))
             ssh_client.exec_cmd(perf_cmd)
@@ -185,6 +185,7 @@ class GatherPerfHandler(BaseShellHandler):
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
+            self.stdio.stop_loading('gather perf flame')
         except:
             self.stdio.error("generate perf data on server [{0}] failed".format(ssh_client.get_name()))
 

@@ -47,8 +47,8 @@ class GatherParametersHandler(object):
                 database="oceanbase",
             )
         except Exception as e:
-            self.stdio.error("Failed to connect to database: {0}".format(e))
-            raise OBDIAGFormatException("Failed to connect to database: {0}".format(e))
+            self.stdio.error("failed to connect to database: {0}".format(e))
+            raise OBDIAGFormatException("failed to connect to database: {0}".format(e))
 
     def handle(self):
         if not self.init_option():
@@ -66,7 +66,7 @@ class GatherParametersHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
         self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True
@@ -76,8 +76,8 @@ class GatherParametersHandler(object):
         try:
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
-            self.stdio.warn("GatherHandler Failed to get observer version:{0}".format(e))
-        self.stdio.verbose("GatherHandler.init get observer version: {0}".format(observer_version))
+            self.stdio.warn("failed to get observer version:{0}".format(e))
+        self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
 
     def get_cluster_name(self):
@@ -87,8 +87,8 @@ class GatherParametersHandler(object):
             cluster_info = self.obconn.execute_sql(sql)
             cluster_name = cluster_info[0][0]
         except Exception as e:
-            self.stdio.warn("RCAHandler Failed to get oceanbase cluster name:{0}".format(e))
-        self.stdio.verbose("RCAHandler.init get oceanbase cluster name {0}".format(cluster_name))
+            self.stdio.warn("failed to get oceanbase cluster name:{0}".format(e))
+        self.stdio.verbose("get oceanbase cluster name {0}".format(cluster_name))
         return cluster_name
 
     def get_parameters_info(self):
@@ -121,7 +121,7 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
                         writer.writerow(row)
             self.stdio.print("Gather parameters finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.parameter_file_name) + Style.RESET_ALL + "'")
         else:
-            self.stdio.warn("Failed to retrieve the database version. Please check if the database connection is normal.")
+            self.stdio.warn("failed to retrieve the database version. Please check if the database connection is normal.")
 
     def execute(self):
         try:

@@ -69,7 +69,7 @@ class GatherObstack2Handler(BaseShellHandler):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         return True
@@ -224,7 +224,6 @@ class GatherObstack2Handler(BaseShellHandler):
             ssh_client.exec_cmd(chown_cmd)
             self.stdio.verbose("gather obstack info on server {0}, run cmd = [su {1}, {2}]".format(ssh_client.get_name(), user, cmd))
             ssh_client.ssh_invoke_shell_switch_user(user, cmd, 10)
-        ssh_client.exec_cmd("rm -rf /tmp/{0}".format(remote_gather_dir))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
