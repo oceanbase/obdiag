@@ -91,7 +91,7 @@ class AnalyzeSQLReviewHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_parrent_path = os.path.abspath(store_dir_option)
         output_option = Util.get_option(options, 'output')

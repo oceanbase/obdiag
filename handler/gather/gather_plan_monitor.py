@@ -32,6 +32,7 @@ from common.tool import DirectoryUtil
 from common.tool import StringUtils
 from common.tool import FileUtil
 from common.tool import TimeUtils
+from handler.gather.gather_tabledump import GatherTableDumpHandler
 
 
 class GatherPlanMonitorHandler(object):
@@ -121,6 +122,7 @@ class GatherPlanMonitorHandler(object):
                 trace_id = trace[0]
                 user_sql = trace[1]
                 sql = trace[1]
+                tenant_name = trace[6]
                 db_name = trace[8]
                 plan_id = trace[9]
                 tenant_id = trace[10]
@@ -132,6 +134,7 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("SVR_PORT : %s " % svr_port)
                 self.stdio.verbose("DB: %s " % db_name)
                 self.stdio.verbose("PLAN_ID: %s " % plan_id)
+                self.stdio.verbose("TENANT_NAME: %s " % tenant_name)
                 self.stdio.verbose("TENANT_ID: %s " % tenant_id)
 
                 sql_plan_monitor_svr_agg_template = self.sql_plan_monitor_svr_agg_template_sql()
@@ -151,7 +154,8 @@ class GatherPlanMonitorHandler(object):
                 self.report_header()
                 # 输出sql_audit的概要信息
                 self.stdio.verbose("[sql plan monitor report task] report sql_audit")
-                self.report_sql_audit()
+                if not self.report_sql_audit():
+                    return
                 # 输出sql explain的信息
                 self.stdio.verbose("[sql plan monitor report task] report plan explain, sql: [{0}]".format(sql))
                 self.report_plan_explain(db_name, sql)
@@ -160,7 +164,7 @@ class GatherPlanMonitorHandler(object):
                 self.report_plan_cache(plan_explain_sql)
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
-                self.report_schema(user_sql)
+                self.report_schema(user_sql, tenant_name)
                 self.init_monitor_stat()
                 # 输出sql_audit的详细信息
                 self.stdio.verbose("[sql plan monitor report task] report sql_audit details")
@@ -249,7 +253,16 @@ class GatherPlanMonitorHandler(object):
             summary_tab.append((cluster, "Error" if is_err else "Completed", "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Sql Plan Monitor Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
 
-    def report_schema(self, sql):
+    def get_table_info(self, file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = f.read()
+            return data
+        except Exception as e:
+            self.stdio.warn(e)
+            return None
+
+    def report_schema(self, sql, tenant_name):
         try:
             schemas = ""
             valid_words = []
@@ -262,10 +275,24 @@ class GatherPlanMonitorHandler(object):
                 for t in valid_words:
                     try:
                         data = self.db_connector.execute_sql("show create table %s" % t)
-                        schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>{0}</pre>".format(data[0][1])
-                        self.stdio.verbose("table schema: {0}".format(schemas))
+                        self.context.set_variable('gather_tenant_name', tenant_name)
+                        self.context.set_variable('gather_database', self.db_conn.get("database"))
+                        self.context.set_variable('gather_table', t)
+                        self.context.set_variable('gather_user', self.db_conn.get("user"))
+                        self.context.set_variable('gather_password', self.db_conn.get("password"))
+                        self.context.set_variable('store_dir', self.local_stored_path)
+                        self.context.set_variable('gather_timestamp', self.gather_timestamp)
+                        handler = GatherTableDumpHandler(self.context, self.local_stored_path, is_inner=True)
+                        handler.handle()
                     except Exception as e:
                         pass
+            table_info_file = os.path.join(self.local_stored_path, "obdiag_tabledump_result_{0}.txt".format(self.gather_timestamp))
+            self.stdio.print("table info file path:{0}".format(table_info_file))
+            table_info = self.get_table_info(table_info_file)
+            if table_info:
+                schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % table_info
+            if len(table_info_file) > 25:
+                FileUtil.rm(table_info_file)
             cursor = self.sys_connector.execute_sql_return_cursor("show variables like '%parallel%'")
             s = from_db_cursor(cursor)
             s.align = 'l'
@@ -809,10 +836,14 @@ class GatherPlanMonitorHandler(object):
         self.stdio.verbose("select sql_audit from ob with SQL: %s", sql)
         try:
             sql_audit_result = self.sys_connector.execute_sql_pretty(sql)
+            if not sql_audit_result:
+                self.stdio.error("failed to find the related sql_audit for the given trace_id:{0}", self.trace_id)
+                return False
             self.stdio.verbose("sql_audit_result: %s", sql_audit_result)
             self.stdio.verbose("report sql_audit_result to file start ...")
             self.__report(sql_audit_result.get_html_string())
             self.stdio.verbose("report sql_audit_result end")
+            return True
         except Exception as e:
             self.stdio.exception("sql_audit> %s" % sql)
             self.stdio.exception(repr(e))
@@ -839,6 +870,8 @@ class GatherPlanMonitorHandler(object):
 
     def report_sql_plan_monitor_dfo_op(self, sql):
         data_sql_plan_monitor_dfo_op = self.sys_connector.execute_sql_pretty(sql)
+        if len(data_sql_plan_monitor_dfo_op.rows) == 0:
+            self.stdio.warn("failed to find sql_plan_monitor data, please add hint /*+ monitor*/ to your SQL before executing it.")
         self.__report("<div><h2 id='agg_table_anchor'>SQL_PLAN_MONITOR DFO 级调度时序汇总</h2><div class='v' id='agg_table' style='display: none'>" + data_sql_plan_monitor_dfo_op.get_html_string() + "</div></div>")
         self.stdio.verbose("report SQL_PLAN_MONITOR DFO complete")
         cursor_sql_plan_monitor_dfo_op = self.sys_connector.execute_sql_return_cursor_dictionary(sql)
