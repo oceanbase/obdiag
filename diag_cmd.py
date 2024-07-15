@@ -622,7 +622,7 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
         self.parser.add_option('--table', type='string', help="Specifies the name of the table in the database to operate on.")
         self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
         self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
-        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./gather_report')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./obdiag_gather_report')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
 
     def init(self, cmd, args):

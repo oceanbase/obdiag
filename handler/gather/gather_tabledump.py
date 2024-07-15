@@ -44,18 +44,12 @@ class GatherTableDumpHandler(SafeStdio):
         self.result_list = []
         self.store_dir = store_dir
         self.is_innner = is_inner
-        try:
-            if not os.path.exists(store_dir):
-                os.makedirs(store_dir)
-        except Exception as e:
-            self.stdio.error("init gather_report {0}".format(e))
-            raise Exception("int gather_report {0}".format(e))
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
-    def init_config(self):
+    def init(self):
         try:
             self.ob_cluster = self.context.cluster_config
             self.obproxy_nodes = self.context.obproxy_config['servers']
@@ -68,7 +62,15 @@ class GatherTableDumpHandler(SafeStdio):
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
             password = Util.get_option(options, 'password')
-            self.store_dir = Util.get_option(options, 'store_dir')
+            if not (self.database and self.database and user and password):
+                self.stdio.error("option --database/--table/--user/--password not found, please provide")
+                return False
+            store_dir_option = Util.get_option(options, 'store_dir')
+            if store_dir_option is not None and store_dir_option != './':
+                if not os.path.exists(os.path.abspath(store_dir_option)):
+                    self.stdio.warn('args --store_dir [{0}]: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                    os.makedirs(os.path.abspath(store_dir_option))
+                    self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_database", None):
                 self.database = self.context.get_variable("gather_database")
             if self.context.get_variable("gather_table", None):
@@ -87,7 +89,7 @@ class GatherTableDumpHandler(SafeStdio):
                 ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
             )
             self.tenant_connector = OBConnector(ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=user, password=password, stdio=self.stdio, timeout=100)
-            self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.store_dir, self.gather_timestamp)
+            self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.store_dir, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
             return True
         except Exception as e:
             self.stdio.error(e)
@@ -95,8 +97,8 @@ class GatherTableDumpHandler(SafeStdio):
 
     def handle(self):
         self.start_time = time.time()
-        if not self.init_config():
-            self.stdio.error('init config failed')
+        if not self.init():
+            self.stdio.error('init failed')
             return False
         self.execute()
         if not self.is_innner:
@@ -111,8 +113,7 @@ class GatherTableDumpHandler(SafeStdio):
             else:
                 self.__get_table_info_v3()
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.file_name))
-            self.stdio.error("GatherTableDumpHandler execute Exception: {0}".format(e).strip())
+            self.stdio.error("report sql result to file: {0} failed, error: {1}".format(self.file_name, e))
 
     def __get_table_schema(self):
         sql = "show create table " + self.database + "." + self.table
