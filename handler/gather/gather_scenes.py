@@ -33,7 +33,7 @@ from common.tool import TimeUtils
 
 class GatherSceneHandler(SafeStdio):
 
-    def __init__(self, context, gather_pack_dir='./', tasks_base_path="~/.obdiag/gather/tasks/", task_type="observer"):
+    def __init__(self, context, gather_pack_dir='./', tasks_base_path="~/.obdiag/gather/tasks/", task_type="observer", is_inner=False):
         self.context = context
         self.stdio = context.stdio
         self.is_ssh = True
@@ -43,10 +43,11 @@ class GatherSceneHandler(SafeStdio):
         self.yaml_tasks = {}
         self.code_tasks = []
         self.env = {}
-        self.scene = None
+        self.scene = "observer.base"
         self.tasks_base_path = tasks_base_path
         self.task_type = task_type
         self.variables = {}
+        self.is_inner = is_inner
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -72,7 +73,11 @@ class GatherSceneHandler(SafeStdio):
         self.__init_report_path()
         self.__init_task_names()
         self.execute()
-        self.__print_result()
+        if self.is_inner:
+            result = self.__get_sql_result()
+            return result
+        else:
+            self.__print_result()
 
     def execute(self):
         try:
@@ -204,17 +209,25 @@ class GatherSceneHandler(SafeStdio):
             self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if scene_option:
             self.scene = scene_option
-        else:
-            return False
         if env_option:
             env_dict = StringUtils.parse_env(env_option)
             self.env = env_dict
         return True
+
+    def __get_sql_result(self):
+        try:
+            file_path = os.path.join(self.report_path, "sql_result.txt")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = f.read()
+            return data
+        except Exception as e:
+            self.stdio.error(e)
+            return None
 
     def __print_result(self):
         self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)

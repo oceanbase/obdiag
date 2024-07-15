@@ -99,12 +99,7 @@ class RCAHandler:
                 obproxy_version = ""
                 try:
                     if len(context_obproxy_nodes) > 0:
-                        obproxy_version = get_obproxy_version(
-                            True,
-                            context_obproxy_nodes[0]["ssher"],
-                            context_obproxy_nodes[0]["home_path"],
-                            self.stdio,
-                        )
+                        obproxy_version = get_obproxy_version(context)
                 except Exception as e:
                     self.stdio.warn("RCAHandler.init Failed to get obproxy version. Error:{0}".format(e))
                 if obproxy_version != "":

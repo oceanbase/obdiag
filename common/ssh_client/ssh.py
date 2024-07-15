@@ -29,16 +29,23 @@ class SshClient(SafeStdio):
             raise Exception("SshHelper init error: node is None")
         self.node = node
         self.context = context
+        self.stdio = None
+        if self.context is not None:
+            self.stdio = self.context.stdio
         self.ssh_type = node.get("ssh_type") or "remote"
         self.client = None
         self.init()
 
     def local_ip(self):
         local_ip_list = []
-        hostname = socket.gethostname()
-        addresses = socket.getaddrinfo(hostname, None)
-        for address in addresses:
-            local_ip_list.append(address[4][0])
+        try:
+            hostname = socket.gethostname()
+            addresses = socket.getaddrinfo(hostname, None)
+            for address in addresses:
+                local_ip_list.append(address[4][0])
+        except Exception as e:
+            if self.stdio is not None:
+                self.stdio.warn("get local ip warn: {} . Set local_ip Is 127.0.0.1".format(e))
         local_ip_list.append('127.0.0.1')
         return list(set(local_ip_list))
 
