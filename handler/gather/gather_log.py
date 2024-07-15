@@ -304,7 +304,6 @@ class GatherLogHandler(BaseShellHandler):
             if type(self.grep_options) == str:
                 grep_cmd = "grep -e '{grep_options}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_options=self.grep_options, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             elif type(self.grep_options) == list and len(self.grep_options) > 0:
-                grep_litter_cmd = ""
                 for grep_option in self.grep_options:
                     if type(grep_option) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_option)))
@@ -312,8 +311,10 @@ class GatherLogHandler(BaseShellHandler):
                     elif grep_option == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
-                    grep_litter_cmd += "| grep -e '{0}'".format(grep_option)
-                grep_cmd = "cat {log_dir}/{log_name} {grep_options} >> {gather_path}/{log_name} ".format(grep_options=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+                    if grep_cmd == "":
+                        grep_cmd = "grep -e '{0}' ".format(grep_option) + "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
+                    grep_cmd += "| grep -e '{0}'".format(grep_option)
+                grep_cmd += " >> {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
