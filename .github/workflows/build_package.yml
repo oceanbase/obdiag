@@ -16,7 +16,7 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "centos:7"
+      image: "oceanbase/obdiag-builder:latest"
 
     steps:
       - name: Checkout code
@@ -24,20 +24,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          rm -rf /etc/yum.repos.d/*
-          curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
-          yum install -y wget 
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
-          sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
           export PATH=/opt/miniconda3/bin:$PATH
-          conda init
-          conda create --name obdiag python=3.8 -y
           source activate obdiag
           ldd --version
-          python3 -m pip install --upgrade pip setuptools wheel
           pip3 install -r requirements3.txt
-          python3 --version
-          yum install rpm-build -y
 
       - name: Build package
         run: |
