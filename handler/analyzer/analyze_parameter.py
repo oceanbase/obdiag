@@ -59,8 +59,8 @@ class AnalyzeParameterHandler(object):
         try:
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
-            self.stdio.warn("AnalyzeHandler Failed to get observer version:{0}".format(e))
-        self.stdio.verbose("AnalyzeHandler.init get observer version: {0}".format(observer_version))
+            self.stdio.warn("failed to get observer version:{0}".format(e))
+        self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
 
     def handle(self):
@@ -98,7 +98,7 @@ class AnalyzeParameterHandler(object):
         offline_file_option = Util.get_option(options, 'file')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.export_report_path = os.path.abspath(store_dir_option)
         else:
@@ -122,7 +122,7 @@ class AnalyzeParameterHandler(object):
         offline_file_option = Util.get_option(options, 'file')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.export_report_path = os.path.abspath(store_dir_option)
         else:
