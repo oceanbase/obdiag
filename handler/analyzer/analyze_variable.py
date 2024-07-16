@@ -60,6 +60,22 @@ class AnalyzeVariableHandler(object):
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
         self.execute()
 
+    def check_file_valid(self):
+        with open(self.variable_file_name, 'r') as f:
+            header = f.readline()
+            flag = 1
+            if header:
+                header = header.strip()
+            if not header:
+                flag = 0
+            if not header.startswith('VERSION'):
+                flag = 0
+            if not header.endswith('RECORD_TIME'):
+                flag = 0
+            if flag == 0:
+                self.stdio.error('args --file [{0}] is not a valid variable file, Please specify it again'.format(os.path.abspath(self.variable_file_name)))
+                exit(-1)
+
     def init_option(self):
         options = self.context.options
         store_dir_option = Util.get_option(options, 'store_dir')
@@ -70,6 +86,7 @@ class AnalyzeVariableHandler(object):
                 exit(-1)
             else:
                 self.variable_file_name = os.path.abspath(offline_file_option)
+                self.check_file_valid()
         else:
             self.stdio.error("an initialization variable file must be provided to find the parts where variables have changed.")
             exit(-1)
