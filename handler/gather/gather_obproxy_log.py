@@ -263,7 +263,6 @@ class GatherObProxyLogHandler(BaseShellHandler):
             if type(self.grep_args) == str:
                 grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             elif type(self.grep_args) == list and len(self.grep_args) > 0:
-                grep_litter_cmd = ""
                 for grep_arg in self.grep_args:
                     if type(grep_arg) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_arg)))
@@ -271,9 +270,11 @@ class GatherObProxyLogHandler(BaseShellHandler):
                     elif grep_arg == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
-                    grep_litter_cmd += "| grep -e '{0}'".format(grep_arg)
-
-                grep_cmd = "cat {log_dir}/{log_name} {grep_args} >> {gather_path}/{log_name} ".format(grep_args=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+                    if grep_cmd == "":
+                        grep_cmd = "grep -e '{0}' ".format(grep_arg) + "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
+                        continue
+                    grep_cmd += "| grep -e '{0}'".format(grep_arg)
+                grep_cmd += " >> {log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
