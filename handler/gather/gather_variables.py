@@ -46,8 +46,8 @@ class GatherVariablesHandler(object):
                 database="oceanbase",
             )
         except Exception as e:
-            self.stdio.error("failed to connect to database: {0}".format(e))
-            raise OBDIAGFormatException("failed to connect to database: {0}".format(e))
+            self.stdio.error("Failed to connect to database: {0}".format(e))
+            raise OBDIAGFormatException("Failed to connect to database: {0}".format(e))
 
     def handle(self):
         if not self.init_option():
@@ -64,7 +64,7 @@ class GatherVariablesHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
         self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True
@@ -86,8 +86,10 @@ class GatherVariablesHandler(object):
  from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         variable_info = self.obconn.execute_sql(sql)
         self.variable_file_name = self.gather_pack_dir + '/{0}_variables_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+        header = ['VERSION', 'TENANT_ID', 'ZONE', 'NAME', 'GMT_MODIFIED', 'VALUE', 'FLAGS', 'MIN_VALUE', 'MAX_VALUE', 'RECORD_TIME']
         with open(self.variable_file_name, 'w', newline='') as file:
             writer = csv.writer(file)
+            writer.writerow(header)
             for row in variable_info:
                 writer.writerow(row)
         self.stdio.print("Gather variables finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.variable_file_name) + Style.RESET_ALL + "'")
