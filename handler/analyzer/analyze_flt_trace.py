@@ -202,8 +202,6 @@ class AnalyzeFltTraceHandler(object):
         if self.flt_trace_id is not None and (len(log_name_list) > 0):
             grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(grep_args=self.flt_trace_id, log_file=' '.join(log_name_list), local_store_path=local_store_path)
             LocalClient(self.stdio).run(grep_cmd)
-            log_full_path = "{gather_path}/{log_name}".format(gather_path=log_path, log_name=self.flt_trace_id)
-            download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
     def __get_log_name_list_offline(self):
         """
