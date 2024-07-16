@@ -162,7 +162,7 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
                 report_default_tb.add_row([row[1], row[2], row[3], row[4], tenant_id, row[6], row[11], row[7]])
             fp.write(report_default_tb.get_string() + "\n")
             self.stdio.print(report_default_tb.get_string())
-            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL)
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
