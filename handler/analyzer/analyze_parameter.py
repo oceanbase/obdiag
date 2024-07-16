@@ -135,7 +135,7 @@ class AnalyzeParameterHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
                 self.check_file_valid()
