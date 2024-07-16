@@ -88,7 +88,7 @@ class AnalyzeVariableHandler(object):
                 self.variable_file_name = os.path.abspath(offline_file_option)
                 self.check_file_valid()
         else:
-            self.stdio.error("an initialization variable file must be provided to find the parts where variables have changed.")
+            self.stdio.error("args --file need provided to find the parts where variables have changed.")
             exit(-1)
 
         if store_dir_option and store_dir_option != "./":
