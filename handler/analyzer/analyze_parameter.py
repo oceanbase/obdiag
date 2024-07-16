@@ -180,6 +180,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 with open(self.parameter_file_name, 'r', newline='') as file:
                     reader = csv.reader(file)
                     for row in reader:
+                        if row[0] == 'VERSION':
+                            continue
                         key = str(row[1]) + '-' + str(row[2]) + '-' + str(row[3]) + '-' + str(row[4]) + '-' + str(row[5]) + '-' + str(row[6])
                         value = row[7]
                         file_parameter_dict[key] = value
@@ -211,6 +213,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
             with open(self.parameter_file_name, 'r', newline='') as file:
                 reader = csv.reader(file)
                 for row in reader:
+                    if row[0] == 'VERSION':
+                        continue
                     parameter_info.append(row)
         tenants_dict = dict()
         for row in parameter_info:

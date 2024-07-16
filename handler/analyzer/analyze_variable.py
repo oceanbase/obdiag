@@ -118,6 +118,8 @@ class AnalyzeVariableHandler(object):
         with open(self.variable_file_name, 'r', newline='') as file:
             reader = csv.reader(file)
             for row in reader:
+                if row[0] == 'VERSION':
+                    continue
                 key = str(row[1]) + '-' + str(row[3])
                 file_variable_dict[key] = str(row[5])
                 if not last_gather_time:
