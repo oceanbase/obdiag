@@ -99,7 +99,7 @@ def upload_file(ssh_client, local_path, remote_path, stdio=None):
     """
     stdio.verbose("Please wait a moment, upload file to server {0}, local file path {1}, remote file path {2}".format(ssh_client.get_name(), local_path, remote_path))
     try:
-        ssh_client.upload(local_path, remote_path)
+        ssh_client.upload(remote_path, local_path)
     except Exception as e:
         stdio.error("Upload File Failed error: {0}".format(e))
 
