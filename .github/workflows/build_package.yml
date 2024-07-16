@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - 2.3.0-build_test_new
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
