@@ -28,7 +28,7 @@ from colorama import Fore, Style
 
 
 class AnalyzeParameterHandler(object):
-    def __init__(self, context, analyze_type='non_default'):
+    def __init__(self, context, analyze_type='default'):
         self.context = context
         self.stdio = self.context.stdio
         self.export_report_path = None
@@ -64,8 +64,8 @@ class AnalyzeParameterHandler(object):
         return observer_version
 
     def handle(self):
-        if self.analyze_type == 'non_default':
-            if not self.init_option_non_default():
+        if self.analyze_type == 'default':
+            if not self.init_option_default():
                 self.stdio.error('init option failed')
                 return False
         else:
@@ -76,7 +76,23 @@ class AnalyzeParameterHandler(object):
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
         self.execute()
 
-    def init_option_non_default(self):
+    def check_file_valid(self):
+        with open(self.parameter_file_name, 'r') as f:
+            header = f.readline()
+            flag = 1
+            if header:
+                header = header.strip()
+            if not header:
+                flag = 0
+            if not header.startswith('VERSION'):
+                flag = 0
+            if not header.endswith('ISDEFAULT'):
+                flag = 0
+            if flag == 0:
+                self.stdio.error('args --file [{0}] is not a valid parameter file, Please specify it again'.format(os.path.abspath(self.parameter_file_name)))
+                exit(-1)
+
+    def init_option_default(self):
         options = self.context.options
         store_dir_option = Util.get_option(options, 'store_dir')
         offline_file_option = Util.get_option(options, 'file')
@@ -97,6 +113,7 @@ class AnalyzeParameterHandler(object):
                 exit(-1)
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
+                self.check_file_valid()
         return True
 
     def init_option_diff(self):
@@ -121,9 +138,10 @@ class AnalyzeParameterHandler(object):
                 exit(-1)
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
+                self.check_file_valid()
         return True
 
-    def analyze_parameter_non_default(self):
+    def analyze_parameter_default(self):
         observer_version = self.get_version()
         if StringUtils.compare_versions_greater(observer_version, "4.2.2.0"):
             if self.parameter_file_name is not None:
@@ -144,7 +162,7 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
                 report_default_tb.add_row([row[1], row[2], row[3], row[4], tenant_id, row[6], row[11], row[7]])
             fp.write(report_default_tb.get_string() + "\n")
             self.stdio.print(report_default_tb.get_string())
-            self.stdio.print("Analyze parameter non-default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL + "'")
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
@@ -179,9 +197,9 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 fp.write(report_default_tb.get_string() + "\n")
                 if not is_empty:
                     self.stdio.print(report_default_tb.get_string())
-                    self.stdio.print("Analyze parameter non-default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+                    self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
                 else:
-                    self.stdio.print("Analyze parameter non-default finished. All parameter values are the same as the default values.")
+                    self.stdio.print("Analyze parameter default finished. All parameter values are the same as the default values.")
 
     def alalyze_parameter_diff(self):
         if self.parameter_file_name is None:
@@ -240,7 +258,10 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
             if len(value_list) > 0:
                 report_diff_tb = PrettyTable(["name", "diff"])
                 report_diff_tb.align["task_report"] = "l"
-                report_diff_tb.title = 'TENANT_ID:' + tenant
+                if tenant == 'CLUSTER':
+                    report_diff_tb.title = 'SCOPE:' + tenant
+                else:
+                    report_diff_tb.title = 'SCOPE:TENANT-' + tenant
                 for value_dict in value_list:
                     value_str_list = []
                     for value in value_dict['value_list']:
@@ -258,8 +279,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
 
     def execute(self):
         try:
-            if self.analyze_type == 'non_default':
-                self.analyze_parameter_non_default()
+            if self.analyze_type == 'default':
+                self.analyze_parameter_default()
             elif self.analyze_type == 'diff':
                 self.alalyze_parameter_diff()
         except Exception as e:

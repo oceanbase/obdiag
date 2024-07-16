@@ -284,6 +284,18 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 handler.handle()
+            elif function_type == 'analyze_parameter_default':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeParameterHandler(self.context, 'default')
+                handler.handle()
+            elif function_type == 'analyze_parameter_diff':
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzeParameterHandler(self.context, 'diff')
+                handler.handle()
+            elif function_type == 'analyze_variable_diff':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeVariableHandler(self.context, 'diff')
+                handler.handle()
             elif function_type == 'analyze_sql':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLHandler(self.context)
@@ -291,18 +303,6 @@ class ObdiagHome(object):
             elif function_type == 'analyze_sql_review':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLReviewHandler(self.context)
-                handler.handle()
-            elif function_type == 'analyze_parameter_non_default':
-                self.set_context(function_type, 'analyze', config)
-                handler = AnalyzeParameterHandler(self.context, 'non_default')
-                handler.handle()
-            elif function_type == 'analyze_parameter_diff':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
-                handler = AnalyzeParameterHandler(self.context, 'diff')
-                handler.handle()
-            elif function_type == 'analyze_variable':
-                self.set_context(function_type, 'analyze', config)
-                handler = AnalyzeVariableHandler(self.context)
                 handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))

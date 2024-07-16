@@ -47,8 +47,8 @@ class GatherParametersHandler(object):
                 database="oceanbase",
             )
         except Exception as e:
-            self.stdio.error("failed to connect to database: {0}".format(e))
-            raise OBDIAGFormatException("failed to connect to database: {0}".format(e))
+            self.stdio.error("Failed to connect to database: {0}".format(e))
+            raise OBDIAGFormatException("Failed to connect to database: {0}".format(e))
 
     def handle(self):
         if not self.init_option():
@@ -110,8 +110,10 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
 '''
             parameter_info = self.obconn.execute_sql(sql)
             self.parameter_file_name = self.gather_pack_dir + '/{0}_parameters_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            header = ['VERSION', 'SVR_IP', 'SVR_PORT', 'ZONE', 'SCOPE', 'TENANT_ID', 'NAME', 'VALUE', 'SECTION', 'EDIT_LEVEL', 'RECORD_TIME', 'DEFAULT_VALUE', 'ISDEFAULT']
             with open(self.parameter_file_name, 'w', newline='') as file:
                 writer = csv.writer(file)
+                writer.writerow(header)
                 for row in parameter_info:
                     if row[5] is None:
                         tmp_row = [col for col in row]
@@ -121,7 +123,7 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
                         writer.writerow(row)
             self.stdio.print("Gather parameters finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.parameter_file_name) + Style.RESET_ALL + "'")
         else:
-            self.stdio.warn("failed to retrieve the database version. Please check if the database connection is normal.")
+            self.stdio.warn("Failed to retrieve the database version. Please check if the database connection is normal.")
 
     def execute(self):
         try:
