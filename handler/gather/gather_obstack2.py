@@ -201,7 +201,7 @@ class GatherObstack2Handler(BaseShellHandler):
 
     def __is_obstack_exists(self, ssh_client):
         cmd = "test -e {file} && echo exists".format(file=const.OBSTACK2_DEFAULT_INSTALL_PATH)
-        stdout = ssh_client.exec_cmd(cmd)[0]
+        stdout = ssh_client.exec_cmd(cmd)
         if stdout == 'exists':
             return False
         else:
