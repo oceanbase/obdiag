@@ -258,7 +258,10 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
             if len(value_list) > 0:
                 report_diff_tb = PrettyTable(["name", "diff"])
                 report_diff_tb.align["task_report"] = "l"
-                report_diff_tb.title = 'TENANT_ID:' + tenant
+                if tenant == 'CLUSTER':
+                    report_diff_tb.title = 'SCOPE:' + tenant
+                else:
+                    report_diff_tb.title = 'SCOPE:TENANT-' + tenant
                 for value_dict in value_list:
                     value_str_list = []
                     for value in value_dict['value_list']:
