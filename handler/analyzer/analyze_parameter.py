@@ -138,6 +138,7 @@ class AnalyzeParameterHandler(object):
                 exit(-1)
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
+                self.check_file_valid()
         return True
 
     def analyze_parameter_default(self):
