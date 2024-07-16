@@ -901,8 +901,6 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherObproxyLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
         self.register_command(ObdiagGatherAshReportCommand())
-        self.register_command(ObdiagGatherParameterCommand())
-        self.register_command(ObdiagGatherVariableCommand())
         self.register_command(ObdiagGatherTableDumpHandler())
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
@@ -926,8 +924,6 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeVariableCommand())
         self.register_command(ObdiagAnalyzeSQLCommand())
         self.register_command(ObdiagAnalyzeSQLReviewCommand())
-        self.register_command(ObdiagAnalyzeParameterCommand())
-        self.register_command(ObdiagAnalyzeVariableCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
