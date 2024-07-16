@@ -21,7 +21,9 @@ _obdiag_completion() {
                     if [ "$COMP_CWORD" -eq 2 ]; then
                         type_list="log flt_trace sql sql_review parameter variable"
                     elif [ "${COMP_WORDS[2]}" = "parameter" ] && [ "$COMP_CWORD" -eq 3 ]; then
-                        type_list="diff non-default"
+                        type_list="diff default"
+                    elif [ "${COMP_WORDS[2]}" = "variable" ] && [ "$COMP_CWORD" -eq 3 ]; then
+                        type_list="diff"
                     fi
                     ;;
                 rca)
