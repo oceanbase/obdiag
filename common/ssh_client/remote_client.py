@@ -105,7 +105,7 @@ class RemoteClient(SsherClient):
     def upload(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
-        self._sftp_client.put(remote_path, local_path)
+        self._sftp_client.put(local_path, remote_path)
         self._sftp_client.close()
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):

@@ -274,7 +274,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
                         grep_cmd = "grep -e '{0}' ".format(grep_arg) + "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
                         continue
                     grep_cmd += "| grep -e '{0}'".format(grep_arg)
-                grep_cmd += " >> {log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
+                grep_cmd += " >> {gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
