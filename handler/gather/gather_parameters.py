@@ -121,7 +121,7 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
                         writer.writerow(tmp_row)
                     else:
                         writer.writerow(row)
-            self.stdio.print("Gather parameters finished. For more details, please run cmd " + Fore.YELLOW + "cat '{0}".format(self.parameter_file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Gather parameters finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.parameter_file_name) + Style.RESET_ALL + "'")
         else:
             self.stdio.warn("Failed to retrieve the database version. Please check if the database connection is normal.")
 
