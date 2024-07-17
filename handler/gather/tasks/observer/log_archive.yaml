@@ -120,9 +120,6 @@ task:
       - type: sql
         sql: "SELECT * FROM oceanbase.CDB_OB_ARCHIVELOG_PIECE_FILES limit 20"
         global: true
-      - type: sql # 查看每台机器上的tablet分布
-        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
-        global: true
       - type: log
         global: false
         grep: ""

@@ -70,15 +70,6 @@ task:
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
         global: true
       - type: sql
-        sql: "select b.zone, a.svr_ip,a.svr_port,b.with_rootserver, round(a.total_size/1024/1024/1024,0) as total_GB,round(a.free_size/1024/1024/1024,0) as free_GB, round((a.total_size-a.free_size)/1024/1024/1024,0) as used_GB,(a.total_size-a.free_size)/a.total_size as used_percent from oceanbase.__all_virtual_disk_stat a, oceanbase.DBA_OB_SERVERS b where a.svr_ip=b.svr_ip and a.svr_port=b.svr_port order by b.zone,used_percent desc;"
-        global: true
-      - type: sql # 大于1g的内存模块
-        sql: "SELECT CASE WHEN tenant_name IS NULL THEN TENANT_ID ELSE tenant_name END tenant_name, host,ctx_name, mod_name, hold, used, count FROM ( SELECT tenant_name,tenant_id,HOST,ctx_name,mod_name,hold,used,COUNT, ROW_NUMBER () OVER ( PARTITION BY tenant_name, HOST ORDER BY hold desc) rnum FROM   (SELECT  b.tenant_name, a.tenant_id, concat(a.svr_ip, ':', a.svr_port) HOST,  a.ctx_name, a.mod_name,  round(a.hold / 1024 / 1024 / 1024) hold, round(a.used / 1024 / 1024 / 1024) used, a.COUNT FROM  oceanbase.__all_virtual_memory_info a  LEFT JOIN oceanbase.__all_tenant b ON a.TENANT_ID = b.TENANT_ID  WHERE a.hold > 1024 * 1024 * 1024 ));"
-        global: true
-      - type: sql # 查看每台机器上的tablet分布
-        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
-        global: true
-      - type: sql
         sql: "show parameters like '%syslog_level%';"
         global: true
       - type: sql

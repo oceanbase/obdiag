@@ -105,15 +105,6 @@ task:
       - type: sql
         sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where event like '%migrat%' and name6 like '%fail%' and value6=1;"
         global: true
-      - type: sql
-        sql: "select b.zone, a.svr_ip,a.svr_port,b.with_rootserver, round(a.total_size/1024/1024/1024,0) as total_GB,round(a.free_size/1024/1024/1024,0) as free_GB, round((a.total_size-a.free_size)/1024/1024/1024,0) as used_GB,(a.total_size-a.free_size)/a.total_size as used_percent from oceanbase.__all_virtual_disk_stat a, oceanbase.DBA_OB_SERVERS b where a.svr_ip=b.svr_ip and a.svr_port=b.svr_port order by b.zone,used_percent desc;"
-        global: true
-      - type: sql
-        sql: "select tenant_name, svr_ip,  memstore_limit /(1024 * 1024 * 1024) as memstore_limit_GB,  freeze_trigger /(1024 * 1024 * 1024) as freeze_trigger_GB,  memstore_used /(1024 * 1024 * 1024) as memstore_used_GB,  concat((memstore_used * 100 / memstore_limit), '%') as memstore_used_percent,  active_span /(1024 * 1024 * 1024) as active_span_GB,  freeze_cnt   from oceanbase.GV$OB_MEMSTORE memstore_info  inner join oceanbase.DBA_OB_TENANTS tenant on  memstore_info.tenant_id = tenant.tenant_id  ORDER BY tenant.tenant_name,svr_ip;"
-        global: true
-      - type: sql # 查看每台机器上的tablet分布
-        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
-        global: true
       - type: ssh
         ssh: "df -h"
         global: false

@@ -132,9 +132,6 @@ task:
       - type: sql
         sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, STATUS, SWITCHOVER_STATUS FROM oceanbase.DBA_OB_TENANTS"
         global: true
-      - type: sql # 大于1g的内存模块
-        sql: "SELECT CASE WHEN tenant_name IS NULL THEN TENANT_ID ELSE tenant_name END tenant_name, host,ctx_name, mod_name, hold, used, count FROM ( SELECT tenant_name,tenant_id,HOST,ctx_name,mod_name,hold,used,COUNT, ROW_NUMBER () OVER ( PARTITION BY tenant_name, HOST ORDER BY hold desc) rnum FROM   (SELECT  b.tenant_name, a.tenant_id, concat(a.svr_ip, ':', a.svr_port) HOST,  a.ctx_name, a.mod_name,  round(a.hold / 1024 / 1024 / 1024) hold, round(a.used / 1024 / 1024 / 1024) used, a.COUNT FROM  oceanbase.__all_virtual_memory_info a  LEFT JOIN oceanbase.__all_tenant b ON a.TENANT_ID = b.TENANT_ID  WHERE a.hold > 1024 * 1024 * 1024 ));"
-        global: true
       - type: log
         grep: ""
         global: false
