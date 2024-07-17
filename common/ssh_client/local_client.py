@@ -48,7 +48,7 @@ class LocalClient(SsherClient):
         try:
             shutil.copy(local_path, remote_path)
         except Exception as e:
-            self.stdio.error("upload file to localhost, remote _path =[{0}], local _path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
+            self.stdio.error("upload file to localhost, remote_path =[{0}], local_path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
             raise Exception("[local] upload file to localhost, remote _path =[{0}], local _path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
