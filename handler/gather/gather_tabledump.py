@@ -62,8 +62,8 @@ class GatherTableDumpHandler(SafeStdio):
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
             password = Util.get_option(options, 'password')
-            if not (self.database and self.database and user and password):
-                self.stdio.error("option --database/--table/--user/--password not found, please provide")
+            if not (self.database and self.table and user):
+                self.stdio.error("option --database/--table/--user not found, please provide")
                 return False
             store_dir_option = Util.get_option(options, 'store_dir')
             if store_dir_option is not None and store_dir_option != './':
@@ -100,27 +100,31 @@ class GatherTableDumpHandler(SafeStdio):
         if not self.init():
             self.stdio.error('init failed')
             return False
-        self.execute()
-        if not self.is_innner:
+        excute_status = self.execute()
+        if not self.is_innner and excute_status:
             self.__print_result()
 
     def execute(self):
         try:
             self.version = get_observer_version(self.context)
-            self.__get_table_schema()
-            if self.version == "4.0.0.0" or StringUtils.compare_versions_greater(self.version, "4.0.0.0"):
-                self.__get_table_info()
-            else:
-                self.__get_table_info_v3()
+            if self.__get_table_schema():
+                if self.version == "4.0.0.0" or StringUtils.compare_versions_greater(self.version, "4.0.0.0"):
+                    return self.__get_table_info()
+                else:
+                    return self.__get_table_info_v3()
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: {1}".format(self.file_name, e))
+            self.stdio.error("report sql result failed, error: {0}".format(e))
 
     def __get_table_schema(self):
-        sql = "show create table " + self.database + "." + self.table
-        columns, result = self.tenant_connector.execute_sql_return_columns_and_data(sql)
-        if result is None or len(result) == 0:
-            self.stdio.verbose("excute sql: {0},  result is None".format(sql))
-        self.__report(sql, columns, result)
+        try:
+            sql = "show create table " + self.database + "." + self.table
+            columns, result = self.tenant_connector.execute_sql_return_columns_and_data(sql)
+            if result is None or len(result) == 0:
+                self.stdio.verbose("excute sql: {0},  result is None".format(sql))
+            self.__report(sql, columns, result)
+            return True
+        except Exception as e:
+            self.stdio.error("show create table error {0}".format(e))
 
     def __get_table_info(self):
         try:
@@ -172,6 +176,7 @@ class GatherTableDumpHandler(SafeStdio):
                 return
             self.stdio.print("data size {0}".format(result))
             self.__report(query_data, columns, result)
+            return True
 
         except Exception as e:
             self.stdio.error("getTableInfo execute Exception: {0}".format(e).strip())
@@ -203,6 +208,7 @@ class GatherTableDumpHandler(SafeStdio):
                 return
             self.stdio.print("table count {0}".format(result))
             self.__report(query_count, columns, result)
+            return True
 
         except Exception as e:
             self.stdio.error("getTableInfo execute Exception: {0}".format(e).strip())
@@ -215,7 +221,7 @@ class GatherTableDumpHandler(SafeStdio):
                 f.write('\n\n' + 'obclient > ' + sql + '\n')
                 f.write(formatted_table)
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.file_name))
+            self.stdio.error("report sql result to file: {0} failed, error:{1} ".format(self.file_name, e))
 
     def __extract_string(self, s):
         if '@' in s:
