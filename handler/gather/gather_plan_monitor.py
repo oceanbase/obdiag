@@ -286,8 +286,8 @@ class GatherPlanMonitorHandler(object):
                         handler.handle()
                     except Exception as e:
                         pass
-            table_info_file = os.path.join(self.local_stored_path, "obdiag_tabledump_result_{0}.txt".format(self.gather_timestamp))
-            self.stdio.print("table info file path:{0}".format(table_info_file))
+            table_info_file = os.path.join(self.local_stored_path, "obdiag_tabledump_result_{0}.txt".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
+            self.stdio.verbose("table info file path:{0}".format(table_info_file))
             table_info = self.get_table_info(table_info_file)
             if table_info:
                 schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % table_info
