@@ -136,6 +136,9 @@ class IndexDDLErrorScene(RcaScene):
                 self.verbose("gather rootservice.log  by {0}".format(self.trace_id))
                 work_path_rs = self.store_dir + "/{0}_on_rs/".format(self.trace_id)
                 self.gather_log.set_parameters("scope", "rootservice")
+                if self.input_parameters.get("since") is not None:
+                    since = self.input_parameters.get("since")
+                    self.gather_log.set_parameters("since", since)
                 self.gather_log.grep("{0}".format(self.trace_id))
                 logs_name = self.gather_log.execute(save_path=work_path_rs)
                 if logs_name is None or len(logs_name) <= 0:
@@ -161,6 +164,9 @@ class IndexDDLErrorScene(RcaScene):
                     self.verbose("gather observer.log  by {0}".format(self.trace_id))
                     work_path_ddl_wait_trans_end_ctx_try_wait = self.store_dir + "/{0}_on_obs/".format(self.trace_id)
                     self.gather_log.set_parameters("scope", "observer")
+                    if self.input_parameters.get("since") is not None:
+                        since = self.input_parameters.get("since")
+                        self.gather_log.set_parameters("since", since)
                     self.gather_log.grep("{0}".format(self.trace_id))
                     logs_name = self.gather_log.execute(save_path=work_path_ddl_wait_trans_end_ctx_try_wait)
                     if logs_name is None or len(logs_name) <= 0:
@@ -176,6 +182,9 @@ class IndexDDLErrorScene(RcaScene):
                     # index_sstable_build_task_finish
                     work_path_index_sstable_build_task_finish = self.store_dir + "/{0}_on_obs/".format(self.trace_id)
                     self.gather_log.set_parameters("scope", "observer")
+                    if self.input_parameters.get("since") is not None:
+                        since = self.input_parameters.get("since")
+                        self.gather_log.set_parameters("since", since)
                     self.gather_log.grep("{0}".format(self.trace_id))
                     logs_name = self.gather_log.execute(save_path=work_path_index_sstable_build_task_finish)
                     if logs_name is None or len(logs_name) <= 0:
@@ -191,6 +200,9 @@ class IndexDDLErrorScene(RcaScene):
                     self.verbose("gather rootservice.log  by {0}".format(self.trace_id))
                     work_path_rs = self.store_dir + "/{0}_on_rs/".format(self.trace_id)
                     self.gather_log.set_parameters("scope", "rootservice")
+                    if self.input_parameters.get("since") is not None:
+                        since = self.input_parameters.get("since")
+                        self.gather_log.set_parameters("since", since)
                     self.gather_log.grep("{0}".format(self.trace_id))
                     logs_name = self.gather_log.execute(save_path=work_path_rs)
                     if logs_name is None or len(logs_name) <= 0:

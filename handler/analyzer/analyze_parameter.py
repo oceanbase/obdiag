@@ -135,7 +135,7 @@ class AnalyzeParameterHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
                 self.check_file_valid()
@@ -162,7 +162,7 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
                 report_default_tb.add_row([row[1], row[2], row[3], row[4], tenant_id, row[6], row[11], row[7]])
             fp.write(report_default_tb.get_string() + "\n")
             self.stdio.print(report_default_tb.get_string())
-            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
@@ -180,6 +180,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 with open(self.parameter_file_name, 'r', newline='') as file:
                     reader = csv.reader(file)
                     for row in reader:
+                        if row[0] == 'VERSION':
+                            continue
                         key = str(row[1]) + '-' + str(row[2]) + '-' + str(row[3]) + '-' + str(row[4]) + '-' + str(row[5]) + '-' + str(row[6])
                         value = row[7]
                         file_parameter_dict[key] = value
@@ -211,6 +213,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
             with open(self.parameter_file_name, 'r', newline='') as file:
                 reader = csv.reader(file)
                 for row in reader:
+                    if row[0] == 'VERSION':
+                        continue
                     parameter_info.append(row)
         tenants_dict = dict()
         for row in parameter_info:

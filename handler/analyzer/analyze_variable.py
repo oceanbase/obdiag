@@ -83,13 +83,13 @@ class AnalyzeVariableHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.variable_file_name = os.path.abspath(offline_file_option)
                 self.check_file_valid()
         else:
             self.stdio.error("args --file need provided to find the parts where variables have changed.")
-            exit(-1)
+            return False
 
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
@@ -118,6 +118,8 @@ class AnalyzeVariableHandler(object):
         with open(self.variable_file_name, 'r', newline='') as file:
             reader = csv.reader(file)
             for row in reader:
+                if row[0] == 'VERSION':
+                    continue
                 key = str(row[1]) + '-' + str(row[3])
                 file_variable_dict[key] = str(row[5])
                 if not last_gather_time:
