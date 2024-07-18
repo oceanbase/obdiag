@@ -38,8 +38,8 @@ jobs:
           export RELEASE=`date +%Y%m%d%H%M`
           sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
           python3 get-pip.py\n\
-          python3 -m pip install --upgrade pip "setuptools==70.3.0" wheel
           pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
+          python3 -m pip install --upgrade pip wheel
           cat ./rpm/oceanbase-diagnostic-tool.spec
           python3 --version
           rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
