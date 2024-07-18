@@ -62,9 +62,6 @@ class GatherTableDumpHandler(SafeStdio):
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
             password = Util.get_option(options, 'password')
-            if not (self.database and self.table and user):
-                self.stdio.error("option --database/--table/--user not found, please provide")
-                return False
             store_dir_option = Util.get_option(options, 'store_dir')
             if store_dir_option is not None and store_dir_option != './':
                 if not os.path.exists(os.path.abspath(store_dir_option)):
@@ -81,6 +78,9 @@ class GatherTableDumpHandler(SafeStdio):
                 password = self.context.get_variable("gather_password")
             if self.context.get_variable("store_dir", None):
                 self.store_dir = self.context.get_variable("store_dir")
+            if not (self.database and self.table and user):
+                self.stdio.error("option --database/--table/--user not found, please provide")
+                return False
             if self.context.get_variable("gather_tenant_name", None):
                 self.tenant_name = self.context.get_variable("gather_tenant_name")
             else:
