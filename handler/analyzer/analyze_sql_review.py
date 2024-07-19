@@ -80,6 +80,9 @@ class AnalyzeSQLReviewHandler(object):
         if files_option:
             self.directly_analyze_files = True
             self.analyze_files_list = files_option
+        else:
+            self.stdio.error("option --file not found, please provide")
+            return False
         db_user_option = Util.get_option(options, 'user')
         db_password_option = Util.get_option(options, 'password')
         tenant_name_option = Util.get_option(options, 'tenant_name')
@@ -115,8 +118,10 @@ class AnalyzeSQLReviewHandler(object):
             return False
         self.init_db_connector()
         self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_sql_review_result_{0}.html".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-        self.stdio.print("use {0} as result store path.".format(self.local_store_path))
+        self.stdio.verbose("use {0} as result store path.".format(self.local_store_path))
         all_results = self.__directly_analyze_files()
+        if all_results is None:
+            return
         results = self.__parse_results(all_results)
         if self.output_type == "html":
             html_result = self.__generate_html_result(results)
@@ -128,7 +133,7 @@ class AnalyzeSQLReviewHandler(object):
     def __directly_analyze_files(self):
         sql_files = self.__get_sql_file_list()
         if len(sql_files) == 0:
-            self.stdio.warn("failed to find SQL files from the --files option provided")
+            self.stdio.error("failed to find SQL files from the --files option provided")
             return None
         file_results = {}
         sql_results = {}
