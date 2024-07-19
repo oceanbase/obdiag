@@ -242,7 +242,7 @@ class ClogDiskFullChecker:
                         for line in lines:
                             if check_replay_stuck:
                                 break
-                            if "get_min_unreplayed_log_info" in line and self.get_stuck_mod(line).get('role_') is not None:
+                            if "get_min_unreplayed_log_info" in line and self.get_stuck_modV2(line).get('role_') is not None:
                                 self.record.add_record("get min unreplayed log info is {0}".format(line))
                                 replay_scn = self.parse_replay_scn(line)
                                 replay_scn_time = datetime.datetime.fromtimestamp(float(replay_scn) / 1000000000)
@@ -357,6 +357,15 @@ class ClogDiskFullChecker:
         d = dict()
         # service_type="TRANS_SERVICE"
         p = '(?P<key>[\w|_]+)=\"(?P<value>\w+)\"'
+        m = re.finditer(p, line)
+        for i in m:
+            d[i.group('key')] = i.group('value')
+        return d
+
+    def get_stuck_modV2(self,line):
+        d = dict()
+        # service_type="TRANS_SERVICE"
+        p = '(?P<key>[\w|_]+):(?P<value>\w+)'
         m = re.finditer(p, line)
         for i in m:
             d[i.group('key')] = i.group('value')
