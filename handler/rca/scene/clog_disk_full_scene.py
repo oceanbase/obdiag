@@ -247,7 +247,11 @@ class ClogDiskFullChecker:
                                 replay_scn = self.parse_replay_scn(line)
                                 replay_scn_time = datetime.datetime.fromtimestamp(float(replay_scn) / 1000000000)
                                 log_time = self.parse_log_time(line)
+                                self.record.add_record("log_time:{0}, replay_scn_time:{1}")
                                 check_replay_stuck = log_time - replay_scn_time > datetime.timedelta(minutes=0.5)
+                                self.record.add_record("log_time - replay_scn_time : {0} - {1}".format(log_time, replay_scn_time))
+                                self.record.add_record("datetime.timedelta(minutes=0.5): {0}".format(datetime.timedelta(minutes=0.5)))
+                                self.record.add_record("log_time - replay_scn_time > datetime.timedelta(minutes=0.5) is {0}".format(check_replay_stuck))
                                 break
                 self.record.add_record("check_replay_stuck is {0}".format(check_replay_stuck))
                 if check_replay_stuck:
