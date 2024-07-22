@@ -102,6 +102,7 @@ class LockConflictScene(RcaScene):
                     audit_switch_value = cursor_check_switch.fetchone().get("value")
                     if audit_switch_value.strip().upper() == "TRUE":
                         holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}";'.format(holding_lock_session_id))
+                        trans_record.add_record('exec sql: SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}"; to get holding_lock_sql_info.'.format(holding_lock_session_id))
                         holding_lock_sql_info = holding_lock_sql_info_cursor.fetchall()
                         if len(holding_lock_sql_info) == 0:
                             trans_record.add_record("holding_lock_session_id: {0}; not find sql_info on gv$OB_SQL_AUDIT".format(holding_lock_session_id))

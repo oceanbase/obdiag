@@ -137,6 +137,7 @@ class ClogDiskFullChecker:
             os.makedirs(work_path)
         self.stdio.verbose("work_path is {0}".format(self.work_path))
         self.stdio = stdio
+        self.input_parameters = context.get_variable("input_parameters") or {}
 
     def execute(self):
         try:
@@ -151,6 +152,9 @@ class ClogDiskFullChecker:
             self.gather_log.grep("{0}".format(self.tenant_id))
             self.gather_log.grep("{0}".format(self.ls_id))
             self.gather_log.grep("clog checkpoint no change")
+            if self.input_parameters.get("since") is not None:
+                since = self.input_parameters.get("since")
+                self.gather_log.set_parameters("since", since)
             logs_name = self.gather_log.execute(save_path=work_path_checkpoint)
             if logs_name is None or len(logs_name) <= 0:
                 self.record.add_record("no log_disk_full about checkpoint")
@@ -192,6 +196,9 @@ class ClogDiskFullChecker:
                 self.gather_log.grep("{0}".format(self.tenant_id))
                 self.gather_log.grep("{0}".format(self.ls_id))
                 self.gather_log.grep("ObLSTxService::get_rec_scn")
+                if self.input_parameters.get("since") is not None:
+                    since = self.input_parameters.get("since")
+                    self.gather_log.set_parameters("since", since)
                 logs_name = self.gather_log.execute(save_path=work_path_get_min_ckpt_type)
                 check_min_ckpt_type = False
                 for log_name in logs_name:
@@ -222,6 +229,9 @@ class ClogDiskFullChecker:
                 self.gather_log.grep("{0}".format(self.tenant_id))
                 self.gather_log.grep("{0}".format(self.ls_id))
                 self.gather_log.grep("get_min_unreplayed_log_info")
+                if self.input_parameters.get("since") is not None:
+                    since = self.input_parameters.get("since")
+                    self.gather_log.set_parameters("since", since)
                 logs_name = self.gather_log.execute(save_path=work_path_check_replay_stack)
                 check_replay_stuck = False
                 for log_name in logs_name:
@@ -232,12 +242,18 @@ class ClogDiskFullChecker:
                         for line in lines:
                             if check_replay_stuck:
                                 break
-                            if "get_min_unreplayed_log_info" in line and self.get_stuck_mod(line).get('role_') is not None:
-                                self.record.add_record("get min unreplayed log info is {0}".format(line))
+                            if "get_min_unreplayed_log_info" in line and self.get_stuck_modV2(line).get('role_') is not None:
+
                                 replay_scn = self.parse_replay_scn(line)
                                 replay_scn_time = datetime.datetime.fromtimestamp(float(replay_scn) / 1000000000)
                                 log_time = self.parse_log_time(line)
                                 check_replay_stuck = log_time - replay_scn_time > datetime.timedelta(minutes=0.5)
+                                if check_replay_stuck:
+                                    self.record.add_record("check_replay_stuck is True. the line: {0}".format(line))
+                                    self.record.add_record("get min unreplayed log info is {0}".format(line))
+                                    self.record.add_record("log_time - replay_scn_time : {0} - {1}".format(log_time, replay_scn_time))
+                                    self.record.add_record("datetime.timedelta(minutes=0.5): {0}".format(datetime.timedelta(minutes=0.5)))
+                                    self.record.add_record("log_time - replay_scn_time > datetime.timedelta(minutes=0.5) is {0}".format(check_replay_stuck))
                                 break
                 self.record.add_record("check_replay_stuck is {0}".format(check_replay_stuck))
                 if check_replay_stuck:
@@ -253,6 +269,9 @@ class ClogDiskFullChecker:
                 self.gather_log.grep("{0}".format(self.tenant_id))
                 self.gather_log.grep("log_frozen_memstore_info_if_need_")
                 self.gather_log.grep("[TenantFreezer] oldest frozen memtable")
+                if self.input_parameters.get("since") is not None:
+                    since = self.input_parameters.get("since")
+                    self.gather_log.set_parameters("since", since)
                 logs_name = self.gather_log.execute(save_path=work_path_check_dump_stuck)
                 check_dump_stuck = False
                 for log_name in logs_name:
@@ -287,6 +306,9 @@ class ClogDiskFullChecker:
             self.gather_log.set_parameters("scope", "observer")
             self.gather_log.grep("{0}".format(self.tenant_id))
             self.gather_log.grep("Server out of disk space")
+            if self.input_parameters.get("since") is not None:
+                since = self.input_parameters.get("since")
+                self.gather_log.set_parameters("since", since)
             logs_name = self.gather_log.execute(save_path=work_path_check_data_disk_full)
             for log_name in logs_name:
                 if check_data_disk_full:
@@ -309,6 +331,9 @@ class ClogDiskFullChecker:
             self.gather_log.set_parameters("scope", "observer")
             self.gather_log.grep("{0}".format(self.tenant_id))
             self.gather_log.grep("Too many sstables in tablet, cannot schdule mini compaction, retry later")
+            if self.input_parameters.get("since") is not None:
+                since = self.input_parameters.get("since")
+                self.gather_log.set_parameters("since", since)
             logs_name = self.gather_log.execute(save_path=work_path_check_too_many_sstable)
             for log_name in logs_name:
                 if check_too_many_sstable:
@@ -334,6 +359,15 @@ class ClogDiskFullChecker:
         d = dict()
         # service_type="TRANS_SERVICE"
         p = '(?P<key>[\w|_]+)=\"(?P<value>\w+)\"'
+        m = re.finditer(p, line)
+        for i in m:
+            d[i.group('key')] = i.group('value')
+        return d
+
+    def get_stuck_modV2(self, line):
+        d = dict()
+        # service_type="TRANS_SERVICE"
+        p = '(?P<key>[\w|_]+):(?P<value>\w+)'
         m = re.finditer(p, line)
         for i in m:
             d[i.group('key')] = i.group('value')

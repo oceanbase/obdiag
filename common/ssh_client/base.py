@@ -22,7 +22,6 @@ from stdio import SafeStdio
 
 class SsherClient(SafeStdio):
     def __init__(self, context, node):
-        super().__init__()
         self.context = context
         if context is not None:
             self.stdio = self.context.stdio
