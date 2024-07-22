@@ -80,6 +80,6 @@ find /usr/local/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
 ln -sf /usr/local/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /usr/local/oceanbase-diagnostic-tool/obdiag
 cp -rf /usr/local/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
-sh /usr/local/oceanbase-diagnostic-tool/init.sh
+/usr/local/oceanbase-diagnostic-tool/init.sh
 echo -e 'Please execute the following command to init obdiag:\n'
 echo -e '\033[32m source /usr/local/oceanbase-diagnostic-tool/init.sh \n \033[0m'
