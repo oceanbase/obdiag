@@ -117,6 +117,7 @@ class GatherTableDumpHandler(SafeStdio):
 
     def __get_table_schema(self):
         try:
+            self.table = self.__extract_table_name(self.table)
             sql = "show create table " + self.database + "." + self.table
             columns, result = self.tenant_connector.execute_sql_return_columns_and_data(sql)
             if result is None or len(result) == 0:
@@ -236,6 +237,13 @@ class GatherTableDumpHandler(SafeStdio):
                 return s[at_index + 1 :]
         else:
             return s
+
+    def __extract_table_name(self, full_name):
+        parts = full_name.split('.')
+        if len(parts) > 1:
+            return parts[-1]
+        else:
+            return full_name
 
     def __print_result(self):
         self.end_time = time.time()
