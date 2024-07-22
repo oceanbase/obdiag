@@ -145,7 +145,7 @@ class GatherPlanMonitorHandler(object):
                 sql_plan_monitor_detail_v1 = str(sql_plan_monitor_detail_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PLAN_LINE_ID ASC, SVR_IP, SVR_PORT, CHANGE_TS, PROCESS_NAME ASC")
                 sql_plan_monitor_detail_v2 = str(sql_plan_monitor_detail_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PROCESS_NAME ASC, PLAN_LINE_ID ASC, FIRST_REFRESH_TIME ASC")
 
-                sql_plan_monitor_dfo_op = self.sql_plan_monitor_dfo_op_sql(tenant_id, plan_id, trace_id)
+                sql_plan_monitor_dfo_op = self.sql_plan_monitor_dfo_op_sql(tenant_id, plan_id, trace_id, svr_ip, svr_port)
                 full_audit_sql_by_trace_id_sql = self.full_audit_sql_by_trace_id_sql(trace_id)
                 plan_explain_sql = self.plan_explain_sql(tenant_id, plan_id, svr_ip, svr_port)
 
@@ -740,7 +740,7 @@ class GatherPlanMonitorHandler(object):
                 sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_oracle"), self.sql_audit_name, trace_id)
         return sql
 
-    def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id):
+    def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id, svr_ip, svr_port):
         if self.tenant_mode == 'mysql':
             if self.ob_major_version >= 4:
                 sql = (
@@ -749,6 +749,8 @@ class GatherPlanMonitorHandler(object):
                     .replace("##REPLACE_PLAN_ID##", str(plan_id))
                     .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                    .replace("##REPLACE_SVR_IP##", svr_ip)
+                    .replace("##REPLACE_SVR_PORT##", str(svr_port))
                 )
             else:
                 sql = (
@@ -757,25 +759,29 @@ class GatherPlanMonitorHandler(object):
                     .replace("##REPLACE_PLAN_ID##", str(plan_id))
                     .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                    .replace("##REPLACE_SVR_IP##", svr_ip)
+                    .replace("##REPLACE_SVR_PORT##", str(svr_port))
                 )
         else:
             if self.ob_major_version >= 4:
                 sql = (
-                    GlobalSqlMeta()
-                    .get_value(key="sql_plan_monitor_dfo_op_oracle_obversion4")
+                    str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_oracle_obversion4"))
                     .replace("##REPLACE_TRACE_ID##", trace_id)
                     .replace("##REPLACE_PLAN_ID##", str(plan_id))
                     .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                    .replace("##REPLACE_SVR_IP##", svr_ip)
+                    .replace("##REPLACE_SVR_PORT##", str(svr_port))
                 )
             else:
                 sql = (
-                    GlobalSqlMeta()
-                    .get_value(key="sql_plan_monitor_dfo_op_oracle")
+                    str(GlobalSqlMeta().get_value(key="sql_plan_monitor_dfo_op_oracle"))
                     .replace("##REPLACE_TRACE_ID##", trace_id)
                     .replace("##REPLACE_PLAN_ID##", str(plan_id))
                     .replace("##REPLACE_TENANT_ID##", str(tenant_id))
                     .replace("##REPLACE_PLAN_EXPLAIN_TABLE_NAME##", self.plan_explain_name)
+                    .replace("##REPLACE_SVR_IP##", svr_ip)
+                    .replace("##REPLACE_SVR_PORT##", str(svr_port))
                 )
 
         return sql
