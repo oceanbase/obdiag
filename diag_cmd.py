@@ -922,8 +922,8 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())
-        self.register_command(ObdiagAnalyzeSQLCommand())
-        self.register_command(ObdiagAnalyzeSQLReviewCommand())
+        # self.register_command(ObdiagAnalyzeSQLCommand())
+        # self.register_command(ObdiagAnalyzeSQLReviewCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
