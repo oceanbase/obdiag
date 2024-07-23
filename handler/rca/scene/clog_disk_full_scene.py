@@ -94,6 +94,7 @@ class ClogDiskFullScene(RcaScene):
             self.verbose("tenant_ls_datas is {0}".format(tenant_ls_datas))
             self.record.add_record("tenant_ls_datas is {0}".format(tenant_ls_datas))
             self.record.add_suggest("init data end. Please check the other record.")
+            self.record.add_suggest("If you want to learn more or get help, you can package the folder '{0}' and upload it to the OceanBase community forum.".format(self.work_path))
             for tenant_ls_data in tenant_ls_datas:
                 record = RCA_ResultRecord(self.stdio)
                 record.add_record("check error tenant_ls_data is {0}".format(tenant_ls_data))
@@ -145,7 +146,7 @@ class ClogDiskFullChecker:
             if not os.path.exists(work_path):
                 os.makedirs(work_path)
             # __check_checkpoint
-            self.record.add_record("__check_checkpoint")
+            self.record.add_record("check_checkpoint")
             work_path_checkpoint = work_path + "/checkpoint/"
             # gather log about tenant_id, ls, "clog checkpoint no change".
             self.gather_log.set_parameters("scope", "observer")
@@ -184,8 +185,8 @@ class ClogDiskFullChecker:
             if is_clog_checkpoint_stuck is False:
                 self.record.add_record("is_clog_checkpoint_stuck is {0}".format(is_clog_checkpoint_stuck))
                 return False
-            self.record.add_record("__check_checkpoint end")
-            self.record.add_record("__get_min_ckpt_type start")
+            self.record.add_record("check_checkpoint end")
+            self.record.add_record("get_min_ckpt_type start")
             if stuck_service_type != "" and stuck_service_type != 'TRANS_SERVICE':
                 self.record.add_record("stuck_service_type  is {0}, not 'TRANS_SERVICE'. pass __get_min_ckpt_type".format(stuck_service_type))
                 pass
@@ -217,8 +218,8 @@ class ClogDiskFullChecker:
                                 self.record.add_suggest("min_checkpoint_tx_log_type is {0}. please check it.".format(min_checkpoint_tx_log_type))
                                 break
                 self.record.add_record("check_min_ckpt_type is {0}".format(check_min_ckpt_type))
-            self.record.add_record("__get_min_ckpt_type end")
-            self.record.add_record("__check_replay_stuck start")
+            self.record.add_record("get_min_ckpt_type end")
+            self.record.add_record("check_replay_stuck start")
             if stuck_service_type != 'TRANS_SERVICE' and stuck_service_type != 'MAX_DECIDED_SCN':
                 self.record.add_record("stuck_service_type is {0} (not TRANS_SERVICE or MAX_DECIDED_SCN). pass __check_replay_stuck. ".format(stuck_service_type))
                 pass
@@ -258,8 +259,9 @@ class ClogDiskFullChecker:
                 self.record.add_record("check_replay_stuck is {0}".format(check_replay_stuck))
                 if check_replay_stuck:
                     self.record.add_record("check_replay_stuck is True. Please check replay status")
-            self.record.add_record("__check_replay_stuck end")
-            self.record.add_record("__check_dump_stuck start")
+                    self.record.add_suggest("check_replay_stuck is True. Please check replay status")
+            self.record.add_record("check_replay_stuck end")
+            self.record.add_record("check_dump_stuck start")
             if stuck_service_type != 'TRANS_SERVICE':
                 self.record.add_record("stuck_service_type is {0} (not TRANS_SERVICE ). pass __check_dump_stuck.".format(stuck_service_type))
             else:
@@ -298,8 +300,8 @@ class ClogDiskFullChecker:
                 self.record.add_record("check_dump_stuck is {0}".format(check_dump_stuck))
                 if check_dump_stuck:
                     self.record.add_suggest("Dump stuck, please check dump status.")
-            self.record.add_record("__check_dump_stuck end")
-            self.record.add_record("__check_data_disk_full start")
+            self.record.add_record("check_dump_stuck end")
+            self.record.add_record("check_data_disk_full start")
             check_data_disk_full = False
             work_path_check_data_disk_full = work_path + "/check_data_disk_full/"
             # gather log about tenant_id, "Server out of disk space"
@@ -323,8 +325,8 @@ class ClogDiskFullChecker:
             self.record.add_record("check_data_disk_full is {0}".format(check_data_disk_full))
             if check_data_disk_full:
                 self.record.add_suggest("Data disk full, please check data disk usage.")
-            self.record.add_record("__check_data_disk_full end")
-            self.record.add_record("__check_too_many_sstable start")
+            self.record.add_record("check_data_disk_full end")
+            self.record.add_record("check_too_many_sstable start")
             check_too_many_sstable = False
             work_path_check_too_many_sstable = work_path + "/check_too_many_sstable/"
             # gather log about tenant_id, "Too many sstables in tablet, cannot schdule mini compaction, retry later"
@@ -348,7 +350,7 @@ class ClogDiskFullChecker:
             self.record.add_record("check_too_many_sstable is {0}".format(check_too_many_sstable))
             if check_too_many_sstable:
                 self.record.add_suggest("Too many sstables in tablet, please check the number of sstables in the tablet.")
-            self.record.add_record("__check_too_many_sstable end")
+            self.record.add_record("check_too_many_sstable end")
             self.record.add_record("check end")
             return True
         except Exception as e:
