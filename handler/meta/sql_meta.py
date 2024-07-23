@@ -242,7 +242,7 @@ sql_dict.set_value(
     ) plan_monitor
     LEFT JOIN
     (
-     SELECT "ROWS", PLAN_LINE_ID FROM sys.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID##
+     SELECT "ROWS", PLAN_LINE_ID FROM sys.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID## and ip = '##REPLACE_SVR_IP##'  and port = ##REPLACE_SVR_PORT##
     ) plan_explain
     ON
       plan_monitor.PLAN_LINE_ID = plan_explain.PLAN_LINE_ID
@@ -316,7 +316,7 @@ sql_dict.set_value(
         ) plan_monitor
         LEFT JOIN
         (
-         SELECT ROWS, PLAN_LINE_ID FROM oceanbase.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID##
+         SELECT ROWS, PLAN_LINE_ID FROM oceanbase.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID## and ip = '##REPLACE_SVR_IP##'  and port = ##REPLACE_SVR_PORT##
         ) plan_explain
         ON
           plan_monitor.PLAN_LINE_ID = plan_explain.PLAN_LINE_ID
@@ -648,7 +648,7 @@ from
 ) plan_monitor
 LEFT JOIN
 (
- SELECT "ROWS", PLAN_LINE_ID FROM sys.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID##
+ SELECT "ROWS", PLAN_LINE_ID FROM sys.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID## and svr_ip = '##REPLACE_SVR_IP##'  and svr_port = ##REPLACE_SVR_PORT##
 ) plan_explain
 ON
   plan_monitor.PLAN_LINE_ID = plan_explain.PLAN_LINE_ID
@@ -726,7 +726,7 @@ where
 ) plan_monitor
 LEFT JOIN
 (
- SELECT ROWS, PLAN_LINE_ID FROM oceanbase.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID##
+ SELECT ROWS, PLAN_LINE_ID FROM oceanbase.##REPLACE_PLAN_EXPLAIN_TABLE_NAME## WHERE plan_id = ##REPLACE_PLAN_ID## AND tenant_id = ##REPLACE_TENANT_ID## and svr_ip = '##REPLACE_SVR_IP##'  and svr_port = ##REPLACE_SVR_PORT##
 ) plan_explain
 ON
   plan_monitor.PLAN_LINE_ID = plan_explain.PLAN_LINE_ID
