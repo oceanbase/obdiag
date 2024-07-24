@@ -31,6 +31,7 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
+import common.ssh_client.local_client as ssh_client_local_client
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -279,11 +280,13 @@ class AnalyzeLogHandler(BaseShellHandler):
         :param ssh_helper, log_name
         :return:
         """
+
+        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            ssh_client.exec_cmd(ssh_client, grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
         else:
             download_file(ssh_client, log_name, local_store_path, self.stdio)
 
