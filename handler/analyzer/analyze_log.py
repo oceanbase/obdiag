@@ -287,6 +287,8 @@ class AnalyzeLogHandler(BaseShellHandler):
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
+        else:
+            download_file(ssh_client, log_name, local_store_path, self.stdio)
 
     def __get_observer_ret_code(self, log_line):
         """
