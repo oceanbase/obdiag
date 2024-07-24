@@ -74,7 +74,9 @@ class AnalyzeVariableHandler(object):
                 flag = 0
             if flag == 0:
                 self.stdio.error('args --file [{0}] is not a valid variable file, Please specify it again'.format(os.path.abspath(self.variable_file_name)))
-                exit(-1)
+                return False
+            else:
+                return True
 
     def init_option(self):
         options = self.context.options
@@ -86,7 +88,8 @@ class AnalyzeVariableHandler(object):
                 return False
             else:
                 self.variable_file_name = os.path.abspath(offline_file_option)
-                self.check_file_valid()
+                if not self.check_file_valid():
+                    return False
         else:
             self.stdio.error("args --file need provided to find the parts where variables have changed.")
             return False
