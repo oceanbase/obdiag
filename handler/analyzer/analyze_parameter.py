@@ -90,7 +90,9 @@ class AnalyzeParameterHandler(object):
                 flag = 0
             if flag == 0:
                 self.stdio.error('args --file [{0}] is not a valid parameter file, Please specify it again'.format(os.path.abspath(self.parameter_file_name)))
-                exit(-1)
+                return False
+            else:
+                return True
 
     def init_option_default(self):
         options = self.context.options
@@ -110,10 +112,11 @@ class AnalyzeParameterHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
-                self.check_file_valid()
+                if not self.check_file_valid():
+                    return False
         return True
 
     def init_option_diff(self):
@@ -138,7 +141,8 @@ class AnalyzeParameterHandler(object):
                 return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
-                self.check_file_valid()
+                if not self.check_file_valid():
+                    return False
         return True
 
     def analyze_parameter_default(self):
@@ -166,7 +170,7 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
-                exit(-1)
+                return
             else:
                 sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
 EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
