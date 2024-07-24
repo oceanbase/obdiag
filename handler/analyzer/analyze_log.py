@@ -132,6 +132,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
+
         def handle_from_node(node):
             resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
             analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
