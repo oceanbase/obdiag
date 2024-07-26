@@ -55,9 +55,7 @@ class TestFilterByVersion(unittest.TestCase):
         self.scene[0]["version"] = str(1.0)
         with self.assertRaises(Exception) as context:
             filter_by_version(self.scene, self.cluster, self.stdio)
-        self.assertTrue(
-            "filter_by_version steps_version Exception" in str(context.exception)
-        )
+        self.assertTrue("filter_by_version steps_version Exception" in str(context.exception))
 
     def test_filter_by_version_no_version_in_cluster(self):
         # Test case where version is not specified in the cluster
