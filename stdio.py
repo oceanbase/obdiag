@@ -240,7 +240,7 @@ class IOTable(PrettyTable):
 
 class IOHalo(Halo):
 
-    def __init__(self, text='', color='cyan', text_color=None, spinner='line', animation=None, placement='right', interval=-1, enabled=True, stream=sys.stdout):
+    def __init__(self, text='', color='cyan', text_color=None, spinner='line', animation=None, placement='right', interval=-1, enabled=True, stream=sys.stdout,error_stream=sys.stderr):
         super(IOHalo, self).__init__(text=text, color=color, text_color=text_color, spinner=spinner, animation=animation, placement=placement, interval=interval, enabled=enabled, stream=stream)
 
     def start(self, text=None):
@@ -358,7 +358,7 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout,error_stream=sys.stderr):
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -379,6 +379,8 @@ class IO(object):
         self._input_is_tty = False
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
+        self._cur_err_obj = None
+        self.set_err_stream(error_stream)
 
     def isatty(self):
         if self._root_io:
@@ -398,6 +400,12 @@ class IO(object):
             self._cur_out_obj = output_stream
         self._out_obj = output_stream
         self._output_is_tty = output_stream.isatty()
+        return True
+    def set_err_stream(self, error_stream):
+        if self._root_io:
+            return False
+        self._cur_err_obj = error_stream
+        self._output_is_tty = error_stream.isatty()
         return True
 
     def init_trace_logger(self, log_path, log_name=None, trace_id=None, recreate=False):
@@ -500,6 +508,10 @@ class IO(object):
         if self._root_io:
             return self._root_io.get_input_stream()
         return self.input_stream
+    def get_cur_err_obj(self):
+        if self._root_io:
+            return self._root_io.get_cur_err_obj()
+        return self._cur_err_obj
 
     def get_cur_out_obj(self):
         if self._root_io:
@@ -680,7 +692,10 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        kwargs['file'] = self.get_cur_out_obj()
+        if msg_lv == MsgLevel.ERROR:
+            kwargs['file'] = self.get_cur_err_obj()
+        else:
+            kwargs['file'] = self.get_cur_out_obj()
         kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
         del kwargs['file']
         self.log(msg_lv, msg, *args, **kwargs)
