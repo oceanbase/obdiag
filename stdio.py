@@ -240,7 +240,7 @@ class IOTable(PrettyTable):
 
 class IOHalo(Halo):
 
-    def __init__(self, text='', color='cyan', text_color=None, spinner='line', animation=None, placement='right', interval=-1, enabled=True, stream=sys.stdout,error_stream=sys.stderr):
+    def __init__(self, text='', color='cyan', text_color=None, spinner='line', animation=None, placement='right', interval=-1, enabled=True, stream=sys.stdout):
         super(IOHalo, self).__init__(text=text, color=color, text_color=text_color, spinner=spinner, animation=animation, placement=placement, interval=interval, enabled=enabled, stream=stream)
 
     def start(self, text=None):
@@ -358,7 +358,7 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout,error_stream=sys.stderr):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stderr):
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -373,13 +373,14 @@ class IO(object):
         self.sync_obj = None
         self.input_stream = None
         self._out_obj = None
+        self._err_obj = None
         self._cur_out_obj = None
+        self._cur_err_obj = None
         self._before_critical = None
         self._output_is_tty = False
         self._input_is_tty = False
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
-        self._cur_err_obj = None
         self.set_err_stream(error_stream)
 
     def isatty(self):
@@ -401,10 +402,13 @@ class IO(object):
         self._out_obj = output_stream
         self._output_is_tty = output_stream.isatty()
         return True
+
     def set_err_stream(self, error_stream):
         if self._root_io:
             return False
-        self._cur_err_obj = error_stream
+        if self._cur_err_obj == self._err_obj:
+            self._cur_err_obj = error_stream
+        self._err_obj = error_stream
         self._output_is_tty = error_stream.isatty()
         return True
 
@@ -425,7 +429,7 @@ class IO(object):
         state = {}
         for key in self.__dict__:
             state[key] = self.__dict__[key]
-        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_cur_out_obj', '_before_critical']:
+        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_cur_out_obj', '_before_critical', '_cur_err_obj']:
             state[key] = None
         return state
 
@@ -508,6 +512,7 @@ class IO(object):
         if self._root_io:
             return self._root_io.get_input_stream()
         return self.input_stream
+
     def get_cur_err_obj(self):
         if self._root_io:
             return self._root_io.get_cur_err_obj()
@@ -524,6 +529,7 @@ class IO(object):
         if self._cur_out_obj != self._out_obj:
             return False
         self._cur_out_obj = BufferIO()
+        self._cur_err_obj = BufferIO()
         return True
 
     def _stop_buffer_io(self):
@@ -533,6 +539,7 @@ class IO(object):
             return False
         text = self._cur_out_obj.read()
         self._cur_out_obj = self._out_obj
+        self._cur_err_obj = self._err_obj
         if text:
             self.print(text)
         return True
