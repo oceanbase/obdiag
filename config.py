@@ -65,6 +65,7 @@ DEFAULT_INNER_CONFIG = {
             'file_number_limit': 20,
             'file_size_limit': '2G',
             'dis_rsa_algorithms': 0,
+            'print_type': 0,
         },
         'logger': {
             'log_dir': '~/.obdiag/log',
@@ -257,7 +258,11 @@ class ConfigManager(Manager):
 
 class InnerConfigManager(Manager):
 
-    def __init__(self, stdio=None):
+    def __init__(self, stdio=None, inner_config_change_map=None):
+        if inner_config_change_map is None:
+            inner_config_change_map = {}
         inner_config_abs_path = os.path.abspath(INNER_CONFIG_FILE)
         super().__init__(inner_config_abs_path, stdio=stdio)
         self.config = self.load_config_with_defaults(DEFAULT_INNER_CONFIG)
+        if inner_config_change_map != {}:
+            self.config.update(inner_config_change_map)

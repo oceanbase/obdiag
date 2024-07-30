@@ -382,6 +382,13 @@ class IO(object):
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
         self.set_err_stream(error_stream)
+        self.print_type = 0  # 0: use stdout, 1: use stdout and stderr, 2: just print result (json). when obdiag_version ≥ 3.0, print_type = 1
+
+    def set_print_type(self, print_type=0):
+        try:
+            self.print_type = int(print_type)
+        except Exception as e:
+            pass
 
     def isatty(self):
         if self._root_io:
@@ -699,7 +706,7 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        if msg_lv == MsgLevel.ERROR:
+        if msg_lv == MsgLevel.ERROR and self.print_type > 0:
             kwargs['file'] = self.get_cur_err_obj()
         else:
             kwargs['file'] = self.get_cur_out_obj()

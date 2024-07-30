@@ -62,7 +62,7 @@ from common.tool import TimeUtils
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml')):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -71,7 +71,12 @@ class ObdiagHome(object):
         self.namespaces = {}
         self.set_stdio(stdio)
         self.context = None
-        self.inner_config_manager = InnerConfigManager(stdio)
+        self.inner_config_manager = InnerConfigManager(stdio=stdio, inner_config_change_map=inner_config_change_map)
+        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("print_type") is not None:
+            stdio.set_print_type(self.inner_config_manager.config.get("obdiag").get("basic").get("print_type"))
+            pass
+
+        self.set_stdio(stdio)
         self.config_manager = ConfigManager(config_path, stdio)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
