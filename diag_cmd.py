@@ -128,12 +128,10 @@ class BaseCommand(object):
             key, val = value.split('=')
             if key is None or key == "":
                 return
-            print("{0}: {1}".format(key, val))
             m = self._inner_config_change_set(key, val)
             self.inner_config_change_map.update(m)
-            print("map update to: {0}".format(self.inner_config_change_map))
         except Exception as e:
-            raise Exception("Key or val ({1}:{2}) is illegal: {0}".format(e, key, val))
+            raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
 
     def _inner_config_change_set(self, key, val):
         def recursion(change_map, key, val):

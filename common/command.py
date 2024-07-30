@@ -48,37 +48,6 @@ class LocalClient(object):
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
 
 
-#
-# class SshClient(object):
-#     def __init__(self, stdio=None):
-#         self.stdio = stdio
-#
-#     def run(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] excute cmd = [{1}]".format(ssh_helper.get_name(), cmd))
-#             stdout = ssh_helper.ssh_exec_cmd(cmd)
-#             self.stdio.verbose("[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(ssh_helper.get_name(), cmd, stdout))
-#             return stdout
-#         except Exception as e:
-#             self.stdio.error("[remote host {0}] excute cmd = [{1}] except: [{2}]".format(ssh_helper.get_name(), cmd, e))
-#
-#     def run_get_stderr(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
-#             std = ssh_helper.ssh_exec_cmd_get_stderr(cmd)
-#             return std
-#         except Exception as e:
-#             self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
-#
-#     def run_ignore_err(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
-#             std = ssh_helper.ssh_exec_cmd_ignore_err(cmd)
-#             return std
-#         except SSHException as e:
-#             self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
-
-
 def download_file(ssh_client, remote_path, local_path, stdio=None):
     """
     download file

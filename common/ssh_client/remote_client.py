@@ -50,8 +50,12 @@ class RemoteClient(SsherClient):
         self.key_file = os.path.expanduser(self.key_file)
         self._ssh_fd = None
         self._sftp_client = None
+        # remote_client_sudo
+        self.remote_client_sudo = bool(self.context.inner_config.get("obdiag").get("ssh_client").get("remote_client_sudo"))
+        # remote_client_disable_rsa_algorithms
         DISABLED_ALGORITHMS = dict(pubkeys=["rsa-sha2-512", "rsa-sha2-256"])
-        if ENV_DISABLE_RSA_ALGORITHMS == 1:
+        remote_client_disable_rsa_algorithms = bool(self.context.inner_config.get("obdiag").get("basic").get("dis_rsa_algorithms"))
+        if remote_client_disable_rsa_algorithms:
             self._disabled_rsa_algorithms = DISABLED_ALGORITHMS
         self.ssh_type = "remote"
         if len(self.key_file) > 0:
@@ -75,6 +79,13 @@ class RemoteClient(SsherClient):
 
     def exec_cmd(self, cmd):
         try:
+            if self.remote_client_sudo:
+                # check sudo without password
+                self.stdio.verbose("use remote_client_sudo")
+                stdin, stdout, stderr = self._ssh_fd.exec_command("sudo -n true")
+                if stderr:
+                    raise Exception(stderr.read().decode('utf-8'))
+                cmd = "sudo {0}".format(cmd)
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):

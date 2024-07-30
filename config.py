@@ -75,6 +75,9 @@ DEFAULT_INNER_CONFIG = {
             'mode': 'obdiag',
             'stdout_handler_log_level': 'INFO',
         },
+        'ssh_client': {
+            'remote_client_sudo': False,
+        },
     },
     'check': {
         'ignore_version': False,
