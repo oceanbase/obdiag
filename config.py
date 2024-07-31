@@ -65,7 +65,6 @@ DEFAULT_INNER_CONFIG = {
             'file_number_limit': 20,
             'file_size_limit': '2G',
             'dis_rsa_algorithms': 0,
-            'print_type': 0,
         },
         'logger': {
             'log_dir': '~/.obdiag/log',
@@ -74,6 +73,7 @@ DEFAULT_INNER_CONFIG = {
             'log_level': 'INFO',
             'mode': 'obdiag',
             'stdout_handler_log_level': 'INFO',
+            'error_stream': 'sys.stdout',
         },
         'ssh_client': {
             'remote_client_sudo': False,

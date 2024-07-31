@@ -13,6 +13,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import json
 import os
 import signal
 import sys
@@ -358,7 +359,7 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stderr):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout):
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -382,14 +383,6 @@ class IO(object):
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
         self.set_err_stream(error_stream)
-        # TODO print on doc
-        self.print_type = 0  # 0: use stdout, 1: use stdout and stderr, 2: just print result (json). when obdiag_version ≥ 3.0, print_type default 1
-
-    def set_print_type(self, print_type=0):
-        try:
-            self.print_type = int(print_type)
-        except Exception as e:
-            pass
 
     def isatty(self):
         if self._root_io:
@@ -412,6 +405,15 @@ class IO(object):
         return True
 
     def set_err_stream(self, error_stream):
+        if isinstance(error_stream, str):
+            error_stream = error_stream.strip().lower()
+            if error_stream == "sys.stderr":
+                error_stream = sys.stderr
+            elif error_stream == "sys.stdout":
+                error_stream = sys.stdout
+            else:
+                # TODO 3.X NEED CHANGE TO sys.stderr
+                error_stream = sys.stdout
         if self._root_io:
             return False
         if self._cur_err_obj == self._err_obj:
@@ -437,7 +439,7 @@ class IO(object):
         state = {}
         for key in self.__dict__:
             state[key] = self.__dict__[key]
-        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_cur_out_obj', '_before_critical', '_cur_err_obj']:
+        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_err_obj', '_cur_out_obj', '_cur_err_obj', '_before_critical']:
             state[key] = None
         return state
 
@@ -545,11 +547,16 @@ class IO(object):
             return False
         if self._cur_out_obj == self._out_obj:
             return False
+        if self._cur_err_obj == self._err_obj:
+            return False
         text = self._cur_out_obj.read()
+        text_err = self._cur_err_obj.read()
         self._cur_out_obj = self._out_obj
         self._cur_err_obj = self._err_obj
         if text:
             self.print(text)
+        if text_err:
+            self.error(text_err)
         return True
 
     @staticmethod
@@ -707,7 +714,7 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        if msg_lv == MsgLevel.ERROR and self.print_type == 1:
+        if msg_lv == MsgLevel.ERROR:
             kwargs['file'] = self.get_cur_err_obj()
         else:
             kwargs['file'] = self.get_cur_out_obj()
@@ -762,6 +769,16 @@ class IO(object):
             self.log(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
             return
         self._print(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
+
+    def print_result_json(self, result):
+
+        if not result:
+            return
+        if isinstance(result, dict):
+            result = json.dumps(result, indent=4)
+        self.print(result)
+
+        pass
 
     if sys.version_info.major == 2:
 

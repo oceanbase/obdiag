@@ -29,7 +29,8 @@ from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
 
-ROOT_IO = IO(1)
+# TODO when obdiag_version ≥ 3.0, the default value of err_stream will be changed to sys.stderr
+ROOT_IO = IO(1, error_stream=sys.stdout)
 OBDIAG_HOME_PATH = os.path.join(os.getenv('HOME'), 'oceanbase-diagnostic-tool')
 
 

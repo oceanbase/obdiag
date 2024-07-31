@@ -73,8 +73,7 @@ class ObdiagHome(object):
         self.context = None
         self.inner_config_manager = InnerConfigManager(stdio=stdio, inner_config_change_map=inner_config_change_map)
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("print_type") is not None:
-            stdio.set_print_type(self.inner_config_manager.config.get("obdiag").get("basic").get("print_type"))
-            pass
+            stdio.set_err_stream(self.inner_config_manager.config.get("obdiag").get("logger").get("error_stream"))
 
         self.set_stdio(stdio)
         self.config_manager = ConfigManager(config_path, stdio)
