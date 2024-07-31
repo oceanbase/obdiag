@@ -129,7 +129,19 @@ class BaseCommand(object):
             if key is None or key == "":
                 return
             m = self._inner_config_change_set(key, val)
-            self.inner_config_change_map.update(m)
+
+            def _change_inner_config(conf_map, change_conf_map):
+                for change_conf_map_key, change_conf_map_value in change_conf_map.items():
+                    if change_conf_map_key in conf_map:
+                        if isinstance(change_conf_map_value, dict):
+                            _change_inner_config(conf_map[change_conf_map_key], change_conf_map_value)
+                        else:
+                            conf_map[change_conf_map_key] = change_conf_map_value
+                    else:
+                        conf_map[change_conf_map_key] = change_conf_map_value
+                return conf_map
+
+            self.inner_config_change_map = _change_inner_config(self.inner_config_change_map, m)
         except Exception as e:
             raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
 
