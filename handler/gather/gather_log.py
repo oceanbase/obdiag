@@ -281,9 +281,9 @@ class GatherLogHandler(BaseShellHandler):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
+            get_oblog = "ls -1 -F %s |grep %s | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
+            get_oblog = "ls -1 -F %s |grep -E 'observer|rootservice|election'| awk -F '/' '{print $NF}'" % log_path
         log_name_list = []
         log_files = ssh_client.exec_cmd(get_oblog)
         if log_files:
