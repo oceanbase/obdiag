@@ -84,7 +84,7 @@ class RemoteClient(SsherClient):
                 self.stdio.verbose("use remote_client_sudo")
                 stdin, stdout, stderr = self._ssh_fd.exec_command("sudo -n true")
                 if stderr:
-                    if len(stderr.read().decode('utf-8').strip())> 0:
+                    if len(stderr.read().decode('utf-8').strip()) > 0:
                         raise Exception(stderr.read().decode('utf-8'))
                 cmd = "sudo {0}".format(cmd)
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
