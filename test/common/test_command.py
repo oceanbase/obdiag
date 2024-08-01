@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import MagicMock
 from common.command import *
 
-# 测试类，用于测试common.command模块中的函数
+
 class TestCommonCommand(unittest.TestCase):
 
     # 准备测试环境，创建模拟的SSH客户端和标准输入输出对象
