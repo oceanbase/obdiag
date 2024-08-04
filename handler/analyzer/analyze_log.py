@@ -31,6 +31,7 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
+import common.ssh_client.local_client as ssh_client_local_client
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -131,9 +132,20 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
-        for node in self.nodes:
+
+        def handle_from_node(node):
             resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
             analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
+
+        if self.is_ssh:
+            for node in self.nodes:
+                handle_from_node(node)
+        else:
+            local_ip = '127.0.0.1'
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            handle_from_node(node)
+
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
@@ -279,11 +291,13 @@ class AnalyzeLogHandler(BaseShellHandler):
         :param ssh_helper, log_name
         :return:
         """
+
+        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            ssh_client.exec_cmd(ssh_client, grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
         else:
             download_file(ssh_client, log_name, local_store_path, self.stdio)
 
