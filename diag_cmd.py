@@ -29,7 +29,8 @@ from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
 
-ROOT_IO = IO(1)
+# TODO when obdiag_version ≥ 3.0, the default value of err_stream will be changed to sys.stderr
+ROOT_IO = IO(1, error_stream=sys.stdout)
 OBDIAG_HOME_PATH = os.path.join(os.getenv('HOME'), 'oceanbase-diagnostic-tool')
 
 
@@ -111,12 +112,57 @@ class BaseCommand(object):
         self.is_init = False
         self.hidden = False
         self.has_trace = True
+        self.inner_config_change_map = {}
         self.parser = AllowUndefinedOptionParser(add_help_option=True)
         self.parser.add_option('-h', '--help', action='callback', callback=self._show_help, help='Show help and exit.')
         self.parser.add_option('-v', '--verbose', action='callback', callback=self._set_verbose, help='Activate verbose output.')
+        self.parser.add_option('--inner_config', action='callback', type="str", callback=self._inner_config_change, help='change inner config. ')
 
     def _set_verbose(self, *args, **kwargs):
         ROOT_IO.set_verbose_level(0xFFFFFFF)
+
+    def _inner_config_change(self, option, opt_str, value, parser):
+        """
+        Inner config change
+        """
+        try:
+            key, val = value.split('=')
+            if key is None or key == "":
+                return
+            m = self._inner_config_change_set(key, val)
+
+            def _change_inner_config(conf_map, change_conf_map):
+                for change_conf_map_key, change_conf_map_value in change_conf_map.items():
+                    if change_conf_map_key in conf_map:
+                        if isinstance(change_conf_map_value, dict):
+                            _change_inner_config(conf_map[change_conf_map_key], change_conf_map_value)
+                        else:
+                            conf_map[change_conf_map_key] = change_conf_map_value
+                    else:
+                        conf_map[change_conf_map_key] = change_conf_map_value
+                return conf_map
+
+            self.inner_config_change_map = _change_inner_config(self.inner_config_change_map, m)
+        except Exception as e:
+            raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
+
+    def _inner_config_change_set(self, key, val):
+        def recursion(change_map, key, val):
+            if key is None or key == "":
+                raise Exception("key is None")
+            if val is None or val == "":
+                raise Exception("val is None")
+            if key.startswith(".") or key.endswith("."):
+                raise Exception("Key starts or ends '.'")
+            if "." in key:
+                map_key = key.split(".")[0]
+                change_map[map_key] = recursion({}, key[len(map_key) + 1 :], val)
+                return change_map
+            else:
+                change_map[key] = val
+                return change_map
+
+        return recursion({}, key, val)
 
     def init(self, cmd, args):
         if self.is_init is False:
@@ -216,7 +262,7 @@ class ObdiagOriginCommand(BaseCommand):
                 else:
                     ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
                     return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
