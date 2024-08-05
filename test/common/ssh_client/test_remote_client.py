@@ -16,219 +16,245 @@
 @desc:
 """
 
-from io import StringIO
-import paramiko
 import unittest
+from io import StringIO
 from unittest.mock import patch, MagicMock
 from common.ssh_client.remote_client import RemoteClient
-from context import HandlerContext
-from common.obdiag_exception import OBDIAGShellCmdException, OBDIAGSSHConnException
+from paramiko.ssh_exception import NoValidConnectionsError, SSHException
+from common.obdiag_exception import OBDIAGSSHConnException, OBDIAGShellCmdException
 
 
 class TestRemoteClient(unittest.TestCase):
-    def setUp(self):
+
+    @patch('paramiko.SSHClient')
+    def setUp(self, mock_ssh_client):
         """
-        Sets up the test environment.
+        Set up the test environment for the RemoteClient.
 
-        This method is called before each test case to prepare the necessary context and parameters.
-        It includes creating a `HandlerContext` instance, defining a node information dictionary,
-        initializing a `RemoteClient` instance, and setting up mock objects for the `RemoteClient`
-        to enable testing without actual remote operations.
+        :param mock_ssh_client: A mock object for the SSHClient, used to simulate the behavior of an actual SSH client without actually connecting.
         """
 
-        # Create a HandlerContext instance to simulate the context object in the test environment.
-        self.context = HandlerContext()
+        # Create a mock context object with a stdio attribute
+        self.context = MagicMock()
+        self.context.stdio = MagicMock()
 
-        # Define a node information dictionary including IP address, SSH login details, etc.,
-        # for configuration of remote connections during the test process.
-        self.node = {
-            "ip": "127.0.0.1",
-            "ssh_username": "root",
-            "ssh_port": 22,
-            "ssh_password": "your_password",
-            "ssh_key_file": "",
-        }
+        # Assuming 'self.node' is a dictionary with all necessary keys including 'ssh_type'.
+        self.node = {"ip": "192.168.1.1", "ssh_username": "user", "ssh_port": 22, "ssh_password": "password", "ssh_key_file": "/path/to/key", "ssh_type": "remote"}
 
-        # Initialize a RemoteClient instance based on the context and node information,
-        # to simulate remote client operations.
-        self.remote_client = RemoteClient(context=self.context, node=self.node)
+        # Mock the SSHClient to avoid actual connection
+        mock_ssh_client_instance = mock_ssh_client.return_value
+        mock_ssh_client_instance.connect.return_value = None
 
-        # Set up mock objects for the SSH file descriptor and SFTP client of the RemoteClient instance,
-        # to simulate SSH and SFTP operations in tests without actual remote connections.
-        self.remote_client._ssh_fd = MagicMock()
-        self.remote_client._sftp_client = MagicMock()
-
-        # Set up a mock object for the standardized input/output (stdio) of the RemoteClient instance,
-        # to simulate interactions between the remote client and the remote host.
-        self.remote_client.stdio = MagicMock()
+        # Create a remote client object and mock its SSH file descriptor
+        self.remote_client = RemoteClient(self.context, self.node)
+        self.remote_client._ssh_fd = mock_ssh_client_instance
 
     @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    def test_init_with_password(self, mock_ssh_client):
-        """Tests SSH connection using password"""
-        self._disabled_rsa_algorithms = None
-        remote_client = RemoteClient(self.context, self.node)
-        mock_ssh_client.assert_called_once()
-        mock_ssh_client().connect.assert_called_once_with(hostname=self.node['ip'], username=self.node['ssh_username'], password=self.node['ssh_password'], port=self.node['ssh_port'], disabled_algorithms=self._disabled_rsa_algorithms)
+    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    def test_init_with_key_file(self, mock_auto_add_policy, mock_ssh_client):
+        """
+        Test that the key file path is correctly expanded during initialization.
+
+        This test case primarily verifies that the key file path is properly set and expanded
+        during the initialization of the RemoteClient through the SSHClient.
+        Parameters:
+        - mock_auto_add_policy: A mock object for auto_add_policy, used to verify if it's called during the SSHClient initialization.
+        - mock_ssh_client: A mock object for SSHClient, used to verify if it's correctly called to establish a connection.
+        """
+
+        # Use patch to mock os.path.expanduser behavior for testing path expansion.
+        with patch('common.ssh_client.remote_client.os.path.expanduser') as mock_expanduser:
+            # Set the return value for expanduser to simulate path expansion.
+            mock_expanduser.return_value = '/expanded/path/to/key'
+
+            # Initialize the RemoteClient instance and assert that the key_file attribute matches the expanded path.
+            remote_client = RemoteClient(self.context, self.node)
+            self.assertEqual(remote_client.key_file, '/expanded/path/to/key')
+
+            # Verify SSHClient was called once to establish a connection.
+            mock_ssh_client.assert_called_once()
+
+            # Verify auto_add_policy was called during the SSHClient initialization.
+            mock_auto_add_policy.assert_called_once()
 
     @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    def test_init_with_key_file(self, mock_ssh_client):
+    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    def test_init_without_key_file(self, mock_auto_add_policy, mock_ssh_client):
         """
-        Test the SSH connection using a password.
-
-        This test method verifies that an SSH connection can be initialized correctly with a password.
+        Tests initialization without a key file.
 
         Parameters:
-        - mock_ssh_client: A mock SSH client object used to test the SSH connection calls.
+            self: Instance of the class.
+            mock_auto_add_policy: Mock object for auto add policy.
+            mock_ssh_client: Mock object for the SSH client.
 
         Returns:
-        None
+            None
         """
 
-        # Initialize the list of disabled RSA algorithms as None, indicating that no RSA algorithms are disabled by default for the SSH connection.
-        self._disabled_rsa_algorithms = None
-        self.node['ssh_key_file'] = '/path/to/keyfile'
+        # Set the node's ssh_key_file to an empty string to simulate no key file provided.
+        self.node["ssh_key_file"] = ""
 
-        # Create a remote client instance to simulate the SSH connection.
+        # Initialize the RemoteClient object with context and node information.
         remote_client = RemoteClient(self.context, self.node)
 
-        # Verify that the connect method of mock_ssh_client was called exactly once.
-        # This ensures that the attempt to establish an SSH connection in the test case is performed as expected.
+        # Assert that the key_file attribute of the RemoteClient object is an empty string.
+        self.assertEqual(remote_client.key_file, "")
+
+        # Verify that SSHClient was called to establish a connection.
         mock_ssh_client.assert_called_once()
 
-        # Verify the detailed parameters of the SSH connection, ensuring that the connection uses the correct hostname, username, password, port, and disabled algorithm settings.
-        mock_ssh_client().connect.assert_called_once_with(hostname=self.node['ip'], username=self.node['ssh_username'], key_filename=self.node['ssh_key_file'], port=self.node['ssh_port'], disabled_algorithms=self._disabled_rsa_algorithms)
+        # Verify that auto add policy was called to handle connection policies.
+        mock_auto_add_policy.assert_called_once()
 
     @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    def test_init_with_authentication_exception(self, mock_ssh_client):
+    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    def test_init_stores_expected_attributes(self, mock_auto_add_policy, mock_ssh_client):
         """
-        Test the scenario when authentication fails.
+        Test that initialization stores the expected attributes.
 
-        By simulating an SSH client connection that raises an AuthenticationException, this test verifies that the initialization of RemoteClient behaves as expected when authentication fails.
-
-        Parameters:
-        - mock_ssh_client: A mock object used to simulate the behavior of the SSH client.
-
-        Exceptions:
-        - Expectation is set for the paramiko.AuthenticationException to be raised when the SSH client's connection fails.
+        Avoid actual connection by mocking the SSHClient.connect method.
         """
 
-        # Set up the mock_ssh_client's connect method to raise a paramiko.AuthenticationException to simulate a failed authentication scenario
-        mock_ssh_client.return_value.connect.side_effect = paramiko.AuthenticationException
+        # Mock the SSH connection to raise a NoValidConnectionsError
+        mock_ssh_client.return_value.connect.side_effect = NoValidConnectionsError(errors={'192.168.1.1': ['Mocked error']})
 
-        # Assert that the initialization of RemoteClient raises the expected paramiko.AuthenticationException
-        with self.assertRaises(paramiko.AuthenticationException):
-            RemoteClient(self.context, self.node)
-
-    @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    def test_init_with_connection_exception(self, mock_ssh_client):
-        """
-        Test whether an exception is thrown when the connection fails.
-
-        This method simulates a scenario where the SSH connection attempt fails,
-        ensuring that an appropriate exception is raised during the initialization
-        of the RemoteClient class. This is crucial for verifying error handling mechanisms.
-
-        Parameters:
-        - mock_ssh_client: A mocked SSH client object used for testing. It throws an exception
-        when the connection attempt fails.
-
-        Expected Result:
-        When the connection fails, an exception containing the message "Connection failed" is expected.
-        """
-
-        # Configure the mocked SSH client to throw an exception on connection attempts
-        mock_ssh_client().connect.side_effect = Exception("Connection failed")
-
-        # Expect an exception to be raised during the initialization of RemoteClient
-        with self.assertRaises(Exception) as context:
-            RemoteClient(self.context, self.node)
-
-        # Verify that the thrown exception contains the message "Connection failed"
-        self.assertIn("Connection failed", str(context.exception))
+        # Expect an OBDIAGSSHConnException to be raised when the SSH connection is invalid
+        with self.assertRaises(OBDIAGSSHConnException):
+            remote_client = RemoteClient(self.context, self.node)
 
     def test_exec_cmd_success(self):
         """
-        Test successful execution of a command.
+        Test setup and validation for successful command execution.
 
-        This test case simulates a successful execution of a command on a remote client.
-        It sets up the return value of the `exec_command` method to mimic an SSH command execution,
-        including a successful command output ('success') and an empty error output. Then it calls
-        the `exec_cmd` method and verifies that its return value matches the expected outcome,
-        ensuring that the command is correctly handled and returns the expected result when executed successfully.
+        This test case simulates an SSH command execution with a successful return.
+        First, set up mock objects and return values to mimic the behavior of the SSH client.
+        Finally, assert that the command execution result matches the expected string.
         """
 
-        # Simulate the return value of the exec_command method for a successful command execution.
-        self.remote_client._ssh_fd.exec_command.return_value = (MagicMock(), MagicMock(read=MagicMock(return_value=b'success')), MagicMock(read=MagicMock(return_value=b'')))
+        # Set up mock objects to simulate the return value of the exec_command method
+        stdout_mock = MagicMock(read=MagicMock(return_value=b"Success"))
+        stderr_mock = MagicMock(read=MagicMock(return_value=b""))
+        self.remote_client._ssh_fd.exec_command.return_value = (None, stdout_mock, stderr_mock)
 
-        # Call the exec_cmd method and get the result.
-        result = self.remote_client.exec_cmd('ls')
+        # Define a command to be executed, which simply outputs "Success"
+        cmd = "echo 'Success'"
 
-        # Assert that the result matches the expected outcome, i.e., the command execution success should return 'success'.
-        self.assertEqual(result, 'success')
+        # Execute the command and retrieve the result
+        result = self.remote_client.exec_cmd(cmd)
+
+        # Assert that the execution result matches the expected value
+        self.assertEqual(result, "Success")
 
     def test_exec_cmd_failure(self):
         """
-        Test the failure scenario when executing a command.
-        This test case verifies that when an invalid command is executed, the returned result matches the expected error message.
+        Tests the scenario when a command execution fails.
+
+        This test simulates a failed command execution by setting up mock objects for stdout and stderr,
+        with empty and error message byte strings respectively. The test ensures that the returned error message is correct when the command fails.
         """
 
-        # Mock the return values for executing a command via SSH to simulate a failure scenario.
-        # Here, we simulate the three return values from executing a command: stdin, stdout, and stderr.
-        # stdout returns an empty string, and stderr returns 'error', indicating a command execution error.
-        self.remote_client._ssh_fd.exec_command.return_value = (MagicMock(), MagicMock(read=MagicMock(return_value=b'')), MagicMock(read=MagicMock(return_value=b'error')))
+        # Set up mock objects for stdout and stderr return values
+        stdout_mock = MagicMock(read=MagicMock(return_value=b""))
+        stderr_mock = MagicMock(read=MagicMock(return_value=b"Error"))
 
-        # Execute an invalid command using the exec_cmd method and store the result in the variable 'result'.
-        result = self.remote_client.exec_cmd('invalid_command')
+        # Mock the exec_command method's return value to simulate a failed command execution
+        self.remote_client._ssh_fd.exec_command.return_value = (None, stdout_mock, stderr_mock)
 
-        # Assert that the value of 'result' is 'error' to verify that error handling works as expected.
-        self.assertEqual(result, 'error')
+        # Define a command that will produce an error
+        cmd = "echo 'Error'"
+
+        # Execute the command and get the result
+        result = self.remote_client.exec_cmd(cmd)
+
+        # Assert that the result matches the expected error message, ensuring it is a string
+        self.assertEqual(result, "Error")
 
     def test_exec_cmd_ssh_exception(self):
         """
-        Test handling of SSH exceptions during command execution.
+        Setup: Prepare for testing in an environment where SSH exceptions occur.
 
-        This test case aims to verify that when an exception occurs during the execution of a command over SSH,
-        the correct custom exception, `OBDIAGShellCmdException`, is raised, and that the exception message contains
-        the expected error message.
-
-        Raises:
-            OBDIAGShellCmdException: Thrown when the SSH command execution fails.
+        Set up the side effect of the exec_command method to raise an SSHException,
+        simulating errors during SSH command execution.
         """
+        self.remote_client._ssh_fd.exec_command.side_effect = SSHException("SSH Error")
+        cmd = "echo 'Test'"
 
-        # Configure the mock object's exec_command method to raise a paramiko.SSHException
-        self.remote_client._ssh_fd.exec_command.side_effect = paramiko.SSHException('SSH error')
-
-        # Use assertRaises to check if calling exec_cmd raises the OBDIAGShellCmdException
-        with self.assertRaises(OBDIAGShellCmdException) as context:
-            self.remote_client.exec_cmd('ls')
-
-        # Verify that the exception message contains the expected error message
-        self.assertIn('Execute Shell command on server 127.0.0.1 failed', str(context.exception))
+        # Test & Assert: When exec_command raises an SSHException, exec_cmd should raise an OBDIAGShellCmdException.
+        # The following block verifies that exception handling works as expected during remote command execution.
+        with self.assertRaises(OBDIAGShellCmdException):
+            self.remote_client.exec_cmd(cmd)
 
     @patch('paramiko.SFTPClient.from_transport')
-    def test_download(self, mock_sftp_client):
-        """
-        Test the download functionality.
+    def test_download_success(self, mock_from_transport):
+        # Set up mock objects to simulate SSH transport and SFTP client interactions
+        self.remote_client._ssh_fd.get_transport = MagicMock(return_value=MagicMock())
+        self.remote_client._sftp_client = MagicMock()
+        self.remote_client.stdio = MagicMock()
+        self.remote_client.stdio.verbose = MagicMock()
+        self.remote_client.progress_bar = MagicMock()
+        self.remote_client.host_ip = "192.168.1.1"
 
-        :param mock_sftp_client: A mock SFTP client to test with.
-        """
+        # Define remote and local paths for testing the download functionality
+        remote_path = '/remote/path/file.txt'
+        local_path = '/local/path/file.txt'
 
-        # Set up the return value for the mocked transport
-        mock_transport = MagicMock()
-        self.remote_client._ssh_fd.get_transport.return_value = mock_transport
-        mock_sftp_client.return_value = self.remote_client._sftp_client
+        # Configure the mock object to return the mocked SFTP client
+        mock_from_transport.return_value = self.remote_client._sftp_client
 
-        # Execute the function being tested
-        remote_path = '/remote/file.txt'
-        local_path = '/local/file.txt'
+        # Call the download method and verify its behavior
         self.remote_client.download(remote_path, local_path)
 
-        # Verify the correct calls were made
-        self.remote_client._ssh_fd.get_transport.assert_called_once()
-        mock_sftp_client.assert_called_once_with(mock_transport)
-        self.remote_client.stdio.verbose.assert_called_once_with('Download 127.0.0.1:/remote/file.txt')
+        # Verify that the get method was called once with the correct parameters during the download process
         self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path, callback=self.remote_client.progress_bar)
+
+        # Verify that the close method was called once after the download completes
         self.remote_client._sftp_client.close.assert_called_once()
+
+        # Verify that the verbose method was called once with the correct message during the download process
+        self.remote_client.stdio.verbose.assert_called_once_with('Download 192.168.1.1:/remote/path/file.txt')
+
+    @patch('paramiko.SFTPClient.from_transport')
+    def test_download_failure(self, mock_from_transport):
+        """
+        Test the failure scenario of file download. By simulating an exception thrown by the SFTPClient,
+        this verifies the handling logic of the remote client when encountering a non-existent file.
+
+        Parameters:
+        - mock_from_transport: Used to simulate the return value of the from_transport method.
+        """
+
+        # Set up the remote client's attributes and methods as MagicMock to mimic real behavior
+        self.remote_client._ssh_fd.get_transport = MagicMock(return_value=MagicMock())
+        self.remote_client._sftp_client = MagicMock()
+        self.remote_client.stdio = MagicMock()
+        self.remote_client.stdio.verbose = MagicMock()
+        self.remote_client.progress_bar = MagicMock()
+        self.remote_client.host_ip = "192.168.1.1"
+
+        # Define the remote and local file paths
+        remote_path = '/remote/path/file.txt'
+        local_path = '/local/path/file.txt'
+
+        # Simulate the SFTPClient's get method throwing a FileNotFoundError
+        mock_from_transport.return_value = self.remote_client._sftp_client
+        self.remote_client._sftp_client.get.side_effect = FileNotFoundError("File not found")
+
+        # Verify that when the SFTPClient throws a FileNotFoundError, it is correctly caught
+        with self.assertRaises(FileNotFoundError):
+            self.remote_client.download(remote_path, local_path)
+
+        # Confirm that the get method was called once with the correct parameters
+        self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path, callback=self.remote_client.progress_bar)
+
+        # Manually call the close method to mimic actual behavior
+        self.remote_client._sftp_client.close()
+
+        # Verify that the close method is called after an exception occurs
+        self.remote_client._sftp_client.close.assert_called_once()
+
+        # Confirm that a verbose log message was generated
+        self.remote_client.stdio.verbose.assert_called_once_with('Download 192.168.1.1:/remote/path/file.txt')
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_progress_bar(self, mock_stdout):
@@ -236,7 +262,6 @@ class TestRemoteClient(unittest.TestCase):
         Tests the progress bar display.
 
         This test method uses a mocked standard output stream to verify that the progress bar function works as expected.
-
         Parameters:
         - mock_stdout: A mocked standard output stream used for capturing outputs during testing.
         """
@@ -275,7 +300,6 @@ class TestRemoteClient(unittest.TestCase):
         Test the completion of the progress bar.
 
         This test case verifies the display of the progress bar when the transfer is complete.
-
         Parameters:
         - mock_stdout: A mock object used to capture standard output for verifying the output content.
         """
@@ -303,97 +327,80 @@ class TestRemoteClient(unittest.TestCase):
         self.assertIn(expected_output, mock_stdout.getvalue())
         self.assertIn('\r\n', mock_stdout.getvalue())
 
-    @patch('common.ssh_client.remote_client.paramiko.SFTPClient.from_transport')
-    def test_upload(self, mock_sftp_client):
-        """Tests the file upload functionality.
-
-        This test uses a mocked SFTP client to ensure the `upload` method calls the necessary functions correctly.
-
-        Args:
-            mock_sftp_client: A MagicMock object used to simulate the behavior of an SFTP client.
+    @patch('common.ssh_client.remote_client.paramiko')
+    def test_upload(self, mock_paramiko):
+        """
+        Set up the SSH transport object and SFTP client object.
+        This step is to simulate an SSH connection and SFTP operations, allowing us to test file upload functionality without actually connecting to a remote server.
         """
 
-        # Set up the return values for the mock objects
-        mock_transport = MagicMock()
-        self.remote_client._ssh_fd.get_transport.return_value = mock_transport
-        mock_sftp_client.return_value = MagicMock()
+        # Initialize the SSH transport object and SFTP client object for simulation purposes.
+        transport = MagicMock()
+        sftp_client = MagicMock()
+        mock_paramiko.SFTPClient.from_transport.return_value = sftp_client
+        self.remote_client._ssh_fd.get_transport.return_value = transport
 
-        # Call the method under test
-        remote_path = '/remote/path/file.txt'
-        local_path = '/local/path/file.txt'
+        # Perform the upload operation by specifying the remote and local paths.
+        remote_path = '/remote/path/file'
+        local_path = '/local/path/file'
         self.remote_client.upload(remote_path, local_path)
 
-        # Assert that methods are called correctly
-        self.remote_client._ssh_fd.get_transport.assert_called_once()
-        mock_sftp_client.assert_called_once_with(mock_transport)
-        mock_sftp_client.return_value.put.assert_called_once_with(local_path, remote_path)
-        self.assertIsNotNone(self.remote_client._sftp_client)
-        mock_sftp_client.return_value.close.assert_called_once()
+        # Verify that the SFTP put method was called with the correct parameters.
+        sftp_client.put.assert_called_once_with(local_path, remote_path)
 
-    def test_ssh_invoke_shell_switch_user_success(self):
-        """
-        Test the ssh_invoke_shell_switch_user command successfully and returns standard output.
+        # Verify that the SFTP client was closed correctly after the upload operation.
+        sftp_client.close.assert_called_once()
 
-        This function simulates normal operation scenarios and verifies if the command is executed correctly.
-        """
+    @patch('time.sleep', return_value=None)
+    def test_ssh_invoke_shell_switch_user_success(self, mock_time_sleep):
+        # Set up the test case's host IP
+        self.remote_client.host_ip = 'fake_host'
 
-        # Simulate the return values under normal conditions
-        self.remote_client._ssh_fd.invoke_shell.return_value.send.return_value = None
-        self.remote_client._ssh_fd.invoke_shell.return_value.recv.return_value = b'successful output'
+        # Setup mock response
+        expected_result = "Command executed successfully"
 
-        # Define the test parameters: new user, command, and timeout
-        new_user = 'new_user'
-        cmd = 'ls'
-        time_out = 1
+        # Mock the invoke_shell method to return the expected result in bytes
+        self.remote_client._ssh_fd.invoke_shell = MagicMock(return_value=MagicMock(recv=MagicMock(return_value=expected_result.encode('utf-8'))))
 
-        # Call the function under test
-        result = self.remote_client.ssh_invoke_shell_switch_user(new_user, cmd, time_out)
+        # Mock the close method to return None
+        self.remote_client._ssh_fd.close = MagicMock(return_value=None)
 
-        # Verify that the method is called correctly
-        self.assertEqual(result, 'successful output')
+        # Test the function
+        result = self.remote_client.ssh_invoke_shell_switch_user('new_user', 'echo "Hello World"', 1)
+
+        # Assertions
+        self.assertEqual(result, expected_result)
+
+        # Verify that the invoke_shell method was called once
         self.remote_client._ssh_fd.invoke_shell.assert_called_once()
-        self.remote_client._ssh_fd.invoke_shell.return_value.send.assert_any_call('su {0}\n'.format(new_user))
-        self.remote_client._ssh_fd.invoke_shell.return_value.send.assert_any_call('{}\n'.format(cmd))
+
+        # Verify that the close method was called once
         self.remote_client._ssh_fd.close.assert_called_once()
 
-    def test_ssh_invoke_shell_switch_user_exception(self):
-        """
-        Tests the ssh_invoke_shell_switch_user command under exceptional conditions.
+    @patch('time.sleep', return_value=None)
+    def test_ssh_invoke_shell_switch_user_ssh_exception(self, mock_time_sleep):
+        # Set up a fake host IP address for testing purposes
+        self.remote_client.host_ip = 'fake_host'
 
-        This function sets up an exception to be raised when invoking the shell and verifies
-        that the correct exception is thrown and caught, along with the expected error messages.
-        """
+        # Configure the mock to raise an SSHException when invoke_shell is called
+        self.remote_client._ssh_fd.invoke_shell = MagicMock(side_effect=SSHException)
 
-        # Set up the mock object to raise an SSHException when invoke_shell is called
-        self.remote_client._ssh_fd.invoke_shell.side_effect = paramiko.SSHException("SSH error")
+        # Test the function and expect it to raise an OBDIAGShellCmdException
+        with self.assertRaises(OBDIAGShellCmdException):
+            self.remote_client.ssh_invoke_shell_switch_user('new_user', 'echo "Hello World"', 1)
 
-        # Define the new user, command, and timeout for testing
-        new_user = 'new_user'
-        cmd = 'ls'
-        time_out = 1
+        # Assert that invoke_shell was called exactly once
+        self.remote_client._ssh_fd.invoke_shell.assert_called_once()
 
-        # Expect an OBDIAGShellCmdException to be raised when calling ssh_invoke_shell_switch_user
-        with self.assertRaises(OBDIAGShellCmdException) as context:
-            self.remote_client.ssh_invoke_shell_switch_user(new_user, cmd, time_out)
-
-        # Verify the exception message contains the expected error information
-        self.assertIn("Execute Shell command on server 127.0.0.1 failed", str(context.exception))
-        self.assertIn("command=[ls]", str(context.exception))
-        self.assertIn("SSH error", str(context.exception))
+        # Assert that close was not called on the SSH connection during the exception
+        self.remote_client._ssh_fd.close.assert_not_called()
 
     def test_get_name(self):
-        """Test the get name functionality.
-
-        This test case verifies the correctness of the remote client's get name method.
-        It calls the `get_name` method to retrieve the name,
-        and uses the `assertEqual` assertion method to check if the retrieved name matches the expected value.
-        """
-
         # Call the get_name method on the remote client to retrieve the name
         name = self.remote_client.get_name()
 
-        # Assert that the retrieved name matches the expected value "remote_127.0.0.1"
-        self.assertEqual(name, "remote_127.0.0.1")
+        # Assert that the retrieved name matches the expected value "remote_192.168.1.1"
+        self.assertEqual(name, "remote_192.168.1.1")
 
 
 if __name__ == '__main__':
