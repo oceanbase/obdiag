@@ -1,12 +1,33 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+"""
+@time: 2024/08/06
+@file: test_command.py
+@desc: 测试到command的delete_file_in_folder方法
+"""
 import unittest
 from unittest.mock import Mock, patch
 import subprocess
-from common.command import LocalClient  # 请替换为实际的模块路径
+from common.command import * 
+
+"""
+"""
 
 class TestLocalClient(unittest.TestCase):
     def setUp(self):
         self.stdio = Mock()
         self.local_client = LocalClient(stdio=self.stdio)
+        self.ssh_client = Mock()
 
     @patch('subprocess.Popen')
     def test_run_success(self, mock_popen):
@@ -112,6 +133,96 @@ class TestLocalClient(unittest.TestCase):
         self.stdio.error.assert_called_with(f"run cmd = [{cmd}] on localhost")
         self.assertIsNone(result)
     
+    def test_download_file_success(self):
+        remote_path = "/remote/path/file.txt"
+        local_path = "/local/path/file.txt"
+        
+        result = download_file(self.ssh_client, remote_path, local_path, self.stdio)
+        
+        self.ssh_client.download.assert_called_once_with(remote_path, local_path)
+        self.assertEqual(result, local_path)
+        self.stdio.error.assert_not_called()
+        self.stdio.verbose.assert_not_called()
 
+    def test_download_file_failure(self):
+        remote_path = "/remote/path/file.txt"
+        local_path = "/local/path/file.txt"
+        
+        self.ssh_client.download.side_effect = Exception("Simulated download exception")
+        
+        result = download_file(self.ssh_client, remote_path, local_path, self.stdio)
+        
+        self.ssh_client.download.assert_called_once_with(remote_path, local_path)
+        self.assertEqual(result, local_path)
+        self.stdio.error.assert_called_once_with("Download File Failed error: Simulated download exception")
+        self.stdio.verbose.assert_called_once()
+    
+    def test_upload_file_success(self):
+        local_path = "/local/path/file.txt"
+        remote_path = "/remote/path/file.txt"
+        self.ssh_client.get_name.return_value = "test_server"
+        
+        result = upload_file(self.ssh_client, local_path, remote_path, self.stdio)
+        
+        self.ssh_client.upload.assert_called_once_with(remote_path, local_path)
+        self.stdio.verbose.assert_called_once_with(
+            "Please wait a moment, upload file to server test_server, local file path /local/path/file.txt, remote file path /remote/path/file.txt"
+        )
+        self.stdio.error.assert_not_called()  
+     
+    def test_rm_rf_file_success(self):
+        dir_path = "/path/to/delete"
+        
+        rm_rf_file(self.ssh_client, dir_path, self.stdio)
+        
+        self.ssh_client.exec_cmd.assert_called_once_with("rm -rf /path/to/delete")   
+     
+    def test_rm_rf_file_empty_dir(self):
+        dir_path = ""
+        
+        rm_rf_file(self.ssh_client, dir_path, self.stdio)
+        
+        self.ssh_client.exec_cmd.assert_called_once_with("rm -rf ") 
+    
+    def test_rm_rf_file_special_chars(self):
+        dir_path = "/path/to/delete; echo 'This is a test'"
+        
+        rm_rf_file(self.ssh_client, dir_path, self.stdio)
+        
+        self.ssh_client.exec_cmd.assert_called_once_with("rm -rf /path/to/delete; echo 'This is a test'")
+
+    def test_delete_file_in_folder_success(self):
+        file_path = "/path/to/gather_pack"
+        
+        delete_file_in_folder(self.ssh_client, file_path, self.stdio)
+        
+        self.ssh_client.exec_cmd.assert_called_once_with("rm -rf /path/to/gather_pack/*")
+
+    
+    def test_delete_file_in_folder_none_path(self):
+        file_path = None
+        
+        with self.assertRaises(Exception) as context:
+            delete_file_in_folder(self.ssh_client, file_path, self.stdio)
+        
+        self.assertTrue("Please check file path, None" in str(context.exception))
+          
+    def test_delete_file_in_folder_invalid_path(self):
+        file_path = "/path/to/invalid_folder"
+        
+        with self.assertRaises(Exception) as context:
+            delete_file_in_folder(self.ssh_client, file_path, self.stdio)
+        
+        self.assertTrue("Please check file path, /path/to/invalid_folder" in str(context.exception))
+      
+
+    def test_delete_file_in_folder_special_chars(self):
+        file_path = "/path/to/gather_pack; echo 'test'"
+        
+        delete_file_in_folder(self.ssh_client, file_path, self.stdio)
+        
+        self.ssh_client.exec_cmd.assert_called_once_with("rm -rf /path/to/gather_pack; echo 'test'/*")
+
+   
 if __name__ == '__main__':
     unittest.main()
