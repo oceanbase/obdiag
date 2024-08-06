@@ -164,7 +164,7 @@ class TestRemoteClient(unittest.TestCase):
         # Define a command that will produce an error
         cmd = "echo 'Error'"
 
-         # Execute the command and catch the exception
+        # Execute the command and catch the exception
         with self.assertRaises(Exception):
             self.remote_client.exec_cmd(cmd)
 
