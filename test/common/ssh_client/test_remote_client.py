@@ -164,11 +164,9 @@ class TestRemoteClient(unittest.TestCase):
         # Define a command that will produce an error
         cmd = "echo 'Error'"
 
-        # Execute the command and get the result
-        result = self.remote_client.exec_cmd(cmd)
-
-        # Assert that the result matches the expected error message, ensuring it is a string
-        self.assertEqual(result, "Error")
+         # Execute the command and catch the exception
+        with self.assertRaises(Exception):
+            self.remote_client.exec_cmd(cmd)
 
     def test_exec_cmd_ssh_exception(self):
         """
