@@ -20,8 +20,6 @@ from unittest.mock import Mock, patch
 import subprocess
 from common.command import * 
 
-"""
-"""
 
 class TestLocalClient(unittest.TestCase):
     def setUp(self):
