@@ -271,7 +271,7 @@ class ObdiagOriginCommand(BaseCommand):
             telemetry.put_data()
             if self.has_trace:
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
-                ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin,self.trace_id))
+                ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
             return ret or ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
 
         except NotImplementedError:
@@ -283,7 +283,6 @@ class ObdiagOriginCommand(BaseCommand):
         except:
             e = sys.exc_info()[1]
             ROOT_IO.exception('Running Error: %s' % e)
-
 
     def _do_command(self, obdiag):
         raise NotImplementedError
