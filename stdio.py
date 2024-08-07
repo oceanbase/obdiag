@@ -350,6 +350,7 @@ class MsgLevel(object):
     DEBUG = 10
     VERBOSE = DEBUG
     NOTSET = 0
+    JUST_JSON = 60
 
 
 class IO(object):
@@ -721,6 +722,9 @@ class IO(object):
             kwargs['file'] = self.get_cur_out_obj()
         if self.print_type != "just_json":
             kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
+        else:
+            if msg_lv>=MsgLevel.JUST_JSON:
+                print(json.dumps(msg))
         del kwargs['file']
         self.log(msg_lv, msg, *args, **kwargs)
 
@@ -749,6 +753,9 @@ class IO(object):
 
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
+
+    def just_json(self, msg, *args, **kwargs):
+        self._print(MsgLevel.JUST_JSON, msg, *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)

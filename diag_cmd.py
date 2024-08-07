@@ -272,8 +272,7 @@ class ObdiagOriginCommand(BaseCommand):
             if self.has_trace:
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
                 ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
-            return ret or ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
-
+            ROOT_IO.just_json(ret or ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."}))
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:
