@@ -119,15 +119,15 @@ class GatherScenesListHandler(SafeStdio):
         if self.other_tasks:
             sorted_other_tasks = sorted(self.other_tasks.items(), key=lambda x: x[0])
             sorted_other_tasks_dict = {k: v for k, v in sorted_other_tasks}
-            Util.print_title("Other Problem Gather Scenes")
-            Util.print_scene(sorted_other_tasks_dict)
+            Util.print_title("Other Problem Gather Scenes", stdio=self.stdio)
+            Util.print_scene(sorted_other_tasks_dict, stdio=self.stdio)
         if self.obproxy_tasks:
             sorted_obproxy_tasks = sorted(self.obproxy_tasks.items(), key=lambda x: x[0])
             sorted_obproxy_tasks_dict = {k: v for k, v in sorted_obproxy_tasks}
-            Util.print_title("Obproxy Problem Gather Scenes")
-            Util.print_scene(sorted_obproxy_tasks_dict)
+            Util.print_title("Obproxy Problem Gather Scenes", stdio=self.stdio)
+            Util.print_scene(sorted_obproxy_tasks_dict, stdio=self.stdio)
         if self.observer_tasks:
             sorted_observer_tasks = sorted(self.observer_tasks.items(), key=lambda x: x[0])
             sorted_observer_tasks_dict = {k: v for k, v in sorted_observer_tasks}
-            Util.print_title("Observer Problem Gather Scenes")
-            Util.print_scene(sorted_observer_tasks_dict)
+            Util.print_title("Observer Problem Gather Scenes", stdio=self.stdio)
+            Util.print_scene(sorted_observer_tasks_dict, stdio=self.stdio)

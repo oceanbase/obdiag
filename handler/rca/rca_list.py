@@ -62,7 +62,7 @@ class RcaScenesListHandler:
         try:
             self.stdio.verbose("list rca scenes")
             scene_info_list, scene_itme_list = self.get_all_scenes()
-            Util.print_scene(scene_info_list)
+            Util.print_scene(scene_info_list, stdio=self.stdio)
         except Exception as e:
             self.stdio.error("RcaScenesListHandler Exception: {0}".format(e))
             raise e

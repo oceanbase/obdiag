@@ -359,7 +359,8 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, print_type=""):
+        self.print_type = "just_json"
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -718,7 +719,8 @@ class IO(object):
             kwargs['file'] = self.get_cur_err_obj()
         else:
             kwargs['file'] = self.get_cur_out_obj()
-        kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
+        if self.print_type != "just_json":
+            kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
         del kwargs['file']
         self.log(msg_lv, msg, *args, **kwargs)
 

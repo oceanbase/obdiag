@@ -405,12 +405,12 @@ def is_empty_file(ssh_client, file_path, stdio=None):
         return False
 
 
-def get_obdiag_display(log_dir, trace_id, stdio=None):
-    cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
-    stdout = LocalClient(stdio).run(cmd)
-    print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
-    if len(print_stdout) > 0:
-        print(print_stdout)
+# def get_obdiag_display(log_dir, trace_id, stdio=None):
+#     cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
+#     stdout = LocalClient(stdio).run(cmd)
+#     print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
+#     if len(print_stdout) > 0:
+#         print(print_stdout)
 
 
 def uzip_dir_local(uzip_dir, stdio=None):

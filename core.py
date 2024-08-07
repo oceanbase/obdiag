@@ -51,6 +51,7 @@ from handler.gather.scenes.list import GatherScenesListHandler
 from handler.gather.gather_tabledump import GatherTableDumpHandler
 from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
+from stdio import SafeStdio
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
@@ -60,11 +61,11 @@ from common.tool import Util
 from common.tool import TimeUtils
 
 
-class ObdiagHome(object):
+class ObdiagHome(SafeStdio):
 
     def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None):
         self._optimize_manager = None
-        self.stdio = None
+        self.stdio = stdio
         self._stdio_func = None
         self.cmds = []
         self.options = Values()
@@ -114,7 +115,7 @@ class ObdiagHome(object):
         def _print(msg, *arg, **kwarg):
             sep = kwarg['sep'] if 'sep' in kwarg else None
             end = kwarg['end'] if 'end' in kwarg else None
-            return print(msg, sep='' if sep is None else sep, end='\n' if end is None else end)
+            return stdio.print(msg, sep='' if sep is None else sep, end='\n' if end is None else end)
 
         self.stdio = stdio
         self._stdio_func = {}

@@ -74,8 +74,8 @@ class CheckListHandler:
                                 "info_en": package_file_data[package_data].get("info_en") or "",
                                 "info_cn": package_file_data[package_data].get("info_cn") or "",
                             }
-                    Util.print_title("check cases about {0}".format(target))
-                    Util.print_scene(cases_map)
+                    Util.print_title("check cases about {0}".format(target), stdio=self.stdio)
+                    Util.print_scene(cases_map, stdio=self.stdio)
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, result_map)
         except Exception as e:
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
