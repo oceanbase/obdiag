@@ -76,6 +76,12 @@ class ObdiagHome(object):
             stdio.set_err_stream(self.inner_config_manager.config.get("obdiag").get("logger").get("error_stream"))
 
         self.set_stdio(stdio)
+        if config_path:
+            if os.path.exists(os.path.abspath(config_path)):
+                config_path = config_path
+            else:
+                stdio.error('The option you provided with -c: {0} is not exist.'.format(config_path))
+                return
         self.config_manager = ConfigManager(config_path, stdio)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
@@ -313,31 +319,38 @@ class ObdiagHome(object):
                 return False
 
     def check(self, opts):
-        config = self.config_manager
-        if not config:
-            self._call_stdio('error', 'No such custum config')
-            return False
-        else:
-            self.stdio.print("check start ...")
-            self.set_context('check', 'check', config)
-            obproxy_check_handler = None
-            observer_check_handler = None
-            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
-                obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
-                obproxy_check_handler.handle()
-                obproxy_check_handler.execute()
-            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
-                observer_check_handler = CheckHandler(self.context, check_target_type="observer")
-                observer_check_handler.handle()
-                observer_check_handler.execute()
-            if obproxy_check_handler is not None:
-                obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
-                if os.path.exists(obproxy_report_path):
-                    self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-            if observer_check_handler is not None:
-                observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
-                if os.path.exists(observer_report_path):
-                    self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+        try:
+            result_map = {"data": {}}
+            config = self.config_manager
+            if not config:
+                self._call_stdio('error', 'No such custum config')
+                return False
+            else:
+                self.stdio.print("check start ...")
+                self.set_context('check', 'check', config)
+                obproxy_check_handler = None
+                observer_check_handler = None
+                if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
+                    obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
+                    obproxy_check_handler.handle()
+                    report = obproxy_check_handler.execute()
+                    result_map["data"]["obproxy"] = report.report_tobeMap()
+                if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
+                    observer_check_handler = CheckHandler(self.context, check_target_type="observer")
+                    observer_check_handler.handle()
+                    report = observer_check_handler.execute()
+                    result_map["data"]["observer"] = report.report_tobeMap()
+                if obproxy_check_handler is not None:
+                    obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
+                    if os.path.exists(obproxy_report_path):
+                        self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                if observer_check_handler is not None:
+                    observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
+                    if os.path.exists(observer_report_path):
+                        self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+        except Exception as e:
+            self.stdio.error("check Exception: {0}".format(e))
+            self.stdio.verbose(traceback.format_exc())
 
     def check_list(self, opts):
         config = self.config_manager

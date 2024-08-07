@@ -101,7 +101,6 @@ class CheckHandler:
             # add ssher
             ssher = None
             try:
-                # ssher = SshHelper(True, node.get("ip"), node.get("ssh_username"), node.get("ssh_password"), node.get("ssh_port"), node.get("ssh_key_file"), node)
                 ssher = SshClient(context, node)
             except Exception as e:
                 self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
@@ -113,7 +112,6 @@ class CheckHandler:
         # add OBConnectorPool
         try:
             obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
-
         except Exception as e:
             self.stdio.warn("obConnector init error. Error info is {0}".format(e))
         finally:
@@ -243,6 +241,7 @@ class CheckHandler:
                 t_report = self.execute_one(task)
                 self.report.add_task_report(t_report)
             self.report.export_report()
+            return self.report
         except CheckrReportException as e:
             self.stdio.error("Report error :{0}".format(e))
             self.stdio.verbose(traceback.format_exc())

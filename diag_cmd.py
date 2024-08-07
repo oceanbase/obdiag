@@ -25,6 +25,7 @@ import re
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
 from core import ObdiagHome
+from result_type import ObdiagResult
 from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
@@ -194,6 +195,10 @@ class BaseCommand(object):
 class ObdiagOriginCommand(BaseCommand):
     OBDIAG_PATH = OBDIAG_HOME_PATH
 
+    def __init__(self, name, summary):
+        super().__init__(name, summary)
+        self.trace_id = uuid()
+
     @property
     def enable_log(self):
         return True
@@ -242,7 +247,6 @@ class ObdiagOriginCommand(BaseCommand):
 
     def do_command(self):
         self.parse_command()
-        trace_id = uuid()
         ret = False
         try:
             log_directory = os.path.join(os.path.expanduser("~"), ".obdiag", "log")
@@ -250,23 +254,26 @@ class ObdiagOriginCommand(BaseCommand):
                 os.makedirs(log_directory, exist_ok=True)
             log_path = os.path.join(log_directory, 'obdiag.log')
             if self.enable_log:
-                ROOT_IO.init_trace_logger(log_path, 'obdiag', trace_id)
+                ROOT_IO.init_trace_logger(log_path, 'obdiag', self.trace_id)
             ROOT_IO.track_limit += 1
-            ROOT_IO.verbose('cmd: %s' % self.cmds)
+            ROOT_IO.verbose('cmd: %s' % self.prev_cmd)
             ROOT_IO.verbose('opts: %s' % self.opts)
             config_path = os.path.expanduser('~/.obdiag/config.yml')
             custom_config = Util.get_option(self.opts, 'c')
-            if custom_config:
-                if os.path.exists(os.path.abspath(custom_config)):
-                    config_path = custom_config
-                else:
-                    ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
-                    return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=custom_config, inner_config_change_map=self.inner_config_change_map)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
+            if isinstance(ret, ObdiagResult) is False:
+                ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
+                return
+            ret.set_trace_id(self.trace_id)
             telemetry.put_data()
+            if self.has_trace:
+                ROOT_IO.print('Trace ID: %s' % self.trace_id)
+                ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin,self.trace_id))
+            return ret or ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
+
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:
@@ -276,10 +283,7 @@ class ObdiagOriginCommand(BaseCommand):
         except:
             e = sys.exc_info()[1]
             ROOT_IO.exception('Running Error: %s' % e)
-        if self.has_trace:
-            ROOT_IO.print('Trace ID: %s' % trace_id)
-            ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, trace_id))
-        return ret or True
+
 
     def _do_command(self, obdiag):
         raise NotImplementedError
@@ -856,8 +860,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         if 'list' in self.args:
-            obdiag.check_list(self.opts)
-            return
+            return obdiag.check_list(self.opts)
         return obdiag.check(self.opts)
 
 
