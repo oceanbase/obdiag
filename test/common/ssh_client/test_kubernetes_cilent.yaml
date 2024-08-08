@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://127.0.0.1:8443
+  name: dev-cluster
+users:
+- user:
+    client-certificate-data: DATA+OMITTED
+    client-key-data: DATA+OMITTED
+  name: dev-user
+contexts:
+- context:
+    cluster: dev-cluster
+    user: dev-user
+  name: dev-context
+current-context: dev-context
