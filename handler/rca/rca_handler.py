@@ -121,7 +121,7 @@ class RCAHandler:
         # init input parameters
         self.report = None
         self.tasks = None
-        self.context.set_variable("input_parameters", self.context.rca_scene_parameters)
+        self.context.set_variable("input_parameters", Util.get_option(self.options, "input_parameters"))
         self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(

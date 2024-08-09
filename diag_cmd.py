@@ -263,7 +263,7 @@ class ObdiagOriginCommand(BaseCommand):
                 else:
                     ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
                     return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, scene_input_param_map=self.scene_input_param_map)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
@@ -930,6 +930,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
+        Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
         return obdiag.rca_run(self.opts)
 
 
