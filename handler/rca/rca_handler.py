@@ -113,7 +113,6 @@ class RCAHandler:
         all_scenes_info, all_scenes_item = rca_list.get_all_scenes()
         self.context.set_variable("rca_deep_limit", len(all_scenes_info))
         self.all_scenes = all_scenes_item
-        self.rca_scene_parameters = None
         self.rca_scene = None
         self.cluster = self.context.get_variable("ob_cluster")
         self.nodes = self.context.get_variable("observer_nodes")
@@ -122,15 +121,7 @@ class RCAHandler:
         # init input parameters
         self.report = None
         self.tasks = None
-        rca_scene_parameters = Util.get_option(self.options, "input_parameters", "")
-        if rca_scene_parameters != "":
-            try:
-                rca_scene_parameters = json.loads(rca_scene_parameters)
-            except Exception as e:
-                raise Exception("Failed to parse input_parameters. Please check the option is json:{0}".format(rca_scene_parameters))
-        else:
-            rca_scene_parameters = {}
-        self.context.set_variable("input_parameters", rca_scene_parameters)
+        self.context.set_variable("input_parameters", self.context.rca_scene_parameters)
         self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(

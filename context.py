@@ -102,7 +102,7 @@ class HandlerReturn(object):
 
 class HandlerContext(object):
 
-    def __init__(self, handler_name=None, namespace=None, namespaces=None, cluster_config=None, obproxy_config=None, ocp_config=None, inner_config=None, cmd=None, options=None, stdio=None):
+    def __init__(self, handler_name=None, namespace=None, namespaces=None, cluster_config=None, obproxy_config=None, ocp_config=None, inner_config=None, cmd=None, options=None, stdio=None, rca_scene_parameters=None):
         self.namespace = HandlerContextNamespace(namespace)
         self.namespaces = namespaces
         self.handler_name = handler_name
@@ -113,6 +113,7 @@ class HandlerContext(object):
         self.cmds = cmd
         self.options = options
         self.stdio = stdio
+        self.rca_scene_parameters = rca_scene_parameters
         self._return = HandlerReturn()
 
     def get_return(self, handler_name=None, spacename=None):

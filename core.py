@@ -62,7 +62,7 @@ from common.tool import TimeUtils
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, scene_input_param_map=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -71,6 +71,7 @@ class ObdiagHome(object):
         self.namespaces = {}
         self.set_stdio(stdio)
         self.context = None
+        self.rca_scene_parameters = scene_input_param_map
         self.inner_config_manager = InnerConfigManager(stdio=stdio, inner_config_change_map=inner_config_change_map)
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("print_type") is not None:
             stdio.set_err_stream(self.inner_config_manager.config.get("obdiag").get("logger").get("error_stream"))
@@ -128,6 +129,7 @@ class ObdiagHome(object):
             options=self.options,
             stdio=self.stdio,
             inner_config=self.inner_config_manager.config,
+            rca_scene_parameters=self.rca_scene_parameters,
         )
         telemetry.set_cluster_conn(config.get_ob_cluster_config)
 

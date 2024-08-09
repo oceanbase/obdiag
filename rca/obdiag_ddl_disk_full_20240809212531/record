@@ -1,0 +1,31 @@
++-----------------------------------------------------------------------------------------------------------+
+|                                                   record                                                  |
++------+----------------------------------------------------------------------------------------------------+
+| step | info                                                                                               |
++------+----------------------------------------------------------------------------------------------------+
+|  1   | table_id is 500002                                                                                 |
+|  2   | tenant_id is 1002                                                                                  |
+|  3   | on 192.168.119.104:2882 tablet_size: 339 as 339.00 B                                               |
+|  4   | estimated_size is [{'svr_ip': '192.168.119.104', 'svr_port': 2882, 'estimated_data_size':          |
+|      | Decimal('339')}]                                                                                   |
+|  5   | index_name is k1                                                                                   |
+|  6   | action_type is add_index                                                                           |
+|  7   | index_table_id is 500003                                                                           |
+|  8   | main_table_sum_of_data_length is 100                                                               |
+|  9   | index_table_sum_of_data_length is 0                                                                |
+|  10  | estimated_index_size without magnification 0B as 0B from:                                          |
+|      | index_table_sum_of_data_length(0)/main_table_sum_of_data_length(100) * estimated_data_size(339)    |
+|  11  | magnification is 5.5                                                                               |
+|  12  | estimated_index_size with magnification is 0B as 0B                                                |
+|  13  | On target_server_ip is 192.168.119.104, target_server_port is 2882, estimiated_index_size is 0B as |
+|      | 0B                                                                                                 |
+|  14  | On target_serveris 192.168.119.104:2882                                                            |
+|  15  | target_server_estimated_size is 0B as 0B                                                           |
+|  16  | target_server_total_size is 21474836480B as 20.00 GB                                               |
+|  17  | target_server_used_size is 297795584B as 284.00 MB                                                 |
+|  18  | data_disk_usage_limit_percentage is 90                                                             |
+|  19  | available_disk_space is 19029557248B as 17.72 GB                                                   |
+|  20  | available_disk_space - target_server_estimated_size is 19029557248B as 17.72 GB                    |
++------+----------------------------------------------------------------------------------------------------+
+The suggest: the disk space of server(192.168.119.104:2882) is enough. Don't warn. If there are still errors, please contact the OceanBase community.
+
