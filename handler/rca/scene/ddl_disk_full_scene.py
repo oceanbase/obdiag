@@ -132,7 +132,11 @@ class DDlDiskFullScene(RcaScene):
                 ## if the action is add_index
                 sql = "select table_id from oceanbase.__all_virtual_table_history where tenant_id = '{0}' and data_table_id = '{1}' and table_name like '%{2}%';".format(self.tenant_id, self.table_id, self.index_name)
                 self.verbose("execute_sql is {0}".format(sql))
-                self.index_table_id = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()[0]["table_id"]
+                sql_tables_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
+                if len(sql_tables_data) == 0:
+                    self.stdio.error("can not find index table id by index name: {0}. Please check the index name.".format(self.index_name))
+                    return
+                self.index_table_id = sql_tables_data[0]["table_id"]
                 self.verbose("index_table_id is {0}".format(self.index_table_id))
                 self.record.add_record("index_table_id is {0}".format(self.index_table_id))
 
