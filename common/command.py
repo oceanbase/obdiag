@@ -286,7 +286,8 @@ def get_obproxy_version(context):
     obproxy_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get obproxy version, run cmd = [{0}] ".format(cmd))
     if obproxy_version_info is not None:
-        ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
+        pattern = r"(\d+\.\d+\.\d+\.\d+)"
+        ob_version = re.findall(pattern, obproxy_version_info)
         if len(ob_version) > 0:
             return ob_version[0]
         else:
@@ -295,7 +296,6 @@ def get_obproxy_version(context):
             stdio.verbose("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
                 raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
-            pattern = r"(\d+\.\d+\.\d+\.\d+)"
             match = re.search(pattern, obproxy_version_info)
             if match:
                 obproxy_version_info = match.group(1)
