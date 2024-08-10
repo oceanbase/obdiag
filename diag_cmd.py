@@ -931,8 +931,6 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
-        print("self.opts ================================>>>")
-        print(Util.get_option(self.opts, 'input_parameters'))
         return obdiag.rca_run(self.opts)
 
 
