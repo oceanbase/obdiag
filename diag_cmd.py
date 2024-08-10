@@ -886,7 +886,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
                 ROOT_IO.warn(f"input_parameters option {value} is not json.")
 
             # input_parameters option is key=val format
-            key, val = value.split('=')
+            key, val = value.split('=', 1)
             if key is None or key == "":
                 return
             m = self._input_parameters_scene_set(key, val)
@@ -931,6 +931,8 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
+        print("self.opts ================================>>>")
+        print(Util.get_option(self.opts, 'input_parameters'))
         return obdiag.rca_run(self.opts)
 
 
