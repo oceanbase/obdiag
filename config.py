@@ -262,22 +262,7 @@ class ConfigManager(Manager):
 
 class InnerConfigManager(Manager):
 
-    def __init__(self, stdio=None, inner_config_change_map=None):
-        if inner_config_change_map is None:
-            inner_config_change_map = {}
+    def __init__(self, stdio=None):
         inner_config_abs_path = os.path.abspath(INNER_CONFIG_FILE)
         super().__init__(inner_config_abs_path, stdio=stdio)
         self.config = self.load_config_with_defaults(DEFAULT_INNER_CONFIG)
-        if inner_config_change_map != {}:
-            self.config = self._change_inner_config(self.config, inner_config_change_map)
-
-    def _change_inner_config(self, conf_map, change_conf_map):
-        for key, value in change_conf_map.items():
-            if key in conf_map:
-                if isinstance(value, dict):
-                    self._change_inner_config(conf_map[key], value)
-                else:
-                    conf_map[key] = value
-            else:
-                conf_map[key] = value
-        return conf_map
