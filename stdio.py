@@ -84,6 +84,13 @@ class BufferIO(object):
         return True
 
 
+class SetBufferIO(BufferIO):
+
+    def write(self, s):
+        if s not in self._buffer:
+            return super(SetBufferIO, self).write(s)
+
+
 class SysStdin(object):
 
     NONBLOCK = False
@@ -147,6 +154,7 @@ class SysStdin(object):
             try:
                 for line in sys.stdin:
                     return line
+                return ''
             except IOError:
                 return ''
             finally:
@@ -350,7 +358,6 @@ class MsgLevel(object):
     DEBUG = 10
     VERBOSE = DEBUG
     NOTSET = 0
-    JUST_JSON = 60
 
 
 class IO(object):
@@ -360,8 +367,8 @@ class IO(object):
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, print_type=""):
-        self.print_type = "just_json"
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, silent=False):
+        self.silent = silent
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -382,6 +389,7 @@ class IO(object):
         self._before_critical = None
         self._output_is_tty = False
         self._input_is_tty = False
+        self._exit_buffer = SetBufferIO()
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
         self.set_err_stream(error_stream)
@@ -490,8 +498,20 @@ class IO(object):
             except:
                 pass
 
+    @property
+    def exit_msg(self):
+        return self._exit_msg
+
+    @exit_msg.setter
+    def exit_msg(self, msg):
+        self._exit_msg = msg
+
     def _close(self):
         self.before_close()
+        self._flush_cache()
+        if self.exit_msg:
+            self.print(self.exit_msg)
+            self.exit_msg = ""
         self._flush_log()
 
     def __del__(self):
@@ -519,7 +539,7 @@ class IO(object):
             self._flush_log()
             self._log_cache = None
         return True
-
+    
     def get_input_stream(self):
         if self._root_io:
             return self._root_io.get_input_stream()
@@ -534,6 +554,11 @@ class IO(object):
         if self._root_io:
             return self._root_io.get_cur_out_obj()
         return self._cur_out_obj
+
+    def get_exit_buffer(self):
+        if self._root_io:
+            return self._root_io.get_exit_buffer()
+        return self._exit_buffer
 
     def _start_buffer_io(self):
         if self._root_io:
@@ -679,15 +704,18 @@ class IO(object):
 
     def read(self, msg='', blocked=False):
         if msg:
-            self._print(MsgLevel.INFO, msg)
-        return self.get_input_stream().read(blocked)
+            if self.syncing:
+                self.verbose(msg, end='')
+            else:
+                self._print(MsgLevel.INFO, msg, end='')
+        return self.get_input_stream().readline(not self.syncing and blocked)
 
     def confirm(self, msg):
+        if self.default_confirm:
+            self.verbose("%s and then auto confirm yes" % msg)
+            return True
         msg = '%s [y/n]: ' % msg
         self.print(msg, end='')
-        if self.default_confirm:
-            self.verbose("default confirm: True")
-            return True
         if self.isatty() and not self.syncing:
             while True:
                 try:
@@ -699,6 +727,7 @@ class IO(object):
                 except Exception as e:
                     if not e:
                         return False
+                self.print(msg, end='')
         else:
             self.verbose("isatty: %s, syncing: %s, auto confirm: False" % (self.isatty(), self.syncing))
             return False
@@ -716,17 +745,25 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        if msg_lv == MsgLevel.ERROR:
-            kwargs['file'] = self.get_cur_err_obj()
+
+        if kwargs.get('_on_exit'):
+            kwargs['file'] = self.get_exit_buffer()
+            del kwargs['_on_exit']
         else:
-            kwargs['file'] = self.get_cur_out_obj()
-        if self.print_type != "just_json":
-            kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
+            if msg_lv == MsgLevel.ERROR:
+                kwargs['file'] = self.get_cur_err_obj()
+            else:
+                kwargs['file'] = self.get_cur_out_obj()
+
+        if '_disable_log' in kwargs:
+            enaable_log = not kwargs['_disable_log']
+            del kwargs['_disable_log']
         else:
-            if msg_lv>=MsgLevel.JUST_JSON:
-                print(json.dumps(msg))
+            enaable_log = True
+        
+        kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
         del kwargs['file']
-        self.log(msg_lv, msg, *args, **kwargs)
+        enaable_log and self.log(msg_lv, msg, *args, **kwargs)
 
     def log(self, levelno, msg, *args, **kwargs):
         self._cache_log(levelno, msg, *args, **kwargs)
@@ -750,6 +787,12 @@ class IO(object):
     def _log(self, levelno, msg, *args, **kwargs):
         if self.trace_logger:
             self.trace_logger.log(levelno, msg, *args, **kwargs)
+    
+    def _flush_cache(self):
+        if not self._root_io:
+            text = self._exit_buffer.read()
+            if text:
+                self.print(text, _disable_log=True)
 
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
@@ -790,14 +833,12 @@ class IO(object):
         pass
 
     if sys.version_info.major == 2:
-
         def exception(self, msg='', *args, **kwargs):
             import linecache
-
             exception_msg = []
             ei = sys.exc_info()
             exception_msg.append('Traceback (most recent call last):')
-            stack = traceback.extract_stack()[self.track_limit : -2]
+            stack = traceback.extract_stack()[self.track_limit:-2]
             tb = ei[2]
             while tb is not None:
                 f = tb.tb_frame
@@ -811,8 +852,7 @@ class IO(object):
                 stack.append((filename, lineno, name, line))
             for line in stack:
                 exception_msg.append('  File "%s", line %d, in %s' % line[:3])
-                if line[3]:
-                    exception_msg.append('    ' + line[3].strip())
+                if line[3]: exception_msg.append('    ' + line[3].strip())
             lines = []
             for line in traceback.format_exception_only(ei[0], ei[1]):
                 lines.append(line)
@@ -824,13 +864,11 @@ class IO(object):
                 print_stack = lambda m: self.log(MsgLevel.ERROR, m)
             msg and self.error(msg)
             print_stack('\n'.join(exception_msg))
-
     else:
-
         def exception(self, msg='', *args, **kwargs):
             ei = sys.exc_info()
             traceback_e = traceback.TracebackException(type(ei[1]), ei[1], ei[2], limit=None)
-            pre_stach = traceback.extract_stack()[self.track_limit : -2]
+            pre_stach = traceback.extract_stack()[self.track_limit:-2]
             pre_stach.reverse()
             for summary in pre_stach:
                 traceback_e.stack.insert(0, summary)
@@ -885,7 +923,7 @@ class StdIO(object):
             if attr is not EMPTY:
                 self._attrs[item] = attr
             else:
-                is_tty = getattr(self._stream, 'isatty', lambda: False)()
+                is_tty = getattr(self._stream, 'isatty', lambda : False)()
                 self._warn_func(FormtatText.warning("WARNING: {} has no attribute '{}'".format(self.io, item)).format(is_tty))
                 self._attrs[item] = FAKE_RETURN
         return self._attrs[item]
@@ -930,11 +968,9 @@ def safe_stdio_decorator(default_stdio=None):
                     stdio = get_stdio(kwargs.get("stdio", _default_stdio))
                     kwargs["stdio"] = stdio
                 return func(*args, **kwargs)
-
             return _type(func_wrapper) if is_bond_method else func_wrapper
         else:
             return _type(func) if is_bond_method else func
-
     return decorated
 
 
