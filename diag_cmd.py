@@ -883,7 +883,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
                 return
             except Exception as e:
                 # raise Exception("Failed to parse input_parameters. Please check the option is json:{0}".format(value))
-                ROOT_IO.warn(f"input_parameters option {value} is not json.")
+                ROOT_IO.verbose("input_parameters option {0} is not json.".format(value))
 
             # input_parameters option is key=val format
             key, val = value.split('=', 1)
