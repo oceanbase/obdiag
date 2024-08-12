@@ -22,6 +22,7 @@ import os
 import sys
 import textwrap
 import re
+import json
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
 from core import ObdiagHome
@@ -867,8 +868,61 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')
         self.parser.add_option('--scene', type='string', help="rca scene name. The argument is required.")
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./rca/')
-        self.parser.add_option('--input_parameters', type='string', help='input parameters of scene')
+        self.parser.add_option('--input_parameters', action='callback', type='string', callback=self._input_parameters_scene, help='input parameters of scene')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.scene_input_param_map = {}
+
+    def _input_parameters_scene(self, option, opt_str, value, parser):
+        """
+        input parameters of scene
+        """
+        try:
+            # input_parameters option is json format
+            try:
+                self.scene_input_param_map = json.loads(value)
+                return
+            except Exception as e:
+                # raise Exception("Failed to parse input_parameters. Please check the option is json:{0}".format(value))
+                ROOT_IO.verbose("input_parameters option {0} is not json.".format(value))
+
+            # input_parameters option is key=val format
+            key, val = value.split('=', 1)
+            if key is None or key == "":
+                return
+            m = self._input_parameters_scene_set(key, val)
+
+            def _scene_input_param(param_map, scene_param_map):
+                for scene_param_map_key, scene_param_map_value in scene_param_map.items():
+                    if scene_param_map_key in param_map:
+                        if isinstance(scene_param_map_value, dict):
+                            _scene_input_param(param_map[scene_param_map_key], scene_param_map_value)
+                        else:
+                            param_map[scene_param_map_key] = scene_param_map_value
+                    else:
+                        param_map[scene_param_map_key] = scene_param_map_value
+                return param_map
+
+            self.scene_input_param_map = _scene_input_param(self.scene_input_param_map, m)
+        except Exception as e:
+            raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
+
+    def _input_parameters_scene_set(self, key, val):
+        def recursion(param_map, key, val):
+            if key is None or key == "":
+                raise Exception("key is None")
+            if val is None or val == "":
+                raise Exception("val is None")
+            if key.startswith(".") or key.endswith("."):
+                raise Exception("Key starts or ends '.'")
+            if "." in key:
+                map_key = key.split(".")[0]
+                param_map[map_key] = recursion({}, key[len(map_key) + 1 :], val)
+                return param_map
+            else:
+                param_map[key] = val
+                return param_map
+
+        return recursion({}, key, val)
 
     def init(self, cmd, args):
         super(ObdiagRCARunCommand, self).init(cmd, args)
@@ -876,6 +930,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
+        Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
         return obdiag.rca_run(self.opts)
 
 
