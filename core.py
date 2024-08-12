@@ -73,9 +73,12 @@ class ObdiagHome(SafeStdio):
         self.set_stdio(stdio)
         self.context = None
         self.inner_config_manager = InnerConfigManager(stdio=stdio, inner_config_change_map=inner_config_change_map)
+        # obdiag.logger.error_stream
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("print_type") is not None:
             stdio.set_err_stream(self.inner_config_manager.config.get("obdiag").get("logger").get("error_stream"))
-
+        # obdiag.logger.silent
+        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
+            stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
         if config_path:
             if os.path.exists(os.path.abspath(config_path)):

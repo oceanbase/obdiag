@@ -1,0 +1,14 @@
+info: "OB version [4.2.1.0,4.2.1.3] If  tenants have multiple root users. Please consider upgrading the OceanBase version or removing the redundant users. github issue #385"
+task:
+  - version: "[4.2.1.0,4.2.1.3]"
+    steps:
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(TENANT_ID) AS TENANT_ID
+FROM oceanbase.CDB_OB_USERS
+WHERE USER_NAME = 'root'
+GROUP BY TENANT_ID
+HAVING COUNT(*) > 1;"
+      result:
+        set_value: TENANT_ID
+        verify: '[ -z "$TENANT_ID" ]'
+        err_msg: "tenant: #{$TENANT_ID}. These tenants have multiple root users. Please consider upgrading the OceanBase version or removing the redundant users. Please get bug's on https://github.com/oceanbase/obdiag/issues/385"
