@@ -25,10 +25,6 @@ if [ -d "${WORK_DIR}/gather" ]; then
     cp -rf ${WORK_DIR}/gather  ${OBDIAG_HOME}/
 fi
 
-if [ -d "${WORK_DIR}/gather" ]; then
-    cp -rf ${WORK_DIR}/gather  ${OBDIAG_HOME}/
-fi
-
 if [ -d "${WORK_DIR}/example" ]; then
     cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
 fi
@@ -36,7 +32,6 @@ fi
 if [ -d "${WORK_DIR}/rca" ]; then
     cp -rf ${WORK_DIR}/rca  ${OBDIAG_HOME}/
 fi
-
 
 ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
 if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
