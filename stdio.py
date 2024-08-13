@@ -358,7 +358,6 @@ class MsgLevel(object):
     DEBUG = 10
     VERBOSE = DEBUG
     NOTSET = 0
-    SILENT = 60
 
 
 class IO(object):
@@ -367,6 +366,7 @@ class IO(object):
     VERBOSE_LEVEL = 0
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
+    # The silent flag is used as a marker to indicate whether the msg is printed on the stream. If it is true, it will not be output to the steam
 
     def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, silent=False):
         self.silent = silent
@@ -750,8 +750,6 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        if self.silent:
-            kwargs['_on_exit'] = True
         if kwargs.get('_on_exit'):
             kwargs['file'] = self.get_exit_buffer()
             del kwargs['_on_exit']
@@ -765,17 +763,11 @@ class IO(object):
             del kwargs['_disable_log']
         else:
             enaable_log = True
+        # if self.silent is True, Not print to stream
         if self.silent:
-            if msg_lv == MsgLevel.SILENT:
-                kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
-            else:
-                # when silent is True, only print MsgLevel.SILENT
-                pass
+            pass
         else:
-            if msg_lv == MsgLevel.SILENT:
-                pass
-            else:
-                kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
+            kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
         del kwargs['file']
         enaable_log and self.log(msg_lv, msg, *args, **kwargs)
 
@@ -811,9 +803,6 @@ class IO(object):
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
 
-    def just_json(self, msg, *args, **kwargs):
-        self._print(MsgLevel.JUST_JSON, msg, *args, **kwargs)
-
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)
 
@@ -835,9 +824,6 @@ class IO(object):
             self.log(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
             return
         self._print(MsgLevel.VERBOSE, '%s %s' % (self._verbose_prefix, msg), *args, **kwargs)
-
-    def silent_print(self, msg, *args, **kwargs):
-        self._print(MsgLevel.SILENT, msg, *args, **kwargs)
 
     if sys.version_info.major == 2:
 
