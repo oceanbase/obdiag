@@ -17,6 +17,8 @@
 """
 
 import os
+
+from result_type import ObdiagResult
 from stdio import SafeStdio
 from common.tool import YamlUtils
 from handler.gather.scenes.register import hardcode_scene_list
@@ -44,8 +46,9 @@ class GatherScenesListHandler(SafeStdio):
         self.stdio.verbose("len of observer_tasks: {0}; len of observer_tasks: {1}; len of observer_tasks: {2};".format(len(self.observer_tasks), len(self.obproxy_tasks), len(self.other_tasks)))
         if (len(self.observer_tasks) + len(self.obproxy_tasks) + len(self.other_tasks)) == 0:
             self.stdio.error("Failed to find any tasks")
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="Failed to find any tasks")
         else:
-            self.print_scene_data()
+            return self.print_scene_data()
 
     def get_all_yaml_tasks(self):
         try:
@@ -116,18 +119,24 @@ class GatherScenesListHandler(SafeStdio):
         sorted_observer_tasks_dict = {}
         sorted_obproxy_tasks_dict = {}
         sorted_other_tasks_dict = {}
+        result_data = {}
         if self.other_tasks:
             sorted_other_tasks = sorted(self.other_tasks.items(), key=lambda x: x[0])
             sorted_other_tasks_dict = {k: v for k, v in sorted_other_tasks}
             Util.print_title("Other Problem Gather Scenes", stdio=self.stdio)
             Util.print_scene(sorted_other_tasks_dict, stdio=self.stdio)
+            result_data["sorted_other_tasks"] = sorted_other_tasks_dict
         if self.obproxy_tasks:
             sorted_obproxy_tasks = sorted(self.obproxy_tasks.items(), key=lambda x: x[0])
             sorted_obproxy_tasks_dict = {k: v for k, v in sorted_obproxy_tasks}
             Util.print_title("Obproxy Problem Gather Scenes", stdio=self.stdio)
             Util.print_scene(sorted_obproxy_tasks_dict, stdio=self.stdio)
+            result_data["sorted_obproxy_tasks"] = sorted_obproxy_tasks_dict
+
         if self.observer_tasks:
             sorted_observer_tasks = sorted(self.observer_tasks.items(), key=lambda x: x[0])
             sorted_observer_tasks_dict = {k: v for k, v in sorted_observer_tasks}
             Util.print_title("Observer Problem Gather Scenes", stdio=self.stdio)
             Util.print_scene(sorted_observer_tasks_dict, stdio=self.stdio)
+            result_data["sorted_observer_tasks"] = sorted_observer_tasks_dict
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)

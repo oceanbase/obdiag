@@ -241,7 +241,7 @@ class ObdiagHome(object):
                 handler_log.handle()
                 handler_obproxy = GatherObProxyLogHandler(self.context)
                 handler_obproxy.handle()
-                return True
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.context.get_variable("store_dir")})
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)
                 return handler.handle()
@@ -262,7 +262,7 @@ class ObdiagHome(object):
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
-                return False
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support gather function: {0}'.format(function_type))
 
     def gather_obproxy_log(self, opt):
         config = self.config_manager

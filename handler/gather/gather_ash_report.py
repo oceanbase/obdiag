@@ -67,7 +67,7 @@ class GatherAshReportHandler(SafeStdio):
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.__init_report_path()
         self.execute()
-        self.__print_result()
+        return self.__print_result()
 
     def version_check(self):
         observer_version = ""
@@ -190,3 +190,4 @@ class GatherAshReportHandler(SafeStdio):
     def __print_result(self):
         self.stdio.print(Fore.YELLOW + "\nGather ash_report results stored in this directory: {0}".format(self.report_path) + Style.RESET_ALL)
         self.stdio.print("")
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
