@@ -3,7 +3,7 @@ task:
   - version: "[4.2.0.0,*]"
     steps:
     - type: sql
-      ssh: 'SELECT GROUP_CONCAT(DISTINCT TENANT_ID)  
+      sql: 'SELECT GROUP_CONCAT(DISTINCT TENANT_ID)  
 FROM   oceanbase.__all_tenant t
 WHERE  NOT EXISTS(SELECT 1
                   FROM   oceanbase.__all_virtual_task_opt_stat_gather_history h

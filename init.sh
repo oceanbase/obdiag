@@ -45,3 +45,4 @@ if [ -d "${OBDIAG_HOME}/check_package.yaml" ]; then
     echo "${OBDIAG_HOME}/*check_package.yaml and ${OBDIAG_HOME}/tasks  has been discarded. If you have made any changes to these files on your own, please transfer the relevant data to *check_package.yaml in ${OBDIAG_HOME}/check/"
 fi
 echo "Init obdiag finished"
+cd -
