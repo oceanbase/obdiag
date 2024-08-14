@@ -272,13 +272,13 @@ class ObdiagOriginCommand(BaseCommand):
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
-            if isinstance(ret, ObdiagResult) is False:
-                ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
-                ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
-            ret.set_trace_id(self.trace_id)
-            ret.set_command(self.prev_cmd)
             # if silent is true ,print ret
             if ROOT_IO.silent:
+                if isinstance(ret, ObdiagResult) is False:
+                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
+                    ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
+                ret.set_trace_id(self.trace_id)
+                ret.set_command(self.prev_cmd)
                 ROOT_IO.set_silent(False)
                 ROOT_IO.print(ret.get_result())
                 ROOT_IO.set_silent(True)
