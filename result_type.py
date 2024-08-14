@@ -1,3 +1,6 @@
+import json
+
+
 class ObdiagResult:
     # ObdiagResult is the result of obdiag.
     # It contains the code and result of obdiag.
@@ -10,6 +13,7 @@ class ObdiagResult:
     SUCCESS_CODE = 200
 
     def __init__(self, code, data=None, error_data=None):
+        self.command = None
         self.trace_id = None
         self.data = data
         self.error_data = error_data
@@ -19,14 +23,16 @@ class ObdiagResult:
             self.code = str(code)
         else:
             raise TypeError("ObdiagResult code is not int. Please contact the Oceanbase community. ")
-        if isinstance(data, dict):
-            self.result = data
-        else:
-            raise TypeError("ObdiagResult result is not str. Please contact the Oceanbase community. ")
-        if isinstance(error_data, str):
-            self.error_data = error_data
-        else:
-            raise TypeError("ObdiagResult error_data is not str. Please contact the Oceanbase community. ")
+        if data is not None:
+            if isinstance(data, dict):
+                self.result = data
+            else:
+                raise TypeError("ObdiagResult data is not dict. Please contact the Oceanbase community. ")
+        if error_data is not None:
+            if isinstance(error_data, str):
+                self.error_data = error_data
+            else:
+                raise TypeError("ObdiagResult error_data is not str. Please contact the Oceanbase community. ")
 
     def set_trace_id(self, trace_id):
         if trace_id is None:
@@ -35,3 +41,10 @@ class ObdiagResult:
             self.trace_id = trace_id
         else:
             raise TypeError("ObdiagResult trace_id is not str. Please contact the Oceanbase community. ")
+
+    def set_command(self, command):
+        self.command = command
+
+    def get_result(self):
+        result = {"code": self.code, "data": self.result, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
+        return json.dumps(result)

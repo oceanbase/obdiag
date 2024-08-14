@@ -273,13 +273,19 @@ class ObdiagOriginCommand(BaseCommand):
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
             if isinstance(ret, ObdiagResult) is False:
-                ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
-                return
+                ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
+                ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data={"err_info": "The return value of the command is not ObdiagResult. Please contact thebase community."})
             ret.set_trace_id(self.trace_id)
-            telemetry.put_data()
+            ret.set_command(self.prev_cmd)
+            # if silent is true ,print ret
+            if ROOT_IO.silent:
+                ROOT_IO.set_silent(False)
+                ROOT_IO.print(ret.get_result())
+                ROOT_IO.set_silent(True)
             if self.has_trace:
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
                 ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
+            telemetry.put_data()
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:

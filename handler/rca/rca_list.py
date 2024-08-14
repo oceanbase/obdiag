@@ -19,6 +19,7 @@ import os.path
 from common.constant import const
 from common.tool import DynamicLoading
 from common.tool import Util
+from result_type import ObdiagResult
 
 
 class RcaScenesListHandler:
@@ -63,9 +64,10 @@ class RcaScenesListHandler:
             self.stdio.verbose("list rca scenes")
             scene_info_list, scene_itme_list = self.get_all_scenes()
             Util.print_scene(scene_info_list, stdio=self.stdio)
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=scene_info_list)
         except Exception as e:
             self.stdio.error("RcaScenesListHandler Exception: {0}".format(e))
-            raise e
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="RcaScenesListHandler Exception:".format(e))
 
     def __find_rca_files(self):
         files = []

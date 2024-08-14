@@ -22,6 +22,7 @@ from common.command import get_observer_version
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
 from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
+from result_type import ObdiagResult
 from stdio import SafeStdio
 from colorama import Fore, Style
 
@@ -60,10 +61,10 @@ class GatherAshReportHandler(SafeStdio):
     def handle(self):
         if not self.version_check():
             self.stdio.error('version check failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="version check failed")
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.__init_report_path()
         self.execute()
         self.__print_result()

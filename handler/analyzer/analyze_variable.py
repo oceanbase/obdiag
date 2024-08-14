@@ -24,6 +24,8 @@ from prettytable import PrettyTable
 import datetime
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class AnalyzeVariableHandler(object):
     def __init__(self, context, analyze_type='diff'):
@@ -55,10 +57,10 @@ class AnalyzeVariableHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.stdio.verbose("Use {0} as pack dir.".format(self.export_report_path))
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
-        self.execute()
+        return self.execute()
 
     def check_file_valid(self):
         with open(self.variable_file_name, 'r') as f:
@@ -149,11 +151,13 @@ class AnalyzeVariableHandler(object):
             self.stdio.print(Fore.RED + "Since {0}, the following variables have changed：".format(last_gather_time) + Style.RESET_ALL)
             self.stdio.print(report_default_tb.get_string())
             self.stdio.print("Analyze variables changed finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_default_tb.get_string()})
         else:
             self.stdio.print("Analyze variables changed finished. Since {0}, No changes in variables".format(last_gather_time))
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "Since {0}, No changes in variables".format(last_gather_time)})
 
     def execute(self):
         try:
-            self.analyze_variable()
+            return self.analyze_variable()
         except Exception as e:
             self.stdio.error("variable info analyze failed, error message: {0}".format(e))
