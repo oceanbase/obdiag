@@ -35,12 +35,7 @@ class ObdiagResult:
                 raise TypeError("ObdiagResult error_data is not str. Please contact the Oceanbase community. ")
 
     def set_trace_id(self, trace_id):
-        if trace_id is None:
-            raise TypeError("ObdiagResult trace_id is None. Please contact the Oceanbase community. ")
-        if isinstance(trace_id, str):
-            self.trace_id = trace_id
-        else:
-            raise TypeError("ObdiagResult trace_id is not str. Please contact the Oceanbase community. ")
+        self.trace_id = "{0}".format(trace_id)
 
     def set_command(self, command):
         self.command = command
