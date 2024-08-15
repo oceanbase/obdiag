@@ -333,14 +333,17 @@ class ObdiagHome(object):
             self.set_context('check', 'check', config)
             obproxy_check_handler = None
             observer_check_handler = None
+            result_data = {}
             if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
                 obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
                 obproxy_check_handler.handle()
-                obproxy_check_handler.execute()
+                obproxy_result = obproxy_check_handler.execute()
+                result_data['obproxy'] = obproxy_result
             if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
                 observer_check_handler = CheckHandler(self.context, check_target_type="observer")
                 observer_check_handler.handle()
-                observer_check_handler.execute()
+                observer_result = observer_check_handler.execute()
+                result_data['observer'] = observer_result
             if obproxy_check_handler is not None:
                 obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                 if os.path.exists(obproxy_report_path):
@@ -349,7 +352,7 @@ class ObdiagHome(object):
                 observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                 if os.path.exists(observer_report_path):
                     self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={})
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
 
     def check_list(self, opts):
         config = self.config_manager

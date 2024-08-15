@@ -241,7 +241,7 @@ class CheckHandler:
                 t_report = self.execute_one(task)
                 self.report.add_task_report(t_report)
             self.report.export_report()
-            return self.report
+            return self.report.report_tobeMap()
         except CheckrReportException as e:
             self.stdio.error("Report error :{0}".format(e))
             self.stdio.verbose(traceback.format_exc())

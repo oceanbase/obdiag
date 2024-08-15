@@ -19,13 +19,10 @@ class ObdiagResult:
         self.error_data = error_data
         if code is None:
             raise TypeError("ObdiagResult code is None. Please contact the Oceanbase community. ")
-        if isinstance(code, int):
-            self.code = str(code)
-        else:
-            raise TypeError("ObdiagResult code is not int. Please contact the Oceanbase community. ")
+        self.code = code
         if data is not None:
             if isinstance(data, dict):
-                self.result = data
+                self.data = data
             else:
                 raise TypeError("ObdiagResult data is not dict. Please contact the Oceanbase community. ")
         if error_data is not None:
@@ -41,5 +38,8 @@ class ObdiagResult:
         self.command = command
 
     def get_result(self):
-        result = {"code": self.code, "data": self.result, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
-        return json.dumps(result)
+        result = {"code": self.code, "data": self.data, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
+        return json.dumps(result, ensure_ascii=False)
+
+    def get_code(self):
+        return self.code

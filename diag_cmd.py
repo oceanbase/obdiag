@@ -272,6 +272,7 @@ class ObdiagOriginCommand(BaseCommand):
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
+            exit_code = 0
             # if silent is true ,print ret
             if ROOT_IO.silent:
                 if isinstance(ret, ObdiagResult) is False:
@@ -286,6 +287,8 @@ class ObdiagOriginCommand(BaseCommand):
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
                 ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
             telemetry.put_data()
+            if ret.get_code() == ObdiagResult.SUCCESS_CODE:
+                return True
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:

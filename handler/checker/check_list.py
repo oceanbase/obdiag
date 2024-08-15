@@ -34,7 +34,7 @@ class CheckListHandler:
             self.stdio.verbose("list check cases")
             entries = os.listdir(self.work_path)
             files = [f for f in entries if os.path.isfile(os.path.join(self.work_path, f))]
-            result_map = {"data": {}}
+            result_map = {}
             for file in files:
                 if "check_package" in file:
                     cases_map = {"all": {"name": "all", "command": "obdiag check", "info_en": "default check all task without filter", "info_cn": "默认执行除filter组里的所有巡检项"}}
@@ -50,6 +50,8 @@ class CheckListHandler:
                     # read yaml file
                     with open(file, 'r') as f:
                         package_file_data = yaml.safe_load(f)
+                        result_map[target] = {}
+                        result_map[target]["commands"] = []
                         if not package_file_data or len(package_file_data) == 0:
                             self.stdio.warn("No data check package data :{0} ".format(file))
                             continue
@@ -68,12 +70,14 @@ class CheckListHandler:
                                 "info_en": package_file_data[package_data].get("info_en") or "",
                                 "info_cn": package_file_data[package_data].get("info_cn") or "",
                             }
-                            result_map["data"]["commands"] = {
-                                "name": package_data,
-                                "command": "obdiag check --{0}={1}".format(package_target, package_data),
-                                "info_en": package_file_data[package_data].get("info_en") or "",
-                                "info_cn": package_file_data[package_data].get("info_cn") or "",
-                            }
+                            result_map[target]["commands"].append(
+                                {
+                                    "name": package_data,
+                                    "command": "obdiag check --{0}={1}".format(package_target, package_data),
+                                    "info_en": package_file_data[package_data].get("info_en") or "",
+                                    "info_cn": package_file_data[package_data].get("info_cn") or "",
+                                }
+                            )
                     Util.print_title("check cases about {0}".format(target), stdio=self.stdio)
                     Util.print_scene(cases_map, stdio=self.stdio)
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_map)
