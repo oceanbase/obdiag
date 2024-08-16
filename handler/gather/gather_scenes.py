@@ -76,9 +76,9 @@ class GatherSceneHandler(SafeStdio):
         self.execute()
         if self.is_inner:
             result = self.__get_sql_result()
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": result})
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": result})
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
 
     def execute(self):
         try:

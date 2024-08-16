@@ -60,13 +60,13 @@ class UpdateHandler:
                 return self.handle_update_offline(file_path)
             if NetUtils.network_connectivity(remote_server) is False:
                 self.stdio.warn("[update] network connectivity failed. Please check your network connection.")
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data={"msg": "network connectivity failed. Please check your network connection."})
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="network connectivity failed. Please check your network connection.")
             NetUtils.download_file(remote_version_file_name, os.path.expanduser(local_version_file_name))
             with open(local_version_file_name, 'r') as file:
                 remote_data = yaml.safe_load(file)
             if remote_data.get("obdiag_version") is None:
                 self.stdio.warn("obdiag_version is None. Do not perform the upgrade process.")
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data={"msg": "obdiag_version is None. Do not perform the upgrade process."})
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="obdiag_version is None. Do not perform the upgrade process.")
             else:
                 self.remote_obdiag_version = remote_data["obdiag_version"].strip()
             if StringUtils.compare_versions_greater(self.remote_obdiag_version, self.local_obdiag_version):
@@ -77,15 +77,15 @@ class UpdateHandler:
                 )
                 return ObdiagResult(
                     ObdiagResult.SERVER_ERROR_CODE,
-                    error_data={
-                        "msg": "remote_obdiag_version is {0}. local_obdiag_version is {1}. "
-                        "remote_obdiag_version>local_obdiag_version. Unable to update dependency files, please upgrade "
-                        "obdiag. Do not perform the upgrade process.".format(self.remote_obdiag_version, self.local_obdiag_version)
-                    },
+                    error_data=
+                    "remote_obdiag_version is {0}. local_obdiag_version is {1}. "
+                    "remote_obdiag_version>local_obdiag_version. Unable to update dependency files, please upgrade "
+                    "obdiag. Do not perform the upgrade process.".format(self.remote_obdiag_version, self.local_obdiag_version)
+                    ,
                 )
             if remote_data.get("remote_tar_sha") is None:
                 self.stdio.warn("remote_tar_sha is None. Do not perform the upgrade process.")
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data={"msg": "remote_tar_sha is None. Do not perform the upgrade process."})
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data= "remote_tar_sha is None. Do not perform the upgrade process.")
             else:
                 self.remote_tar_sha = remote_data["remote_tar_sha"]
             # need update?

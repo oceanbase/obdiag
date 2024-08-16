@@ -240,8 +240,7 @@ class ObdiagHome(object):
                 handler_log = GatherLogHandler(self.context)
                 handler_log.handle()
                 handler_obproxy = GatherObProxyLogHandler(self.context)
-                handler_obproxy.handle()
-                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.context.get_variable("store_dir")})
+                return handler_obproxy.handle()
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)
                 return handler.handle()
