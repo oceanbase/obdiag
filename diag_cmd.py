@@ -277,7 +277,7 @@ class ObdiagOriginCommand(BaseCommand):
             if ROOT_IO.silent:
                 if isinstance(ret, ObdiagResult) is False:
                     ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
-                    ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data= "The return value of the command is not ObdiagResult. Maybe the command not support silent. Please contact thebase community." )
+                    ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="The return value of the command is not ObdiagResult. Maybe the command not support silent. Please contact thebase community.")
                 ret.set_trace_id(self.trace_id)
 
                 def args_to_str(args):

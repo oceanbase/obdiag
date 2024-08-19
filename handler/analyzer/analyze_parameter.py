@@ -287,7 +287,7 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
         fp.close()
         if not is_empty:
             self.stdio.print("Analyze parameter diff finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_diff_tbs, "file_name": file_name})
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_diff_tbs, "store_dir": file_name})
         else:
             self.stdio.print("Analyze parameter diff finished. All parameter settings are consistent among observers")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "Analyze parameter diff finished. All parameter settings are consistent among observers"})

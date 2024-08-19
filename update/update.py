@@ -77,15 +77,13 @@ class UpdateHandler:
                 )
                 return ObdiagResult(
                     ObdiagResult.SERVER_ERROR_CODE,
-                    error_data=
-                    "remote_obdiag_version is {0}. local_obdiag_version is {1}. "
+                    error_data="remote_obdiag_version is {0}. local_obdiag_version is {1}. "
                     "remote_obdiag_version>local_obdiag_version. Unable to update dependency files, please upgrade "
-                    "obdiag. Do not perform the upgrade process.".format(self.remote_obdiag_version, self.local_obdiag_version)
-                    ,
+                    "obdiag. Do not perform the upgrade process.".format(self.remote_obdiag_version, self.local_obdiag_version),
                 )
             if remote_data.get("remote_tar_sha") is None:
                 self.stdio.warn("remote_tar_sha is None. Do not perform the upgrade process.")
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data= "remote_tar_sha is None. Do not perform the upgrade process.")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="remote_tar_sha is None. Do not perform the upgrade process.")
             else:
                 self.remote_tar_sha = remote_data["remote_tar_sha"]
             # need update?

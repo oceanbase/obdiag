@@ -183,7 +183,7 @@ class RCAHandler:
         except Exception as e:
             raise Exception("rca_scene.export_result err: {0}".format(e))
         self.stdio.print("rca finished. For more details, the result on '" + Fore.YELLOW + self.get_result_path() + Style.RESET_ALL + "' \nYou can get the suggest by '" + Fore.YELLOW + "cat " + self.get_result_path() + "/record" + Style.RESET_ALL + "'")
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.records_data()})
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
 
 
 class RcaScene:

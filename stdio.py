@@ -638,6 +638,8 @@ class IO(object):
         return ret
 
     def start_loading(self, text, *arg, **kwargs):
+        if self.silent:
+            return True
         if self.sync_obj:
             return False
         self.sync_obj = self._start_sync_obj(IOHalo, lambda x: x.stop_loading('fail'), *arg, **kwargs)
@@ -646,6 +648,8 @@ class IO(object):
             return self.sync_obj.start(text)
 
     def stop_loading(self, stop_type, *arg, **kwargs):
+        if self.silent:
+            return True
         if not isinstance(self.sync_obj, IOHalo):
             return False
         if getattr(self.sync_obj, stop_type, False):

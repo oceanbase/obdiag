@@ -120,7 +120,8 @@ class AnalyzeFltTraceHandler(object):
                 data = future.result()
                 tree.build(data)
         # output tree
-        return self.__output(local_store_parent_dir, tree, self.output)
+        result = self.__output(local_store_parent_dir, tree, self.output)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": local_store_parent_dir, "result": result})
 
     def __handle_from_node(self, node, old_files, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
@@ -348,8 +349,12 @@ class AnalyzeFltTraceHandler(object):
         self.stdio.print(last_info)
         result_info = ""
         with open(filename, 'r', encoding='utf-8') as f:
+            line_nu = 0
             for line in f:
                 result_info += line
+                line_nu += 1
+                if line_nu > 60:
+                    break
         return result_info
 
     def parse_file(self, file):
