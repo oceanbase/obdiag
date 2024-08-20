@@ -408,5 +408,10 @@ class ObdiagHome(object):
         else:
             self.set_offline_context('config', 'config')
             config_helper = ConfigHelper(context=self.context)
+            if Util.get_option(opt, 'file'):
+                print("ture")
+                print(Util.get_option(opt, 'file'))
+                config_helper.build_configuration_by_ini(Util.get_option(opt, 'file'))
+                return
             config_helper.build_configuration()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "config success"})

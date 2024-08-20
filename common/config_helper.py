@@ -19,10 +19,12 @@ import os
 import pwinput
 import time
 from collections import OrderedDict
+import yaml
 
 from common.command import get_observer_version
 from common.constant import const
 from common.ob_connector import OBConnector
+from common.ssh_client.base import SsherClient
 from common.tool import DirectoryUtil
 from common.tool import TimeUtils
 from common.tool import StringUtils
@@ -80,6 +82,149 @@ class ConfigHelper(object):
             self.stdio.verbose("get host info: %s", host_info)
             host_info_list.append(host_info)
         return host_info_list
+
+    def build_configuration_by_ini(self, ini_file_path="conf/configure.ini"):
+        import os
+
+        self.stdio.print("inpi_file_path: ", os.path.expanduser(ini_file_path))
+
+        def parse_config(file_content):
+            config_ini_dict = {}
+            current_section = None
+            # all host
+            observer_hosts = []
+            config_ini_dict["observer_hosts"] = observer_hosts
+            obproxy_hosts = []
+
+            for line in file_content.splitlines():
+                # 去除行首行尾空白
+                line = line.strip()
+
+                # 跳过空行和注释行
+                if not line or line.startswith("#"):
+                    continue
+                # 分割键和值
+                key, value = line.split('=', 1)
+                key = key.strip()  # 移除键前后的空白
+
+                value = value.strip()  # 移除值前后的空白
+                if "obs_hosts" in key:
+                    observer_hosts.append(value)
+                    continue
+                if "proxy_hosts" in key:
+                    obproxy_hosts.append(value)
+                    continue
+                if "workdir" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "clog_path" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "data_path" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "port_base" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "proxy_port" in key:
+                    config_ini_dict[key] = value
+                    continue
+
+                # 存储到字典中
+                if current_section is not None:
+                    config_ini_dict[current_section][key] = value
+                else:
+                    # 如果没有明确的节，则直接存储到顶层字典
+                    config_ini_dict[key] = value
+                observer_hosts = list(set(observer_hosts))
+                obproxy_hosts = list(set(obproxy_hosts))
+            config_ini_dict["obproxy_hosts"] = obproxy_hosts
+            config_ini_dict["observer_hosts"] = observer_hosts
+            return config_ini_dict
+
+        with open('conf/configure.ini', 'r', encoding='utf-8') as f:
+            file_content = f.read()
+            # get all useful config map
+            config_ini_dict = parse_config(file_content)
+            # print(json.dumps(config_ini_dict))
+
+        config_yml_dict = {"obcluster": None, "obproxy": None}
+        config_yml_obcluster = {
+            "ob_cluster_name": "obcluster",
+            "db_host": "127.0.0.1",
+            "db_port": 2881,
+            "tenant_sys": {"user": "root@sys", "password": ""},
+            "db_user": "root@sys",
+            "servers": {"nodes": [], "global": {}},
+        }
+        config_yml_obproxy = {
+            "obproxy_cluster_name": "obcluster",
+            "servers": {"nodes": [], "global": {}},
+        }
+
+        # set config_yml_obcluster ssh user and password
+        import os
+
+        local_user = os.getlogin()
+        config_yml_obcluster["servers"]["global"]["ssh_username"] = local_user
+        config_yml_obcluster["servers"]["global"]["ssh_password"] = ""
+        config_yml_obcluster["servers"]["global"]["ssh_port"] = "22"
+        config_yml_obcluster["servers"]["global"]["ssh_key_file"] = ""
+        config_yml_obproxy["servers"]["global"]["ssh_username"] = local_user
+        config_yml_obproxy["servers"]["global"]["ssh_password"] = ""
+        config_yml_obproxy["servers"]["global"]["ssh_port"] = "22"
+        config_yml_obproxy["servers"]["global"]["ssh_key_file"] = ""
+        # get home_path on node
+        # observer
+        work_dir = config_ini_dict["workdir"]
+        observer_hosts = config_ini_dict["observer_hosts"]
+        if len(observer_hosts) == 0:
+            print("observer_hosts is empty")
+        else:
+            for observer_host in observer_hosts:
+                # get observer info by ssh
+                ## get home_path
+                node = {"ip": observer_host, "ssh_port": 22, "ssh_username": local_user, "ssh_password": ""}
+                sshhelper = SsherClient(context=self.context, node=node)
+                all_dir_name = sshhelper.run_cmd("ls {0}".format(work_dir))
+                for dir_name in all_dir_name:
+                    if "obs" in dir_name:
+                        home_path = "{0}/{1}".format(work_dir, dir_name)
+                        config_yml_obcluster["servers"]["nodes"].append({"host": observer_host, "home_path": home_path, "data_dir": home_path + "/store", "redo_dir": home_path + "/store"})
+                        continue
+
+        obproxy_hosts = config_ini_dict["obproxy_hosts"]
+        if len(obproxy_hosts) == 0:
+            print("obproxy_hosts is empty")
+        else:
+            for obproxy_host in obproxy_hosts:
+                # get obproxy info by ssh
+                node = {"ip": obproxy_host, "ssh_port": 22, "ssh_username": local_user, "ssh_password": ""}
+                sshhelper = SsherClient(context=self.context, node=node)
+                all_dir_name = sshhelper.exec_cmd("ls {0}".format(work_dir))
+                for dir_name in all_dir_name:
+                    if "obproxy" in dir_name:
+                        home_path = "{0}/{1}".format(work_dir, dir_name)
+                        config_yml_obproxy["servers"]["nodes"].append({"host": obproxy_host, "home_path": home_path})
+                        continue
+
+        # db_host
+        db_host = config_yml_obcluster["servers"]["nodes"][0]["host"]
+        port_base = config_ini_dict.get("port_base") or 2881 - 35
+        config_yml_obcluster["db_host"] = db_host
+        config_yml_obcluster["db_port"] = port_base
+
+        # merge
+        config_yml_dict["obcluster"] = config_yml_obcluster
+        config_yml_dict["obproxy"] = config_yml_obproxy
+
+        # print(json.dumps(config_yml_dict))
+        # 将字典转换为YAML
+        yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
+
+        # 打印或保存YAML输出
+        print(yaml_output)
+        return yaml_output
 
     def build_configuration(self):
         self.stdio.verbose("Getting all the node information of the cluster, please wait a moment ...")
