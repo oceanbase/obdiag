@@ -1358,26 +1358,26 @@ class Util(object):
         return s
 
     @staticmethod
-    def print_scene(scene_dict, stdio=None):
+    def print_scene(scene_dict, stdio):
         columns_to_print = ['command', 'info_en', 'info_cn']
         keys = columns_to_print
         table_data = [[value[key] for key in keys] for value in scene_dict.values()]
         column_widths = [max(len(str(item)) * (StringUtils.is_chinese(item) or 1) for item in column) for column in zip(*table_data)]
         table_data.insert(0, keys)
-        Util.print_line(length=sum(column_widths) + 5)
+        Util.print_line(length=sum(column_widths) + 5, stdio=stdio)
         for i in range(len(table_data)):
-            print(Fore.GREEN + "   ".join(f"{item:<{width}}" for item, width in zip(table_data[i], column_widths)) + Style.RESET_ALL)
+            stdio.print(Fore.GREEN + "   ".join(f"{item:<{width}}" for item, width in zip(table_data[i], column_widths)) + Style.RESET_ALL)
             if i == 0:
-                Util.print_line(length=sum(column_widths) + 5)
-        Util.print_line(length=sum(column_widths) + 5)
+                Util.print_line(length=sum(column_widths) + 5, stdio=stdio)
+        Util.print_line(length=sum(column_widths) + 5, stdio=stdio)
 
     @staticmethod
     def print_line(char='-', length=50, stdio=None):
-        print(char * length)
+        stdio.print(char * length)
 
     @staticmethod
-    def print_title(name, stdio=None):
-        print("\n[{0}]:".format(name))
+    def print_title(name, stdio):
+        stdio.print("\n[{0}]:".format(name))
 
     @staticmethod
     def gen_password(length=8, chars=string.ascii_letters + string.digits, stdio=None):

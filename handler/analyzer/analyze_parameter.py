@@ -26,6 +26,8 @@ import json
 import datetime
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class AnalyzeParameterHandler(object):
     def __init__(self, context, analyze_type='default'):
@@ -67,14 +69,14 @@ class AnalyzeParameterHandler(object):
         if self.analyze_type == 'default':
             if not self.init_option_default():
                 self.stdio.error('init option failed')
-                return False
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         else:
             if not self.init_option_diff():
                 self.stdio.error('init option failed')
-                return False
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.stdio.verbose("Use {0} as pack dir.".format(self.export_report_path))
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
-        self.execute()
+        return self.execute()
 
     def check_file_valid(self):
         with open(self.parameter_file_name, 'r') as f:
@@ -167,10 +169,11 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
             fp.write(report_default_tb.get_string() + "\n")
             self.stdio.print(report_default_tb.get_string())
             self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_default_tb.get_string(), "file_name": file_name})
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
-                return
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
             else:
                 sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
 EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
@@ -262,6 +265,7 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
         file_name = self.export_report_path + '/parameter_diff_{0}.table'.format(date_format)
         fp = open(file_name, 'a+', encoding="utf8")
         is_empty = True
+        report_diff_tbs = []
         for tenant, value_list in diff_parameter_dict.items():
             if len(value_list) > 0:
                 report_diff_tb = PrettyTable(["name", "diff"])
@@ -279,17 +283,20 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 fp.write(report_diff_tb.get_string() + "\n")
                 self.stdio.print(report_diff_tb.get_string())
                 is_empty = False
+                report_diff_tbs.append(report_diff_tb.get_string())
         fp.close()
         if not is_empty:
             self.stdio.print("Analyze parameter diff finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_diff_tbs, "store_dir": file_name})
         else:
             self.stdio.print("Analyze parameter diff finished. All parameter settings are consistent among observers")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "Analyze parameter diff finished. All parameter settings are consistent among observers"})
 
     def execute(self):
         try:
             if self.analyze_type == 'default':
-                self.analyze_parameter_default()
+                return self.analyze_parameter_default()
             elif self.analyze_type == 'diff':
-                self.alalyze_parameter_diff()
+                return self.alalyze_parameter_diff()
         except Exception as e:
             self.stdio.error("parameter info analyze failed, error message: {0}".format(e))

@@ -32,6 +32,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
 import common.ssh_client.local_client as ssh_client_local_client
+from result_type import ObdiagResult
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -125,10 +126,10 @@ class AnalyzeLogHandler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
@@ -160,7 +161,11 @@ class AnalyzeLogHandler(BaseShellHandler):
                 FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
-        return analyze_tuples
+        # get info from local_store_parent_dir+/result_details.txt
+        analyze_info = ""
+        with open(os.path.join(local_store_parent_dir, "result_details.txt"), "r", encoding="utf-8") as f:
+            analyze_info = f.read()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info})
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}

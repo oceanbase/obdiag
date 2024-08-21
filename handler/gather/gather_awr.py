@@ -27,6 +27,7 @@ from common.tool import FileUtil
 from common.tool import Util
 from common.tool import TimeUtils
 from common.ocp import ocp_task, ocp_api
+from result_type import ObdiagResult
 
 
 class GatherAwrHandler(object):
@@ -100,7 +101,8 @@ class GatherAwrHandler(object):
         # 将汇总结果持久化记录到文件中
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
-        return gather_tuples, gather_pack_path_dict
+        # return gather_tuples, gather_pack_path_dict
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __download_report(self, store_path, name, report_id):
         """

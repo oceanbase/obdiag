@@ -33,7 +33,6 @@ if [ -d "${WORK_DIR}/rca" ]; then
     cp -rf ${WORK_DIR}/rca  ${OBDIAG_HOME}/
 fi
 
-
 ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
 if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
     echo "need update obdiag alias"
@@ -46,3 +45,4 @@ if [ -d "${OBDIAG_HOME}/check_package.yaml" ]; then
     echo "${OBDIAG_HOME}/*check_package.yaml and ${OBDIAG_HOME}/tasks  has been discarded. If you have made any changes to these files on your own, please transfer the relevant data to *check_package.yaml in ${OBDIAG_HOME}/check/"
 fi
 echo "Init obdiag finished"
+cd -

@@ -33,6 +33,8 @@ from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class RCAHandler:
     def __init__(self, context):
@@ -173,7 +175,7 @@ class RCAHandler:
             self.rca_scene.execute()
         except RCANotNeedExecuteException as e:
             self.stdio.warn("rca_scene.execute not need execute: {0}".format(e))
-            pass
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data="rca_scene.execute not need execute: {0}")
         except Exception as e:
             raise Exception("rca_scene.execute err: {0}".format(e))
         try:
@@ -181,6 +183,7 @@ class RCAHandler:
         except Exception as e:
             raise Exception("rca_scene.export_result err: {0}".format(e))
         self.stdio.print("rca finished. For more details, the result on '" + Fore.YELLOW + self.get_result_path() + Style.RESET_ALL + "' \nYou can get the suggest by '" + Fore.YELLOW + "cat " + self.get_result_path() + "/record" + Style.RESET_ALL + "'")
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
 
 
 class RcaScene:
@@ -276,6 +279,14 @@ class Result:
                 f.write("\n")
                 f.write(record.export_suggest())
                 f.write("\n")
+
+    def records_data(self):
+        records_data = []
+        for record in self.records:
+            if record.records is None or len(record.records) == 0:
+                continue
+            records_data.append({"record": record.records, "suggest": record.suggest})
+        return records_data
 
 
 class RCA_ResultRecord:

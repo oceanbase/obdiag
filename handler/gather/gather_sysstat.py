@@ -29,6 +29,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import TimeUtils
+from result_type import ObdiagResult
 
 
 class GatherOsInfoHandler(BaseShellHandler):
@@ -80,10 +81,10 @@ class GatherOsInfoHandler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, "init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, "init config failed")
 
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
@@ -114,6 +115,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         self.stdio.print(summary_tuples)
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, node, local_stored_path):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}

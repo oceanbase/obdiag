@@ -18,6 +18,7 @@
 
 import os
 import re
+from result_type import ObdiagResult
 from stdio import SafeStdio
 import datetime
 from handler.gather.scenes.base import SceneBase
@@ -65,19 +66,19 @@ class GatherSceneHandler(SafeStdio):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         self.__init_variables()
         self.__init_report_path()
         self.__init_task_names()
         self.execute()
         if self.is_inner:
             result = self.__get_sql_result()
-            return result
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
-            self.__print_result()
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
 
     def execute(self):
         try:
@@ -231,3 +232,4 @@ class GatherSceneHandler(SafeStdio):
 
     def __print_result(self):
         self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
+        return self.report_path

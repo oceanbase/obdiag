@@ -26,6 +26,7 @@ import json
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
 from core import ObdiagHome
+from result_type import ObdiagResult
 from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
@@ -195,6 +196,10 @@ class BaseCommand(object):
 class ObdiagOriginCommand(BaseCommand):
     OBDIAG_PATH = OBDIAG_HOME_PATH
 
+    def __init__(self, name, summary):
+        super().__init__(name, summary)
+        self.trace_id = uuid()
+
     @property
     def enable_log(self):
         return True
@@ -251,9 +256,9 @@ class ObdiagOriginCommand(BaseCommand):
                 os.makedirs(log_directory, exist_ok=True)
             log_path = os.path.join(log_directory, 'obdiag.log')
             if self.enable_log:
-                ROOT_IO.init_trace_logger(log_path, 'obdiag', trace_id)
+                ROOT_IO.init_trace_logger(log_path, 'obdiag', self.trace_id)
             ROOT_IO.track_limit += 1
-            ROOT_IO.verbose('cmd: %s' % self.cmds)
+            ROOT_IO.verbose('cmd: %s' % self.prev_cmd)
             ROOT_IO.verbose('opts: %s' % self.opts)
             config_path = os.path.expanduser('~/.obdiag/config.yml')
             custom_config = Util.get_option(self.opts, 'c')
@@ -263,11 +268,38 @@ class ObdiagOriginCommand(BaseCommand):
                 else:
                     ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
                     return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=custom_config, inner_config_change_map=self.inner_config_change_map)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
             ret = self._do_command(obdiag)
+            exit_code = 0
+            # if silent is true ,print ret
+            if ROOT_IO.silent:
+                if isinstance(ret, ObdiagResult) is False:
+                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
+                    ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="The return value of the command is not ObdiagResult. Maybe the command not support silent. Please contact thebase community.")
+                ret.set_trace_id(self.trace_id)
+
+                def args_to_str(args):
+                    args_str = ""
+                    for arg in args:
+                        args_str += arg + " "
+                    return args_str.strip()
+
+                ret.set_command(self.prev_cmd + " " + args_to_str(self.args))
+                ROOT_IO.set_silent(False)
+                ROOT_IO.print(ret.get_result())
+                ROOT_IO.set_silent(True)
+            if self.has_trace:
+                ROOT_IO.print('Trace ID: %s' % self.trace_id)
+                ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
             telemetry.put_data()
+            if ROOT_IO.silent:
+                if ret.get_code() == ObdiagResult.SUCCESS_CODE:
+                    return True
+                else:
+                    return False
+            return True
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:
@@ -277,10 +309,6 @@ class ObdiagOriginCommand(BaseCommand):
         except:
             e = sys.exc_info()[1]
             ROOT_IO.exception('Running Error: %s' % e)
-        if self.has_trace:
-            ROOT_IO.print('Trace ID: %s' % trace_id)
-            ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, trace_id))
-        return ret or True
 
     def _do_command(self, obdiag):
         raise NotImplementedError
@@ -857,8 +885,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         if 'list' in self.args:
-            obdiag.check_list(self.opts)
-            return
+            return obdiag.check_list(self.opts)
         return obdiag.check(self.opts)
 
 
