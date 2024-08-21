@@ -18,6 +18,7 @@
 
 
 import sys
+from prettytable import PrettyTable
 from common.tool import StringUtils, Util
 from common.ob_connector import OBConnector
 from common.command import get_observer_version
@@ -34,6 +35,7 @@ class AnalyzeIndexSpaceHandler(object):
         self.index_id = None
         self.column_names = []
         self.estimated_table_data = None
+        self.result_map_list = []
 
     def init_option(self):
         options = self.context.options
@@ -136,14 +138,30 @@ class AnalyzeIndexSpaceHandler(object):
                 data_disk_usage_limit_percentage = int(self.sys_connector.execute_sql_return_cursor_dictionary(sql).fetchall()[0]["VALUE"])
                 # data_disk_usage_limit_percentage is a Cluster level configuration items
                 available_disk_space = int(target_server_total_size / 100 * data_disk_usage_limit_percentage - target_server_used_size)
-                if target_server_estimated_index_size > available_disk_space:
-                    self.stdio.print("==>> estimated index space is {}.".format(target_server_estimated_index_size))
-                    self.stdio.print("the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(target_server_ip, target_server_port))
-                else:
-                    self.stdio.print("==>> estimated index space is {}.".format(target_server_estimated_index_size))
-                    self.stdio.print("the disk space of server({0}:{1}) is enough. Don't warn. If there are still errors, please contact the OceanBase community.".format(target_server_ip, target_server_port))
+                node_result_map = {}
+                node_result_map["ip"] = target_server_ip
+                node_result_map["port"] = target_server_port
+                node_result_map["estimated_index_space"] = target_server_estimated_index_size
+                node_result_map["available_disk_space"] = available_disk_space
+                self.result_map_list.append(node_result_map)
+                # if target_server_estimated_index_size > available_disk_space:
+                #     self.stdio.print("the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(target_server_ip, target_server_port))
+                # else:
+                #     self.stdio.print("the disk space of server({0}:{1}) is enough. Don't warn. If there are still errors, please contact the OceanBase community.".format(target_server_ip, target_server_port))
+            self.export_report_table()
         except Exception as e:
             self.stdio.verbose("analyze index space error: {0}".format(e))
             sys.exit()
         finally:
             self.stdio.verbose("end analyze index space")
+
+    def export_report_table(self):
+        try:
+            report_index_space_tb = PrettyTable(["ip", "port", "estimated_index_space", "available_disk_space"])
+            report_index_space_tb.align["task_report"] = "l"
+            report_index_space_tb.title = "estimated-index-space-report"
+            for result in self.result_map_list:
+                report_index_space_tb.add_row([result["ip"], result["port"], result["estimated_index_space"], result["available_disk_space"]])
+            self.stdio.print(report_index_space_tb)
+        except Exception as e:
+            raise Exception("export report {0}".format(e))
