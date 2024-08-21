@@ -36,6 +36,7 @@ from handler.analyzer.analyze_sql import AnalyzeSQLHandler
 from handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from handler.analyzer.analyze_parameter import AnalyzeParameterHandler
 from handler.analyzer.analyze_variable import AnalyzeVariableHandler
+from handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -307,6 +308,10 @@ class ObdiagHome(object):
             elif function_type == 'analyze_sql_review':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLReviewHandler(self.context)
+                handler.handle()
+            elif function_type == 'analyze_index_space':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeIndexSpaceHandler(self.context)
                 handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
