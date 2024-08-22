@@ -113,7 +113,6 @@ class RemoteClient(SsherClient):
         sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
         if transferred == to_be_transferred:
             sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
-            print()
 
     def upload(self, remote_path, local_path):
         transport = self._ssh_fd.get_transport()

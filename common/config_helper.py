@@ -98,7 +98,7 @@ class ConfigHelper(object):
         self.save_old_configuration(old_config)
         # rewrite config
         ob_cluster_name = self.get_cluster_name()
-        print("\033[33mPlease enter the following configuration !!!\033[0m")
+        self.stdio.print("\033[33mPlease enter the following configuration !!!\033[0m")
         global_ssh_username = self.input_with_default("oceanbase host ssh username", "")
         global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
         global_ssh_port = self.input_with_default("oceanbase host ssh_port", "22")

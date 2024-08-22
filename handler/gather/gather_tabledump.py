@@ -18,6 +18,8 @@
 
 import os
 import time
+
+from result_type import ObdiagResult
 from stdio import SafeStdio
 from common.ob_connector import OBConnector
 from common.tool import StringUtils
@@ -99,10 +101,12 @@ class GatherTableDumpHandler(SafeStdio):
         self.start_time = time.time()
         if not self.init():
             self.stdio.error('init failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init failed")
         excute_status = self.execute()
         if not self.is_innner and excute_status:
             self.__print_result()
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.store_dir})
+        return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="execute failed")
 
     def execute(self):
         try:
@@ -253,3 +257,4 @@ class GatherTableDumpHandler(SafeStdio):
         self.stdio.print("\nAnalyze SQL Summary:")
         self.stdio.print(table)
         self.stdio.print("\n")
+        return

@@ -176,7 +176,7 @@ task:
         set_value: parameter
         report_type: warning
         verify: "[ 6573688  -le  ${parameter} ]"
-        err_msg: 'fs.file-max: #{parameter}. recommended: #{parameter} is ≥ 6573688.'
+        err_msg: 'fs.file-max: #{parameter}. recommended: is ≥ 6573688.'
     - type: get_system_parameter
       parameter: fs.pipe-user-pages-soft
       result:

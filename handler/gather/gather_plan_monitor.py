@@ -33,6 +33,7 @@ from common.tool import StringUtils
 from common.tool import FileUtil
 from common.tool import TimeUtils
 from handler.gather.gather_tabledump import GatherTableDumpHandler
+from result_type import ObdiagResult
 
 
 class GatherPlanMonitorHandler(object):
@@ -95,10 +96,10 @@ class GatherPlanMonitorHandler(object):
     def handle(self):
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
@@ -219,7 +220,8 @@ class GatherPlanMonitorHandler(object):
         self.stdio.print(summary_tuples)
         # 将汇总结果持久化记录到文件中
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
-        return gather_tuples, gather_pack_path_dict
+        # return gather_tuples, gather_pack_path_dict
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __init_db_conn(self, env):
         try:

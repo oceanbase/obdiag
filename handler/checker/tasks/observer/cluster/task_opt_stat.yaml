@@ -1,0 +1,16 @@
+info: 'Check whether data_dir and log_dir_disk are on the same disk.'
+task:
+  - version: "[4.2.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'SELECT GROUP_CONCAT(DISTINCT TENANT_ID)  
+FROM   oceanbase.__all_tenant t
+WHERE  NOT EXISTS(SELECT 1
+                  FROM   oceanbase.__all_virtual_task_opt_stat_gather_history h
+                  WHERE  TYPE = 1
+                  AND start_time > date_sub(now(), interval 1 day)
+                  AND h.tenant_id = t.tenant_id);'
+      result:
+        set_value: failed_scheduler_tenant_id
+        verify: '[ -n "${failed_scheduler_tenant_id}" ]'
+        err_msg: "failed_scheduler_tenant_id is exists. Please check the tenant_ids: #{failed_scheduler_tenant_id}"
