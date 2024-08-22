@@ -294,8 +294,12 @@ class ObdiagOriginCommand(BaseCommand):
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
                 ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
             telemetry.put_data()
-            if ret.get_code() == ObdiagResult.SUCCESS_CODE:
-                return True
+            if ROOT_IO.silent:
+                if ret.get_code() == ObdiagResult.SUCCESS_CODE:
+                    return True
+                else:
+                    return False
+            return True
         except NotImplementedError:
             ROOT_IO.exception('command \'%s\' is not implemented' % self.prev_cmd)
         except SystemExit:
@@ -979,7 +983,6 @@ class ObdiagConfigCommand(ObdiagOriginCommand):
         self.parser.add_option('-u', type='string', help='sys_user', default='root@sys')
         self.parser.add_option('-p', type='string', help="password", default='')
         self.parser.add_option('-P', type='string', help="port")
-        self.parser.add_option("--file", type='string', help="obdiag config file path. Change it to config.yml. Now support ini.")
 
     def init(self, cmd, args):
         super(ObdiagConfigCommand, self).init(cmd, args)
