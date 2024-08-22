@@ -79,12 +79,6 @@ class ObdiagHome(object):
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
             stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
-        if config_path:
-            if os.path.exists(os.path.abspath(config_path)):
-                config_path = config_path
-            else:
-                stdio.error('The option you provided with -c: {0} is not exist.'.format(config_path))
-                return
         self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
