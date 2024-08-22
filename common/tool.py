@@ -214,6 +214,69 @@ class ConfigUtil(object):
         return "'{}'".format(passwd.replace("'", "'\"'\"'"))
 
 
+class ConfigOptionsParserUtil(object):
+    def __init__(self):
+        self.config_dict = {}
+
+    def set_nested_value(self, d, keys, value):
+        """Recursively set the value in a nested dictionary."""
+        if len(keys) > 1:
+            if 'nodes' in keys[0]:
+                try:
+                    # Handle nodes
+                    parts = keys[0].split('[')
+                    base_key = parts[0]
+                    index = int(parts[1].rstrip(']'))
+                    if base_key not in d:
+                        d[base_key] = []
+                    while len(d[base_key]) <= index:
+                        d[base_key].append({})
+                    self.set_nested_value(d[base_key][index], keys[1:], value)
+                except (IndexError, ValueError) as e:
+                    raise ValueError(f"Invalid node index in key '{keys[0]}'") from e
+            else:
+                if keys[0] not in d:
+                    d[keys[0]] = {}
+                d[keys[0]] = self.set_nested_value(d[keys[0]], keys[1:], value)
+        else:
+            d[keys[0]] = value
+        return d
+
+    def parse_config(self, input_array):
+        for item in input_array:
+            try:
+                key, value = item.split('=', 1)
+                keys = key.split('.')
+                self.set_nested_value(self.config_dict, keys, value)
+            except ValueError:
+                raise ValueError(f"Invalid input format for item '{item}'")
+
+        self.config_dict = self.add_default_values(self.config_dict)
+        return self.config_dict
+
+    def add_default_values(self, d):
+        if isinstance(d, dict):
+            for k, v in d.items():
+                if k == 'login':
+                    if 'password' not in v:
+                        v['password'] = ''
+                elif k == 'tenant_sys':
+                    if 'password' not in v:
+                        v['password'] = ''
+                elif k == 'global':
+                    if 'ssh_username' not in v:
+                        v['ssh_username'] = ''
+                    if 'ssh_password' not in v:
+                        v['ssh_password'] = ''
+                elif isinstance(v, dict):
+                    self.add_default_values(v)
+                elif isinstance(v, list):
+                    for node in v:
+                        if isinstance(node, dict):
+                            self.add_default_values(node)
+        return d
+
+
 class DirectoryUtil(object):
 
     @staticmethod

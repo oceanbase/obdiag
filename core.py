@@ -57,13 +57,12 @@ from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
 
-from common.tool import Util
 from common.tool import TimeUtils
 
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -86,7 +85,7 @@ class ObdiagHome(object):
             else:
                 stdio.error('The option you provided with -c: {0} is not exist.'.format(config_path))
                 return
-        self.config_manager = ConfigManager(config_path, stdio)
+        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic") is not None

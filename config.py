@@ -17,7 +17,7 @@
 
 from __future__ import absolute_import, division, print_function
 import os
-from common.tool import DirectoryUtil
+from common.tool import ConfigOptionsParserUtil, DirectoryUtil
 from stdio import SafeStdio
 import oyaml as yaml
 import pathlib
@@ -148,17 +148,20 @@ class Manager(SafeStdio):
 
 class ConfigManager(Manager):
 
-    def __init__(self, config_file=None, stdio=None):
+    def __init__(self, config_file=None, stdio=None, config_env_list=[]):
         default_config_path = os.path.join(os.path.expanduser("~"), ".obdiag", "config.yml")
-
-        if config_file is None or not os.path.exists(config_file):
-            config_file = default_config_path
-            pathlib.Path(os.path.dirname(default_config_path)).mkdir(parents=True, exist_ok=True)
-            with open(default_config_path, 'w') as f:
-                f.write(DEFAULT_CONFIG_DATA)
-        super(ConfigManager, self).__init__(config_file, stdio)
-        self.config_file = config_file
-        self.config_data = self.load_config()
+        if config_env_list is None or len(config_env_list) == 0:
+            if config_file is None or not os.path.exists(config_file):
+                config_file = default_config_path
+                pathlib.Path(os.path.dirname(default_config_path)).mkdir(parents=True, exist_ok=True)
+                with open(default_config_path, 'w') as f:
+                    f.write(DEFAULT_CONFIG_DATA)
+            super(ConfigManager, self).__init__(config_file, stdio)
+            self.config_file = config_file
+            self.config_data = self.load_config()
+        else:
+            parser = ConfigOptionsParserUtil()
+            self.config_data = parser.parse_config(config_env_list)
 
     def _safe_get(self, dictionary, *keys, default=None):
         """Safe way to retrieve nested values from dictionaries"""
