@@ -52,6 +52,7 @@ from handler.gather.scenes.list import GatherScenesListHandler
 from handler.gather.gather_tabledump import GatherTableDumpHandler
 from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
+from result_type import ObdiagResult
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
@@ -73,10 +74,19 @@ class ObdiagHome(object):
         self.set_stdio(stdio)
         self.context = None
         self.inner_config_manager = InnerConfigManager(stdio=stdio, inner_config_change_map=inner_config_change_map)
+        # obdiag.logger.error_stream
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("print_type") is not None:
             stdio.set_err_stream(self.inner_config_manager.config.get("obdiag").get("logger").get("error_stream"))
-
+        # obdiag.logger.silent
+        if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
+            stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
+        if config_path:
+            if os.path.exists(os.path.abspath(config_path)):
+                config_path = config_path
+            else:
+                stdio.error('The option you provided with -c: {0} is not exist.'.format(config_path))
+                return
         self.config_manager = ConfigManager(config_path, stdio)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
@@ -192,7 +202,7 @@ class ObdiagHome(object):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
             self.set_context(function_type, 'gather', config)
@@ -231,8 +241,7 @@ class ObdiagHome(object):
                 handler_log = GatherLogHandler(self.context)
                 handler_log.handle()
                 handler_obproxy = GatherObProxyLogHandler(self.context)
-                handler_obproxy.handle()
-                return True
+                return handler_obproxy.handle()
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)
                 return handler.handle()
@@ -253,13 +262,13 @@ class ObdiagHome(object):
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
-                return False
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support gather function: {0}'.format(function_type))
 
     def gather_obproxy_log(self, opt):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_context_skip_cluster_conn('gather_obproxy_log', 'gather', config)
             handler = GatherObProxyLogHandler(self.context)
@@ -274,33 +283,34 @@ class ObdiagHome(object):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
             if function_type == 'analyze_log':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_log_offline':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_flt_trace':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_parameter_default':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeParameterHandler(self.context, 'default')
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_parameter_diff':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeParameterHandler(self.context, 'diff')
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_variable_diff':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeVariableHandler(self.context, 'diff')
-                handler.handle()
+                return handler.handle()
+            # todo not support silent
             elif function_type == 'analyze_sql':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLHandler(self.context)
@@ -315,26 +325,29 @@ class ObdiagHome(object):
                 handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
-                return False
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support analyze function: {0}'.format(function_type))
 
     def check(self, opts):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("check start ...")
             self.set_context('check', 'check', config)
             obproxy_check_handler = None
             observer_check_handler = None
+            result_data = {}
             if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
                 obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
                 obproxy_check_handler.handle()
-                obproxy_check_handler.execute()
+                obproxy_result = obproxy_check_handler.execute()
+                result_data['obproxy'] = obproxy_result
             if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
                 observer_check_handler = CheckHandler(self.context, check_target_type="observer")
                 observer_check_handler.handle()
-                observer_check_handler.execute()
+                observer_result = observer_check_handler.execute()
+                result_data['observer'] = observer_result
             if obproxy_check_handler is not None:
                 obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                 if os.path.exists(obproxy_report_path):
@@ -343,59 +356,62 @@ class ObdiagHome(object):
                 observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                 if os.path.exists(observer_report_path):
                     self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
 
     def check_list(self, opts):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_offline_context('check_list', 'check_list')
             handler = CheckListHandler(self.context)
-            handler.handle()
+            return handler.handle()
 
     def rca_run(self, opts):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)
                 handler.handle()
-                handler.execute()
+                return handler.execute()
             except Exception as e:
                 self.stdio.error("rca run Exception: {0}".format(e))
                 self.stdio.verbose(traceback.format_exc())
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca run Exception: {0}".format(e))
 
     def rca_list(self, opts):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_offline_context('rca_list', 'rca_list')
             handler = RcaScenesListHandler(context=self.context)
-            handler.handle()
+            return handler.handle()
 
     def update(self, opts):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("update start ...")
             self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
-            handler.execute()
+            return handler.execute()
 
     def config(self, opt):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custum config')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_offline_context('config', 'config')
             config_helper = ConfigHelper(context=self.context)
             config_helper.build_configuration()
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "config success"})
