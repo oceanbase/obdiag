@@ -144,16 +144,17 @@ class AnalyzeIndexSpaceHandler(object):
                 node_result_map["estimated_index_space"] = target_server_estimated_index_size
                 node_result_map["available_disk_space"] = available_disk_space
                 self.result_map_list.append(node_result_map)
-                # if target_server_estimated_index_size > available_disk_space:
-                #     self.stdio.print("the disk space of server({0}:{1}) disk is not enough.  please add the server disk".format(target_server_ip, target_server_port))
-                # else:
-                #     self.stdio.print("the disk space of server({0}:{1}) is enough. Don't warn. If there are still errors, please contact the OceanBase community.".format(target_server_ip, target_server_port))
             self.export_report_table()
         except Exception as e:
             self.stdio.verbose("analyze index space error: {0}".format(e))
             sys.exit()
         finally:
             self.stdio.verbose("end analyze index space")
+
+    def execute(self):
+        result_map = {}
+        result_map["result"] = self.result_map_list
+        return result_map
 
     def export_report_table(self):
         try:
