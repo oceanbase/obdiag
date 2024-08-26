@@ -58,7 +58,10 @@ from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
 
-from common.tool import TimeUtils
+from common.tool import TimeUtils, Util
+from common.command import get_observer_version_by_sql
+from common.ob_connector import OBConnector
+from collections import OrderedDict
 
 
 class ObdiagHome(object):
@@ -122,6 +125,7 @@ class ObdiagHome(object):
             self._stdio_func[func] = getattr(self.stdio, func, _print)
 
     def set_context(self, handler_name, namespace, config):
+        self.update_obcluster_nodes(config)
         self.context = HandlerContext(
             handler_name=handler_name,
             namespace=namespace,
@@ -150,6 +154,36 @@ class ObdiagHome(object):
 
     def set_offline_context(self, handler_name, namespace):
         self.context = HandlerContext(handler_name=handler_name, namespace=namespace, cmd=self.cmds, options=self.options, stdio=self.stdio, inner_config=self.inner_config_manager.config)
+
+    def update_obcluster_nodes(self, config):
+        config_data = config.config_data
+        cluster_config = config.config_data["obcluster"]
+        ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
+        if Util.check_none_values(ob_cluster, self.stdio):
+            ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
+            obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
+            sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
+            if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
+                sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
+            res = obConnetcor.execute_sql(sql)
+            if len(res) == 0:
+                raise Exception("Failed to get the node from sql [{0}], " "please check whether the --config option correct!!!".format(sql))
+            host_info_list = []
+            for row in res:
+                host_info = OrderedDict()
+                host_info["ip"] = row[0]
+                self.stdio.verbose("get host info: %s", host_info)
+                host_info_list.append(host_info)
+            config_data_new = copy(config_data)
+            if 'servers' in config_data_new['obcluster']:
+                if not isinstance(config_data_new['obcluster']['servers'], dict):
+                    config_data_new['obcluster']['servers'] = {}
+            if 'nodes' not in config_data_new['obcluster']['servers'] or not isinstance(config_data_new['obcluster']['servers']['nodes'], list):
+                config_data_new['obcluster']['servers']['nodes'] = []
+            for item in host_info_list:
+                ip = item['ip']
+                config_data_new['obcluster']['servers']['nodes'].append({'ip': ip})
+            config.update_config_data(config_data_new)
 
     def get_namespace(self, spacename):
         if spacename in self.namespaces:
