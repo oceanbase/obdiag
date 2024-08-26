@@ -24,6 +24,21 @@ from common.ob_connector import OBConnector
 from common.command import get_observer_version
 
 
+def translate_byte(B):
+    if B < 0:
+        B = -B
+        return '-' + translate_byte(B)
+    if B == 0:
+        return '0B'
+    units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    k = 1024
+    i = 0
+    while B >= k and i < len(units) - 1:
+        B /= k
+        i += 1
+    return f"{B:.2f} {units[i]}"
+
+
 class AnalyzeIndexSpaceHandler(object):
     def __init__(self, context):
         self.context = context
@@ -141,8 +156,8 @@ class AnalyzeIndexSpaceHandler(object):
                 node_result_map = {}
                 node_result_map["ip"] = target_server_ip
                 node_result_map["port"] = target_server_port
-                node_result_map["estimated_index_space"] = target_server_estimated_index_size
-                node_result_map["available_disk_space"] = available_disk_space
+                node_result_map["estimated_index_space"] = translate_byte(target_server_estimated_index_size)
+                node_result_map["available_disk_space"] = translate_byte(available_disk_space)
                 self.result_map_list.append(node_result_map)
             self.export_report_table()
         except Exception as e:
