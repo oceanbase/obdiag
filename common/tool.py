@@ -217,6 +217,17 @@ class ConfigUtil(object):
 class ConfigOptionsParserUtil(object):
     def __init__(self):
         self.config_dict = {}
+        self.key_mapping = {
+            'db_host': 'obcluster.db_host',
+            'db_port': 'obcluster.db_port',
+            'tenant_sys.user': 'obcluster.tenant_sys.user',
+            'tenant_sys.password': 'obcluster.tenant_sys.password',
+            'ssh_username': 'obcluster.servers.global.ssh_username',
+            'ssh_password': 'obcluster.servers.global.ssh_password',
+            'ssh_port': 'obcluster.servers.global.ssh_port',
+            'home_path': 'obcluster.servers.global.home_path',
+            'obproxy_home_path': 'obproxy.servers.global.home_path',
+        }
 
     def set_nested_value(self, d, keys, value):
         """Recursively set the value in a nested dictionary."""
@@ -246,6 +257,9 @@ class ConfigOptionsParserUtil(object):
         for item in input_array:
             try:
                 key, value = item.split('=', 1)
+                # Map short keys to full keys if needed
+                if key in self.key_mapping:
+                    key = self.key_mapping[key]
                 keys = key.split('.')
                 self.set_nested_value(self.config_dict, keys, value)
             except ValueError:
@@ -268,6 +282,16 @@ class ConfigOptionsParserUtil(object):
                         v['ssh_username'] = ''
                     if 'ssh_password' not in v:
                         v['ssh_password'] = ''
+                elif k == 'servers':
+                    # Ensure 'nodes' is present and initialized as an empty list
+                    if 'nodes' not in v:
+                        v['nodes'] = []
+                    if 'global' not in v:
+                        v['global'] = {}
+                    self.add_default_values(v['global'])
+                    for node in v['nodes']:
+                        if isinstance(node, dict):
+                            self.add_default_values(node)
                 elif isinstance(v, dict):
                     self.add_default_values(v)
                 elif isinstance(v, list):
