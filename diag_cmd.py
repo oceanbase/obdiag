@@ -837,6 +837,8 @@ class ObdiagAnalyzeIndexSpaceCommand(ObdiagOriginCommand):
         self.parser.add_option('--table_name', type='string', help="table name")
         self.parser.add_option('--index_name', type='string', help="specify the index name if an index already exists in the table")
         self.parser.add_option('--column_names', type='string', help="specify the column names of index that have not been created yet;eg:--column_names=c1,c2,c3")
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
         super(ObdiagAnalyzeIndexSpaceCommand, self).init(cmd, args)
