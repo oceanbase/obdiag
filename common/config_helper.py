@@ -142,7 +142,7 @@ class ConfigHelper(object):
             config_ini_dict["observer_hosts"] = observer_hosts
             return config_ini_dict
 
-        with open('conf/configure.ini', 'r', encoding='utf-8') as f:
+        with open(ini_file_path, 'r', encoding='utf-8') as f:
             file_content = f.read()
             # get all useful config map
             config_ini_dict = parse_config(file_content)
@@ -221,10 +221,14 @@ class ConfigHelper(object):
         # print(json.dumps(config_yml_dict))
         # 将字典转换为YAML
         yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
-
-        # 打印或保存YAML输出
-        print(yaml_output)
-        return yaml_output
+        if os.path.exists(os.path.expanduser("~/config.yml")):
+            if os.path.exists(os.path.expanduser("~/config.yml.d")):
+                os.remove(os.path.expanduser("~/config.yml.d"))
+            os.renames(os.path.expanduser("~/config.yml"), os.path.expanduser("~/config.yml.d"))
+        with open(os.path.expanduser("~/config.yml"), "w", encoding="utf-8") as f:
+            f.write(yaml_output)
+            self.stdio.print("Build configuration success, please check ~/config.yml")
+        return
 
     def build_configuration(self):
         self.stdio.verbose("Getting all the node information of the cluster, please wait a moment ...")
