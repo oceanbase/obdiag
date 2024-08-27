@@ -59,6 +59,9 @@ from colorama import Fore, Style
 from common.config_helper import ConfigHelper
 
 from common.tool import TimeUtils, Util
+from common.command import get_observer_version_by_sql
+from common.ob_connector import OBConnector
+from collections import OrderedDict
 
 
 class ObdiagHome(object):
@@ -151,6 +154,37 @@ class ObdiagHome(object):
     def set_offline_context(self, handler_name, namespace):
         self.context = HandlerContext(handler_name=handler_name, namespace=namespace, cmd=self.cmds, options=self.options, stdio=self.stdio, inner_config=self.inner_config_manager.config)
 
+    def update_obcluster_nodes(self, config):
+        config_data = config.config_data
+        cluster_config = config.config_data["obcluster"]
+        ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
+        if Util.check_none_values(ob_cluster, self.stdio):
+            ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
+            obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
+            sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
+            if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
+                sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
+            res = obConnetcor.execute_sql(sql)
+            if len(res) == 0:
+                raise Exception("Failed to get the node from sql [{0}], " "please check whether the --config option correct!!!".format(sql))
+            host_info_list = []
+            for row in res:
+                host_info = OrderedDict()
+                host_info["ip"] = row[0]
+                self.stdio.verbose("get host info: %s", host_info)
+                host_info_list.append(host_info)
+            config_data_new = copy(config_data)
+            if 'servers' in config_data_new['obcluster']:
+                if not isinstance(config_data_new['obcluster']['servers'], dict):
+                    config_data_new['obcluster']['servers'] = {}
+            if 'nodes' not in config_data_new['obcluster']['servers'] or not isinstance(config_data_new['obcluster']['servers']['nodes'], list):
+                config_data_new['obcluster']['servers']['nodes'] = []
+            for item in host_info_list:
+                ip = item['ip']
+                config_data_new['obcluster']['servers']['nodes'].append({'ip': ip})
+            self.stdio.verbose("update nodes [{0}]] config: %s", host_info)
+            config.update_config_data(config_data_new)
+
     def get_namespace(self, spacename):
         if spacename in self.namespaces:
             namespace = self.namespaces[spacename]
@@ -198,6 +232,7 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
+            self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
@@ -280,6 +315,7 @@ class ObdiagHome(object):
         else:
             self.stdio.print("{0} start ...".format(function_type))
             if function_type == 'analyze_log':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
@@ -288,6 +324,7 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_flt_trace':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 return handler.handle()
@@ -328,6 +365,7 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("check start ...")
+            self.update_obcluster_nodes(config)
             self.set_context('check', 'check', config)
             obproxy_check_handler = None
             observer_check_handler = None
@@ -368,6 +406,7 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
+            self.update_obcluster_nodes(config)
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)

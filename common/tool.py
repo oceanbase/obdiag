@@ -1502,6 +1502,28 @@ class Util(object):
             return new_nodes
         return None
 
+    @staticmethod
+    def check_none_values(config, stdio):
+        """
+        Check if any values in the given configuration dictionary are None.
+        If any value is None, print the specific information and return False.
+        If all values are not None, return True.
+
+        :param config: Dictionary containing configuration items
+        :return: True if no None values are found, otherwise False
+        """
+        # First, check the top-level key-value pairs
+        for key, value in config.items():
+            if value is None:
+                stdio.error("The value of '{0}' is None.".format(key))
+                return False
+
+            # If the value is a dictionary, recursively check the sub-dictionary
+            if isinstance(value, dict):
+                if not Util.check_none_values(value, stdio):
+                    return False
+        return True
+
 
 class SQLUtil(object):
     re_trace = re.compile(r'''\/\*.*trace_id((?!\/\*).)*rpc_id.*\*\/''', re.VERBOSE)
