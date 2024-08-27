@@ -36,6 +36,7 @@ from handler.analyzer.analyze_sql import AnalyzeSQLHandler
 from handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from handler.analyzer.analyze_parameter import AnalyzeParameterHandler
 from handler.analyzer.analyze_variable import AnalyzeVariableHandler
+from handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
 from handler.gather.gather_log import GatherLogHandler
@@ -57,13 +58,12 @@ from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
 
-from common.tool import Util
 from common.tool import TimeUtils
 
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -80,13 +80,7 @@ class ObdiagHome(object):
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
             stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
-        if config_path:
-            if os.path.exists(os.path.abspath(config_path)):
-                config_path = config_path
-            else:
-                stdio.error('The option you provided with -c: {0} is not exist.'.format(config_path))
-                return
-        self.config_manager = ConfigManager(config_path, stdio)
+        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic") is not None
@@ -318,6 +312,11 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLReviewHandler(self.context)
                 handler.handle()
+            elif function_type == 'analyze_index_space':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeIndexSpaceHandler(self.context)
+                handler.handle()
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=handler.execute())
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support analyze function: {0}'.format(function_type))
