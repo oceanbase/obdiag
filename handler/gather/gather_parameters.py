@@ -23,6 +23,8 @@ from common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class GatherParametersHandler(object):
     def __init__(self, context, gather_pack_dir='./'):
@@ -53,13 +55,14 @@ class GatherParametersHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         # example of the format of pack dir for this command: (gather_pack_dir)/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_parameters")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         self.gather_pack_dir = pack_dir_this_command
         self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"gather_pack_dir": pack_dir_this_command})
 
     def init_option(self):
         options = self.context.options

@@ -62,7 +62,6 @@ class SsherClient(SafeStdio):
         sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
         if transferred == to_be_transferred:
             sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
-            print()
 
     def translate_byte(self, B):
         if B < 0:

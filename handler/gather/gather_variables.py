@@ -22,6 +22,8 @@ from common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class GatherVariablesHandler(object):
     def __init__(self, context, gather_pack_dir='./'):
@@ -52,12 +54,13 @@ class GatherVariablesHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_variables")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         self.gather_pack_dir = pack_dir_this_command
         self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def init_option(self):
         options = self.context.options

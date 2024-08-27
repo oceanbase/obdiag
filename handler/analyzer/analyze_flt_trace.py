@@ -28,6 +28,7 @@ from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
+from result_type import ObdiagResult
 
 
 class AnalyzeFltTraceHandler(object):
@@ -86,10 +87,10 @@ class AnalyzeFltTraceHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data='init option failed')
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data='init config failed')
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_flt_result_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
@@ -119,8 +120,8 @@ class AnalyzeFltTraceHandler(object):
                 data = future.result()
                 tree.build(data)
         # output tree
-        self.__output(local_store_parent_dir, tree, self.output)
-        return analyze_tuples
+        result = self.__output(local_store_parent_dir, tree, self.output)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": local_store_parent_dir, "result": result})
 
     def __handle_from_node(self, node, old_files, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
@@ -346,6 +347,15 @@ class AnalyzeFltTraceHandler(object):
         self.stdio.verbose('Result saved: {}'.format(os.path.abspath(filename)))
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(filename)
         self.stdio.print(last_info)
+        result_info = ""
+        with open(filename, 'r', encoding='utf-8') as f:
+            line_nu = 0
+            for line in f:
+                result_info += line
+                line_nu += 1
+                if line_nu > 60:
+                    break
+        return result_info
 
     def parse_file(self, file):
         self.stdio.verbose('parse file: {}'.format(file[1]))

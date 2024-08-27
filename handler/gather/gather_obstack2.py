@@ -32,6 +32,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import StringUtils
+from result_type import ObdiagResult
 
 
 class GatherObstack2Handler(BaseShellHandler):
@@ -77,10 +78,10 @@ class GatherObstack2Handler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
@@ -104,6 +105,7 @@ class GatherObstack2Handler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, local_stored_path, node):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}

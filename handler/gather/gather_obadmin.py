@@ -31,6 +31,7 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
+from result_type import ObdiagResult
 
 
 class GatherObAdminHandler(BaseShellHandler):
@@ -116,10 +117,10 @@ class GatherObAdminHandler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         pack_dir_this_command = os.path.join(self.local_stored_path, "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
@@ -152,6 +153,7 @@ class GatherObAdminHandler(BaseShellHandler):
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, local_stored_path, node):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}

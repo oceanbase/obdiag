@@ -286,7 +286,8 @@ def get_obproxy_version(context):
     obproxy_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get obproxy version, run cmd = [{0}] ".format(cmd))
     if obproxy_version_info is not None:
-        ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
+        pattern = r"(\d+\.\d+\.\d+\.\d+)"
+        ob_version = re.findall(pattern, obproxy_version_info)
         if len(ob_version) > 0:
             return ob_version[0]
         else:
@@ -295,7 +296,6 @@ def get_obproxy_version(context):
             stdio.verbose("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
                 raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
-            pattern = r"(\d+\.\d+\.\d+\.\d+)"
             match = re.search(pattern, obproxy_version_info)
             if match:
                 obproxy_version_info = match.group(1)
@@ -405,12 +405,12 @@ def is_empty_file(ssh_client, file_path, stdio=None):
         return False
 
 
-def get_obdiag_display(log_dir, trace_id, stdio=None):
-    cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
-    stdout = LocalClient(stdio).run(cmd)
-    print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
-    if len(print_stdout) > 0:
-        print(print_stdout)
+# def get_obdiag_display(log_dir, trace_id, stdio=None):
+#     cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
+#     stdout = LocalClient(stdio).run(cmd)
+#     print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
+#     if len(print_stdout) > 0:
+#         print(print_stdout)
 
 
 def uzip_dir_local(uzip_dir, stdio=None):
