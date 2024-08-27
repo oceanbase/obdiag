@@ -58,7 +58,7 @@ from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
 
-from common.tool import TimeUtils
+from common.tool import TimeUtils, Util
 
 
 class ObdiagHome(object):
@@ -408,8 +408,6 @@ class ObdiagHome(object):
             self.set_offline_context('config', 'config')
             config_helper = ConfigHelper(context=self.context)
             if Util.get_option(opt, 'file'):
-                print("ture")
-                print(Util.get_option(opt, 'file'))
                 config_helper.build_configuration_by_ini(Util.get_option(opt, 'file'))
                 return
             config_helper.build_configuration()
