@@ -163,6 +163,14 @@ class ConfigManager(Manager):
             parser = ConfigOptionsParserUtil()
             self.config_data = parser.parse_config(config_env_list)
 
+    def update_config_data(self, new_config_data, save_to_file=False):
+        if not isinstance(new_config_data, dict):
+            raise ValueError("new_config_data must be a dictionary")
+        self.config_data.update(new_config_data)
+        if save_to_file:
+            with open(self.config_file, 'w') as f:
+                yaml.dump(self.config_data, f, default_flow_style=False)
+
     def _safe_get(self, dictionary, *keys, default=None):
         """Safe way to retrieve nested values from dictionaries"""
         current = dictionary
