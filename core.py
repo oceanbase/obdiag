@@ -125,7 +125,6 @@ class ObdiagHome(object):
             self._stdio_func[func] = getattr(self.stdio, func, _print)
 
     def set_context(self, handler_name, namespace, config):
-        self.update_obcluster_nodes(config)
         self.context = HandlerContext(
             handler_name=handler_name,
             namespace=namespace,
@@ -183,6 +182,7 @@ class ObdiagHome(object):
             for item in host_info_list:
                 ip = item['ip']
                 config_data_new['obcluster']['servers']['nodes'].append({'ip': ip})
+            self.stdio.verbose("update nodes [{0}]] config: %s", host_info)
             config.update_config_data(config_data_new)
 
     def get_namespace(self, spacename):
@@ -232,6 +232,7 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
+            self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
@@ -314,6 +315,7 @@ class ObdiagHome(object):
         else:
             self.stdio.print("{0} start ...".format(function_type))
             if function_type == 'analyze_log':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
@@ -322,6 +324,7 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_flt_trace':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 return handler.handle()
@@ -362,6 +365,7 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("check start ...")
+            self.update_obcluster_nodes(config)
             self.set_context('check', 'check', config)
             obproxy_check_handler = None
             observer_check_handler = None
@@ -402,6 +406,7 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
+            self.update_obcluster_nodes(config)
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)
