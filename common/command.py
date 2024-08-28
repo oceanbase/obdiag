@@ -189,7 +189,7 @@ def zip_dir(ssh_client, father_dir, zip_dir, stdio=None):
     Compress files through zip
     :return:
     """
-    cmd = "zip  {father_dir}/{zip_dir}.zip -rm {father_dir}/{zip_dir}".format(father_dir=father_dir, zip_dir=zip_dir)
+    cmd = "cd {father_dir} && zip {zip_dir}.zip -rm {zip_dir}".format(father_dir=father_dir, zip_dir=zip_dir)
     ssh_client.exec_cmd(cmd)
 
 
@@ -198,7 +198,7 @@ def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir, stdio=None):
     Compress files by encryption
     :return:
     """
-    cmd = "zip --password {zip_password} {father_dir}/{zip_dir}.zip -rm {father_dir}/{zip_dir}".format(zip_password=zip_password, father_dir=father_dir, zip_dir=zip_dir)
+    cmd = "cd {father_dir} && zip --password {zip_password} {zip_dir}.zip -rm {zip_dir}".format(zip_password=zip_password, father_dir=father_dir, zip_dir=zip_dir)
     ssh_client.exec_cmd(cmd)
 
 

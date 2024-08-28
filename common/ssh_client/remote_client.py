@@ -87,6 +87,7 @@ class RemoteClient(SsherClient):
                     if len(stderr.read().decode('utf-8').strip()) > 0:
                         raise Exception(stderr.read().decode('utf-8'))
                 cmd = "sudo {0}".format(cmd)
+                cmd = cmd.replace("&&", "&& sudo ")
             self.stdio.verbose('Execute Shell command on server {0}:{1}'.format(self.host_ip, cmd))
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
