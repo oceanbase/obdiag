@@ -62,6 +62,7 @@ class AnalyzeFltTraceHandler(object):
         top_option = Util.get_option(options, 'top')
         recursion_option = Util.get_option(options, 'recursion')
         output_option = Util.get_option(options, 'output')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
                 self.stdio.warn('Warning: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
@@ -82,6 +83,8 @@ class AnalyzeFltTraceHandler(object):
             self.max_recursion = int(recursion_option)
         if output_option:
             self.output = int(output_option)
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
@@ -151,7 +154,7 @@ class AnalyzeFltTraceHandler(object):
             return resp, node_files
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+            gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
             mkdir(ssh_client, gather_dir_full_path, self.stdio)
             if self.is_ssh:
                 self.__get_online_log_file(ssh_client, node, gather_dir_full_path, local_store_dir)
