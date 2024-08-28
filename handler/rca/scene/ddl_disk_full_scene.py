@@ -65,10 +65,6 @@ class DDlDiskFullScene(RcaScene):
         tenant_name = self.input_parameters.get("tenant_name")
         action_type = self.input_parameters.get("action_type")
         index_name = self.input_parameters.get("index_name")
-        table_name = self.env.get("table_name")
-        tenant_name = self.env.get("tenant_name")
-        action_type = self.env.get("action_type")
-        index_name = self.env.get("index_name")
         if table_name is None or table_name == "" or tenant_name is None or tenant_name == "":
             raise RCAInitException("table_name or tenant_name is None. Please check the input parameters.")
         if action_type is not None:

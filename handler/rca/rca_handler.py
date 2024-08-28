@@ -124,7 +124,7 @@ class RCAHandler:
         self.report = None
         self.tasks = None
         self.context.set_variable("input_parameters", Util.get_option(self.options, "input_parameters"))
-        self.context.set_variable("env", Util.get_option(self.options, "env"))
+        self.context.set_variable("env", Util.get_option(self.options, "input_parameters"))
         self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(
@@ -193,7 +193,6 @@ class RcaScene:
         self.gather_log = None
         self.stdio = None
         self.input_parameters = None
-        self.env = None
         self.ob_cluster = None
         self.ob_connector = None
         self.store_dir = None
@@ -221,7 +220,6 @@ class RcaScene:
         self.store_dir = context.get_variable("store_dir")
         self.ob_cluster = context.get_variable("ob_cluster")
         self.input_parameters = context.get_variable("input_parameters") or {}
-        self.env = context.get_variable("env") or {}
         self.gather_log = context.get_variable("gather_log")
 
     def execute(self):
