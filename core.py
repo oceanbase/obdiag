@@ -158,6 +158,8 @@ class ObdiagHome(object):
         config_data = config.config_data
         cluster_config = config.config_data["obcluster"]
         ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
+        if config_data['obcluster'] and config_data['obcluster']['servers'] and config_data['obcluster']['servers']['nodes']:
+            return
         if Util.check_none_values(ob_cluster, self.stdio):
             ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
             obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
