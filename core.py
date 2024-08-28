@@ -157,6 +157,12 @@ class ObdiagHome(object):
     def update_obcluster_nodes(self, config):
         config_data = config.config_data
         cluster_config = config.config_data["obcluster"]
+        lst = Util.get_option(self.options, 'config')
+        if lst:
+            if any(item.startswith('obcluster.servers.nodes') for item in lst):
+                return
+            else:
+                self.stdio.verbose("You have already provided node information, so there is no need to query node information from the sys tenant")
         ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
         if config_data['obcluster'] and config_data['obcluster']['servers'] and config_data['obcluster']['servers']['nodes']:
             return
