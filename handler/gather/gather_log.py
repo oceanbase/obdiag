@@ -324,7 +324,7 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            cp_cmd = "cp -p {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             ssh_client.exec_cmd(cp_cmd)
 
