@@ -79,6 +79,7 @@ class GatherLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -91,6 +92,8 @@ class GatherLogHandler(BaseShellHandler):
             scope_option = self.context.get_variable("gather_scope")
         if self.context.get_variable("gather_grep", None):
             grep_option = self.context.get_variable("gather_grep")
+        if self.context.get_variable("temp_dir", None):
+            temp_dir_option = self.context.get_variable("temp_dir")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -128,6 +131,8 @@ class GatherLogHandler(BaseShellHandler):
             self.zip_encrypt = True
         if grep_option:
             self.grep_options = grep_option
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
@@ -187,7 +192,7 @@ class GatherLogHandler(BaseShellHandler):
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
@@ -319,7 +324,7 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            cp_cmd = "cp -p {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             ssh_client.exec_cmd(cp_cmd)
 

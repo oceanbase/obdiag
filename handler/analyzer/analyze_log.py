@@ -78,6 +78,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         scope_option = Util.get_option(options, 'scope')
         log_level_option = Util.get_option(options, 'log_level')
         files_option = Util.get_option(options, 'files')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if files_option:
             self.is_ssh = False
             self.directly_analyze_files = True
@@ -121,6 +122,8 @@ class AnalyzeLogHandler(BaseShellHandler):
             self.scope = scope_option
         if log_level_option:
             self.log_level = OBLogLevel().get_log_level(scope_option)
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
@@ -191,7 +194,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path)
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
