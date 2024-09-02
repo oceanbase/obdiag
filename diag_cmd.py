@@ -265,12 +265,17 @@ class ObdiagOriginCommand(BaseCommand):
             obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
-            ret = self._do_command(obdiag)
-            exit_code = 0
+            ret = None
+            try:
+                ret = self._do_command(obdiag)
+                exit_code = 0
+            except Exception as e:
+                ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact oceanbase community. e: {0}".format(e))
+                exit_code = 1
             # if silent is true ,print ret
             if ROOT_IO.silent:
-                if isinstance(ret, ObdiagResult) is False:
-                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact thebase community. The return value is: {0}'.format(ret))
+                if ret is None or isinstance(ret, ObdiagResult) is False:
+                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact oceanbase community. The return value is: {0}'.format(ret))
                     ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="The return value of the command is not ObdiagResult. Maybe the command not support silent. Please contact thebase community.")
                 ret.set_trace_id(self.trace_id)
 
