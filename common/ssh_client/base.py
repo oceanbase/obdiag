@@ -30,6 +30,7 @@ class SsherClient(SafeStdio):
         self.node = node
         self.ssh_type = node.get("ssh_type") or "remote"
         self.client = None
+        self.inner_config_manager = context.inner_config
 
     def exec_cmd(self, cmd):
         raise Exception("the client type is not support exec_cmd")
