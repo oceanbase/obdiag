@@ -111,7 +111,7 @@ class RemoteClient(SsherClient):
         self._sftp_client.close()
 
     def progress_bar(self, transferred, to_be_transferred, suffix=''):
-        if self.inner_config_manager.config.get("obdiag").get("logger").get("silent"):
+        if self.inner_config_manager.get("obdiag").get("logger").get("silent"):
             return
         bar_len = 20
         filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
