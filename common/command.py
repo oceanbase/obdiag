@@ -239,9 +239,9 @@ def get_observer_version(context):
                 ob_install_dir = nodes[0].get("home_path")
                 observer_version = get_observer_version_by_ssh(sshclient, ob_install_dir, stdio)
         except Exception as e:
-            raise Exception("get observer version fail.")
+            raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     if observer_version == "":
-        raise Exception("get observer version fail.")
+        raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     return observer_version
 
 

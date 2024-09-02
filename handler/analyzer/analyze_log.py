@@ -172,10 +172,10 @@ class AnalyzeLogHandler(BaseShellHandler):
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
-        ssh_client = SshClient(self.context, node)
+        remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         try:
+            ssh_client = SshClient(self.context, node)
             node_results = []
-            remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
             remote_user = node.get("ssh_username")
             remote_password = node.get("ssh_password")
             remote_port = node.get("ssh_port")
@@ -188,8 +188,8 @@ class AnalyzeLogHandler(BaseShellHandler):
         except Exception as e:
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
-            raise Exception("Please check the {0}".format(self.config_path))
+            resp["error"] = "Please check the node conf about {0}".format(remote_ip)
+            raise Exception("Please check the node conf about {0}".format(remote_ip))
 
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))

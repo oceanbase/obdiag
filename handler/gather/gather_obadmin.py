@@ -177,7 +177,7 @@ class GatherObAdminHandler(BaseShellHandler):
         except Exception as e:
             self.stdio.error("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the node conf."
             return resp
         if not ssh_failed:
             mkdir_cmd = "mkdir -p {0}".format(remote_dir_full_path)
