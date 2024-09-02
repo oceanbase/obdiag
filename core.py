@@ -360,8 +360,7 @@ class ObdiagHome(object):
             elif function_type == 'analyze_index_space':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
-                handler.handle()
-                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=handler.execute())
+                return handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support analyze function: {0}'.format(function_type))
