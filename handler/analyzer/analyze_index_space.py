@@ -96,11 +96,8 @@ class AnalyzeIndexSpaceHandler(object):
         try:
             self.init_option()
         except Exception as e:
-            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed: {0}".format(str(e)))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init option failed: {0}".format(str(e)))
         try:
-            if not self.init_option():
-                self.stdio.error('init option failed')
-                return False
             # evaluate the space size of the table where the index is located
             self.stdio.start_loading('start query estimated_table_data_size, please wait some minutes...')
             sql = "select svr_ip, svr_port, sum(original_size) as estimated_table_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where table_id = {0}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
