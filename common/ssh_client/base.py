@@ -53,6 +53,8 @@ class SsherClient(SafeStdio):
         return self.client.get_ip()
 
     def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        if self.inner_config_manager.config.get("obdiag").get("logger").get("silent"):
+            return
         bar_len = 20
         filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
         percents = round(20.0 * transferred / float(to_be_transferred), 1)
