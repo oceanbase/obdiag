@@ -270,12 +270,12 @@ class ObdiagOriginCommand(BaseCommand):
                 ret = self._do_command(obdiag)
                 exit_code = 0
             except Exception as e:
-                ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact oceanbase community. e: {0}".format(e))
+                ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact OceanBase community. e: {0}".format(e))
                 exit_code = 1
             # if silent is true ,print ret
             if ROOT_IO.silent:
-                if ret is None or isinstance(ret, ObdiagResult) is False:
-                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact oceanbase community. The return value is: {0}'.format(ret))
+                if isinstance(ret, ObdiagResult) is False:
+                    ROOT_IO.error('The return value of the command is not ObdiagResult. Please contact OceanBase community. The return value is: {0}'.format(ret))
                     ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="The return value of the command is not ObdiagResult. Maybe the command not support silent. Please contact thebase community.")
                 ret.set_trace_id(self.trace_id)
 
@@ -407,7 +407,7 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
         return self
 
     def __init__(self):
-        super(ObdiagGatherAllCommand, self).__init__('all', 'Gather oceanbase diagnostic info')
+        super(ObdiagGatherAllCommand, self).__init__('all', 'Gather OceanBase diagnostic info')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -431,7 +431,7 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
 class ObdiagGatherLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherLogCommand, self).__init__('log', 'Gather oceanbase logs from oceanbase machines')
+        super(ObdiagGatherLogCommand, self).__init__('log', 'Gather OceanBase logs from OceanBase machines')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -455,7 +455,7 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
 class ObdiagGatherParameterCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherParameterCommand, self).__init__('parameter', 'Gather oceanbase parameters from oceanbase database')
+        super(ObdiagGatherParameterCommand, self).__init__('parameter', 'Gather OceanBase parameters from OceanBase database')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
@@ -472,7 +472,7 @@ class ObdiagGatherParameterCommand(ObdiagOriginCommand):
 class ObdiagGatherVariableCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagGatherVariableCommand, self).__init__('variable', 'Gather oceanbase variables from oceanbase database')
+        super(ObdiagGatherVariableCommand, self).__init__('variable', 'Gather OceanBase variables from OceanBase database')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
@@ -727,12 +727,12 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze oceanbase log from online observer machines or offline oceanbase log files')
+        super(ObdiagAnalyzeLogCommand, self).__init__('log', 'Analyze OceanBase log from online observer machines or offline OceanBase log files')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
-        self.parser.add_option('--log_level', type='string', help="oceanbase logs greater than or equal to this level will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR]")
+        self.parser.add_option('--log_level', type='string', help="OceanBase logs greater than or equal to this level will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR]")
         self.parser.add_option('--files', action="append", type='string', help="specify files")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -756,7 +756,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeFltTraceCommand, self).__init__('flt_trace', 'Analyze oceanbase trace.log from online observer machines or offline oceanbase trace.log files')
+        super(ObdiagAnalyzeFltTraceCommand, self).__init__('flt_trace', 'Analyze OceanBase trace.log from online observer machines or offline OceanBase trace.log files')
         self.parser.add_option('--flt_trace_id', type='string', help="flt trace id, . format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
         self.parser.add_option('--files', action="append", help="specify files")
         self.parser.add_option('--top', type='string', help="top leaf span", default=5)
@@ -812,7 +812,7 @@ class ObdiagAnalyzeParameterDefaultCommand(ObdiagOriginCommand):
 
 class ObdiagAnalyzeParameterCommand(MajorCommand):
     def __init__(self):
-        super(ObdiagAnalyzeParameterCommand, self).__init__('parameter', 'Analyze oceanbase parameters info')
+        super(ObdiagAnalyzeParameterCommand, self).__init__('parameter', 'Analyze OceanBase parameters info')
         self.register_command(ObdiagAnalyzeParameterDiffCommand())
         self.register_command(ObdiagAnalyzeParameterDefaultCommand())
 
@@ -836,7 +836,7 @@ class ObdiagAnalyzeVariableDiffCommand(ObdiagOriginCommand):
 
 class ObdiagAnalyzeVariableCommand(MajorCommand):
     def __init__(self):
-        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze oceanbase variables info')
+        super(ObdiagAnalyzeVariableCommand, self).__init__('variable', 'Analyze OceanBase variables info')
         self.register_command(ObdiagAnalyzeVariableDiffCommand())
 
 
@@ -862,7 +862,7 @@ class ObdiagAnalyzeIndexSpaceCommand(ObdiagOriginCommand):
 class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeSQLCommand, self).__init__('sql', 'Analyze oceanbase sql from sql_audit ')
+        super(ObdiagAnalyzeSQLCommand, self).__init__('sql', 'Analyze OceanBase sql from sql_audit ')
         self.parser.add_option('--tenant_name', type='string', help="tenant name")
         self.parser.add_option('--host', type='string', help="tenant connection host")
         self.parser.add_option('--port', type='string', help="tenant connection port")
@@ -891,7 +891,7 @@ class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
 class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeSQLReviewCommand, self).__init__('sql_review', 'Analyze oceanbase sql from file')
+        super(ObdiagAnalyzeSQLReviewCommand, self).__init__('sql_review', 'Analyze OceanBase sql from file')
         self.parser.add_option('--host', type='string', help="tenant connection host")
         self.parser.add_option('--port', type='string', help="tenant connection port")
         self.parser.add_option('--password', type='string', help="tenant connection user password", default='')
@@ -915,7 +915,7 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
 class ObdiagCheckCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckCommand, self).__init__('check', 'check oceanbase cluster')
+        super(ObdiagCheckCommand, self).__init__('check', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
@@ -1062,7 +1062,7 @@ class ObdiagUpdateCommand(ObdiagOriginCommand):
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
-        super(ObdiagGatherCommand, self).__init__('gather', 'Gather oceanbase diagnostic info')
+        super(ObdiagGatherCommand, self).__init__('gather', 'Gather OceanBase diagnostic info')
         self.register_command(ObdiagGatherAllCommand())
         self.register_command(ObdiagGatherLogCommand())
         self.register_command(ObdiagGatherSysStatCommand())
@@ -1091,7 +1091,7 @@ class ObdiagGatherSceneCommand(MajorCommand):
 class ObdiagAnalyzeCommand(MajorCommand):
 
     def __init__(self):
-        super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze oceanbase diagnostic info')
+        super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze OceanBase diagnostic info')
         self.register_command(ObdiagAnalyzeLogCommand())
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
