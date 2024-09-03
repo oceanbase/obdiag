@@ -147,10 +147,10 @@ class AnalyzeFltTraceHandler(object):
             ssh_client = SshClient(self.context, node)
         except Exception as e:
             ssh = None
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the conf."
             return resp, node_files
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
