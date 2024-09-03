@@ -140,9 +140,9 @@ class GatherSceneHandler(SafeStdio):
                     if yaml_task_data:
                         self.yaml_tasks[item] = yaml_task_data
                     else:
-                        if ".yaml" in item:
-                            self.stdio.error("'.yaml' in task :{0}. Please check the task's name is true.".format(item))
                         self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
+                        if ".yaml" in item:
+                            self.stdio.print(Fore.YELLOW + "[Point]" + Style.RESET_ALL + " '.yaml' in task :{0}. Maybe you should remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
             # hard code add gather observer.base
             if len(self.code_tasks) > 0:
                 yaml_task_base = scene.get_one_yaml_task("observer.base")
