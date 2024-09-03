@@ -26,7 +26,7 @@ from logging import handlers
 
 from enum import Enum
 from halo import Halo, cursor
-from colorama import Fore
+from colorama import Fore, Style
 from prettytable import PrettyTable
 from progressbar import AdaptiveETA, Bar, SimpleProgress, ETA, FileTransferSpeed, Percentage, ProgressBar
 from types import MethodType
@@ -805,6 +805,9 @@ class IO(object):
 
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
+
+    def suggest(self, msg):
+        self.print(Fore.GREEN + "[suggest] " + Style.RESET_ALL + msg)
 
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)
