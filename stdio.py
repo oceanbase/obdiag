@@ -195,6 +195,10 @@ class FormtatText(object):
         return FormtatText(text, Fore.BLUE)
 
     @staticmethod
+    def suggest(text):
+        return FormtatText(text, Fore.GREEN)
+
+    @staticmethod
     def success(text):
         return FormtatText(text, Fore.GREEN)
 
@@ -366,6 +370,7 @@ class IO(object):
     VERBOSE_LEVEL = 0
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
+    SUGGEST_PREV = FormtatText.suggest('[SUGGEST]')
 
     def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, silent=False):
         self.silent = silent
@@ -806,8 +811,8 @@ class IO(object):
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
 
-    def suggest(self, msg):
-        self.print(Fore.GREEN + "[suggest] " + Style.RESET_ALL + msg)
+    def suggest(self, msg, *args, **kwargs):
+        self._print(MsgLevel.INFO, msg, prev_msg=self.SUGGEST_PREV.format(self.isatty()), *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)
