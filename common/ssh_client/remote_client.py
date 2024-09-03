@@ -99,7 +99,9 @@ class RemoteClient(SsherClient):
             self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
             if stderr:
                 return str(stderr)
-            return str(stdout)
+            if stdout:
+                return str(stdout)
+            return ""
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
 

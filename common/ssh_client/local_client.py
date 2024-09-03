@@ -33,7 +33,9 @@ class LocalClient(SsherClient):
             stdout, stderr = out.communicate()
             if stderr:
                 return stderr.decode('utf-8')
-            return stdout.decode('utf-8')
+            if stdout:
+                return stdout.decode('utf-8')
+            return ""
         except UnicodeDecodeError as e:
             self.stdio.warn("[localhost] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
             if stderr:
