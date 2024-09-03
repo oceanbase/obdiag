@@ -173,20 +173,14 @@ class AnalyzeLogHandler(BaseShellHandler):
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
         remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
+        node_results = []
         try:
             ssh_client = SshClient(self.context, node)
-            node_results = []
-            remote_user = node.get("ssh_username")
-            remote_password = node.get("ssh_password")
-            remote_port = node.get("ssh_port")
-            remote_private_key = node.get("ssh_key_file")
-            remote_home_path = node.get("home_path")
             self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
             DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name())
             DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         except Exception as e:
-            ssh_failed = True
             resp["skip"] = True
             resp["error"] = "Please check the node conf about {0}".format(remote_ip)
             raise Exception("Please check the node conf about {0}".format(remote_ip))
