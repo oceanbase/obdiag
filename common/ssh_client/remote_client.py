@@ -78,6 +78,7 @@ class RemoteClient(SsherClient):
             self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
 
     def exec_cmd(self, cmd):
+        stdin, stdout, stderr = None, None, None
         try:
             if self.remote_client_sudo:
                 # check sudo without password
@@ -96,7 +97,6 @@ class RemoteClient(SsherClient):
             return stdout.read().decode('utf-8')
         except UnicodeDecodeError as e:
             self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
-            stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             if stderr:
                 return str(stderr)
             return str(stdout)
