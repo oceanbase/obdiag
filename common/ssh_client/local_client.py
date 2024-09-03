@@ -38,7 +38,9 @@ class LocalClient(SsherClient):
             self.stdio.warn("[localhost] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
             if stderr:
                 return str(stderr)
-            return str(stdout)
+            if stdout:
+                return str(stdout)
+            return ""
         except Exception as e:
             self.stdio.error("run cmd = [{0}] on localhost, Exception = [{1}]".format(cmd, e))
             raise Exception("[localhost] Execute Shell command failed, command=[{0}]  Exception = [{1}]".format(cmd, e))
