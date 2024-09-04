@@ -37,7 +37,7 @@ class KubernetesClient(SsherClient):
                 config.kube_config.load_kube_config(config_file=config_file)
             self.client = client.CoreV1Api()
         except Exception as e:
-            raise Exception("KubernetesClient load_kube_config error. Please check the config file. {0}".format(e))
+            raise Exception("KubernetesClient load_kube_config error. Please check the config. {0}".format(e))
 
     def exec_cmd(self, cmd):
         exec_command = ['/bin/sh', '-c', cmd]

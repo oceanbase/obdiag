@@ -128,7 +128,7 @@ class TransactionNotEndingScene(RcaScene):
         return {
             "name": "transaction_not_ending",
             "info_en": "transaction wait timeout error (beta), error_code like -4012",
-            "info_cn": "事务不结束场景（测试板），目前使用较为复杂",
+            "info_cn": "事务不结束场景（测试版），目前使用较为复杂",
         }
 
 

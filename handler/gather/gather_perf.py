@@ -130,10 +130,10 @@ class GatherPerfHandler(BaseShellHandler):
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the node conf."
             return resp
         if not ssh_failed:
             mkdir(ssh_client, remote_dir_full_path, self.stdio)

@@ -74,7 +74,7 @@ class RCAHandler:
                 )
                 self.context.set_variable("ob_connector", ob_connector)
         except Exception as e:
-            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf.yaml".format(str(e)))
+            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf".format(str(e)))
         # build report
         store_dir = Util.get_option(self.options, "store_dir")
         if store_dir is None:

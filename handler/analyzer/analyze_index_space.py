@@ -22,6 +22,7 @@ from prettytable import PrettyTable
 from common.tool import StringUtils, Util
 from common.ob_connector import OBConnector
 from common.command import get_observer_version
+from result_type import ObdiagResult
 
 
 def translate_byte(B):
@@ -93,9 +94,10 @@ class AnalyzeIndexSpaceHandler(object):
 
     def handle(self):
         try:
-            if not self.init_option():
-                self.stdio.error('init option failed')
-                return False
+            self.init_option()
+        except Exception as e:
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init option failed: {0}".format(str(e)))
+        try:
             # evaluate the space size of the table where the index is located
             self.stdio.start_loading('start query estimated_table_data_size, please wait some minutes...')
             sql = "select svr_ip, svr_port, sum(original_size) as estimated_table_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where table_id = {0}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
@@ -104,6 +106,8 @@ class AnalyzeIndexSpaceHandler(object):
             self.stdio.verbose("execute_sql is {0}".format(sql))
             self.estimated_table_data = self.sys_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             self.stdio.stop_loading('succeed')
+            if len(self.estimated_table_data) == 0:
+                raise Exception("can not find estimated_table_data on __all_virtual_tablet_sstable_macro_info by table id: {0}. Please wait major or manually major'".format(self.table_id))
             # get the sum of all column lengths
             sql = "select table_id, sum(data_length) as all_columns_length from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, self.table_id)
             self.stdio.verbose("execute_sql is {0}".format(sql))
@@ -160,11 +164,11 @@ class AnalyzeIndexSpaceHandler(object):
                 node_result_map["available_disk_space"] = translate_byte(available_disk_space)
                 self.result_map_list.append(node_result_map)
             self.export_report_table()
-        except Exception as e:
-            self.stdio.verbose("analyze index space error: {0}".format(e))
-            sys.exit()
-        finally:
             self.stdio.verbose("end analyze index space")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=self.execute())
+        except Exception as e:
+            self.stdio.error("analyze index space error: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="analyze index space error: {0}".format(e))
 
     def execute(self):
         result_map = {}
