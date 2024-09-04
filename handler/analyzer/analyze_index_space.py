@@ -96,6 +96,7 @@ class AnalyzeIndexSpaceHandler(object):
         try:
             self.init_option()
         except Exception as e:
+            self.stdio.error("init option failed: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init option failed: {0}".format(str(e)))
         try:
             # evaluate the space size of the table where the index is located
