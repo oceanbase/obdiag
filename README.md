@@ -83,7 +83,7 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |2.2.0|2024.05| 2024.06.14 |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
 |2.3.0|2024.06| 2024.07.24 |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Added basic gather feature: tabledump </li><li> Added parameter/variable gather and analyze feature </li><li> Execute infrastructure modifications to support diagnostics for OceanBase clusters deployed on Kubernetes (k8s) </li></ul>|
 |2.4.0|2024.07| 2024.09.03 |<ul><li> usability improvement </li><li> Index Space Size Analysis </li></ul>|
-|2.5.0|2024.08| - |<ul><li> Cluster Diagnosis Information Display </li><li> Queue Analysis </li></ul>|
+|2.5.0|2024.09| - |<ul><li> Cluster Diagnosis Information Display </li><li> Queue Analysis </li></ul>|
 |3.0.0|2024.10| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> SQL Diagnosis </li></ul>|
 |3.1.0|2024.11| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Supporting Comparative Functionality for Patrol Inspection Reports </li></ul>|
 |3.2.0|2024.12| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> SQL Diagnosis Phase II, Supporting Root Cause Analysis for SQL problems </li></ul>|
