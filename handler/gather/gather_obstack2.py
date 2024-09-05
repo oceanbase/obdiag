@@ -121,10 +121,10 @@ class GatherObstack2Handler(BaseShellHandler):
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
-            raise Exception("Please check the {0}".format(self.config_path))
+            resp["error"] = "Please check the node conf."
+            raise Exception("Please check the node conf.")
 
         if not is_support_arch(ssh_client):
             resp["error"] = "remote server {0} arch not support gather obstack".format(ssh_client.get_name())

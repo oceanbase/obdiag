@@ -80,6 +80,7 @@ class GatherSceneHandler(SafeStdio):
             result = self.__get_sql_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
+            self.__print_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
 
     def execute(self):
@@ -140,7 +141,9 @@ class GatherSceneHandler(SafeStdio):
                     if yaml_task_data:
                         self.yaml_tasks[item] = yaml_task_data
                     else:
-                        self.stdio.error("Invalid Task :{0}".format(item))
+                        self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
+                        if ".yaml" in item:
+                            self.stdio.suggest("'.yaml' in task :{0}. Maybe you can remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
             # hard code add gather observer.base
             if len(self.code_tasks) > 0:
                 yaml_task_base = scene.get_one_yaml_task("observer.base")
