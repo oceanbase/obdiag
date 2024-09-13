@@ -12,6 +12,10 @@ obdiag:
     log_level: INFO
     mode: obdiag
     stdout_handler_log_level: INFO
+    error_stream: sys.stdout
+    silent: false
+  ssh_client:
+    remote_client_sudo: 0
 check:
   ignore_version: false
   work_path: "~/.obdiag/check"

@@ -24,13 +24,16 @@ from prettytable import PrettyTable
 import datetime
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class AnalyzeVariableHandler(object):
-    def __init__(self, context):
+    def __init__(self, context, analyze_type='diff'):
         self.context = context
         self.stdio = self.context.stdio
         self.export_report_path = None
         self.variable_file_name = None
+        self.analyze_type = analyze_type
         self.ob_cluster = self.context.cluster_config
         if self.context.get_variable("gather_timestamp", None):
             self.analyze_timestamp = self.context.get_variable("gather_timestamp")
@@ -54,10 +57,28 @@ class AnalyzeVariableHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.stdio.verbose("Use {0} as pack dir.".format(self.export_report_path))
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
-        self.execute()
+        return self.execute()
+
+    def check_file_valid(self):
+        with open(self.variable_file_name, 'r') as f:
+            header = f.readline()
+            flag = 1
+            if header:
+                header = header.strip()
+            if not header:
+                flag = 0
+            if not header.startswith('VERSION'):
+                flag = 0
+            if not header.endswith('RECORD_TIME'):
+                flag = 0
+            if flag == 0:
+                self.stdio.error('args --file [{0}] is not a valid variable file, Please specify it again'.format(os.path.abspath(self.variable_file_name)))
+                return False
+            else:
+                return True
 
     def init_option(self):
         options = self.context.options
@@ -66,16 +87,18 @@ class AnalyzeVariableHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.variable_file_name = os.path.abspath(offline_file_option)
+                if not self.check_file_valid():
+                    return False
         else:
-            self.stdio.error("an initialization variable file must be provided to find the parts where variables have changed.")
-            exit(-1)
+            self.stdio.error("args --file need provided to find the parts where variables have changed.")
+            return False
 
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.export_report_path = os.path.abspath(store_dir_option)
         else:
@@ -87,7 +110,7 @@ class AnalyzeVariableHandler(object):
 
         return True
 
-    def alalyze_variable(self):
+    def analyze_variable(self):
         sql = '''select version(), tenant_id, zone, name,gmt_modified, value, flags, min_val, max_val, now() 
         from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         db_variable_info = self.obconn.execute_sql(sql)
@@ -100,6 +123,8 @@ class AnalyzeVariableHandler(object):
         with open(self.variable_file_name, 'r', newline='') as file:
             reader = csv.reader(file)
             for row in reader:
+                if row[0] == 'VERSION':
+                    continue
                 key = str(row[1]) + '-' + str(row[3])
                 file_variable_dict[key] = str(row[5])
                 if not last_gather_time:
@@ -126,11 +151,13 @@ class AnalyzeVariableHandler(object):
             self.stdio.print(Fore.RED + "Since {0}, the following variables have changed：".format(last_gather_time) + Style.RESET_ALL)
             self.stdio.print(report_default_tb.get_string())
             self.stdio.print("Analyze variables changed finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_default_tb.get_string()})
         else:
             self.stdio.print("Analyze variables changed finished. Since {0}, No changes in variables".format(last_gather_time))
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "Since {0}, No changes in variables".format(last_gather_time)})
 
     def execute(self):
         try:
-            self.alalyze_variable()
+            return self.analyze_variable()
         except Exception as e:
             self.stdio.error("variable info analyze failed, error message: {0}".format(e))

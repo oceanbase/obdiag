@@ -18,6 +18,7 @@
 
 import os
 import re
+from result_type import ObdiagResult
 from stdio import SafeStdio
 import datetime
 from handler.gather.scenes.base import SceneBase
@@ -48,6 +49,7 @@ class GatherSceneHandler(SafeStdio):
         self.task_type = task_type
         self.variables = {}
         self.is_inner = is_inner
+        self.temp_dir = '/tmp'
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -65,19 +67,21 @@ class GatherSceneHandler(SafeStdio):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
+        self.context.set_variable('temp_dir', self.temp_dir)
         self.__init_variables()
         self.__init_report_path()
         self.__init_task_names()
         self.execute()
         if self.is_inner:
             result = self.__get_sql_result()
-            return result
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
             self.__print_result()
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
 
     def execute(self):
         try:
@@ -137,7 +141,9 @@ class GatherSceneHandler(SafeStdio):
                     if yaml_task_data:
                         self.yaml_tasks[item] = yaml_task_data
                     else:
-                        self.stdio.error("Invalid Task :{0}".format(item))
+                        self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
+                        if ".yaml" in item:
+                            self.stdio.suggest("'.yaml' in task :{0}. Maybe you can remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
             # hard code add gather observer.base
             if len(self.code_tasks) > 0:
                 yaml_task_base = scene.get_one_yaml_task("observer.base")
@@ -181,6 +187,7 @@ class GatherSceneHandler(SafeStdio):
         store_dir_option = Util.get_option(options, 'store_dir')
         env_option = Util.get_option(options, 'env')
         scene_option = Util.get_option(options, 'scene')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -209,7 +216,7 @@ class GatherSceneHandler(SafeStdio):
             self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if scene_option:
@@ -217,6 +224,8 @@ class GatherSceneHandler(SafeStdio):
         if env_option:
             env_dict = StringUtils.parse_env(env_option)
             self.env = env_dict
+        if temp_dir_option:
+            self.temp_dir = temp_dir_option
         return True
 
     def __get_sql_result(self):
@@ -231,3 +240,4 @@ class GatherSceneHandler(SafeStdio):
 
     def __print_result(self):
         self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
+        return self.report_path

@@ -29,6 +29,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import TimeUtils
+from result_type import ObdiagResult
 
 
 class GatherOsInfoHandler(BaseShellHandler):
@@ -71,7 +72,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         self.scope_option = Util.get_option(options, 'scope')
@@ -80,10 +81,10 @@ class GatherOsInfoHandler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, "init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, "init config failed")
 
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
@@ -114,6 +115,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         self.stdio.print(summary_tuples)
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, node, local_stored_path):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
@@ -129,10 +131,10 @@ class GatherOsInfoHandler(BaseShellHandler):
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the node conf."
         if not ssh_failed:
             mkdir(ssh_client, remote_dir_full_path, self.stdio)
 

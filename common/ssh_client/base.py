@@ -22,7 +22,6 @@ from stdio import SafeStdio
 
 class SsherClient(SafeStdio):
     def __init__(self, context, node):
-        super().__init__()
         self.context = context
         if context is not None:
             self.stdio = self.context.stdio
@@ -31,6 +30,7 @@ class SsherClient(SafeStdio):
         self.node = node
         self.ssh_type = node.get("ssh_type") or "remote"
         self.client = None
+        self.inner_config_manager = context.inner_config
 
     def exec_cmd(self, cmd):
         raise Exception("the client type is not support exec_cmd")
@@ -54,6 +54,8 @@ class SsherClient(SafeStdio):
         return self.client.get_ip()
 
     def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        if self.inner_config_manager.get("obdiag", {}).get("logger", {}).get("silent") or False:
+            return
         bar_len = 20
         filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
         percents = round(20.0 * transferred / float(to_be_transferred), 1)
@@ -63,7 +65,6 @@ class SsherClient(SafeStdio):
         sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
         if transferred == to_be_transferred:
             sys.stdout.write('Downloading [%s] %s%s%s %s %s\r' % (bar, '\033[32;1m%s\033[0m' % print_percents, '% [', self.translate_byte(transferred), ']', suffix))
-            print()
 
     def translate_byte(self, B):
         if B < 0:

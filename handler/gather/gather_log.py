@@ -29,6 +29,7 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
+from result_type import ObdiagResult
 
 
 class GatherLogHandler(BaseShellHandler):
@@ -78,6 +79,7 @@ class GatherLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -90,6 +92,8 @@ class GatherLogHandler(BaseShellHandler):
             scope_option = self.context.get_variable("gather_scope")
         if self.context.get_variable("gather_grep", None):
             grep_option = self.context.get_variable("gather_grep")
+        if self.context.get_variable("temp_dir", None):
+            temp_dir_option = self.context.get_variable("temp_dir")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -118,7 +122,7 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option is not None and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if scope_option:
@@ -127,6 +131,8 @@ class GatherLogHandler(BaseShellHandler):
             self.zip_encrypt = True
         if grep_option:
             self.grep_options = grep_option
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
@@ -168,7 +174,7 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
-        return True
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, pack_dir_this_command, node):
         resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
@@ -186,7 +192,7 @@ class GatherLogHandler(BaseShellHandler):
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
@@ -281,9 +287,9 @@ class GatherLogHandler(BaseShellHandler):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
+            get_oblog = "ls -1 -F %s |grep %s | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
+            get_oblog = "ls -1 -F %s |grep -E 'observer|rootservice|election'| awk -F '/' '{print $NF}'" % log_path
         log_name_list = []
         log_files = ssh_client.exec_cmd(get_oblog)
         if log_files:
@@ -304,7 +310,6 @@ class GatherLogHandler(BaseShellHandler):
             if type(self.grep_options) == str:
                 grep_cmd = "grep -e '{grep_options}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_options=self.grep_options, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             elif type(self.grep_options) == list and len(self.grep_options) > 0:
-                grep_litter_cmd = ""
                 for grep_option in self.grep_options:
                     if type(grep_option) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_option)))
@@ -312,12 +317,14 @@ class GatherLogHandler(BaseShellHandler):
                     elif grep_option == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
-                    grep_litter_cmd += "| grep -e '{0}'".format(grep_option)
-                grep_cmd = "cat {log_dir}/{log_name} {grep_options} >> {gather_path}/{log_name} ".format(grep_options=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+                    if grep_cmd == "":
+                        grep_cmd = "grep -e '{0}' ".format(grep_option) + "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
+                    grep_cmd += "| grep -e '{0}'".format(grep_option)
+                grep_cmd += " >> {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            cp_cmd = "cp -p {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             ssh_client.exec_cmd(cp_cmd)
 

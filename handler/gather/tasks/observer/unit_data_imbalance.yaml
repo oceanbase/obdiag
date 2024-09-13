@@ -154,7 +154,10 @@ task:
         sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t, oceanbase.cdb_ob_table_locations t1, oceanbase.cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
         global: true
       - type: sql
-        sql: "select svr_ip,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;  "
+        sql: "select b.zone, a.svr_ip,a.svr_port,b.with_rootserver, round(a.total_size/1024/1024/1024,0) as total_GB,round(a.free_size/1024/1024/1024,0) as free_GB, round((a.total_size-a.free_size)/1024/1024/1024,0) as used_GB,(a.total_size-a.free_size)/a.total_size as used_percent from oceanbase.__all_virtual_disk_stat a, oceanbase.DBA_OB_SERVERS b where a.svr_ip=b.svr_ip and a.svr_port=b.svr_port order by b.zone,used_percent desc;"
+        global: true
+      - type: sql # 查看每台机器上的tablet分布
+        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
         global: true
       - type: log
         grep: ""

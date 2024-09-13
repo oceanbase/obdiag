@@ -26,9 +26,11 @@ import json
 import datetime
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class AnalyzeParameterHandler(object):
-    def __init__(self, context, analyze_type='non_default'):
+    def __init__(self, context, analyze_type='default'):
         self.context = context
         self.stdio = self.context.stdio
         self.export_report_path = None
@@ -59,30 +61,48 @@ class AnalyzeParameterHandler(object):
         try:
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
-            self.stdio.warn("AnalyzeHandler Failed to get observer version:{0}".format(e))
-        self.stdio.verbose("AnalyzeHandler.init get observer version: {0}".format(observer_version))
+            self.stdio.warn("failed to get observer version:{0}".format(e))
+        self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
 
     def handle(self):
-        if self.analyze_type == 'non_default':
-            if not self.init_option_non_default():
+        if self.analyze_type == 'default':
+            if not self.init_option_default():
                 self.stdio.error('init option failed')
-                return False
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         else:
             if not self.init_option_diff():
                 self.stdio.error('init option failed')
-                return False
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.stdio.verbose("Use {0} as pack dir.".format(self.export_report_path))
         DirectoryUtil.mkdir(path=self.export_report_path, stdio=self.stdio)
-        self.execute()
+        return self.execute()
 
-    def init_option_non_default(self):
+    def check_file_valid(self):
+        with open(self.parameter_file_name, 'r') as f:
+            header = f.readline()
+            flag = 1
+            if header:
+                header = header.strip()
+            if not header:
+                flag = 0
+            if not header.startswith('VERSION'):
+                flag = 0
+            if not header.endswith('ISDEFAULT'):
+                flag = 0
+            if flag == 0:
+                self.stdio.error('args --file [{0}] is not a valid parameter file, Please specify it again'.format(os.path.abspath(self.parameter_file_name)))
+                return False
+            else:
+                return True
+
+    def init_option_default(self):
         options = self.context.options
         store_dir_option = Util.get_option(options, 'store_dir')
         offline_file_option = Util.get_option(options, 'file')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.export_report_path = os.path.abspath(store_dir_option)
         else:
@@ -94,9 +114,11 @@ class AnalyzeParameterHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
+                if not self.check_file_valid():
+                    return False
         return True
 
     def init_option_diff(self):
@@ -105,7 +127,7 @@ class AnalyzeParameterHandler(object):
         offline_file_option = Util.get_option(options, 'file')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.export_report_path = os.path.abspath(store_dir_option)
         else:
@@ -118,12 +140,14 @@ class AnalyzeParameterHandler(object):
         if offline_file_option:
             if not os.path.exists(os.path.abspath(offline_file_option)):
                 self.stdio.error('args --file [{0}] not exist: No such file, Please specify it again'.format(os.path.abspath(offline_file_option)))
-                exit(-1)
+                return False
             else:
                 self.parameter_file_name = os.path.abspath(offline_file_option)
+                if not self.check_file_valid():
+                    return False
         return True
 
-    def analyze_parameter_non_default(self):
+    def analyze_parameter_default(self):
         observer_version = self.get_version()
         if StringUtils.compare_versions_greater(observer_version, "4.2.2.0"):
             if self.parameter_file_name is not None:
@@ -144,11 +168,12 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
                 report_default_tb.add_row([row[1], row[2], row[3], row[4], tenant_id, row[6], row[11], row[7]])
             fp.write(report_default_tb.get_string() + "\n")
             self.stdio.print(report_default_tb.get_string())
-            self.stdio.print("Analyze parameter non-default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0}' ".format(file_name) + Style.RESET_ALL + "'")
+            self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_default_tb.get_string(), "file_name": file_name})
         else:
             if self.parameter_file_name is None:
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
-                exit(-1)
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
             else:
                 sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
 EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
@@ -162,6 +187,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 with open(self.parameter_file_name, 'r', newline='') as file:
                     reader = csv.reader(file)
                     for row in reader:
+                        if row[0] == 'VERSION':
+                            continue
                         key = str(row[1]) + '-' + str(row[2]) + '-' + str(row[3]) + '-' + str(row[4]) + '-' + str(row[5]) + '-' + str(row[6])
                         value = row[7]
                         file_parameter_dict[key] = value
@@ -179,9 +206,9 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 fp.write(report_default_tb.get_string() + "\n")
                 if not is_empty:
                     self.stdio.print(report_default_tb.get_string())
-                    self.stdio.print("Analyze parameter non-default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+                    self.stdio.print("Analyze parameter default finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
                 else:
-                    self.stdio.print("Analyze parameter non-default finished. All parameter values are the same as the default values.")
+                    self.stdio.print("Analyze parameter default finished. All parameter values are the same as the default values.")
 
     def alalyze_parameter_diff(self):
         if self.parameter_file_name is None:
@@ -193,6 +220,8 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
             with open(self.parameter_file_name, 'r', newline='') as file:
                 reader = csv.reader(file)
                 for row in reader:
+                    if row[0] == 'VERSION':
+                        continue
                     parameter_info.append(row)
         tenants_dict = dict()
         for row in parameter_info:
@@ -236,11 +265,15 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
         file_name = self.export_report_path + '/parameter_diff_{0}.table'.format(date_format)
         fp = open(file_name, 'a+', encoding="utf8")
         is_empty = True
+        report_diff_tbs = []
         for tenant, value_list in diff_parameter_dict.items():
             if len(value_list) > 0:
                 report_diff_tb = PrettyTable(["name", "diff"])
                 report_diff_tb.align["task_report"] = "l"
-                report_diff_tb.title = 'TENANT_ID:' + tenant
+                if tenant == 'CLUSTER':
+                    report_diff_tb.title = 'SCOPE:' + tenant
+                else:
+                    report_diff_tb.title = 'SCOPE:TENANT-' + tenant
                 for value_dict in value_list:
                     value_str_list = []
                     for value in value_dict['value_list']:
@@ -250,17 +283,20 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
                 fp.write(report_diff_tb.get_string() + "\n")
                 self.stdio.print(report_diff_tb.get_string())
                 is_empty = False
+                report_diff_tbs.append(report_diff_tb.get_string())
         fp.close()
         if not is_empty:
             self.stdio.print("Analyze parameter diff finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(file_name) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": report_diff_tbs, "store_dir": file_name})
         else:
             self.stdio.print("Analyze parameter diff finished. All parameter settings are consistent among observers")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "Analyze parameter diff finished. All parameter settings are consistent among observers"})
 
     def execute(self):
         try:
-            if self.analyze_type == 'non_default':
-                self.analyze_parameter_non_default()
+            if self.analyze_type == 'default':
+                return self.analyze_parameter_default()
             elif self.analyze_type == 'diff':
-                self.alalyze_parameter_diff()
+                return self.alalyze_parameter_diff()
         except Exception as e:
             self.stdio.error("parameter info analyze failed, error message: {0}".format(e))

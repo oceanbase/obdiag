@@ -156,6 +156,12 @@ task:
       - type: sql
         sql: "SELECT LS_ID, SCN_TO_TIMESTAMP(END_SCN) FROM oceanbase.GV$OB_LOG_STAT WHERE ROLE = 'LEADER';"
         global: true
+      - type: sql
+        sql: "select b.zone, a.svr_ip,a.svr_port,b.with_rootserver, round(a.total_size/1024/1024/1024,0) as total_GB,round(a.free_size/1024/1024/1024,0) as free_GB, round((a.total_size-a.free_size)/1024/1024/1024,0) as used_GB,(a.total_size-a.free_size)/a.total_size as used_percent from oceanbase.__all_virtual_disk_stat a, oceanbase.DBA_OB_SERVERS b where a.svr_ip=b.svr_ip and a.svr_port=b.svr_port order by b.zone,used_percent desc;"
+        global: true
+      - type: sql # 查看每台机器上的tablet分布
+        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
+        global: true
       - type: log
         global: false
         grep: ""

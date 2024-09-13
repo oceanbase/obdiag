@@ -6,6 +6,6 @@ task:
         result:
           set_value: cpu_flags
           verify: " [[ $cpu_flags == *avx2* ]] "
-          err_msg: 'clock_source: #{clock_source}. recommended: tsc. Uneven CPU utilization during pressure testing resulted in low TPS during pressure testing'
+          err_msg: 'observer need cpu support avx2. If the cpu is not support avx2, observer will be crash.'
 
 

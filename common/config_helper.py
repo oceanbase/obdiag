@@ -98,14 +98,14 @@ class ConfigHelper(object):
         self.save_old_configuration(old_config)
         # rewrite config
         ob_cluster_name = self.get_cluster_name()
-        print("\033[33mPlease enter the following configuration !!!\033[0m")
+        self.stdio.print("\033[33mPlease enter the following configuration !!!\033[0m")
         global_ssh_username = self.input_with_default("oceanbase host ssh username", "")
         global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
         global_ssh_port = self.input_with_default("oceanbase host ssh_port", "22")
         global_home_path = self.input_with_default("oceanbase install home_path", const.OB_INSTALL_DIR_DEFAULT)
         default_data_dir = os.path.join(global_home_path, "store")
-        global_data_dir = self.input_with_default("oceanbase data_dir", default_data_dir)
-        global_redo_dir = self.input_with_default("oceanbase redo_dir", default_data_dir)
+        global_data_dir = default_data_dir
+        global_redo_dir = default_data_dir
         tenant_sys_config = {"user": self.sys_tenant_user, "password": self.sys_tenant_password}
         global_config = {"ssh_username": global_ssh_username, "ssh_password": global_ssh_password, "ssh_port": global_ssh_port, "ssh_key_file": "", "home_path": global_home_path, "data_dir": global_data_dir, "redo_dir": global_redo_dir}
         new_config = {"obcluster": {"ob_cluster_name": ob_cluster_name, "db_host": self.db_host, "db_port": self.db_port, "tenant_sys": tenant_sys_config, "servers": {"nodes": nodes_config, "global": global_config}}}

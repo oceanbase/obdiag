@@ -31,6 +31,8 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
+import common.ssh_client.local_client as ssh_client_local_client
+from result_type import ObdiagResult
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -76,6 +78,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         scope_option = Util.get_option(options, 'scope')
         log_level_option = Util.get_option(options, 'log_level')
         files_option = Util.get_option(options, 'files')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if files_option:
             self.is_ssh = False
             self.directly_analyze_files = True
@@ -110,7 +113,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                 self.stdio.print('analyze log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if grep_option is not None:
@@ -119,21 +122,34 @@ class AnalyzeLogHandler(BaseShellHandler):
             self.scope = scope_option
         if log_level_option:
             self.log_level = OBLogLevel().get_log_level(scope_option)
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
-        for node in self.nodes:
+
+        def handle_from_node(node):
             resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
             analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
+
+        if self.is_ssh:
+            for node in self.nodes:
+                handle_from_node(node)
+        else:
+            local_ip = '127.0.0.1'
+            node = self.nodes[0]
+            node["ip"] = local_ip
+            handle_from_node(node)
+
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
@@ -148,33 +164,31 @@ class AnalyzeLogHandler(BaseShellHandler):
                 FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
-        return analyze_tuples
+        # get info from local_store_parent_dir+/result_details.txt
+        analyze_info = ""
+        with open(os.path.join(local_store_parent_dir, "result_details.txt"), "r", encoding="utf-8") as f:
+            analyze_info = f.read()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info})
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
-        ssh_client = SshClient(self.context, node)
+        remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
+        node_results = []
         try:
-            node_results = []
-            remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
-            remote_user = node.get("ssh_username")
-            remote_password = node.get("ssh_password")
-            remote_port = node.get("ssh_port")
-            remote_private_key = node.get("ssh_key_file")
-            remote_home_path = node.get("home_path")
+            ssh_client = SshClient(self.context, node)
             self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
             DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name())
             DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         except Exception as e:
-            ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
-            raise Exception("Please check the {0}".format(self.config_path))
+            resp["error"] = "Please check the node conf about {0}".format(remote_ip)
+            raise Exception("Please check the node conf about {0}".format(remote_ip))
 
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path)
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
@@ -279,11 +293,13 @@ class AnalyzeLogHandler(BaseShellHandler):
         :param ssh_helper, log_name
         :return:
         """
+
+        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            ssh_client.exec_cmd(ssh_client, grep_cmd)
+            ssh_client.exec_cmd(grep_cmd)
         else:
             download_file(ssh_client, log_name, local_store_path, self.stdio)
 
