@@ -11,8 +11,8 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2023/9/23
-@file: analyze_log.py
+@time: 2024/08/23
+@file: analyze_queue.py
 @desc:
 """
 import datetime
@@ -122,10 +122,6 @@ class AnalyzeQueueHandler(BaseShellHandler):
         self.stdio.verbose("ip_list is {0}".format(self.ip_list))
         self.queue = queue_option
         self.scope = "observer"
-        # if files_option:
-        #     self.is_ssh = False
-        #     self.directly_analyze_files = True
-        #     self.analyze_files_list = files_option
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -287,8 +283,6 @@ class AnalyzeQueueHandler(BaseShellHandler):
             return log_list
         elif len(log_list) == 0:
             self.stdio.warn("{0} The number of log files is {1}, No files found, " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
-            # resp["skip"] = (True,)
-            # resp["error"] = "No files found"
             return log_list
         return log_list
 
@@ -300,7 +294,6 @@ class AnalyzeQueueHandler(BaseShellHandler):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
         get_oblog = "ls -1 -F %s/*%s.log* | grep -E 'observer.log(\.[0-9]+){0,1}$' | grep -v 'wf'|awk -F '/' '{print $NF}'" % (log_path, self.scope)
-        # get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         log_name_list = []
         log_files = ssh_client.exec_cmd(get_oblog)
         if log_files:
@@ -404,92 +397,3 @@ class AnalyzeQueueHandler(BaseShellHandler):
 
             results.append(result)
         return results
-
-    def __get_time_from_ob_log_line(self, log_line):
-        """
-        Get the time from the observer's log line
-        :param log_line
-        :return: time_str
-        """
-        time_str = ""
-        if len(log_line) >= 28:
-            time_str = log_line[1 : log_line.find(']')]
-        return time_str
-
-    def __get_trace_id(self, log_line):
-        """
-        Get the trace_id from the observer's log line
-        :param log_line
-        :return: trace_id
-        """
-        pattern = re.compile(r'\[Y(.*?)\]')
-        find = pattern.search(log_line)
-        if find and find.group(1):
-            return find.group(1).strip('[').strip(']')
-
-    def __get_log_level(self, log_line):
-        """
-        Get the log level from the observer's log line
-        :param log_line
-        :return: log level
-        """
-        level_lits = ["DEBUG ", "TRACE ", "INFO ", "WDIAG ", "WARN ", "EDIAG ", "ERROR ", "FATAL "]
-        length = len(log_line)
-        if length > 38:
-            length = 38
-        for level in level_lits:
-            idx = log_line[:length].find(level)
-            if idx != -1:
-                return OBLogLevel().get_log_level(level.rstrip())
-        return 0
-
-    @staticmethod
-    def __get_overall_summary(node_summary_tuples, is_files=False):
-        """
-        generate overall summary from all node summary tuples
-        :param node_summary_tuple
-        :return: a string indicating the overall summary
-        """
-        field_names = ["Node", "Status", "FileName", "ErrorCode", "Message", "Count"]
-        t = []
-        t_details = []
-        field_names_details = field_names
-        field_names_details.extend(["Cause", "Solution", "First Found Time", "Last Found Time", "Trace_IDS"])
-        for tup in node_summary_tuples:
-            is_empty = True
-            node = tup[0]
-            is_err = tup[2]
-            node_results = tup[3]
-            if is_err:
-                is_empty = False
-                t.append([node, "Error:" + tup[2] if is_err else "Completed", None, None, None, None])
-                t_details.append([node, "Error:" + tup[2] if is_err else "Completed", None, None, None, None, None, None, None, None, None])
-            for log_result in node_results:
-                for ret_key, ret_value in log_result.items():
-                    if ret_key is not None:
-                        error_code_info = OB_RET_DICT.get(ret_key, "")
-                        if len(error_code_info) > 3:
-                            is_empty = False
-                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_key, error_code_info[1], ret_value["count"]])
-                            t_details.append(
-                                [
-                                    node,
-                                    "Error:" + tup[2] if is_err else "Completed",
-                                    ret_value["file_name"],
-                                    ret_key,
-                                    error_code_info[1],
-                                    ret_value["count"],
-                                    error_code_info[2],
-                                    error_code_info[3],
-                                    ret_value["first_found_time"],
-                                    ret_value["last_found_time"],
-                                    str(ret_value["trace_id_list"]),
-                                ]
-                            )
-            if is_empty:
-                t.append([node, "\033[32mPASS\033[0m", None, None, None, None])
-                t_details.append([node, "\033[32mPASS\033[0m", None, None, None, None, None, None, None, None, None])
-        title = "\nAnalyze OceanBase Offline Log Summary:\n" if is_files else "\nAnalyze OceanBase Online Log Summary:\n"
-        t.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
-        t_details.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
-        return title, field_names, t, t_details
