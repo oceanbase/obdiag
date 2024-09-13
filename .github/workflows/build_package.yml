@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - jingyd6_2.5_queue
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
