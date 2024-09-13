@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2023/12/29
+@time: 2024/07/29
 @file: lock_conflict_scene.py
 @desc:
 """
@@ -24,6 +24,7 @@ from common.tool import StringUtils, DateTimeEncoder
 class LockConflictScene(RcaScene):
     def __init__(self):
         super().__init__()
+        self.tenant_id = None
 
     def init(self, context):
         try:
@@ -35,6 +36,13 @@ class LockConflictScene(RcaScene):
             raise RCAInitException("LockConflictScene RCAInitException: ", e)
 
     def execute(self):
+        if self.input_parameters is not None:
+            tenant_name = self.input_parameters.get("tenant_name")
+            tenant_data = self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
+            if len(tenant_data) == 0:
+                raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
+            self.tenant_id = tenant_data[0][0]
+            self.verbose("tenant_id is {0}".format(self.tenant_id))
         if self.observer_version == "4.2.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.2.0.0"):
             self.__execute_4_2()
         elif StringUtils.compare_versions_greater("4.2.0.0", self.observer_version):
@@ -42,17 +50,26 @@ class LockConflictScene(RcaScene):
         else:
             raise Exception("observer version is {0}. Not support".format(self.observer_version))
 
+    def verbose(self, info):
+        self.stdio.verbose("[lock_conflict] {0}".format(info))
+
     def __execute_4_2(self):
         first_record = RCA_ResultRecord()
         # get trans_id
-        cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" limit 50;')
+        locks_sql = 'select * from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" '
+        if self.tenant_id is not None:
+            locks_sql = locks_sql + 'and tenant_id={0}'.format(self.tenant_id)
+        locks_sql = locks_sql + '' + ' limit 100;'
+        self.verbose("locks_sql is{0}".format(locks_sql))
+        cursor = self.ob_connector.execute_sql_return_cursor_dictionary(locks_sql)
         data = cursor.fetchall()
         if len(data) == 0:
             first_record.add_record("on GV$OB_LOCKS result is null")
             first_record.add_suggest("No block lock found. Not Need Execute")
             self.Result.records.append(first_record)
             raise RCANotNeedExecuteException("No block lock found.")
-        first_record.add_record("by select * from oceanbase.GV$OB_LOCKS where BLOCK=1; the len is {0}".format(len(data)))
+        # first_record.add_record("by select * from oceanbase.GV$OB_LOCKS where BLOCK=1; the len is {0}".format(len(data)))
+        first_record.add_record("by locks_sql; the len is {0}".format(len(data)))
         for OB_LOCKS_data in data:
             trans_record = RCA_ResultRecord()
             first_record_records = first_record.records.copy()
@@ -101,7 +118,8 @@ class LockConflictScene(RcaScene):
                     cursor_check_switch = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE '%enable_sql_audit%';")
                     audit_switch_value = cursor_check_switch.fetchone().get("value")
                     if audit_switch_value.strip().upper() == "TRUE":
-                        holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}";'.format(holding_lock_session_id))
+                        holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where tx_id!=0 and SID="{0}";'.format(holding_lock_session_id))
+                        trans_record.add_record('exec sql: SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}"; to get holding_lock_sql_info.'.format(holding_lock_session_id))
                         holding_lock_sql_info = holding_lock_sql_info_cursor.fetchall()
                         if len(holding_lock_sql_info) == 0:
                             trans_record.add_record("holding_lock_session_id: {0}; not find sql_info on gv$OB_SQL_AUDIT".format(holding_lock_session_id))
