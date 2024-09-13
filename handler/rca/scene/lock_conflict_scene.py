@@ -68,7 +68,7 @@ class LockConflictScene(RcaScene):
                     trans_record.add_record("get holding_lock trans_id:{0}".format(trans_id))
                     holding_lock_session_id = trans_id
                     self.stdio.verbose("get holding lock SESSION_ID by trans_id:{0}".format(trans_id))
-                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(holding_lock_session_id))
+                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}" and SESSION_ID<>0;'.format(holding_lock_session_id))
                     holding_lock_session_id_datas = cursor_by_trans_id.fetchall()
                     holding_lock_session_id = "not get"
                     self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id_datas))
@@ -82,7 +82,7 @@ class LockConflictScene(RcaScene):
 
                     wait_lock_trans_id = OB_LOCKS_data["TRANS_ID"]
                     trans_record.add_record("wait_lock_trans_id is {0}".format(wait_lock_trans_id))
-                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}";'.format(wait_lock_trans_id))
+                    cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where TX_ID="{0}" and SESSION_ID<>0;'.format(wait_lock_trans_id))
 
                     wait_lock_session_datas = cursor_by_trans_id.fetchall()
                     self.stdio.verbose("get sql_info by holding_lock_session_id:{0}".format(holding_lock_session_id))
@@ -102,6 +102,7 @@ class LockConflictScene(RcaScene):
                     audit_switch_value = cursor_check_switch.fetchone().get("value")
                     if audit_switch_value.strip().upper() == "TRUE":
                         holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}";'.format(holding_lock_session_id))
+                        trans_record.add_record('exec sql: SELECT * FROM oceanbase.gv$OB_SQL_AUDIT where SID="{0}"; to get holding_lock_sql_info.'.format(holding_lock_session_id))
                         holding_lock_sql_info = holding_lock_sql_info_cursor.fetchall()
                         if len(holding_lock_sql_info) == 0:
                             trans_record.add_record("holding_lock_session_id: {0}; not find sql_info on gv$OB_SQL_AUDIT".format(holding_lock_session_id))

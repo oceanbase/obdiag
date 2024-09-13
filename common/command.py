@@ -48,37 +48,6 @@ class LocalClient(object):
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
 
 
-#
-# class SshClient(object):
-#     def __init__(self, stdio=None):
-#         self.stdio = stdio
-#
-#     def run(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] excute cmd = [{1}]".format(ssh_helper.get_name(), cmd))
-#             stdout = ssh_helper.ssh_exec_cmd(cmd)
-#             self.stdio.verbose("[remote host {0}] excute cmd = [{1}] complete, stdout=[{2}]".format(ssh_helper.get_name(), cmd, stdout))
-#             return stdout
-#         except Exception as e:
-#             self.stdio.error("[remote host {0}] excute cmd = [{1}] except: [{2}]".format(ssh_helper.get_name(), cmd, e))
-#
-#     def run_get_stderr(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
-#             std = ssh_helper.ssh_exec_cmd_get_stderr(cmd)
-#             return std
-#         except Exception as e:
-#             self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
-#
-#     def run_ignore_err(self, ssh_helper, cmd):
-#         try:
-#             self.stdio.verbose("[remote host {0}] run cmd = [{1}] start ...".format(ssh_helper.get_name(), cmd))
-#             std = ssh_helper.ssh_exec_cmd_ignore_err(cmd)
-#             return std
-#         except SSHException as e:
-#             self.stdio.error("[remote host {0}] run ssh cmd = [{1}] except: {2}".format(ssh_helper.get_name(), cmd, e))
-
-
 def download_file(ssh_client, remote_path, local_path, stdio=None):
     """
     download file
@@ -99,7 +68,7 @@ def upload_file(ssh_client, local_path, remote_path, stdio=None):
     """
     stdio.verbose("Please wait a moment, upload file to server {0}, local file path {1}, remote file path {2}".format(ssh_client.get_name(), local_path, remote_path))
     try:
-        ssh_client.upload(local_path, remote_path)
+        ssh_client.upload(remote_path, local_path)
     except Exception as e:
         stdio.error("Upload File Failed error: {0}".format(e))
 
@@ -270,9 +239,9 @@ def get_observer_version(context):
                 ob_install_dir = nodes[0].get("home_path")
                 observer_version = get_observer_version_by_ssh(sshclient, ob_install_dir, stdio)
         except Exception as e:
-            raise Exception("get observer version fail.")
+            raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     if observer_version == "":
-        raise Exception("get observer version fail.")
+        raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     return observer_version
 
 
@@ -317,7 +286,8 @@ def get_obproxy_version(context):
     obproxy_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get obproxy version, run cmd = [{0}] ".format(cmd))
     if obproxy_version_info is not None:
-        ob_version = re.findall(r'[(]OceanBase.(.+? +?)[)]', obproxy_version_info)
+        pattern = r"(\d+\.\d+\.\d+\.\d+)"
+        ob_version = re.findall(pattern, obproxy_version_info)
         if len(ob_version) > 0:
             return ob_version[0]
         else:
@@ -326,7 +296,6 @@ def get_obproxy_version(context):
             stdio.verbose("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
                 raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
-            pattern = r"(\d+\.\d+\.\d+\.\d+)"
             match = re.search(pattern, obproxy_version_info)
             if match:
                 obproxy_version_info = match.group(1)
@@ -436,12 +405,12 @@ def is_empty_file(ssh_client, file_path, stdio=None):
         return False
 
 
-def get_obdiag_display(log_dir, trace_id, stdio=None):
-    cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
-    stdout = LocalClient(stdio).run(cmd)
-    print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
-    if len(print_stdout) > 0:
-        print(print_stdout)
+# def get_obdiag_display(log_dir, trace_id, stdio=None):
+#     cmd = 'grep -h "\[{}\]" {}* | sed "s/\[{}\] //g" '.format(trace_id, log_dir, trace_id)
+#     stdout = LocalClient(stdio).run(cmd)
+#     print_stdout = str(stdout).replace('\\n', '\n').replace('\\t', '\t')
+#     if len(print_stdout) > 0:
+#         print(print_stdout)
 
 
 def uzip_dir_local(uzip_dir, stdio=None):

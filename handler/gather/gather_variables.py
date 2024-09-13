@@ -22,6 +22,8 @@ from common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class GatherVariablesHandler(object):
     def __init__(self, context, gather_pack_dir='./'):
@@ -52,12 +54,13 @@ class GatherVariablesHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_variables")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         self.gather_pack_dir = pack_dir_this_command
         self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def init_option(self):
         options = self.context.options
@@ -76,8 +79,8 @@ class GatherVariablesHandler(object):
             cluster_info = self.obconn.execute_sql(sql)
             cluster_name = cluster_info[0][0]
         except Exception as e:
-            self.stdio.warn("RCAHandler Failed to get oceanbase cluster name:{0}".format(e))
-        self.stdio.verbose("RCAHandler.init get oceanbase cluster name {0}".format(cluster_name))
+            self.stdio.warn("failed to get oceanbase cluster name:{0}".format(e))
+        self.stdio.verbose("get oceanbase cluster name {0}".format(cluster_name))
         return cluster_name
 
     def get_variables_info(self):
@@ -86,8 +89,10 @@ class GatherVariablesHandler(object):
  from oceanbase.__all_virtual_sys_variable order by 2, 4, 5'''
         variable_info = self.obconn.execute_sql(sql)
         self.variable_file_name = self.gather_pack_dir + '/{0}_variables_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+        header = ['VERSION', 'TENANT_ID', 'ZONE', 'NAME', 'GMT_MODIFIED', 'VALUE', 'FLAGS', 'MIN_VALUE', 'MAX_VALUE', 'RECORD_TIME']
         with open(self.variable_file_name, 'w', newline='') as file:
             writer = csv.writer(file)
+            writer.writerow(header)
             for row in variable_info:
                 writer.writerow(row)
         self.stdio.print("Gather variables finished. For more details, please run cmd '" + Fore.YELLOW + "cat {0}".format(self.variable_file_name) + Style.RESET_ALL + "'")

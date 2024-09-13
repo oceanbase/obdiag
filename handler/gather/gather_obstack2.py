@@ -32,6 +32,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import StringUtils
+from result_type import ObdiagResult
 
 
 class GatherObstack2Handler(BaseShellHandler):
@@ -69,7 +70,7 @@ class GatherObstack2Handler(BaseShellHandler):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         return True
@@ -77,10 +78,10 @@ class GatherObstack2Handler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         if self.is_scene:
             pack_dir_this_command = self.local_stored_path
         else:
@@ -104,6 +105,7 @@ class GatherObstack2Handler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, local_stored_path, node):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
@@ -119,10 +121,10 @@ class GatherObstack2Handler(BaseShellHandler):
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
-            raise Exception("Please check the {0}".format(self.config_path))
+            resp["error"] = "Please check the node conf."
+            raise Exception("Please check the node conf.")
 
         if not is_support_arch(ssh_client):
             resp["error"] = "remote server {0} arch not support gather obstack".format(ssh_client.get_name())
@@ -201,7 +203,7 @@ class GatherObstack2Handler(BaseShellHandler):
 
     def __is_obstack_exists(self, ssh_client):
         cmd = "test -e {file} && echo exists".format(file=const.OBSTACK2_DEFAULT_INSTALL_PATH)
-        stdout = ssh_client.exec_cmd(cmd)[0]
+        stdout = ssh_client.exec_cmd(cmd)
         if stdout == 'exists':
             return False
         else:
@@ -224,7 +226,6 @@ class GatherObstack2Handler(BaseShellHandler):
             ssh_client.exec_cmd(chown_cmd)
             self.stdio.verbose("gather obstack info on server {0}, run cmd = [su {1}, {2}]".format(ssh_client.get_name(), user, cmd))
             ssh_client.ssh_invoke_shell_switch_user(user, cmd, 10)
-        ssh_client.exec_cmd("rm -rf /tmp/{0}".format(remote_gather_dir))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):

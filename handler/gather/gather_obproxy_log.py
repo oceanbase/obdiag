@@ -31,6 +31,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import TimeUtils
+from result_type import ObdiagResult
 
 
 class GatherObProxyLogHandler(BaseShellHandler):
@@ -80,6 +81,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         encrypt_option = Util.get_option(options, 'encrypt')
         scope_option = Util.get_option(options, 'scope')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -92,7 +94,8 @@ class GatherObProxyLogHandler(BaseShellHandler):
             scope_option = self.context.get_variable("gather_scope")
         if self.context.get_variable("gather_grep", None):
             grep_option = self.context.get_variable("gather_grep")
-
+        if self.context.get_variable("temp_dir", None):
+            temp_dir_option = self.context.get_variable("temp_dir")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -121,7 +124,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
             self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if scope_option:
@@ -130,16 +133,18 @@ class GatherObProxyLogHandler(BaseShellHandler):
             self.zip_encrypt = True
         if grep_option:
             self.grep_args = grep_option
+        if temp_dir_option:
+            self.gather_log_temporary_dir = temp_dir_option
         self.stdio.verbose("grep_args:{0}".format(grep_option))
         return True
 
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         if self.is_scene:
             pack_dir_this_command = self.gather_pack_dir
         else:
@@ -171,7 +176,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
         self.pack_dir_this_command = pack_dir_this_command
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
-        return True
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, node, pack_dir_this_command):
         resp = {"skip": False, "error": "", "zip_password": "", "gather_pack_path": ""}
@@ -185,16 +190,16 @@ class GatherObProxyLogHandler(BaseShellHandler):
         try:
             ssh_client = SshClient(self.context, node)
         except Exception as e:
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the node conf."
             return resp
         if not ssh_failed:
             from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
             to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
             gather_dir_name = "obproxy_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+            gather_dir_full_path = "{0}/{1}".format(self.gather_log_temporary_dir, gather_dir_name)
             mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
             log_list, resp = self.__handle_log_list(ssh_client, node, resp)
@@ -263,7 +268,6 @@ class GatherObProxyLogHandler(BaseShellHandler):
             if type(self.grep_args) == str:
                 grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
             elif type(self.grep_args) == list and len(self.grep_args) > 0:
-                grep_litter_cmd = ""
                 for grep_arg in self.grep_args:
                     if type(grep_arg) != str:
                         self.stdio.error('The grep args must be string or list of strings, but got {0}'.format(type(grep_arg)))
@@ -271,9 +275,11 @@ class GatherObProxyLogHandler(BaseShellHandler):
                     elif grep_arg == "":
                         self.stdio.warn('The grep args must be string or list of strings, but got ""')
                         continue
-                    grep_litter_cmd += "| grep -e '{0}'".format(grep_arg)
-
-                grep_cmd = "cat {log_dir}/{log_name} {grep_args} >> {gather_path}/{log_name} ".format(grep_args=grep_litter_cmd, gather_path=gather_path, log_name=log_name, log_dir=log_path)
+                    if grep_cmd == "":
+                        grep_cmd = "grep -e '{0}' ".format(grep_arg) + "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
+                        continue
+                    grep_cmd += "| grep -e '{0}'".format(grep_arg)
+                grep_cmd += " >> {gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:

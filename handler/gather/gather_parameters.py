@@ -23,6 +23,8 @@ from common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class GatherParametersHandler(object):
     def __init__(self, context, gather_pack_dir='./'):
@@ -53,20 +55,21 @@ class GatherParametersHandler(object):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         # example of the format of pack dir for this command: (gather_pack_dir)/gather_pack_20190610123344
         pack_dir_this_command = os.path.join(self.gather_pack_dir, "gather_parameters")
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         DirectoryUtil.mkdir(path=pack_dir_this_command, stdio=self.stdio)
         self.gather_pack_dir = pack_dir_this_command
         self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"gather_pack_dir": pack_dir_this_command})
 
     def init_option(self):
         options = self.context.options
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
         self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True
@@ -76,8 +79,8 @@ class GatherParametersHandler(object):
         try:
             observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
         except Exception as e:
-            self.stdio.warn("GatherHandler Failed to get observer version:{0}".format(e))
-        self.stdio.verbose("GatherHandler.init get observer version: {0}".format(observer_version))
+            self.stdio.warn("failed to get observer version:{0}".format(e))
+        self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
 
     def get_cluster_name(self):
@@ -87,8 +90,8 @@ class GatherParametersHandler(object):
             cluster_info = self.obconn.execute_sql(sql)
             cluster_name = cluster_info[0][0]
         except Exception as e:
-            self.stdio.warn("RCAHandler Failed to get oceanbase cluster name:{0}".format(e))
-        self.stdio.verbose("RCAHandler.init get oceanbase cluster name {0}".format(cluster_name))
+            self.stdio.warn("failed to get oceanbase cluster name:{0}".format(e))
+        self.stdio.verbose("get oceanbase cluster name {0}".format(cluster_name))
         return cluster_name
 
     def get_parameters_info(self):
@@ -110,8 +113,10 @@ select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section
 '''
             parameter_info = self.obconn.execute_sql(sql)
             self.parameter_file_name = self.gather_pack_dir + '/{0}_parameters_{1}.csv'.format(cluster_name, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            header = ['VERSION', 'SVR_IP', 'SVR_PORT', 'ZONE', 'SCOPE', 'TENANT_ID', 'NAME', 'VALUE', 'SECTION', 'EDIT_LEVEL', 'RECORD_TIME', 'DEFAULT_VALUE', 'ISDEFAULT']
             with open(self.parameter_file_name, 'w', newline='') as file:
                 writer = csv.writer(file)
+                writer.writerow(header)
                 for row in parameter_info:
                     if row[5] is None:
                         tmp_row = [col for col in row]

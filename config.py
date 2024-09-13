@@ -17,7 +17,7 @@
 
 from __future__ import absolute_import, division, print_function
 import os
-from common.tool import DirectoryUtil
+from common.tool import ConfigOptionsParserUtil, DirectoryUtil
 from stdio import SafeStdio
 import oyaml as yaml
 import pathlib
@@ -73,6 +73,11 @@ DEFAULT_INNER_CONFIG = {
             'log_level': 'INFO',
             'mode': 'obdiag',
             'stdout_handler_log_level': 'INFO',
+            'error_stream': 'sys.stdout',
+            'silent': False,
+        },
+        'ssh_client': {
+            'remote_client_sudo': False,
         },
     },
     'check': {
@@ -143,17 +148,28 @@ class Manager(SafeStdio):
 
 class ConfigManager(Manager):
 
-    def __init__(self, config_file=None, stdio=None):
+    def __init__(self, config_file=None, stdio=None, config_env_list=[]):
         default_config_path = os.path.join(os.path.expanduser("~"), ".obdiag", "config.yml")
+        if config_env_list is None or len(config_env_list) == 0:
+            if config_file is None or not os.path.exists(config_file):
+                config_file = default_config_path
+                pathlib.Path(os.path.dirname(default_config_path)).mkdir(parents=True, exist_ok=True)
+                with open(default_config_path, 'w') as f:
+                    f.write(DEFAULT_CONFIG_DATA)
+            super(ConfigManager, self).__init__(config_file, stdio)
+            self.config_file = config_file
+            self.config_data = self.load_config()
+        else:
+            parser = ConfigOptionsParserUtil()
+            self.config_data = parser.parse_config(config_env_list)
 
-        if config_file is None or not os.path.exists(config_file):
-            config_file = default_config_path
-            pathlib.Path(os.path.dirname(default_config_path)).mkdir(parents=True, exist_ok=True)
-            with open(default_config_path, 'w') as f:
-                f.write(DEFAULT_CONFIG_DATA)
-        super(ConfigManager, self).__init__(config_file, stdio)
-        self.config_file = config_file
-        self.config_data = self.load_config()
+    def update_config_data(self, new_config_data, save_to_file=False):
+        if not isinstance(new_config_data, dict):
+            raise ValueError("new_config_data must be a dictionary")
+        self.config_data.update(new_config_data)
+        if save_to_file:
+            with open(self.config_file, 'w') as f:
+                yaml.dump(self.config_data, f, default_flow_style=False)
 
     def _safe_get(self, dictionary, *keys, default=None):
         """Safe way to retrieve nested values from dictionaries"""
@@ -257,7 +273,22 @@ class ConfigManager(Manager):
 
 class InnerConfigManager(Manager):
 
-    def __init__(self, stdio=None):
+    def __init__(self, stdio=None, inner_config_change_map=None):
+        if inner_config_change_map is None:
+            inner_config_change_map = {}
         inner_config_abs_path = os.path.abspath(INNER_CONFIG_FILE)
         super().__init__(inner_config_abs_path, stdio=stdio)
         self.config = self.load_config_with_defaults(DEFAULT_INNER_CONFIG)
+        if inner_config_change_map != {}:
+            self.config = self._change_inner_config(self.config, inner_config_change_map)
+
+    def _change_inner_config(self, conf_map, change_conf_map):
+        for key, value in change_conf_map.items():
+            if key in conf_map:
+                if isinstance(value, dict):
+                    self._change_inner_config(conf_map[key], value)
+                else:
+                    conf_map[key] = value
+            else:
+                conf_map[key] = value
+        return conf_map

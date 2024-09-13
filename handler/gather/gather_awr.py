@@ -27,6 +27,7 @@ from common.tool import FileUtil
 from common.tool import Util
 from common.tool import TimeUtils
 from common.ocp import ocp_task, ocp_api
+from result_type import ObdiagResult
 
 
 class GatherAwrHandler(object):
@@ -100,7 +101,8 @@ class GatherAwrHandler(object):
         # 将汇总结果持久化记录到文件中
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
-        return gather_tuples, gather_pack_path_dict
+        # return gather_tuples, gather_pack_path_dict
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __download_report(self, store_path, name, report_id):
         """
@@ -270,7 +272,7 @@ class GatherAwrHandler(object):
             self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option and store_dir_option != "./":
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         return True

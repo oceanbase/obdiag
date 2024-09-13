@@ -28,6 +28,7 @@ from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
+from result_type import ObdiagResult
 
 
 class AnalyzeFltTraceHandler(object):
@@ -61,6 +62,7 @@ class AnalyzeFltTraceHandler(object):
         top_option = Util.get_option(options, 'top')
         recursion_option = Util.get_option(options, 'recursion')
         output_option = Util.get_option(options, 'output')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
                 self.stdio.warn('Warning: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
@@ -81,15 +83,17 @@ class AnalyzeFltTraceHandler(object):
             self.max_recursion = int(recursion_option)
         if output_option:
             self.output = int(output_option)
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data='init option failed')
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data='init config failed')
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_flt_result_{0}".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
@@ -119,8 +123,8 @@ class AnalyzeFltTraceHandler(object):
                 data = future.result()
                 tree.build(data)
         # output tree
-        self.__output(local_store_parent_dir, tree, self.output)
-        return analyze_tuples
+        result = self.__output(local_store_parent_dir, tree, self.output)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": local_store_parent_dir, "result": result})
 
     def __handle_from_node(self, node, old_files, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
@@ -143,14 +147,14 @@ class AnalyzeFltTraceHandler(object):
             ssh_client = SshClient(self.context, node)
         except Exception as e:
             ssh = None
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the conf."
             return resp, node_files
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+            gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
             mkdir(ssh_client, gather_dir_full_path, self.stdio)
             if self.is_ssh:
                 self.__get_online_log_file(ssh_client, node, gather_dir_full_path, local_store_dir)
@@ -192,7 +196,7 @@ class AnalyzeFltTraceHandler(object):
         log_full_path = "{gather_path}/{log_name}".format(log_name=self.flt_trace_id, gather_path=gather_path)
         download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
-    def __get_offline_log_file(self, ssh_client, log_full_path, local_store_dir):
+    def __get_offline_log_file(self, ssh_client, log_path, local_store_dir):
         """
         :param ssh_client, log_name
         :return:
@@ -202,7 +206,6 @@ class AnalyzeFltTraceHandler(object):
         if self.flt_trace_id is not None and (len(log_name_list) > 0):
             grep_cmd = "grep -e '{grep_args}' {log_file} > {local_store_path} ".format(grep_args=self.flt_trace_id, log_file=' '.join(log_name_list), local_store_path=local_store_path)
             LocalClient(self.stdio).run(grep_cmd)
-            download_file(ssh_client, log_full_path, local_store_path, self.stdio)
 
     def __get_log_name_list_offline(self):
         """
@@ -347,6 +350,15 @@ class AnalyzeFltTraceHandler(object):
         self.stdio.verbose('Result saved: {}'.format(os.path.abspath(filename)))
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(filename)
         self.stdio.print(last_info)
+        result_info = ""
+        with open(filename, 'r', encoding='utf-8') as f:
+            line_nu = 0
+            for line in f:
+                result_info += line
+                line_nu += 1
+                if line_nu > 60:
+                    break
+        return result_info
 
     def parse_file(self, file):
         self.stdio.verbose('parse file: {}'.format(file[1]))

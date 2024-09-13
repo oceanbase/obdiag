@@ -29,7 +29,7 @@ obcluster:
       container_name: observer
       home_path: /home/admin/oceanbase
       data_dir: /home/admin/oceanbase/store
-      redo_Dir: /home/admin/oceanbase/store
+      redo_dir: /home/admin/oceanbase/store
       ip: xx.xx.xx.xx
     global:
       # if running obdiag in kubernetes, please delete the kubernetes_config_file

@@ -30,6 +30,7 @@ from handler.analyzer.sql.rule_manager import SQLReviewRuleManager
 from handler.analyzer.sql.meta.sys_tenant_meta import SysTenantMeta
 from handler.gather.gather_scenes import GatherSceneHandler
 from common.command import get_observer_version
+from result_type import ObdiagResult
 
 
 class AnalyzeSQLHandler(object):
@@ -161,7 +162,7 @@ class AnalyzeSQLHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('Error: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_parrent_path = os.path.abspath(store_dir_option)
         output_option = Util.get_option(options, 'output')
@@ -208,16 +209,16 @@ class AnalyzeSQLHandler(object):
         self.start_time = time.time()
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         if not self.init_inner_config():
             self.stdio.error('init inner config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init inner config failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         if not self.init_ob_version():
             self.stdio.error('init ob version failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init ob version failed")
         self.init_db_connector()
         self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_analyze_sql_result_{0}_{1}.html".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp)))
         self.stdio.print("use {0} as result store path.".format(self.local_store_path))

@@ -33,6 +33,8 @@ from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
 
+from result_type import ObdiagResult
+
 
 class RCAHandler:
     def __init__(self, context):
@@ -72,7 +74,7 @@ class RCAHandler:
                 )
                 self.context.set_variable("ob_connector", ob_connector)
         except Exception as e:
-            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf.yaml".format(str(e)))
+            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf".format(str(e)))
         # build report
         store_dir = Util.get_option(self.options, "store_dir")
         if store_dir is None:
@@ -99,12 +101,7 @@ class RCAHandler:
                 obproxy_version = ""
                 try:
                     if len(context_obproxy_nodes) > 0:
-                        obproxy_version = get_obproxy_version(
-                            True,
-                            context_obproxy_nodes[0]["ssher"],
-                            context_obproxy_nodes[0]["home_path"],
-                            self.stdio,
-                        )
+                        obproxy_version = get_obproxy_version(context)
                 except Exception as e:
                     self.stdio.warn("RCAHandler.init Failed to get obproxy version. Error:{0}".format(e))
                 if obproxy_version != "":
@@ -118,7 +115,6 @@ class RCAHandler:
         all_scenes_info, all_scenes_item = rca_list.get_all_scenes()
         self.context.set_variable("rca_deep_limit", len(all_scenes_info))
         self.all_scenes = all_scenes_item
-        self.rca_scene_parameters = None
         self.rca_scene = None
         self.cluster = self.context.get_variable("ob_cluster")
         self.nodes = self.context.get_variable("observer_nodes")
@@ -127,15 +123,7 @@ class RCAHandler:
         # init input parameters
         self.report = None
         self.tasks = None
-        rca_scene_parameters = Util.get_option(self.options, "input_parameters", "")
-        if rca_scene_parameters != "":
-            try:
-                rca_scene_parameters = json.loads(rca_scene_parameters)
-            except Exception as e:
-                raise Exception("Failed to parse input_parameters. Please check the option is json:{0}".format(rca_scene_parameters))
-        else:
-            rca_scene_parameters = {}
-        self.context.set_variable("input_parameters", rca_scene_parameters)
+        self.context.set_variable("input_parameters", Util.get_option(self.options, "input_parameters"))
         self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(
@@ -187,14 +175,17 @@ class RCAHandler:
             self.rca_scene.execute()
         except RCANotNeedExecuteException as e:
             self.stdio.warn("rca_scene.execute not need execute: {0}".format(e))
-            pass
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data={"result": "rca_scene.execute not need execute"})
         except Exception as e:
-            raise Exception("rca_scene.execute err: {0}".format(e))
+            self.stdio.error("rca_scene.execute err: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.execute err: {0}".format(e))
         try:
             self.rca_scene.export_result()
         except Exception as e:
-            raise Exception("rca_scene.export_result err: {0}".format(e))
+            self.stdio.error("rca_scene.export_result err: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
         self.stdio.print("rca finished. For more details, the result on '" + Fore.YELLOW + self.get_result_path() + Style.RESET_ALL + "' \nYou can get the suggest by '" + Fore.YELLOW + "cat " + self.get_result_path() + "/record" + Style.RESET_ALL + "'")
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
 
 
 class RcaScene:
@@ -290,6 +281,14 @@ class Result:
                 f.write("\n")
                 f.write(record.export_suggest())
                 f.write("\n")
+
+    def records_data(self):
+        records_data = []
+        for record in self.records:
+            if record.records is None or len(record.records) == 0:
+                continue
+            records_data.append({"record": record.records, "suggest": record.suggest})
+        return records_data
 
 
 class RCA_ResultRecord:

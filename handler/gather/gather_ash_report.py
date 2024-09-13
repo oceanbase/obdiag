@@ -22,6 +22,7 @@ from common.command import get_observer_version
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
 from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
+from result_type import ObdiagResult
 from stdio import SafeStdio
 from colorama import Fore, Style
 
@@ -60,13 +61,13 @@ class GatherAshReportHandler(SafeStdio):
     def handle(self):
         if not self.version_check():
             self.stdio.error('version check failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="version check failed")
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
         self.__init_report_path()
         self.execute()
-        self.__print_result()
+        return self.__print_result()
 
     def version_check(self):
         observer_version = ""
@@ -153,7 +154,7 @@ class GatherAshReportHandler(SafeStdio):
             self.stdio.print('gather from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         if store_dir_option:
             if not os.path.exists(os.path.abspath(store_dir_option)):
-                self.stdio.warn('warn: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
+                self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                 os.makedirs(os.path.abspath(store_dir_option))
             self.gather_pack_dir = os.path.abspath(store_dir_option)
         if sql_id_option:
@@ -189,3 +190,4 @@ class GatherAshReportHandler(SafeStdio):
     def __print_result(self):
         self.stdio.print(Fore.YELLOW + "\nGather ash_report results stored in this directory: {0}".format(self.report_path) + Style.RESET_ALL)
         self.stdio.print("")
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})

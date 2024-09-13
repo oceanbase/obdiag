@@ -37,16 +37,19 @@ class KubernetesClient(SsherClient):
                 config.kube_config.load_kube_config(config_file=config_file)
             self.client = client.CoreV1Api()
         except Exception as e:
-            raise Exception("KubernetesClient load_kube_config error. Please check the config file. {0}".format(e))
+            raise Exception("KubernetesClient load_kube_config error. Please check the config. {0}".format(e))
 
     def exec_cmd(self, cmd):
         exec_command = ['/bin/sh', '-c', cmd]
         self.stdio.verbose("KubernetesClient exec_cmd: {0}".format(cmd))
-        resp = stream(self.client.connect_get_namespaced_pod_exec, self.pod_name, self.namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=self.container_name)
-        self.stdio.verbose("KubernetesClient exec_cmd.resp: {0}".format(resp))
-        if "init system (PID 1). Can't operate." in resp:
-            return "KubernetesClient can't get the resp by {0}".format(cmd)
-        return resp
+        try:
+            resp = stream(self.client.connect_get_namespaced_pod_exec, self.pod_name, self.namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=self.container_name)
+            self.stdio.verbose("KubernetesClient exec_cmd.resp: {0}".format(resp))
+            if "init system (PID 1). Can't operate." in resp:
+                return "KubernetesClient can't get the resp by {0}".format(cmd)
+            return resp
+        except Exception as e:
+            return f"KubernetesClient can't get the resp by {cmd}: {str(e)}"
 
     def download(self, remote_path, local_path):
         return self.__download_file_from_pod(self.namespace, self.pod_name, self.container_name, remote_path, local_path)

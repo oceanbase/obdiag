@@ -13,6 +13,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import json
 import os
 import signal
 import sys
@@ -25,7 +26,7 @@ from logging import handlers
 
 from enum import Enum
 from halo import Halo, cursor
-from colorama import Fore
+from colorama import Fore, Style
 from prettytable import PrettyTable
 from progressbar import AdaptiveETA, Bar, SimpleProgress, ETA, FileTransferSpeed, Percentage, ProgressBar
 from types import MethodType
@@ -81,6 +82,13 @@ class BufferIO(object):
     def flush(self):
         self.auto_clear and self.clear()
         return True
+
+
+class SetBufferIO(BufferIO):
+
+    def write(self, s):
+        if s not in self._buffer:
+            return super(SetBufferIO, self).write(s)
 
 
 class SysStdin(object):
@@ -146,6 +154,7 @@ class SysStdin(object):
             try:
                 for line in sys.stdin:
                     return line
+                return ''
             except IOError:
                 return ''
             finally:
@@ -184,6 +193,10 @@ class FormtatText(object):
     @staticmethod
     def info(text):
         return FormtatText(text, Fore.BLUE)
+
+    @staticmethod
+    def suggest(text):
+        return FormtatText(text, Fore.GREEN)
 
     @staticmethod
     def success(text):
@@ -357,8 +370,10 @@ class IO(object):
     VERBOSE_LEVEL = 0
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
+    SUGGEST_PREV = FormtatText.suggest('[SUGGEST]')
 
-    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout):
+    def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, silent=False):
+        self.silent = silent
         self.level = level
         self.msg_lv = msg_lv
         self.default_confirm = False
@@ -373,12 +388,20 @@ class IO(object):
         self.sync_obj = None
         self.input_stream = None
         self._out_obj = None
+        self._err_obj = None
         self._cur_out_obj = None
+        self._cur_err_obj = None
         self._before_critical = None
+        self._exit_msg = ""
         self._output_is_tty = False
         self._input_is_tty = False
+        self._exit_buffer = SetBufferIO()
         self.set_input_stream(input_stream)
         self.set_output_stream(output_stream)
+        self.set_err_stream(error_stream)
+
+    def set_silent(self, silent=False):
+        self.silent = bool(silent)
 
     def isatty(self):
         if self._root_io:
@@ -400,6 +423,24 @@ class IO(object):
         self._output_is_tty = output_stream.isatty()
         return True
 
+    def set_err_stream(self, error_stream):
+        if isinstance(error_stream, str):
+            error_stream = error_stream.strip().lower()
+            if error_stream == "sys.stderr":
+                error_stream = sys.stderr
+            elif error_stream == "sys.stdout":
+                error_stream = sys.stdout
+            else:
+                # TODO 3.X NEED CHANGE TO sys.stderr
+                error_stream = sys.stdout
+        if self._root_io:
+            return False
+        if self._cur_err_obj == self._err_obj:
+            self._cur_err_obj = error_stream
+        self._err_obj = error_stream
+        self._output_is_tty = error_stream.isatty()
+        return True
+
     def init_trace_logger(self, log_path, log_name=None, trace_id=None, recreate=False):
         if self._root_io:
             return False
@@ -417,7 +458,7 @@ class IO(object):
         state = {}
         for key in self.__dict__:
             state[key] = self.__dict__[key]
-        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_cur_out_obj', '_before_critical']:
+        for key in ['_trace_logger', 'input_stream', 'sync_obj', '_out_obj', '_err_obj', '_cur_out_obj', '_cur_err_obj', '_before_critical']:
             state[key] = None
         return state
 
@@ -466,8 +507,20 @@ class IO(object):
             except:
                 pass
 
+    @property
+    def exit_msg(self):
+        return self._exit_msg
+
+    @exit_msg.setter
+    def exit_msg(self, msg):
+        self._exit_msg = msg
+
     def _close(self):
         self.before_close()
+        self._flush_cache()
+        if self.exit_msg:
+            self.print(self.exit_msg)
+            self.exit_msg = ""
         self._flush_log()
 
     def __del__(self):
@@ -501,10 +554,20 @@ class IO(object):
             return self._root_io.get_input_stream()
         return self.input_stream
 
+    def get_cur_err_obj(self):
+        if self._root_io:
+            return self._root_io.get_cur_err_obj()
+        return self._cur_err_obj
+
     def get_cur_out_obj(self):
         if self._root_io:
             return self._root_io.get_cur_out_obj()
         return self._cur_out_obj
+
+    def get_exit_buffer(self):
+        if self._root_io:
+            return self._root_io.get_exit_buffer()
+        return self._exit_buffer
 
     def _start_buffer_io(self):
         if self._root_io:
@@ -512,6 +575,7 @@ class IO(object):
         if self._cur_out_obj != self._out_obj:
             return False
         self._cur_out_obj = BufferIO()
+        self._cur_err_obj = BufferIO()
         return True
 
     def _stop_buffer_io(self):
@@ -519,10 +583,16 @@ class IO(object):
             return False
         if self._cur_out_obj == self._out_obj:
             return False
+        if self._cur_err_obj == self._err_obj:
+            return False
         text = self._cur_out_obj.read()
+        text_err = self._cur_err_obj.read()
         self._cur_out_obj = self._out_obj
+        self._cur_err_obj = self._err_obj
         if text:
             self.print(text)
+        if text_err:
+            self.error(text_err)
         return True
 
     @staticmethod
@@ -572,6 +642,8 @@ class IO(object):
         return ret
 
     def start_loading(self, text, *arg, **kwargs):
+        if self.silent:
+            return True
         if self.sync_obj:
             return False
         self.sync_obj = self._start_sync_obj(IOHalo, lambda x: x.stop_loading('fail'), *arg, **kwargs)
@@ -580,6 +652,8 @@ class IO(object):
             return self.sync_obj.start(text)
 
     def stop_loading(self, stop_type, *arg, **kwargs):
+        if self.silent:
+            return True
         if not isinstance(self.sync_obj, IOHalo):
             return False
         if getattr(self.sync_obj, stop_type, False):
@@ -643,15 +717,18 @@ class IO(object):
 
     def read(self, msg='', blocked=False):
         if msg:
-            self._print(MsgLevel.INFO, msg)
-        return self.get_input_stream().read(blocked)
+            if self.syncing:
+                self.verbose(msg, end='')
+            else:
+                self._print(MsgLevel.INFO, msg, end='')
+        return self.get_input_stream().readline(not self.syncing and blocked)
 
     def confirm(self, msg):
+        if self.default_confirm:
+            self.verbose("%s and then auto confirm yes" % msg)
+            return True
         msg = '%s [y/n]: ' % msg
         self.print(msg, end='')
-        if self.default_confirm:
-            self.verbose("default confirm: True")
-            return True
         if self.isatty() and not self.syncing:
             while True:
                 try:
@@ -663,6 +740,7 @@ class IO(object):
                 except Exception as e:
                     if not e:
                         return False
+                self.print(msg, end='')
         else:
             self.verbose("isatty: %s, syncing: %s, auto confirm: False" % (self.isatty(), self.syncing))
             return False
@@ -680,10 +758,26 @@ class IO(object):
             del kwargs['prev_msg']
         else:
             print_msg = msg
-        kwargs['file'] = self.get_cur_out_obj()
-        kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
+        if kwargs.get('_on_exit'):
+            kwargs['file'] = self.get_exit_buffer()
+            del kwargs['_on_exit']
+        else:
+            if msg_lv == MsgLevel.ERROR:
+                kwargs['file'] = self.get_cur_err_obj()
+            else:
+                kwargs['file'] = self.get_cur_out_obj()
+        if '_disable_log' in kwargs:
+            enaable_log = not kwargs['_disable_log']
+            del kwargs['_disable_log']
+        else:
+            enaable_log = True
+        # if self.silent is True, Not print to stream
+        if self.silent:
+            pass
+        else:
+            kwargs['file'] and print(self._format(print_msg, *args), **kwargs)
         del kwargs['file']
-        self.log(msg_lv, msg, *args, **kwargs)
+        enaable_log and self.log(msg_lv, msg, *args, **kwargs)
 
     def log(self, levelno, msg, *args, **kwargs):
         self._cache_log(levelno, msg, *args, **kwargs)
@@ -708,8 +802,17 @@ class IO(object):
         if self.trace_logger:
             self.trace_logger.log(levelno, msg, *args, **kwargs)
 
+    def _flush_cache(self):
+        if not self._root_io:
+            text = self._exit_buffer.read()
+            if text:
+                self.print(text, _disable_log=True)
+
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
+
+    def suggest(self, msg, *args, **kwargs):
+        self._print(MsgLevel.INFO, msg, prev_msg=self.SUGGEST_PREV.format(self.isatty()), *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)
