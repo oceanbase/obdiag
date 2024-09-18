@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - 2.5.0-config-ini
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
