@@ -1,0 +1,9 @@
+info_en: "[plan]"
+info_cn: "[查看sql的执行计划]"
+command: obdiag display scene run --scene=observer.plan --env "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}" --env sqlid=test
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: ""
+        global: true

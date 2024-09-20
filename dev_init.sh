@@ -49,6 +49,10 @@ copy_file(){
         cp -rf ${WORK_DIR}/handler/gather/tasks  ${OBDIAG_HOME}/gather/
     fi
 
+    if [ -d "${WORK_DIR}/handler/display/tasks" ]; then
+        cp -rf ${WORK_DIR}/handler/display/tasks  ${OBDIAG_HOME}/display/
+    fi
+    
     if [ -d "${WORK_DIR}/example" ]; then
         cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
     fi

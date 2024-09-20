@@ -33,6 +33,7 @@ mkdir -p $BUILD_DIR/SOURCES/site-packages
 mkdir -p $BUILD_DIR/SOURCES/resources
 mkdir -p $BUILD_DIR/SOURCES/check/tasks
 mkdir -p $BUILD_DIR/SOURCES/gather/tasks
+mkdir -p $BUILD_DIR/SOURCES/display/tasks
 mkdir -p $BUILD_DIR/SOURCES/rca
 mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
@@ -46,6 +47,7 @@ rm -f obdiag.py oceanbase-diagnostic-tool.spec
 \cp -rf $SRC_DIR/handler/checker/tasks $BUILD_DIR/SOURCES/check
 \cp -rf $SRC_DIR/handler/gather/tasks $BUILD_DIR/SOURCES/gather
 \cp -rf $SRC_DIR/handler/rca/scene/* $BUILD_DIR/SOURCES/rca
+\cp -rf $SRC_DIR/handler/display/tasks $BUILD_DIR/SOURCES/display
 \cp -rf $SRC_DIR/init.sh $BUILD_DIR/SOURCES/init.sh
 \cp -rf $SRC_DIR/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
 \cp -rf $SRC_DIR/conf $BUILD_DIR/SOURCES/conf
@@ -54,6 +56,7 @@ mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/rca
+mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
 
 \cp -rf $SRC_DIR/dist/obdiag ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/obdiag
 \cp -rf $BUILD_DIR/SOURCES/site-packages ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/site-packages
@@ -67,7 +70,7 @@ mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/rca
 mv ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/tasks/*.yaml ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/
 \cp -rf $BUILD_DIR/SOURCES/gather/tasks ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
 \cp -rf $BUILD_DIR/SOURCES/rca/* ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/rca
-
+\cp -rf $BUILD_DIR/SOURCES/display/tasks ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
 
 %files
 %defattr(-,root,root,0777)

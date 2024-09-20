@@ -1,0 +1,9 @@
+info_en: "[server info]"
+info_cn: "[server 信息展示]"
+command: obdiag display scene run --scene=observer.server
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select * from oceanbase.__all_server;"
+        global: true
