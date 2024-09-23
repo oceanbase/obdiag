@@ -42,10 +42,15 @@ class SQLProblemScene(SafeStdio):
         self.trace_id = "FAKE_TRACE_ID"
 
     def execute(self):
+        skip_type = self.context.get_variable("gather_skip_type", None)
+        if skip_type:
+            self.stdio.verbose("needs to be filtered out and not gather type is {0}".format(skip_type))
         if self.__parse_env():
-            self.__gather_log()
-            self.__gather_obproxy_log()
-            self.__gather_sql_info()
+            if skip_type != "ssh":
+                self.__gather_log()
+                self.__gather_obproxy_log()
+            if skip_type != "sql":
+                self.__gather_sql_info()
 
     def __gather_log(self):
         try:

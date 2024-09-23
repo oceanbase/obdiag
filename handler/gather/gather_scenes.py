@@ -188,6 +188,7 @@ class GatherSceneHandler(SafeStdio):
         env_option = Util.get_option(options, 'env')
         scene_option = Util.get_option(options, 'scene')
         temp_dir_option = Util.get_option(options, 'temp_dir')
+        skip_type_option = Util.get_option(options, 'skip_type')
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -226,6 +227,8 @@ class GatherSceneHandler(SafeStdio):
             self.env = env_dict
         if temp_dir_option:
             self.temp_dir = temp_dir_option
+        if skip_type_option:
+            self.context.set_variable('gather_skip_type', skip_type_option)
         return True
 
     def __get_sql_result(self):
