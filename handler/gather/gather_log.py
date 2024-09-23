@@ -29,12 +29,14 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
+from handler.gather.plugins.redact import Redact
 from result_type import ObdiagResult
 
 
 class GatherLogHandler(BaseShellHandler):
     def __init__(self, context, gather_pack_dir='./', is_scene=False):
         super(GatherLogHandler, self).__init__()
+        self.redact = []
         self.pack_dir_this_command = ""
         self.context = context
         self.stdio = context.stdio
@@ -80,6 +82,7 @@ class GatherLogHandler(BaseShellHandler):
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
         temp_dir_option = Util.get_option(options, 'temp_dir')
+        redact_option = Util.get_option(options, 'redact')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -133,6 +136,12 @@ class GatherLogHandler(BaseShellHandler):
             self.grep_options = grep_option
         if temp_dir_option:
             self.gather_ob_log_temporary_dir = temp_dir_option
+        if redact_option:
+            if redact_option != "" and len(redact_option) != 0:
+                if "," in redact_option:
+                    self.redact = redact_option.split(",")
+                else:
+                    self.redact = [redact_option]
         return True
 
     def handle(self):
@@ -174,6 +183,12 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        if self.redact and len(self.redact) > 0:
+            self.stdio.verbose("redact_option is {0}".format(self.redact))
+            redact_dir = "{0}_redact".format(pack_dir_this_command)
+            redact = Redact(self.context, self.pack_dir_this_command, redact_dir)
+            redact.redact_file(self.redact, self.gather_pack_dir)
+            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(redact_dir, "result_summary.txt"))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, pack_dir_this_command, node):
