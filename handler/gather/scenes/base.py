@@ -90,14 +90,19 @@ class SceneBase(SafeStdio):
         self.stdio.verbose("run scene excute yaml mode in node")
 
     def __execute_code_mode(self):
+        skip_type = self.context.get_variable("gather_skip_type", None)
+        if skip_type:
+            self.stdio.verbose("needs to be filtered out and not gather type is {0}".format(skip_type))
         if self.scene["name"] == "observer.perf_sql" or self.scene["name"] == "observer.sql_err":
             scene = SQLProblemScene(self.context, self.scene["name"], self.report_dir, self.scene_variable_dict, self.env)
-        elif self.scene["name"] == "observer.cpu_high":
+        elif self.scene["name"] == "observer.cpu_high" and (skip_type != "ssh"):
             scene = CPUHighScene(self.context, self.report_dir, self.scene_variable_dict, self.env)
-        elif self.scene["name"] == "observer.px_collect_log":
+        elif self.scene["name"] == "observer.px_collect_log" and (skip_type != "ssh"):
             scene = SQLPXCollectLogScene(self.context, self.scene["name"], self.report_dir, self.scene_variable_dict, self.env)
         else:
-            self.stdio.error("unsupported hard code scene {0}".format(self.scene["name"]))
+            scene_names = ["observer.perf_sql", "observer.cpu_high", "observer.px_collect_log"]
+            if self.scene["name"] not in scene_names:
+                self.stdio.error("unsupported hard code scene {0}".format(self.scene["name"]))
             return
         try:
             self.stdio.verbose("hard code scene {0} execute start".format(self.scene["name"]))
