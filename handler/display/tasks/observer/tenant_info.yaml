@@ -1,6 +1,6 @@
 info_en: "[tenant info]"
 info_cn: "[租户信息展示]"
-command: obdiag display scene run --scene=observer.tenant --env tenant_name=test
+command: obdiag display scene run --scene=observer.tenant_info --env tenant_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:

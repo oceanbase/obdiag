@@ -1,6 +1,6 @@
 info_en: "[server info]"
 info_cn: "[server 信息展示]"
-command: obdiag display scene run --scene=observer.server
+command: obdiag display scene run --scene=observer.server_info
 task:
   - version: "[4.0.0.0, *]"
     steps:

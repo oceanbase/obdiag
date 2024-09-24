@@ -1119,7 +1119,7 @@ class ObdiagDisplayCommand(MajorCommand):
 class ObdiagDisplaySceneCommand(MajorCommand):
 
     def __init__(self):
-        super(ObdiagDisplaySceneCommand, self).__init__('scene', 'Gather scene diagnostic info')
+        super(ObdiagDisplaySceneCommand, self).__init__('scene', 'Display scene diagnostic info')
         self.register_command(ObdiagDisplaySceneListCommand())
         self.register_command(ObdiagDisplaySceneRunCommand())
 

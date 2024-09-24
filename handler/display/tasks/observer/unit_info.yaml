@@ -1,6 +1,6 @@
 info_en: "[unit info]"
 info_cn: "[unit 信息展示]"
-command: obdiag display scene run --scene=observer.unit
+command: obdiag display scene run --scene=observer.unit_info
 task:
   - version: "[4.0.0.0, *]"
     steps:
@@ -22,7 +22,7 @@ task:
               unit_config_id;"
         global: true
       - type: sql
-       sql: "SELECT
+        sql: "SELECT
             tenant_id,
             svr_ip,
             svr_port,
