@@ -449,7 +449,7 @@ def find_home_path_by_port(ssh_client, internal_port_str, stdio):
     for original_str in str_list:
         original_str = str(original_str)
         if original_str.endswith("/bin/observer") and not original_str.startswith('/[^\s]*'):
-            home_path = original_str.rstrip("/bin/observer")
+            home_path = original_str[: -len("/bin/observer")]
             break
     stdio.verbose("home_path:{0}".format(home_path))
     return home_path
