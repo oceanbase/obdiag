@@ -57,7 +57,7 @@ class SQLProblemScene(SafeStdio):
 
     def __find_home_path_by_port(self, ip_str, internal_port_str):
         for node in self.ob_nodes:
-            if node["ip"] == ip_str:
+            if node.get("ip") and node["ip"] == ip_str:
                 remote_ip = node.get("ip")
                 remote_user = node.get("ssh_username")
                 try:
