@@ -1130,6 +1130,9 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())
         self.register_command(ObdiagAnalyzeQueueCommand())
+        self.register_command(ObdiagAnalyzeIndexSpaceCommand())
+        # self.register_command(ObdiagAnalyzeSQLCommand())
+        # self.register_command(ObdiagAnalyzeSQLReviewCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
