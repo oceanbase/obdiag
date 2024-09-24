@@ -21,6 +21,8 @@ from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from common.tool import StringUtils
+from common.ssh_client.ssh import SshClient
+from common.command import find_home_path_by_port
 
 
 class SQLProblemScene(SafeStdio):
@@ -40,6 +42,7 @@ class SQLProblemScene(SafeStdio):
         self.scene_name = scene_name
         self.db_conn = {}
         self.trace_id = "FAKE_TRACE_ID"
+        self.task_nodes = []
 
     def execute(self):
         skip_type = self.context.get_variable("gather_skip_type", None)
@@ -52,10 +55,29 @@ class SQLProblemScene(SafeStdio):
             if skip_type != "sql":
                 self.__gather_sql_info()
 
+    def __find_home_path_by_port(self, ip_str, internal_port_str):
+        for node in self.ob_nodes:
+            if node.get("ip") == ip_str:
+                remote_ip = node.get("ip")
+                remote_user = node.get("ssh_username")
+                try:
+                    ssh_client = SshClient(self.context, node)
+                    return find_home_path_by_port(ssh_client, internal_port_str, self.stdio)
+                except Exception as e:
+                    self.stdio.error("ssh {0}@{1}: failed, Please check the config".format(remote_user, remote_ip))
+
     def __gather_log(self):
         try:
+            ip_port_str = StringUtils.get_observer_ip_port_from_trace_id(self.trace_id)
+            ip_str, internal_port_str = ip_port_str.split(':')
+            home_path_str = self.__find_home_path_by_port(ip_str, internal_port_str)
+            for node in self.ob_nodes:
+                if node.get("ip") == ip_str and node.get("home_path") == home_path_str:
+                    self.task_nodes.append(node)
+                    break
             self.stdio.verbose("gather observer log start")
             handler = GatherLogHandler(self.context, self.report_path, is_scene=True)
+            self.context.set_variable('filter_nodes_list', self.task_nodes)
             self.context.set_variable('gather_grep', self.trace_id)
             handler.handle()
             self.stdio.verbose("gather observer log end")
