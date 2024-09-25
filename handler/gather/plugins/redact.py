@@ -1,4 +1,5 @@
 import os
+import shutil
 import zipfile
 
 from common.import_module import import_modules
@@ -87,7 +88,7 @@ class Redact:
                         file_path = os.path.join(root, file)
                         zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
             self.stdio.verbose("delete the dir: {0}".format(subfolder_path))
-            os.rmdir(subfolder_path)
+            shutil.rmtree(subfolder_path)
             self.stdio.print(f"{subfolder} is zipped on {zip_filename}")
         return True
 
