@@ -12,7 +12,7 @@ class Redact:
         self.redacts = {}
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
-        self.module_dir = os.path.expanduser('~/.obdiag/redact')
+        self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
         self.inner_config = self.context.inner_config
 
         # init all redact

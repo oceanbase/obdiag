@@ -123,6 +123,8 @@ class UpdateHandler:
                 shutil.rmtree(os.path.expanduser("~/.obdiag/rca.d"))
             if os.path.exists(os.path.expanduser("~/.obdiag/rca")):
                 os.rename(os.path.expanduser("~/.obdiag/rca"), os.path.expanduser("~/.obdiag/rca.d"))
+
+            # redact
             # decompression remote files
             FileUtil.extract_tar(os.path.expanduser(local_update_file_name), os.path.expanduser("~/.obdiag"))
             # update data save
