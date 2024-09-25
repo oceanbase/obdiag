@@ -27,23 +27,25 @@ class ImportModulesException(Exception):
 # 实现模块导入，要求module_name为模块名和需要导入的对象名，module_file_path为模块文件路径
 
 
-def import_modules(module_file_path, module_name, stdio):
+def import_modules(module_file_dir, stdio):
+    stdio.verbose("import_modules input: module_file_dir->{0}".format(module_file_dir))
     try:
-        module_file_path = os.path.abspath(os.path.expanduser(module_file_path))
-        # check module_name
-        if module_file_path.endswith(".py"):
-            if module_name == "":
-                module_name = module_file_path[:-3]
-        else:
-            stdio.error("module file path should end with .py. Please check module_file_path: {0}".format(module_file_path))
-            raise ImportModulesException("module_file_path should end with .py. Please check module_file_path: {0}".format(module_file_path))
-        lib_path = os.path.dirname(module_file_path)
-        DynamicLoading.add_lib_path(lib_path)
-        module = DynamicLoading.import_module(module_name, None)
-        if not hasattr(module, module_name):
-            stdio.error("{0} import_module failed".format(module_name))
-            raise ImportModulesException("{0} import_module failed".format(module_name))
-        return getattr(module, module_name)
+        module_files = []
+        module_list = {}
+        for root, dirs, files in os.walk(module_file_dir):
+            # 只返回目标路径下的文件，不包括子目录下的文件
+            if root == module_file_dir:
+                module_files = files
+        for module_file in module_files:
+            module_name = os.path.basename(module_file)[:-3]
+            DynamicLoading.add_lib_path(module_file_dir)
+            module = DynamicLoading.import_module(os.path.basename(module_file)[:-3], None)
+            if not hasattr(module, module_name):
+                stdio.error("{0} import_module failed".format(module_name))
+                continue
+            module_list[module_name] = getattr(module, module_name)
+        stdio.print(module_list)
+        return module_list
     except Exception as e:
         stdio.error("import_modules failed: {0}".format(e))
         raise ImportModulesException("import_modules failed: {0}".format(e))

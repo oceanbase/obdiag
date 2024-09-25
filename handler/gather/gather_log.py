@@ -36,6 +36,7 @@ from result_type import ObdiagResult
 class GatherLogHandler(BaseShellHandler):
     def __init__(self, context, gather_pack_dir='./', is_scene=False):
         super(GatherLogHandler, self).__init__()
+        self.redact_dir = None
         self.redact = []
         self.pack_dir_this_command = ""
         self.context = context
@@ -183,12 +184,21 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
-        if self.redact and len(self.redact) > 0:
-            self.stdio.verbose("redact_option is {0}".format(self.redact))
-            redact_dir = "{0}_redact".format(pack_dir_this_command)
-            redact = Redact(self.context, self.pack_dir_this_command, redact_dir)
-            redact.redact_file(self.redact, self.gather_pack_dir)
-            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(redact_dir, "result_summary.txt"))
+        self.stdio.print(last_info)
+        try:
+            if self.redact and len(self.redact) > 0:
+                self.stdio.verbose("redact_option is {0}".format(self.redact))
+                redact_dir = "{0}_redact".format(pack_dir_this_command)
+                self.redact_dir = redact_dir
+                redact = Redact(self.context, self.pack_dir_this_command, redact_dir)
+                redact.redact_files(self.redact)
+                self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
+                last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(redact_dir, "result_summary.txt"))
+                self.stdio.print(last_info)
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir})
+        except Exception as e:
+            self.stdio.error("redact failed {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, pack_dir_this_command, node):
