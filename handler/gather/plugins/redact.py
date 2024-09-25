@@ -71,7 +71,7 @@ class Redact:
             self.stdio.verbose("inport file name: {0}".format(file_name))
             self.stdio.verbose("output file name: {0}".format(file_name.replace(self.input_file_dir, self.output_file_dir)))
             semaphore.acquire()
-            file_thread = mp.Process(target=self.redact_file, args=(file_name, file_name.replace(self.input_file_dir, self.output_file_dir, semaphore)))
+            file_thread = mp.Process(target=self.redact_file, args=(file_name, file_name.replace(self.input_file_dir, self.output_file_dir), semaphore))
             file_thread.start()
             file_queue.append(file_thread)
         for file_thread in file_queue:
@@ -86,6 +86,8 @@ class Redact:
                     for file in files:
                         file_path = os.path.join(root, file)
                         zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
+            self.stdio.verbose("delete the dir: {0}".format(subfolder_path))
+            os.rmdir(subfolder_path)
             self.stdio.print(f"{subfolder} is zipped on {zip_filename}")
         return True
 
