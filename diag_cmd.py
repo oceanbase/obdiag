@@ -260,15 +260,16 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.track_limit += 1
             ROOT_IO.verbose('cmd: %s' % self.prev_cmd)
             ROOT_IO.verbose('opts: %s' % self.opts)
-            config_path = os.path.expanduser('~/.obdiag/config.yml')
-            custom_config = Util.get_option(self.opts, 'c')
-            if custom_config:
-                if os.path.exists(os.path.abspath(custom_config)):
-                    config_path = custom_config
-                else:
-                    ROOT_IO.error('The option you provided with -c: {0} is a non-existent configuration file path.'.format(custom_config))
-                    return
             custom_config_env_list = Util.get_option(self.opts, 'config')
+            config_path = os.path.expanduser('~/.obdiag/config.yml')
+            if custom_config_env_list is None:
+                custom_config = Util.get_option(self.opts, 'c')
+                if custom_config:
+                    if os.path.exists(os.path.abspath(custom_config)):
+                        config_path = custom_config
+                    else:
+                        ROOT_IO.error('The option you provided with -c: {0} is not exist.'.format(custom_config))
+                        return
             obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list)
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
@@ -678,6 +679,7 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--env', type='string', help='env, eg: "{env1=xxx, env2=xxx}"')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
+        self.parser.add_option('--skip_type', type='string', help='The types of gather to be skipped, choices=[ssh, sql]')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--redact', type='string', help='desensitization options', default='')
@@ -949,29 +951,29 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')
         self.parser.add_option('--scene', type='string', help="rca scene name. The argument is required.")
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./rca/')
-        self.parser.add_option('--input_parameters', action='callback', type='string', callback=self._input_parameters_scene, help='input parameters of scene')
+        self.parser.add_option('--input_parameters', action='callback', type='string', callback=self._env_scene, help='input parameters of scene')
+        self.parser.add_option('--env', action='callback', type='string', callback=self._env_scene, help='env of scene')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.scene_input_param_map = {}
 
-    def _input_parameters_scene(self, option, opt_str, value, parser):
+    def _env_scene(self, option, opt_str, value, parser):
         """
-        input parameters of scene
+        env of scene
         """
         try:
-            # input_parameters option is json format
+            # env option is json format
             try:
                 self.scene_input_param_map = json.loads(value)
                 return
             except Exception as e:
-                # raise Exception("Failed to parse input_parameters. Please check the option is json:{0}".format(value))
-                ROOT_IO.verbose("input_parameters option {0} is not json.".format(value))
+                ROOT_IO.verbose("env option {0} is not json.".format(value))
 
-            # input_parameters option is key=val format
+            # env option is key=val format
             key, val = value.split('=', 1)
             if key is None or key == "":
                 return
-            m = self._input_parameters_scene_set(key, val)
+            m = self._env_scene_set(key, val)
 
             def _scene_input_param(param_map, scene_param_map):
                 for scene_param_map_key, scene_param_map_value in scene_param_map.items():
@@ -988,7 +990,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         except Exception as e:
             raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
 
-    def _input_parameters_scene_set(self, key, val):
+    def _env_scene_set(self, key, val):
         def recursion(param_map, key, val):
             if key is None or key == "":
                 raise Exception("key is None")
@@ -1013,6 +1015,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
+        Util.set_option(self.opts, 'env', self.scene_input_param_map)
         return obdiag.rca_run(self.opts)
 
 

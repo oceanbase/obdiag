@@ -134,8 +134,8 @@ class CheckHandler:
             # change self.export_report_type
             if Util.get_option(self.options, 'report_type'):
                 self.export_report_type = Util.get_option(self.options, 'report_type')
-                if self.export_report_type not in ["table", "json", "xml", "yaml"]:
-                    raise CheckException("report_type must be table, json, xml, yaml")
+                if self.export_report_type not in ["table", "json", "xml", "yaml", "html"]:
+                    raise CheckException("report_type must be table, json, xml, yaml, html")
             self.stdio.verbose("export_report_path is " + self.export_report_path)
             # get package's by package_name
             self.tasks = {}
