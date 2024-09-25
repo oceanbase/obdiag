@@ -90,7 +90,7 @@ DEFAULT_INNER_CONFIG = {
         'package_file': '~/.obdiag/check/check_package.yaml',
         'tasks_base_path': '~/.obdiag/check/tasks/',
     },
-    'gather': {'scenes_base_path': '~/.obdiag/gather/tasks', 'redact_processing_num': 4},
+    'gather': {'scenes_base_path': '~/.obdiag/gather/tasks', 'redact_processing_num': 3},
     'rca': {
         'result_path': './rca/',
     },
