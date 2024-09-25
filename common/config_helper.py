@@ -113,7 +113,7 @@ class ConfigHelper(object):
         need_config_obproxy = self.input_choice_default("need config obproxy [y/N]", "N")
         if need_config_obproxy:
             self.build_obproxy_configuration(self.config_path)
-        self.stdio.verbose("Node information has been rewritten to the configuration file {0}, and you can enjoy the journey !".format(self.config_path))
+        self.stdio.print("Node information has been rewritten to the configuration file {0}, and you can enjoy the journey !".format(self.config_path))
 
     def build_obproxy_configuration(self, path):
         obproxy_servers = self.input_with_default("obproxy server eg:'192.168.1.1;192.168.1.2;192.168.1.3'", "")
