@@ -65,6 +65,7 @@ class Redact:
                     self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
         file_queue = []
         max_processes = int(self.inner_config.get('gather').get('redact_processing_num')) or 3
+        self.stdio.verbose("max_processes: {0}".format(max_processes))
         semaphore = mp.Semaphore(max_processes)
         for file_name in gather_log_files:
             if "result_summary.txt" in file_name:
