@@ -331,11 +331,11 @@ class ObdiagHome(object):
             elif function_type == 'analyze_log_offline':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_queue':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeQueueHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_flt_trace':
                 self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)

@@ -779,10 +779,6 @@ class ObdiagAnalyzeQueueCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        # offline_args_sign = '--files'
-        # if self.args and (offline_args_sign in self.args):
-        #     return obdiag.analyze_fuction('analyze_log_offline', self.opts)
-        # else:
         return obdiag.analyze_fuction('analyze_queue', self.opts)
 
 

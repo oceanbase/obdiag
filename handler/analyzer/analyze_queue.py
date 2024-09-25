@@ -34,6 +34,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
 import common.ssh_client.local_client as ssh_client_local_client
+from result_type import ObdiagResult
 
 from common.ob_connector import OBConnector
 import re
@@ -99,7 +100,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
         tenant_option = Util.get_option(options, 'tenant')
         queue_option = Util.get_option(options, 'queue')
         if tenant_option is None:
-            self.stdio.exception('Error: tenant must input ')
+            self.stdio.error('Error: tenant must input ')
             return False
         self.tenant = tenant_option
         observer_version = self.get_version()
@@ -112,7 +113,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
         self.stdio.verbose("sql is {0}".format(sql))
         sql_result = self.obconn.execute_sql_return_cursor_dictionary(sql).fetchall()
         if len(sql_result) <= 0:
-            self.stdio.exception('Error: tenant is {0} not  in this cluster '.format(tenant_option))
+            self.stdio.error('Error: tenant is {0} not  in this cluster '.format(tenant_option))
             return False
         self.stdio.verbose("sql_result is {0}".format(sql_result))
         for row in sql_result:
@@ -169,10 +170,12 @@ class AnalyzeQueueHandler(BaseShellHandler):
     def handle(self):
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
+
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init option failed")
+
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
@@ -198,7 +201,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
         queue_result = tabulate(table_data, headers=headers, tablefmt="pretty")
         self.stdio.print(queue_result)
         FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), str(queue_result))
-        return queue_result
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": queue_result})
 
     def __handle_from_node(self, node, local_store_parent_dir):
         ssh_client = SshClient(self.context, node)
@@ -207,11 +210,6 @@ class AnalyzeQueueHandler(BaseShellHandler):
             queue_limit = self.queue
             result_dict = {}
             remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
-            remote_user = node.get("ssh_username")
-            remote_password = node.get("ssh_password")
-            remote_port = node.get("ssh_port")
-            remote_private_key = node.get("ssh_key_file")
-            remote_home_path = node.get("home_path")
             self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
             DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name())
