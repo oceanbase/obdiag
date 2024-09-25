@@ -33,7 +33,6 @@ def import_modules(module_file_dir, stdio):
         module_files = []
         module_list = {}
         for root, dirs, files in os.walk(module_file_dir):
-            # 只返回目标路径下的文件，不包括子目录下的文件
             if root == module_file_dir:
                 module_files = files
         for module_file in module_files:
@@ -44,7 +43,6 @@ def import_modules(module_file_dir, stdio):
                 stdio.error("{0} import_module failed".format(module_name))
                 continue
             module_list[module_name] = getattr(module, module_name)
-        stdio.print(module_list)
         return module_list
     except Exception as e:
         stdio.error("import_modules failed: {0}".format(e))

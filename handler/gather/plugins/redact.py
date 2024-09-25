@@ -20,7 +20,7 @@ class Redact:
         self.all_redact = []
         try:
             self.stdio.print("Importing redact modules...")
-            self.all_redact = import_modules(self.module_dir)
+            self.all_redact = import_modules(self.module_dir, self.stdio)
             self.stdio.verbose("Imported redact module {0}".format(self.all_redact))
         except Exception as e:
             self.stdio.error(f"Error importing redact modules: {e}")
