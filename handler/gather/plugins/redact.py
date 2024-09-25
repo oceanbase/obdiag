@@ -15,13 +15,6 @@ class Redact:
         self.module_dir = os.path.expanduser('~/.obdiag/redact')
         self.inner_config = self.context.inner_config
 
-        def find_all_files(target_path):
-            # 使用os.walk遍历目标路径及其子目录
-            for root, dirs, files in os.walk(target_path):
-                # 只返回目标路径下的文件，不包括子目录下的文件
-                if root == target_path:
-                    return files
-
         # init all redact
         # import all redact module
         self.all_redact = []
