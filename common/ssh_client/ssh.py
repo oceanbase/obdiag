@@ -80,6 +80,7 @@ class SshClient(SafeStdio):
             raise Exception("init ssh client error: {}".format(e))
 
     def exec_cmd(self, cmd):
+        self.__cmd_filter(cmd)
         return self.client.exec_cmd(cmd).strip()
 
     def download(self, remote_path, local_path):
