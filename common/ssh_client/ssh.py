@@ -70,6 +70,8 @@ class SshClient(SafeStdio):
             else:
                 raise Exception("the ssh type is not support: {0}".format(self.ssh_type))
         except Exception as e:
+            if self.stdio is not None:
+                self.stdio.error("init ssh client error: {}".format(e))
             raise Exception("init ssh client error: {}".format(e))
 
     def exec_cmd(self, cmd):

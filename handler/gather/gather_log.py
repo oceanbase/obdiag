@@ -29,12 +29,15 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
+from handler.gather.plugins.redact import Redact
 from result_type import ObdiagResult
 
 
 class GatherLogHandler(BaseShellHandler):
     def __init__(self, context, gather_pack_dir='./', is_scene=False):
         super(GatherLogHandler, self).__init__()
+        self.redact_dir = None
+        self.redact = []
         self.pack_dir_this_command = ""
         self.context = context
         self.stdio = context.stdio
@@ -80,6 +83,7 @@ class GatherLogHandler(BaseShellHandler):
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
         temp_dir_option = Util.get_option(options, 'temp_dir')
+        redact_option = Util.get_option(options, 'redact')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -133,6 +137,12 @@ class GatherLogHandler(BaseShellHandler):
             self.grep_options = grep_option
         if temp_dir_option:
             self.gather_ob_log_temporary_dir = temp_dir_option
+        if redact_option:
+            if redact_option != "" and len(redact_option) != 0:
+                if "," in redact_option:
+                    self.redact = redact_option.split(",")
+                else:
+                    self.redact = [redact_option]
         return True
 
     def handle(self):
@@ -174,6 +184,19 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        self.stdio.print(last_info)
+        try:
+            if self.redact and len(self.redact) > 0:
+                self.stdio.verbose("redact_option is {0}".format(self.redact))
+                redact_dir = "{0}_redact".format(pack_dir_this_command)
+                self.redact_dir = redact_dir
+                redact = Redact(self.context, self.pack_dir_this_command, redact_dir)
+                redact.redact_files(self.redact)
+                self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir})
+        except Exception as e:
+            self.stdio.error("redact failed {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, pack_dir_this_command, node):

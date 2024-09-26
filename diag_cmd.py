@@ -278,6 +278,7 @@ class ObdiagOriginCommand(BaseCommand):
                 ret = self._do_command(obdiag)
                 exit_code = 0
             except Exception as e:
+                ROOT_IO.error('command failed. Please contact OceanBase community. e: {0}'.format(e))
                 ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact OceanBase community. e: {0}".format(e))
                 exit_code = 1
             # if silent is true ,print ret
@@ -450,6 +451,7 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--redact', type='string', help='desensitization options', default='')
 
     def init(self, cmd, args):
         super(ObdiagGatherLogCommand, self).init(cmd, args)
@@ -681,6 +683,7 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--skip_type', type='string', help='The types of gather to be skipped, choices=[ssh, sql]')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--redact', type='string', help='desensitization options', default='')
 
     def init(self, cmd, args):
         super(ObdiagGatherSceneRunCommand, self).init(cmd, args)
