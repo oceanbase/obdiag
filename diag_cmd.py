@@ -765,6 +765,28 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
             return obdiag.analyze_fuction('analyze_log', self.opts)
 
 
+class ObdiagAnalyzeQueueCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagAnalyzeQueueCommand, self).__init__('queue', 'Analyze oceanbase log from online observer machines to registration queue')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--files', action="append", type='string', help="specify files")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--tenant', type='string', help="Specify tenantname ")
+        self.parser.add_option('--queue', type='int', help="quene size ", default=50)
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeQueueCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_queue', self.opts)
+
+
 class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1109,6 +1131,7 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())
+        self.register_command(ObdiagAnalyzeQueueCommand())
         self.register_command(ObdiagAnalyzeIndexSpaceCommand())
         # self.register_command(ObdiagAnalyzeSQLCommand())
         # self.register_command(ObdiagAnalyzeSQLReviewCommand())
