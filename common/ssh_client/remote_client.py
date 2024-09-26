@@ -18,6 +18,7 @@
 
 
 import os
+import re
 import sys
 import time
 import paramiko
@@ -93,14 +94,19 @@ class RemoteClient(SsherClient):
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                return err_text.decode('utf-8')
-            return stdout.read().decode('utf-8')
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8'))
+                return output_str
+            # support Kerberos
+            output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8'))
+            return output_str
         except UnicodeDecodeError as e:
             self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
             if stderr:
-                return str(stderr)
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stderr))
+                return output_str
             if stdout:
-                return str(stdout)
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stdout))
+                return output_str
             return ""
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
