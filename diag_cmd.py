@@ -278,6 +278,7 @@ class ObdiagOriginCommand(BaseCommand):
                 ret = self._do_command(obdiag)
                 exit_code = 0
             except Exception as e:
+                ROOT_IO.error('command failed. Please contact OceanBase community. e: {0}'.format(e))
                 ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact OceanBase community. e: {0}".format(e))
                 exit_code = 1
             # if silent is true ,print ret
