@@ -5,5 +5,5 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "SELECT * FROM oceanbase.V$OB_PLAN_CACHE_PLAN_STAT where sql_id = {sqlid};"
+        sql: "SELECT * FROM oceanbase.V$OB_PLAN_CACHE_PLAN_STAT where sql_id = '{sqlid}';"
         global: true

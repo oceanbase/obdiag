@@ -92,10 +92,7 @@ class DisplaySceneHandler(SafeStdio):
         self.db_connector = OBConnector(ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), stdio=self.stdio, timeout=100)
 
     def __init_db_conn(self, env_option):
-        try:
-            env_dict = StringUtils.parse_env_display(env_option)
-            self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
+        try:       
             self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_db_connector()
@@ -103,7 +100,6 @@ class DisplaySceneHandler(SafeStdio):
                 self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env {0}".format(env_dict))
                 self.db_connector = self.sys_connector
         except Exception as e:
-            self.db_connector = self.sys_connector
             self.stdio.exception("init db connector, error: {0}, please check --env option ")
 
     # execute yaml task
@@ -217,7 +213,13 @@ class DisplaySceneHandler(SafeStdio):
         if scene_option:
             self.scene = scene_option
         if env_option:
-            self.__init_db_conn(env_option)
+            env_dict = StringUtils.parse_env_display(env_option)
+            self.env = env_dict
+            cli_connection_string = self.env.get("db_connect")
+            if cli_connection_string != None:
+                self.__init_db_conn(cli_connection_string)
+            else:
+                self.db_connector = self.sys_connector
         else:
             self.db_connector = self.sys_connector
         if temp_dir_option:
