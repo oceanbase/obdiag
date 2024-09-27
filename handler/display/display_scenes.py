@@ -91,7 +91,7 @@ class DisplaySceneHandler(SafeStdio):
     def __init_db_connector(self):
         self.db_connector = OBConnector(ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), stdio=self.stdio, timeout=100)
 
-    def __init_db_conn(self, env_option):
+    def __init_db_conn(self, cli_connection_string):
         try:       
             self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
             if StringUtils.validate_db_info(self.db_conn):
