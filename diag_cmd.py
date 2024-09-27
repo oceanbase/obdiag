@@ -105,6 +105,7 @@ class AllowUndefinedOptionParser(OptionParser):
 class BaseCommand(object):
 
     def __init__(self, name, summary):
+        self.start_check()
         self.name = name
         self.summary = summary
         self.args = []
@@ -191,6 +192,12 @@ class BaseCommand(object):
 
     def _mk_usage(self):
         return self.parser.format_help(OptionHelpFormatter())
+
+    def start_check(self):
+        current_path = os.path.abspath(__file__)
+        print("---------------------------------->>")
+        print(current_path)
+        print("---------------------------------->>")
 
 
 class ObdiagOriginCommand(BaseCommand):
