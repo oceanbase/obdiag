@@ -15,11 +15,17 @@
 @file: ob_connector.py
 @desc:
 """
+import re
+
 from prettytable import from_db_cursor
 import pymysql as mysql
 
 
 class OBConnector(object):
+    # sql be upper
+    filter_sql_list = []
+    filter_sql_re_list = [r'\bDELETE\b', r'CREATE\s+(TABLE|INDEX|SEQUENCE|VIEW|TRIGGER)']
+
     def __init__(
         self,
         ip,
@@ -153,3 +159,11 @@ class OBConnector(object):
         cursor.callproc(procname, args)
         ret = cursor.fetchall()
         return ret
+
+    def filter_sql(self, sql):
+        sql = sql.strip().upper()
+        for sql in self.filter_sql_list:
+            raise Exception('sql is not safe ,not support. sql: {0}'.format(sql))
+        for filter_sql in self.filter_sql_re_list:
+            if re.match(filter_sql, sql):
+                raise Exception('sql is not safe ,not support. sql: {0}'.format(sql))
