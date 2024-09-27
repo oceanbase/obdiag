@@ -30,6 +30,7 @@ from result_type import ObdiagResult
 from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
+from common.version import OBDIAG_VERSION
 
 # TODO when obdiag_version ≥ 3.0, the default value of err_stream will be changed to sys.stderr
 ROOT_IO = IO(1, error_stream=sys.stdout)
@@ -105,7 +106,6 @@ class AllowUndefinedOptionParser(OptionParser):
 class BaseCommand(object):
 
     def __init__(self, name, summary):
-        self.start_check()
         self.name = name
         self.summary = summary
         self.args = []
@@ -192,13 +192,6 @@ class BaseCommand(object):
 
     def _mk_usage(self):
         return self.parser.format_help(OptionHelpFormatter())
-
-    def start_check(self):
-        current_work_path = os.getcwd()
-        home_path = os.path.expanduser("~")
-        if current_work_path.startswith(home_path + "/.obdiag"):
-            ROOT_IO.error("Cannot be executed in the obdiag working directory!")
-            ROOT_IO.exit(1)
 
 
 class ObdiagOriginCommand(BaseCommand):
@@ -415,6 +408,20 @@ class MajorCommand(BaseCommand):
 
     def register_command(self, command):
         self.commands[command.name] = command
+
+    def start_check(self):
+        current_work_path = os.getcwd()
+        home_path = os.path.expanduser("~")
+        version_main_num = 0
+        if len(OBDIAG_VERSION) > 0:
+            if OBDIAG_VERSION[0].isdigit():
+                version_main_num = int(OBDIAG_VERSION[0])
+        if current_work_path.startswith(home_path + "/.obdiag"):
+            if version_main_num >= 3:
+                ROOT_IO.error("Cannot be executed in the obdiag working directory!")
+                ROOT_IO.exit(1)
+            else:
+                ROOT_IO.warn("Currently executing in obdiag home directory!")
 
 
 class ObdiagGatherAllCommand(ObdiagOriginCommand):
@@ -1156,6 +1163,7 @@ class ObdiagRCACommand(MajorCommand):
 class MainCommand(MajorCommand):
 
     def __init__(self):
+        self.start_check()
         super(MainCommand, self).__init__('obdiag', '')
         self.register_command(DisplayTraceCommand())
         self.register_command(ObdiagGatherCommand())
