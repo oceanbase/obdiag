@@ -194,10 +194,11 @@ class BaseCommand(object):
         return self.parser.format_help(OptionHelpFormatter())
 
     def start_check(self):
-        current_path = os.path.abspath(__file__)
-        print("---------------------------------->>")
-        print(current_path)
-        print("---------------------------------->>")
+        current_work_path = os.getcwd()
+        home_path = os.path.expanduser("~")
+        if current_work_path.startswith(home_path + "/.obdiag"):
+            ROOT_IO.error("Cannot be executed in the obdiag working directory!")
+            ROOT_IO.exit(1)
 
 
 class ObdiagOriginCommand(BaseCommand):
