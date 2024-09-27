@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - feature-start_check
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
