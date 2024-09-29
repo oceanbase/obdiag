@@ -15,6 +15,7 @@
 @file: ssh.py
 @desc:
 """
+import re
 import socket
 from common.ssh_client.docker_client import DockerClient
 from common.ssh_client.kubernetes_client import KubernetesClient
@@ -24,6 +25,10 @@ from stdio import SafeStdio
 
 
 class SshClient(SafeStdio):
+    # some not safe command will be filter
+    filter_cmd_list = ["rm -rf /", ":(){:|:&};:", "reboot", "shutdown"]
+    filter_cmd_re_list = [r'kill -9 (\d+)']
+
     def __init__(self, context=None, node=None):
         if node is None:
             raise Exception("SshHelper init error: node is None")
@@ -75,6 +80,7 @@ class SshClient(SafeStdio):
             raise Exception("init ssh client error: {}".format(e))
 
     def exec_cmd(self, cmd):
+        self.__cmd_filter(cmd)
         return self.client.exec_cmd(cmd).strip()
 
     def download(self, remote_path, local_path):
@@ -102,3 +108,14 @@ class SshClient(SafeStdio):
 
     def get_ip(self):
         return self.client.get_ip()
+
+    def __cmd_filter(self, cmd):
+        cmd = cmd.strip()
+        if cmd in self.filter_cmd_list:
+            self.stdio.error("cmd is not safe: {}".format(cmd))
+            raise Exception("cmd is not safe: {}".format(cmd))
+        # support regular expression
+        for filter_cmd in self.filter_cmd_re_list:
+            if re.match(filter_cmd, cmd):
+                self.stdio.error("cmd is not safe: {}".format(cmd))
+                raise Exception("cmd is not safe: {}".format(cmd))
