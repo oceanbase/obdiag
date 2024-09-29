@@ -1,4 +1,4 @@
-info: 'A table found two records in information_schema.tables.'
+info: 'A table found two records in information_schema.tables. more: https://github.com/oceanbase/obdiag/issues/390'
 task:
   - version: "[4.0.0.0,*]"
     steps:
