@@ -384,6 +384,7 @@ class MajorCommand(BaseCommand):
         return super(MajorCommand, self)._mk_usage()
 
     def do_command(self):
+        self.start_check()
         if not self.is_init:
             ROOT_IO.error('%s command not init' % self.prev_cmd)
             raise SystemExit('command not init')
@@ -1163,7 +1164,6 @@ class ObdiagRCACommand(MajorCommand):
 class MainCommand(MajorCommand):
 
     def __init__(self):
-        self.start_check()
         super(MainCommand, self).__init__('obdiag', '')
         self.register_command(DisplayTraceCommand())
         self.register_command(ObdiagGatherCommand())
