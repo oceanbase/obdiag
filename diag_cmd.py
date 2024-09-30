@@ -16,7 +16,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-from common.tool import Util
+from common.tool import Util, StringUtils
 
 import os
 import sys
@@ -413,16 +413,13 @@ class MajorCommand(BaseCommand):
     def start_check(self):
         current_work_path = os.getcwd()
         home_path = os.path.expanduser("~")
-        version_main_num = 0
-        if len(OBDIAG_VERSION) > 0:
-            if OBDIAG_VERSION[0].isdigit():
-                version_main_num = int(OBDIAG_VERSION[0])
-        if current_work_path.startswith(home_path + "/.obdiag"):
-            if version_main_num >= 3:
-                ROOT_IO.error("Cannot be executed in the obdiag working directory!")
-                ROOT_IO.exit(1)
-            else:
-                ROOT_IO.warn("Currently executing in obdiag home directory!")
+        if '.' in OBDIAG_VERSION:
+            if current_work_path.startswith(home_path + "/.obdiag"):
+                if StringUtils.compare_versions_lower(OBDIAG_VERSION, "3.0.0"):
+                    ROOT_IO.warn("Currently executing in obdiag home directory!")
+                else:
+                    ROOT_IO.error("Cannot be executed in the obdiag working directory!")
+                    ROOT_IO.exit(1)
 
 
 class ObdiagGatherAllCommand(ObdiagOriginCommand):
