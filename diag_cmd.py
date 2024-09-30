@@ -16,7 +16,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-from common.tool import Util
+from common.tool import Util, StringUtils
 
 import os
 import sys
@@ -30,6 +30,7 @@ from result_type import ObdiagResult
 from stdio import IO
 from common.version import get_obdiag_version
 from telemetry.telemetry import telemetry
+from common.version import OBDIAG_VERSION
 
 # TODO when obdiag_version ≥ 3.0, the default value of err_stream will be changed to sys.stderr
 ROOT_IO = IO(1, error_stream=sys.stdout)
@@ -383,6 +384,7 @@ class MajorCommand(BaseCommand):
         return super(MajorCommand, self)._mk_usage()
 
     def do_command(self):
+        self.start_check()
         if not self.is_init:
             ROOT_IO.error('%s command not init' % self.prev_cmd)
             raise SystemExit('command not init')
@@ -407,6 +409,17 @@ class MajorCommand(BaseCommand):
 
     def register_command(self, command):
         self.commands[command.name] = command
+
+    def start_check(self):
+        current_work_path = os.getcwd()
+        home_path = os.path.expanduser("~")
+        if '.' in OBDIAG_VERSION:
+            if current_work_path.startswith(home_path + "/.obdiag"):
+                if StringUtils.compare_versions_lower(OBDIAG_VERSION, "3.0.0"):
+                    ROOT_IO.warn("Currently executing in obdiag home directory!")
+                else:
+                    ROOT_IO.error("Cannot be executed in the obdiag working directory!")
+                    ROOT_IO.exit(1)
 
 
 class ObdiagGatherAllCommand(ObdiagOriginCommand):
