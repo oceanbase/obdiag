@@ -74,7 +74,7 @@ const.OBDIAG_GATHER_DEFAULT_CONFIG = {"gather": {"cases_base_path": "~/.obdiag/g
 
 const.OBDIAG_RCA_DEFAULT_CONFIG = {
     "rca": {
-        "result_path": "./rca/",
+        "result_path": "./obdiag_rca/",
     }
 }
 const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemetry.txt")
