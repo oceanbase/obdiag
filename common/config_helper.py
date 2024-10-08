@@ -100,13 +100,16 @@ class ConfigHelper(object):
         ob_cluster_name = self.get_cluster_name()
         self.stdio.print("\033[33mPlease enter the following configuration !!!\033[0m")
         global_ssh_username = self.input_with_default("oceanbase host ssh username", "")
-        use_password_tag = self.input_choice_default("use password or key file (Y:use password; N :use key file) [Y/N]", "Y")
+        use_password_tag = self.input_choice_by_nu("use password or key file (0:use password; 1:use key file) default: 0", 0)
         global_ssh_password = ""
         global_ssh_key_file = ""
-        if use_password_tag:
+        if use_password_tag == 0:
             global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
-        else:
+        elif use_password_tag == 1:
             global_ssh_key_file = self.input_with_default("oceanbase host ssh key file", "~/.ssh/id_rsa")
+        else:
+            self.stdio.warn("Invalid input, use default: use password")
+            global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
         global_ssh_port = self.input_with_default("oceanbase host ssh_port", "22")
         global_home_path = self.input_with_default("oceanbase install home_path", const.OB_INSTALL_DIR_DEFAULT)
         default_data_dir = os.path.join(global_home_path, "store")
@@ -176,3 +179,12 @@ class ConfigHelper(object):
             return True
         else:
             return False
+
+    def input_choice_by_nu(self, prompt, default):
+        value = input("\033[32mEnter your {0}: \033[0m".format(prompt)).strip()
+        if value == '':
+            return int(default)
+        if not value.isdigit():
+            self.stdio.error("The number is invalid! Please re-enter.")
+            return self.input_choice_by_nu(prompt, default)
+        return int(value)
