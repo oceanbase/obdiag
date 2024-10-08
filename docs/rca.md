@@ -26,5 +26,5 @@ scene_name是需要执行的根因分析场景的名称,可以通过obdiag rca l
 rca功能所关联的配置项在"rca"下，基本上的参数均无需变更或更改频率较低
 ```yaml script
 rca:
-  result_path: "./rca/" # rca报告保存的地址
+  result_path: "./obdiag_rca/" # rca报告保存的地址
 ```
