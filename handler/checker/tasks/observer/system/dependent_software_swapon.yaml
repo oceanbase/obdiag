@@ -7,7 +7,7 @@ task:
         set_value: swapon_exist
         report_type: execution
         verify: '[ "exist" != "${swapon_exist}" ]'
-        err_msg: 'Do not warning. swapon is exist. We will check the swap'
+        err_msg: '[not warning] swapon is exist. We will check the swap'
     - type: ssh
       ssh: 'swapon --summary | grep -q "^" && echo "used" || echo "not used"'
       result:

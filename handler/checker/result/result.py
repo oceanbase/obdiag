@@ -53,7 +53,7 @@ class CheckResult:
             if not result:
                 err_msg = self.build_msg()
                 self.stdio.verbose("verify.execute end. and result is false return ResultFalseException err_msg:{0}".format(err_msg))
-                if 'not warning' in err_msg.lower():
+                if err_msg.startswith("[not warning]"):
                     self.stdio.verbose("'not warning' in err_msg ,not report it .err_msg:{0}".format(err_msg))
                     return
                 raise ResultFalseException(err_msg)
