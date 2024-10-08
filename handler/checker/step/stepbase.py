@@ -91,17 +91,14 @@ class StepBase(object):
             # When result.type is execution, if this step is executed successfully, subsequent steps will not be
             # executed.
 
-            # if “not warning”
-            if "not warning" in "{0}".format(resultException).lower():
-                return
-            else:
-                self.stdio.warn("step_base ResultFalseException:{0}".format(resultException))
+            self.stdio.warn("step_base ResultFalseException:{0}".format(resultException))
             level = "critical"
             self.stdio.verbose("step_base ResultFalseException self.step.result:{0}".format(self.step["result"]))
             if "result" in self.step:
                 if "report_type" in self.step["result"]:
                     self.stdio.verbose("report_type use is  {0}".format(self.step["result"]["report_type"]))
                     level = self.step["result"]["report_type"]
+
             if level == "execution":
                 level = "warning"
             if self.step["type"] == "sql":
