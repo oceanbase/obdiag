@@ -100,14 +100,20 @@ class ConfigHelper(object):
         ob_cluster_name = self.get_cluster_name()
         self.stdio.print("\033[33mPlease enter the following configuration !!!\033[0m")
         global_ssh_username = self.input_with_default("oceanbase host ssh username", "")
-        global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
+        use_password_tag = self.input_choice_default("use password or key file (Y:use password; N :use key file) [Y/N]", "Y")
+        global_ssh_password = ""
+        global_ssh_key_file = ""
+        if use_password_tag:
+            global_ssh_password = self.input_password_with_default("oceanbase host ssh password", "")
+        else:
+            global_ssh_key_file = self.input_with_default("oceanbase host ssh key file", "~/.ssh/id_rsa")
         global_ssh_port = self.input_with_default("oceanbase host ssh_port", "22")
         global_home_path = self.input_with_default("oceanbase install home_path", const.OB_INSTALL_DIR_DEFAULT)
         default_data_dir = os.path.join(global_home_path, "store")
         global_data_dir = default_data_dir
         global_redo_dir = default_data_dir
         tenant_sys_config = {"user": self.sys_tenant_user, "password": self.sys_tenant_password}
-        global_config = {"ssh_username": global_ssh_username, "ssh_password": global_ssh_password, "ssh_port": global_ssh_port, "ssh_key_file": "", "home_path": global_home_path, "data_dir": global_data_dir, "redo_dir": global_redo_dir}
+        global_config = {"ssh_username": global_ssh_username, "ssh_password": global_ssh_password, "ssh_port": global_ssh_port, "ssh_key_file": global_ssh_key_file, "home_path": global_home_path, "data_dir": global_data_dir, "redo_dir": global_redo_dir}
         new_config = {"obcluster": {"ob_cluster_name": ob_cluster_name, "db_host": self.db_host, "db_port": self.db_port, "tenant_sys": tenant_sys_config, "servers": {"nodes": nodes_config, "global": global_config}}}
         YamlUtils.write_yaml_data(new_config, self.config_path)
         need_config_obproxy = self.input_choice_default("need config obproxy [y/N]", "N")
