@@ -1,0 +1,20 @@
+info: "the ldd version of observer's node must less 2.34. more information： obdiag github issue #469"
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: ssh
+      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f1'"
+      result:
+        set_value: ldd_version
+        verify_type: max
+        verify: 3
+        err_msg: "ldd version must more than 2.34"
+    - type: ssh
+      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f2'"
+      result:
+        set_value: ldd_version
+        verify_type: max
+        verify: 34
+        err_msg: "ldd version must less 2.34"
+
+
