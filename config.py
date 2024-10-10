@@ -92,7 +92,7 @@ DEFAULT_INNER_CONFIG = {
     },
     'gather': {'scenes_base_path': '~/.obdiag/gather/tasks', 'redact_processing_num': 3},
     'rca': {
-        'result_path': './rca/',
+        'result_path': './obdiag_rca/',
     },
 }
 
