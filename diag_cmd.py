@@ -427,7 +427,6 @@ class MajorCommand(BaseCommand):
         self.commands[command.name] = command
 
 
-
 class ObdiagGatherAllCommand(ObdiagOriginCommand):
 
     def init(self, cmd, args):
