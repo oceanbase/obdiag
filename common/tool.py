@@ -1168,6 +1168,44 @@ class StringUtils(object):
         return env_dict
 
     @staticmethod
+    def parse_env_display(env_list):
+        env_dict = {}
+        for env_string in env_list:
+            # 去掉外层的 {} 和 ""
+            env_string = env_string.strip('{}').strip('"')
+            # 分割键和值
+            key_value = env_string.split('=', 1)
+            if len(key_value) == 2:
+                key, value = key_value
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                elif value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+                env_dict[key.strip()] = value.strip()
+        return env_dict
+
+    @staticmethod
+    def extract_parameters(query_template):
+        # 使用正则表达式查找占位符
+        pattern = re.compile(r'\{(\w+)\}')
+        parameters = pattern.findall(query_template)
+        return parameters
+
+    @staticmethod
+    def replace_parameters(query_template, params):
+        # 使用正则表达式查找占位符
+        pattern = re.compile(r'\{(\w+)\}')
+
+        # 定义替换函数
+        def replacer(match):
+            key = match.group(1)
+            return str(params.get(key, match.group(0)))
+
+        # 替换占位符
+        query = pattern.sub(replacer, query_template)
+        return query
+
+    @staticmethod
     def get_observer_ip_port_from_trace_id(trace_id):
         if len(trace_id) >= 50:
             raise ValueError(f"Trace_id({trace_id}) is invalid due to its length.")

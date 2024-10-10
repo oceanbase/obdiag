@@ -47,6 +47,7 @@ sql_dict.set_value(
     '''
     select /*+ sql_audit */ 
     trace_id,
+    sql_id,
     query_sql,
     RETURN_ROWS,
     from_unixtime(REQUEST_TIME/1000000) REQUEST_TIME,
