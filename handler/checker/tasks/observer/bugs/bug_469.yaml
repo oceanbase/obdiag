@@ -8,13 +8,13 @@ task:
         set_value: ldd_version
         verify_type: max
         verify: 3
-        err_msg: "glibc version must less 2.32"
+        err_msg: "glibc version must less 2.34"
     - type: ssh
       ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f2'"
       result:
         set_value: ldd_version
         verify_type: max
-        verify: 32
-        err_msg: "glibc version must less 2.32"
+        verify: 34
+        err_msg: "glibc version must less 2.34"
 
 
