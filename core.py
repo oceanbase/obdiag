@@ -59,6 +59,7 @@ from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
+from handler.analyzer.analyze_queue import AnalyzeQueueHandler
 
 from common.tool import TimeUtils, Util
 from common.command import get_observer_version_by_sql
@@ -355,6 +356,10 @@ class ObdiagHome(object):
             elif function_type == 'analyze_log_offline':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
+                return handler.handle()
+            elif function_type == 'analyze_queue':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeQueueHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_flt_trace':
                 self.update_obcluster_nodes(config)

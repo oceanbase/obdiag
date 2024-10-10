@@ -12,5 +12,5 @@ WHERE  NOT EXISTS(SELECT 1
                   AND h.tenant_id = t.tenant_id);'
       result:
         set_value: failed_scheduler_tenant_id
-        verify: '[ -n "${failed_scheduler_tenant_id}" ]'
+        verify: '[ -z "${failed_scheduler_tenant_id}" ]'
         err_msg: "failed_scheduler_tenant_id is exists. Please check the tenant_ids: #{failed_scheduler_tenant_id}"

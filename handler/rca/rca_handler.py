@@ -78,7 +78,7 @@ class RCAHandler:
         # build report
         store_dir = Util.get_option(self.options, "store_dir")
         if store_dir is None:
-            store_dir = "./rca/"
+            store_dir = "./obdiag_rca/"
         self.stdio.verbose("RCAHandler.init store dir: {0}".format(store_dir))
         report = Result(self.context)
         report.set_save_path(store_dir)
@@ -124,7 +124,8 @@ class RCAHandler:
         self.report = None
         self.tasks = None
         self.context.set_variable("input_parameters", Util.get_option(self.options, "input_parameters"))
-        self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
+        self.context.set_variable("env", Util.get_option(self.options, "input_parameters"))
+        self.store_dir = Util.get_option(self.options, "store_dir", "./obdiag_rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(
             "RCAHandler init.cluster:{0}, init.nodes:{1}, init.obproxy_nodes:{2}, init.store_dir:{3}".format(

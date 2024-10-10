@@ -53,16 +53,19 @@ class Base(SafeStdio):
 
             if "type" not in self.step:
                 self.stdio.error("Missing field :type")
+            skip_type = self.context.get_variable("gather_skip_type", None)
+            if skip_type:
+                self.stdio.verbose("needs to be filtered out and not gather type is {0}".format(skip_type))
             if (self.node_number > 1) and self.step.get("global") and (self.step.get("global") is True):
                 self.stdio.verbose("step sets the value of the global is true and it is processing the {0} node, skipping gather".format(self.node_number))
             else:
-                if self.step["type"] == "ssh":
+                if self.step["type"] == "ssh" and (skip_type != "ssh"):
                     handler = SshHandler(self.context, self.step, self.node, self.report_path, self.task_variable_dict)
                     handler.execute()
-                elif self.step["type"] == "sql":
+                elif self.step["type"] == "sql" and (skip_type != "sql"):
                     handler = StepSQLHandler(self.context, self.step, self.cluster, self.report_path, self.task_variable_dict)
                     handler.execute()
-                elif self.step["type"] == "log":
+                elif self.step["type"] == "log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBSERVER":
                         handler = GatherLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
                         self.context.set_variable('filter_nodes_list', [self.node])
@@ -70,7 +73,7 @@ class Base(SafeStdio):
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBSERVER, skipping gather log".format(self.node.get("host_type")))
-                elif self.step["type"] == "obproxy_log":
+                elif self.step["type"] == "obproxy_log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBPROXY":
                         handler = GatherObProxyLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
                         self.context.set_variable('filter_nodes_list', [self.node])
@@ -78,12 +81,14 @@ class Base(SafeStdio):
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBPROXY, skipping gather log".format(self.node.get("host_type")))
-                elif self.step["type"] == "sysstat":
+                elif self.step["type"] == "sysstat" and (skip_type != "ssh"):
                     handler = GatherOsInfoHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
                     self.context.set_variable('filter_nodes_list', [self.node])
                     handler.handle()
                 else:
-                    self.stdio.error("the type not support: {0}".format(self.step["type"]))
+                    support_types = ["ssh", "sql", "log", "obproxy_log", "sysstat"]
+                    if self.step["type"] not in support_types:
+                        self.stdio.error("{0} is an unsupported type. The currently supported types are {1}. {0}".format(self.step["type"], support_types))
         except Exception as e:
             self.stdio.error("StepBase handler.execute fail, error: {0}".format(e))
             if self.step["type"] == "sql":

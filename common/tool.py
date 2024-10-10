@@ -1206,15 +1206,23 @@ class StringUtils(object):
         return query
 
     @staticmethod
-    def get_observer_ip_from_trace_id(content, stdio=None):
-        if content[0] == 'Y' and len(content) >= 12:
-            sep = content.find('-')
-            uval = int(content[1:sep], 16)
+    def get_observer_ip_port_from_trace_id(trace_id):
+        if len(trace_id) >= 50:
+            raise ValueError(f"Trace_id({trace_id}) is invalid due to its length.")
+
+        if trace_id[0] == 'Y':
+            id_ = trace_id.split('-')[0].split('Y')[1]
+            uval = int(id_, 16)
             ip = uval & 0xFFFFFFFF
             port = (uval >> 32) & 0xFFFF
-            return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xFF), (ip >> 16 & 0xFF), (ip >> 8 & 0xFF), (ip >> 0 & 0xFF), port)
+            ip_str = f"{(ip >> 24) & 0xFF}.{(ip >> 16) & 0xFF}.{(ip >> 8) & 0xFF}.{ip & 0xFF}"
+            origin_ip_port = f"{ip_str}:{port}"
         else:
-            return ""
+            parts = trace_id.split('-')
+            processed_parts = [hex(int(t))[2:].upper().zfill(16 if idx == 1 else 0) for idx, t in enumerate(parts)]
+            s = 'Y' + '-'.join(processed_parts)
+            origin_ip_port = StringUtils.get_observer_ip_port_from_trace_id(s)
+        return origin_ip_port
 
     @staticmethod
     def parse_range_string(range_str, nu, stdio=None):

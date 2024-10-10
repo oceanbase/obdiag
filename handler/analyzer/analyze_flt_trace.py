@@ -42,6 +42,7 @@ class AnalyzeFltTraceHandler(object):
         self.gather_pack_dir = gather_pack_dir
         self.flt_trace_id = ''
         self.nodes = []
+        self.obproxy_nodes = []
         self.workers = const.FLT_TRACE_WORKER
         self.max_recursion = const.FLT_TRACE_TREE_MAX_RECURSION
         self.config_path = const.DEFAULT_CONFIG_PATH
@@ -51,6 +52,9 @@ class AnalyzeFltTraceHandler(object):
 
     def init_config(self):
         self.nodes = self.context.cluster_config['servers']
+        self.obproxy_nodes = self.context.obproxy_config['servers']
+        if len(self.obproxy_nodes) > 0:
+            self.nodes.extend(self.obproxy_nodes)
         self.inner_config = self.context.inner_config
         return True
 
