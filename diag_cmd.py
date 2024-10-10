@@ -748,6 +748,7 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         return obdiag.gather_function('gather_tabledump', self.opts)
 
+
 class ObdiagDisplaySceneListCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -779,6 +780,7 @@ class ObdiagDisplaySceneRunCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         return obdiag.display_function('display_scenes_run', self.opts)
+
 
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
@@ -1158,11 +1160,13 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
 
+
 class ObdiagDisplayCommand(MajorCommand):
 
     def __init__(self):
         super(ObdiagDisplayCommand, self).__init__('display', 'display oceanbase info')
         self.register_command(ObdiagDisplaySceneCommand())
+
 
 class ObdiagDisplaySceneCommand(MajorCommand):
 
@@ -1170,6 +1174,7 @@ class ObdiagDisplaySceneCommand(MajorCommand):
         super(ObdiagDisplaySceneCommand, self).__init__('scene', 'Display scene diagnostic info')
         self.register_command(ObdiagDisplaySceneListCommand())
         self.register_command(ObdiagDisplaySceneRunCommand())
+
 
 class ObdiagGatherSceneCommand(MajorCommand):
 

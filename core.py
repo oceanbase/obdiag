@@ -335,7 +335,7 @@ class ObdiagHome(object):
             else:
                 self._call_stdio('error', 'Not support display function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support display function: {0}'.format(function_type))
-            
+
     def display_scenes_list(self, opt):
         self.set_offline_context('display_scenes_list', 'display')
         handler = DisplayScenesListHandler(self.context)

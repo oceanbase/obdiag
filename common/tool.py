@@ -1166,13 +1166,13 @@ class StringUtils(object):
                     value = value[1:-1]
                 env_dict[key.strip()] = value.strip()
         return env_dict
-    
+
     @staticmethod
     def parse_env_display(env_list):
         env_dict = {}
         for env_string in env_list:
             # 去掉外层的 {} 和 ""
-            env_string = env_string.strip('{}').strip('"')            
+            env_string = env_string.strip('{}').strip('"')
             # 分割键和值
             key_value = env_string.split('=', 1)
             if len(key_value) == 2:
@@ -1181,7 +1181,7 @@ class StringUtils(object):
                     value = value[1:-1]
                 elif value.startswith("'") and value.endswith("'"):
                     value = value[1:-1]
-                env_dict[key.strip()] = value.strip()  
+                env_dict[key.strip()] = value.strip()
         return env_dict
 
     @staticmethod
@@ -1192,10 +1192,10 @@ class StringUtils(object):
         return parameters
 
     @staticmethod
-    def replace_parameters(query_template, params): 
-    # 使用正则表达式查找占位符
+    def replace_parameters(query_template, params):
+        # 使用正则表达式查找占位符
         pattern = re.compile(r'\{(\w+)\}')
-        
+
         # 定义替换函数
         def replacer(match):
             key = match.group(1)

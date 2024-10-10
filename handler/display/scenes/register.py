@@ -33,5 +33,4 @@ db_connect = '-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
 trace_id = 'Yxx'
 estimated_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-hardcode_scene_list = [
-]
+hardcode_scene_list = []

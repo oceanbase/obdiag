@@ -21,9 +21,8 @@ from handler.display.step.ssh import SshHandler
 from handler.display.step.sql import StepSQLHandler
 
 
-
 class Base(SafeStdio):
-    def __init__(self, context, step, node, cluster, task_variable_dict=None, env={}, node_number=1,  db_connector=None):
+    def __init__(self, context, step, node, cluster, task_variable_dict=None, env={}, node_number=1, db_connector=None):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -35,7 +34,7 @@ class Base(SafeStdio):
         self.cluster = cluster
         self.env = env
         self.node_number = node_number
-        self.db_connector=db_connector
+        self.db_connector = db_connector
 
     def execute(self):
         self.stdio.verbose("step: {0}".format(self.step))

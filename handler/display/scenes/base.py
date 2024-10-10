@@ -21,7 +21,6 @@ from handler.display.step.base import Base
 from common.tool import StringUtils
 
 
-
 class SceneBase(SafeStdio):
     def __init__(self, context, scene, db_connector, report_dir=None, scene_variable_dict={}, env={}, mode="yaml", task_type="observer"):
         self.context = context
@@ -34,7 +33,7 @@ class SceneBase(SafeStdio):
         self.mode = mode
         self.env = env
         self.task_type = task_type
-        self.db_connector=db_connector
+        self.db_connector = db_connector
 
     def execute(self):
         try:
@@ -65,7 +64,7 @@ class SceneBase(SafeStdio):
             return
         node_number = 0
         for node in nodes:
-            #self.stdio.print("run scene excute yaml mode in node: {0} start".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
+            # self.stdio.print("run scene excute yaml mode in node: {0} start".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
             steps = self.scene[steps_nu]
             nu = 1
             node_number = node_number + 1
@@ -84,5 +83,5 @@ class SceneBase(SafeStdio):
                     return
                 self.stdio.verbose("step nu: {0} execute end ".format(nu))
                 nu = nu + 1
-            #self.stdio.print("run scene excute yaml mode in node: {0} end".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
+            # self.stdio.print("run scene excute yaml mode in node: {0} end".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
         self.stdio.verbose("run scene excute yaml mode in node")
