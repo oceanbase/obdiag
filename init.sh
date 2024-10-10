@@ -17,6 +17,7 @@ fi
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
 mkdir -p ${OBDIAG_HOME}/check
 mkdir -p ${OBDIAG_HOME}/log
+mkdir -p ${OBDIAG_HOME}/display
 if [ -d "${WORK_DIR}/check" ]; then
     cp -rf ${WORK_DIR}/check  ${OBDIAG_HOME}/
 fi
@@ -31,6 +32,10 @@ fi
 
 if [ -d "${WORK_DIR}/rca" ]; then
     cp -rf ${WORK_DIR}/rca  ${OBDIAG_HOME}/
+fi
+
+if [ -d "${WORK_DIR}/display" ]; then
+    cp -rf ${WORK_DIR}/display  ${OBDIAG_HOME}/
 fi
 
 ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
