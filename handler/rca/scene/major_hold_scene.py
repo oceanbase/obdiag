@@ -16,6 +16,7 @@
 @desc:
 """
 import json
+import os.path
 import re
 from handler.rca.rca_exception import (
     RCAInitException,
@@ -209,6 +210,19 @@ class MajorHoldScene(RcaScene):
 
             except Exception as e:
                 self.stdio.warn("MajorHoldScene execute 5 exception: {0}".format(e))
+            # 6
+            try:
+                self.stdio.verbose("MajorHoldScene execute 6 get dmesg by dmesg -T")
+                if not os.path.exists(self.local_path + "/dmesg"):
+                    os.makedirs(self.local_path + "/dmesg_log")
+                # all node execute
+                for observer_node in self.observer_nodes:
+                    ssh_client = observer_node["ssher"]
+                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(observer_node.get_name()))
+                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), self.local_path + "/dmesg_log")
+                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), self.local_path + "/dmesg_log"))
+            except Exception as e:
+                self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
             self.Result.records.append(tenant_record)
 
