@@ -93,7 +93,8 @@ class Redact:
             subfolder_path = os.path.join(self.output_file_dir, subfolder)
             zip_filename = os.path.join(self.output_file_dir, f"{subfolder}.zip")
             with zipfile.ZipFile(zip_filename, 'w') as zipf:
-                zipf.setpassword(self.zip_password.encode('utf-8'))
+                if self.zip_password is not None:
+                    zipf.setpassword(self.zip_password.encode('utf-8'))
                 for root, dirs, files in os.walk(subfolder_path):
                     for file in files:
                         file_path = os.path.join(root, file)
