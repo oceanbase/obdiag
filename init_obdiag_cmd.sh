@@ -39,6 +39,9 @@ _obdiag_completion() {
             if [ "${COMP_WORDS[1]}" = "gather" ] && [ "${COMP_WORDS[2]}" = "scene" ]; then
                 type_list="list run"
                 COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))
+            elif [ "${COMP_WORDS[1]}" = "display" ] && [ "${COMP_WORDS[2]}" = "scene" ]; then
+                type_list="list run"
+                COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))
             elif [ "${COMP_WORDS[1]}" = "analyze" ] && [ "${COMP_WORDS[2]}" = "parameter" ]; then
                 type_list="diff default"
                 COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))

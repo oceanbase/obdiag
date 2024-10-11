@@ -1171,8 +1171,6 @@ class StringUtils(object):
     def parse_env_display(env_list):
         env_dict = {}
         for env_string in env_list:
-            # 去掉外层的 {} 和 ""
-            env_string = env_string.strip('{}').strip('"')
             # 分割键和值
             key_value = env_string.split('=', 1)
             if len(key_value) == 2:
