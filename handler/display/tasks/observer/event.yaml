@@ -1,6 +1,6 @@
 info_en: "[event]"
 info_cn: "[event信息]"
-command: obdiag display scene run --scene=observer.event --env "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}"
+command: obdiag display scene run --scene=observer.event --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
 task:
   - version: "[4.0.0.0, *]"
     steps:

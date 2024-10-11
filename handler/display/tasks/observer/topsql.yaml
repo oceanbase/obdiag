@@ -1,6 +1,6 @@
 info_en: "[topsql info]"
 info_cn: "[查看topsql]"
-command: obdiag display scene run --scene=observer.topsql --env "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}" --env mtime=10
+command: obdiag display scene run --scene=observer.topsql --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env mtime=10
 task:
   - version: "[4.0.0.0, *]"
     steps:

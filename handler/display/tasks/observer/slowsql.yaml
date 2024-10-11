@@ -1,6 +1,6 @@
 info_en: "[slowsql]"
 info_cn: "[查看慢sql]"
-command: obdiag display scene run --scene=observer.slowsql --env "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}" --env mtime=10
+command: obdiag display scene run --scene=observer.slowsql --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env mtime=10
 task:
   - version: "[4.0.0.0, *]"
     steps:
