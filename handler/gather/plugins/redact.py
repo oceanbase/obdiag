@@ -4,6 +4,7 @@ import zipfile
 
 from common.import_module import import_modules
 import multiprocessing as mp
+import pyminizip
 
 
 class Redact:
@@ -92,13 +93,20 @@ class Redact:
         for subfolder in subfolders:
             subfolder_path = os.path.join(self.output_file_dir, subfolder)
             zip_filename = os.path.join(self.output_file_dir, f"{subfolder}.zip")
-            with zipfile.ZipFile(zip_filename, 'w') as zipf:
-                if self.zip_password is not None:
-                    zipf.setpassword(self.zip_password.encode('utf-8'))
+            if self.zip_password is None:
+                with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                    for root, dirs, files in os.walk(subfolder_path):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
+            else:
+                zip_files = []
                 for root, dirs, files in os.walk(subfolder_path):
                     for file in files:
                         file_path = os.path.join(root, file)
-                        zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
+                        zip_files.append(file_path)
+                pyminizip.compress_multiple(zip_files, [], zip_filename, self.zip_password, 9)
+                self.stdio.verbose("zip the redact log with passwd: {0}".format(self.zip_password.encode('utf-8')))
             self.stdio.verbose("delete the dir: {0}".format(subfolder_path))
             shutil.rmtree(subfolder_path)
             self.stdio.print(f"{subfolder} is zipped on {zip_filename}")
