@@ -1,0 +1,55 @@
+info_en: "[cluster info]"
+info_cn: "[集群信息展示]"
+command: obdiag display scene run --scene=observer.cluster_info
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"cluster_name\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('cluster')
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct name stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('cluster_id')
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"version\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('min_observer_version')
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"observers\" stat_name, count(*) value from oceanbase.dba_ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"zones\" stat_name, count(*) value from oceanbase.dba_ob_zones
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenants\" stat_name, count(*) value from oceanbase.dba_ob_tenants where tenant_name not like '%META%'
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"rs_list\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('rootservice_list')
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"config_url\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('obconfig_url')
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_limit\" stat_name, concat(round(sum(memory_limit/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_allocated\" stat_name, concat(round(sum(data_disk_allocated/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_total\" stat_name, sum(cpu_capacity) value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_assigned\" stat_name, sum(cpu_assigned) value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_assinged_per\" stat_name, concat(round(sum(cpu_assigned)/sum(cpu_capacity), 2)*100, '%') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_total\" stat_name, concat(round(sum(mem_capacity/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_assigned\" stat_name, concat(round(sum(mem_assigned/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_assigned_per\" stat_name, concat(round(sum(mem_assigned/1024/1024/1024)/sum(mem_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"log_disk_total\" stat_name, concat(round(sum(log_disk_capacity/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"log_disk_assigned\" stat_name, concat(round(sum(log_disk_assigned/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"log_disk_assigned_per\" stat_name, concat(round(sum(log_disk_assigned/1024/1024/1024)/sum(log_disk_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"log_disk_in_use\" stat_name, concat(round(sum(log_disk_in_use/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"log_disk_in_use_per\" stat_name, concat(round(sum(log_disk_in_use/1024/1024/1024)/sum(log_disk_assigned/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_total\" stat_name, concat(round(sum(data_disk_capacity/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use\" stat_name, concat(round(sum(data_disk_in_use/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use_per\" stat_name, concat(round(sum(data_disk_in_use/1024/1024/1024)/sum(data_disk_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers;"
+        global: true

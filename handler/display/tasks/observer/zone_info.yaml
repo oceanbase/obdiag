@@ -1,0 +1,8 @@
+info_en: "[zone info]"
+info_cn: "[zone 信息展示]"
+command: obdiag display scene run --scene=observer.zone_info
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select * from oceanbase.dba_ob_zones;"
