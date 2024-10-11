@@ -52,6 +52,7 @@ class GatherLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
+        self.zip_password = None
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -190,7 +191,7 @@ class GatherLogHandler(BaseShellHandler):
                 self.stdio.verbose("redact_option is {0}".format(self.redact))
                 redact_dir = "{0}_redact".format(pack_dir_this_command)
                 self.redact_dir = redact_dir
-                redact = Redact(self.context, self.pack_dir_this_command, redact_dir)
+                redact = Redact(self.context, self.pack_dir_this_command, redact_dir, zip_password=self.zip_password)
                 redact.redact_files(self.redact)
                 self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
                 return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir})
@@ -357,6 +358,7 @@ class GatherLogHandler(BaseShellHandler):
         self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ssh_client.get_name()))
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
+            self.zip_password = zip_password
             zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         else:
             zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)

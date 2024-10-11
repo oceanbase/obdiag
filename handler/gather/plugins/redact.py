@@ -7,12 +7,13 @@ import multiprocessing as mp
 
 
 class Redact:
-    def __init__(self, context, input_file_dir, output_file_dir):
+    def __init__(self, context, input_file_dir, output_file_dir, zip_password=None):
         self.context = context
         self.stdio = context.stdio
         self.redacts = {}
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
+        self.zip_password = zip_password
         self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
         self.inner_config = self.context.inner_config
 
@@ -55,7 +56,10 @@ class Redact:
                 self.stdio.verbose("open zip file: {0}".format(os.path.join(self.input_file_dir, zip_file)))
                 with zipfile.ZipFile(os.path.join(self.input_file_dir, zip_file), 'r') as zip_ref:
                     # Extract all files to the current directory
-                    zip_ref.extractall(self.input_file_dir)
+                    if self.zip_password is not None:
+                        zip_ref.extractall(self.input_file_dir, pwd=self.zip_password.encode('utf-8'))
+                    else:
+                        zip_ref.extractall(self.input_file_dir)
         gather_log_files = []
         for file_name in os.listdir(self.input_file_dir):
             if "zip" not in file_name and "result_summary.txt" not in file_name:
@@ -78,12 +82,18 @@ class Redact:
             file_queue.append(file_thread)
         for file_thread in file_queue:
             file_thread.join()
+        # delete gather_log_files
+        self.stdio.verbose("redact end. delete all gather_log_files")
+        for file_name in gather_log_files:
+            self.stdio.verbose("delete file: {0}".format(file_name))
+            os.remove(file_name)
         # zip the dir by node
         subfolders = [f for f in os.listdir(self.output_file_dir) if os.path.isdir(os.path.join(self.output_file_dir, f))]
         for subfolder in subfolders:
             subfolder_path = os.path.join(self.output_file_dir, subfolder)
             zip_filename = os.path.join(self.output_file_dir, f"{subfolder}.zip")
             with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                zipf.setpassword(self.zip_password.encode('utf-8'))
                 for root, dirs, files in os.walk(subfolder_path):
                     for file in files:
                         file_path = os.path.join(root, file)
