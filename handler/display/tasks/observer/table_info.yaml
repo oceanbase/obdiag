@@ -1,6 +1,6 @@
 info_en: "[table info]"
 info_cn: "[表信息展示]"
-command: obdiag display scene run --scene=observer.table_info --env "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}" --env database_name=test --env table_name=test
+command: obdiag display scene run --scene=observer.table_info --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env database_name=test --env table_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:
