@@ -6,7 +6,6 @@ task:
       ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f1'"
       result:
         set_value: ldd_version
-        report_type: warning
         verify_type: max
         verify: 3
         err_msg: "glibc version need less 2.34. This may cause observer crash. More information： https://github.com/oceanbase/obdiag/issues/469"
@@ -14,7 +13,6 @@ task:
       ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f2'"
       result:
         set_value: ldd_version
-        report_type: warning
         verify_type: max
         verify: 34
         err_msg: "glibc version need less 2.34. This may cause observer crash. More information： https://github.com/oceanbase/obdiag/issues/469"

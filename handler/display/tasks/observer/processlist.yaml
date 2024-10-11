@@ -1,0 +1,9 @@
+info_en: "[processlist]"
+info_cn: "[查看processlist]"
+command: obdiag display scene run --scene=observer.processlist --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select * from oceanbase.gv$ob_processlist;"
+        global: true
