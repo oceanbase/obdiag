@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt install -y gcc
+          yum install -y gcc
           export PATH=/opt/miniconda3/bin:$PATH
           source activate obdiag
           ldd --version
