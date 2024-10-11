@@ -17,6 +17,13 @@ _obdiag_completion() {
                         type_list="list run"
                     fi
                     ;;
+                display)
+                    if [ "$COMP_CWORD" -eq 2 ]; then
+                        type_list="scene"
+                    elif [ "${COMP_WORDS[2]}" = "scene" ] && [ "$COMP_CWORD" -eq 3 ]; then
+                        type_list="list run"
+                    fi
+                    ;;
                 analyze)
                     if [ "$COMP_CWORD" -eq 2 ]; then
                         type_list="log flt_trace parameter variable index_space queue"
