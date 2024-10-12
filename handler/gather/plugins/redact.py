@@ -4,7 +4,6 @@ import zipfile
 
 from common.import_module import import_modules
 import multiprocessing as mp
-import pyminizip
 
 
 class Redact:
