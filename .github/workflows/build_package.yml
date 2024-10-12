@@ -24,7 +24,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          yum install -y gcc
           export PATH=/opt/miniconda3/bin:$PATH
           source activate obdiag
           ldd --version
@@ -75,7 +74,7 @@ jobs:
       - name: Install Alien
         run: |
           sudo apt-get update
-          sudo apt-get install -y alien gcc
+          sudo apt-get install -y alien
 
       - name: Convert RPM to DEB
         run: |

@@ -68,6 +68,9 @@ class Redact:
                 for log_file in os.listdir(log_dir):
                     gather_log_files.append(os.path.join(log_dir, log_file))
                     self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
+        if len(gather_log_files) == 0:
+            self.stdio.warn("No log file found. The redact process will be skipped.")
+            return False
         file_queue = []
         max_processes = int(self.inner_config.get('gather').get('redact_processing_num')) or 3
         self.stdio.verbose("max_processes: {0}".format(max_processes))
@@ -93,19 +96,13 @@ class Redact:
         for subfolder in subfolders:
             subfolder_path = os.path.join(self.output_file_dir, subfolder)
             zip_filename = os.path.join(self.output_file_dir, f"{subfolder}.zip")
-            if self.zip_password is None:
-                with zipfile.ZipFile(zip_filename, 'w') as zipf:
-                    for root, dirs, files in os.walk(subfolder_path):
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
-            else:
-                zip_files = []
+            if self.zip_password is not None:
+                self.stdio.warn("the redacted log without passwd")
+            with zipfile.ZipFile(zip_filename, 'w') as zipf:
                 for root, dirs, files in os.walk(subfolder_path):
                     for file in files:
                         file_path = os.path.join(root, file)
-                        zip_files.append(file_path)
-                pyminizip.compress_multiple(zip_files, [], zip_filename, self.zip_password, 9)
+                        zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
                 self.stdio.verbose("zip the redact log with passwd: {0}".format(self.zip_password.encode('utf-8')))
             self.stdio.verbose("delete the dir: {0}".format(subfolder_path))
             shutil.rmtree(subfolder_path)
