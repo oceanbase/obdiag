@@ -247,8 +247,20 @@ class ObdiagOriginCommand(BaseCommand):
         self.args = self.preprocess_argv(self.args)
         return super(ObdiagOriginCommand, self).parse_command()
 
+    def start_check(self):
+        current_work_path = os.getcwd()
+        home_path = os.path.expanduser("~")
+        if '.' in OBDIAG_VERSION:
+            if current_work_path.startswith(home_path + "/.obdiag"):
+                if StringUtils.compare_versions_lower(OBDIAG_VERSION, "3.0.0"):
+                    ROOT_IO.warn("Currently executing in obdiag home directory!")
+                else:
+                    ROOT_IO.error("Cannot be executed in the obdiag working directory!")
+                    ROOT_IO.exit(1)
+
     def do_command(self):
         self.parse_command()
+        self.start_check()
         trace_id = uuid()
         ret = False
         try:
@@ -384,7 +396,6 @@ class MajorCommand(BaseCommand):
         return super(MajorCommand, self)._mk_usage()
 
     def do_command(self):
-        self.start_check()
         if not self.is_init:
             ROOT_IO.error('%s command not init' % self.prev_cmd)
             raise SystemExit('command not init')
@@ -409,17 +420,6 @@ class MajorCommand(BaseCommand):
 
     def register_command(self, command):
         self.commands[command.name] = command
-
-    def start_check(self):
-        current_work_path = os.getcwd()
-        home_path = os.path.expanduser("~")
-        if '.' in OBDIAG_VERSION:
-            if current_work_path.startswith(home_path + "/.obdiag"):
-                if StringUtils.compare_versions_lower(OBDIAG_VERSION, "3.0.0"):
-                    ROOT_IO.warn("Currently executing in obdiag home directory!")
-                else:
-                    ROOT_IO.error("Cannot be executed in the obdiag working directory!")
-                    ROOT_IO.exit(1)
 
 
 class ObdiagGatherAllCommand(ObdiagOriginCommand):
@@ -749,6 +749,39 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
         return obdiag.gather_function('gather_tabledump', self.opts)
 
 
+class ObdiagDisplaySceneListCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagDisplaySceneListCommand, self).__init__('list', 'display scene list')
+
+    def init(self, cmd, args):
+        super(ObdiagDisplaySceneListCommand, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.display_scenes_list(self.opts)
+
+
+class ObdiagDisplaySceneRunCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagDisplaySceneRunCommand, self).__init__('run', 'display scene run')
+        self.parser.add_option('--scene', type='string', help="Specify the scene to be display")
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--env', action="append", type='string', help='env options Format: --env key=value')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagDisplaySceneRunCommand, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.display_function('display_scenes_run', self.opts)
+
+
 class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -965,7 +998,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
-        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". default table', default='table')
+        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -1127,6 +1160,21 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherVariableCommand())
 
 
+class ObdiagDisplayCommand(MajorCommand):
+
+    def __init__(self):
+        super(ObdiagDisplayCommand, self).__init__('display', 'display oceanbase info')
+        self.register_command(ObdiagDisplaySceneCommand())
+
+
+class ObdiagDisplaySceneCommand(MajorCommand):
+
+    def __init__(self):
+        super(ObdiagDisplaySceneCommand, self).__init__('scene', 'Display scene diagnostic info')
+        self.register_command(ObdiagDisplaySceneListCommand())
+        self.register_command(ObdiagDisplaySceneRunCommand())
+
+
 class ObdiagGatherSceneCommand(MajorCommand):
 
     def __init__(self):
@@ -1164,6 +1212,7 @@ class MainCommand(MajorCommand):
         self.register_command(DisplayTraceCommand())
         self.register_command(ObdiagGatherCommand())
         self.register_command(ObdiagAnalyzeCommand())
+        self.register_command(ObdiagDisplayCommand())
         self.register_command(ObdiagCheckCommand())
         self.register_command(ObdiagRCACommand())
         self.register_command(ObdiagConfigCommand())

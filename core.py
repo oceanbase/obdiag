@@ -52,6 +52,8 @@ from handler.gather.scenes.list import GatherScenesListHandler
 from handler.gather.gather_tabledump import GatherTableDumpHandler
 from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
+from handler.display.display_scenes import DisplaySceneHandler
+from handler.display.scenes.list import DisplayScenesListHandler
 from result_type import ObdiagResult
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
@@ -314,6 +316,29 @@ class ObdiagHome(object):
     def gather_scenes_list(self, opt):
         self.set_offline_context('gather_scenes_list', 'gather')
         handler = GatherScenesListHandler(self.context)
+        return handler.handle()
+
+    def display_function(self, function_type, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
+        else:
+            self.stdio.print("{0} start ...".format(function_type))
+            self.update_obcluster_nodes(config)
+            self.set_context(function_type, 'display', config)
+            timestamp = TimeUtils.get_current_us_timestamp()
+            self.context.set_variable('display_timestamp', timestamp)
+            if function_type == 'display_scenes_run':
+                handler = DisplaySceneHandler(self.context)
+                return handler.handle()
+            else:
+                self._call_stdio('error', 'Not support display function: {0}'.format(function_type))
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support display function: {0}'.format(function_type))
+
+    def display_scenes_list(self, opt):
+        self.set_offline_context('display_scenes_list', 'display')
+        handler = DisplayScenesListHandler(self.context)
         return handler.handle()
 
     def analyze_fuction(self, function_type, opt):
