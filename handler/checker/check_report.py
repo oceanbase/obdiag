@@ -199,7 +199,7 @@ class CheckReport:
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>obdiag Check Report</title>
+                    <title>{{ report_title }}</title>
                     <style>
                         body {
                             padding-top: 60px;
@@ -290,7 +290,7 @@ class CheckReport:
             html_template_report_info_table = """
                     <section>
                         <table>
-                            <div style="font-weight: bold;font-size: 24px;">obdiag Check Report</div>
+                            <div style="font-weight: bold;font-size: 24px;">{{ report_title }}</div>
                             <p class="line"></p>
                             <tr>
                                 <th>Report Time</th>
@@ -344,16 +344,21 @@ class CheckReport:
                 if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_html.append({"task": task.name, "task_report": "all pass"})
 
+            report_title_str = "obdiag Check Report"
+            if self.report_target == "observer":
+                report_title_str = "obdiag observer Check Report"
+            elif self.report_target == "obproxy":
+                report_title_str = "obdiag obproxy Check Report"
             fp = open(self.report_path + ".html", 'a+', encoding='utf-8')
             template_head = Template(html_template_head)
             template_table = Template(html_template_data_table)
-            fp.write(template_head.render() + "\n")
+            fp.write(template_head.render(report_title=report_title_str) + "\n")
             template_report_info_table = Template(html_template_report_info_table)
             cluster_ips = ""
             for server in self.context.cluster_config["servers"]:
                 cluster_ips += server["ip"]
                 cluster_ips += ";"
-            fp.write(template_report_info_table.render(report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_version=self.context.cluster_config["version"]) + "\n")
+            fp.write(template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_version=self.context.cluster_config["version"]) + "\n")
 
             if len(fail_map_html) != 0:
                 rendered_fail_map_html = template_table.render(task_name="Fail Tasks Report", tasks=fail_map_html)
