@@ -27,9 +27,9 @@ task:
               SUM(total_waits) AS total_waits,
               SUM(time_waited_micro / 1000000) AS time_waited
             FROM
-              v$system_event
+              oceanbase.v$system_event
             WHERE
-              v$system_event.wait_class <> 'IDLE'
+              oceanbase.v$system_event.wait_class <> 'IDLE'
               AND (
                 con_id > 1000
                 OR con_id = 1

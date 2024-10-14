@@ -5,11 +5,14 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "select SQL_ID, count(*) as QPS, avg(t1.elapsed_time) RT
+        sql: "select tenant_name, SQL_ID, count(*) as QPS, avg(t1.ELAPSED_TIME) as ELAPSED_TIME_AVG, substr(query_sql,1,50)
               from oceanbase.gv$ob_sql_audit t1
               where 
               IS_EXECUTOR_RPC = 0
               and request_time > (time_to_usec(now()) - {mtime} * 60 * 1000000)
               and request_time < time_to_usec(now())
+              and length(query_sql) > 0
+              and IS_INNER_SQL = 0
+              and length(sql_id) > 0
               group by t1.sql_id order by QPS desc limit 10;"
         global: true
