@@ -6,3 +6,4 @@ task:
     steps:
       - type: sql
         sql: "select * from oceanbase.dba_ob_zones;"
+        global: true
