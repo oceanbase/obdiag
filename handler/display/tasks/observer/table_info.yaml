@@ -8,7 +8,7 @@ task:
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ table_schema, table_name, table_type, engine, row_format, table_rows, avg_row_length,  table_collation from information_schema.tables where table_name = '{table_name}' and table_schema = '{database_name}';"
         global: true
       - type: sql
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, dotl.table_name, dotl.ls_id, dotl.zone, dotl.svr_ip, dotl.svr_port, dotl.role, dotl.replica_type from dba_ob_table_locations dotl where dotl.table_name = '{table_name}' and dotl.database_name = '{database_name}';"
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, dotl.table_name, dotl.ls_id, dotl.zone, dotl.svr_ip, dotl.svr_port, dotl.role, dotl.replica_type from oceanbase.dba_ob_table_locations dotl where dotl.table_name = '{table_name}' and dotl.database_name = '{database_name}';"
         global: true
       - type: sql
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, 
@@ -36,9 +36,9 @@ task:
               concat(round(sum(dotr.data_size/1024/1024/1024), 2), 'G') datasize_primary , 
               concat(round(sum(dotr.required_size)/1024/1024/1024, 2), 'G') requiredsize_primary 
               from 
-              dba_ob_table_locations dotl, 
-              dba_ob_tablet_replicas dotr, 
-              dba_ob_table_locations dotl2 
+              oceanbase.dba_ob_table_locations dotl, 
+              oceanbase.dba_ob_tablet_replicas dotr, 
+              oceanbase.dba_ob_table_locations dotl2 
               where  dotl.ls_id = dotl2.ls_id 
               and dotl.svr_ip = dotl2.svr_ip 
               and dotl.role = dotl2.role 
@@ -59,9 +59,9 @@ task:
               concat(round(sum(dotr.data_size/1024/1024/1024), 2), 'G') datasize_primary , 
               concat(round(sum(dotr.required_size)/1024/1024/1024, 2), 'G') requiredsize_primary 
               from 
-              dba_ob_table_locations dotl, 
-              dba_ob_tablet_replicas dotr, 
-              dba_ob_table_locations dotl2 
+              oceanbase.dba_ob_table_locations dotl, 
+              oceanbase.dba_ob_tablet_replicas dotr, 
+              oceanbase.dba_ob_table_locations dotl2 
               where  dotl.ls_id = dotl2.ls_id 
               and dotl.svr_ip = dotl2.svr_ip 
               and dotl.role = dotl2.role 
