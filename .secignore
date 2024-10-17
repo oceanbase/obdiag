@@ -21,6 +21,7 @@ BFlow Secret Scan Ignore List              #
   http://mirrors.aliyun.com/pypi/simple/
   https://mirrors.aliyun.com/oceanbase/OceanBase.repo
   https://img.shields.io/*
+  https://github.com/oceanbase/obdiag/issues/*
 **/README.md
   http://xxx.xxx.xxx.xxx:xxxx
 **/init.sh
