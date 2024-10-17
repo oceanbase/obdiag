@@ -324,6 +324,7 @@ class Result:
 
     def export_report_json(self):
         with open(self.record_file_name, "w", encoding='utf-8') as f:
+            # for python2 and python3
             try:
                 json.dump(self.records_data(), f, ensure_ascii=False)
             except:
