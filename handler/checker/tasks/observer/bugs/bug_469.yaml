@@ -3,14 +3,14 @@ task:
   - version: "[3.0.0,*]"
     steps:
     - type: ssh
-      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f1'"
+      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f1"
       result:
         set_value: ldd_version
         verify_type: max
         verify: 3
         err_msg: "glibc version need less 2.34. This may cause observer crash. More information： https://github.com/oceanbase/obdiag/issues/469"
     - type: ssh
-      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f2'"
+      ssh: "ldd --version | head -n 1 | awk '{print $NF}' | cut -d. -f2"
       result:
         set_value: ldd_version
         verify_type: max
