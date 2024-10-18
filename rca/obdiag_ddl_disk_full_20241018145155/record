@@ -1,0 +1,15 @@
++----------------------------------------------+
+|                    record                    |
++------+---------------------------------------+
+| step | info                                  |
++------+---------------------------------------+
+|  1   | table_id is 500029                    |
+|  2   | tenant_id is 1056                     |
+|  3   | estimated_size is ()                  |
+|  4   | index_name is k2                      |
+|  5   | action_type is add_index              |
+|  6   | index_table_id is 500031              |
+|  7   | main_table_sum_of_data_length is 300  |
+|  8   | index_table_sum_of_data_length is 300 |
++------+---------------------------------------+
+The suggest: 

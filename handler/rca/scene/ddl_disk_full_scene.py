@@ -60,13 +60,14 @@ class DDlDiskFullScene(RcaScene):
         if self.ob_connector is None:
             raise RCAInitException("ob_connector is None. Please check the NODES conf.")
         self.verbose("observer version is {0}.".format(observer_version))
-        # check table_name and tenant_name
+        # check table_name and tenant_name and database_name and index_name
         table_name = self.input_parameters.get("table_name")
         tenant_name = self.input_parameters.get("tenant_name")
         action_type = self.input_parameters.get("action_type")
         index_name = self.input_parameters.get("index_name")
-        if table_name is None or table_name == "" or tenant_name is None or tenant_name == "":
-            raise RCAInitException("table_name or tenant_name is None. Please check the input parameters.")
+        database_name = self.input_parameters.get("database_name")
+        if table_name is None or table_name == "" or tenant_name is None or tenant_name == "" or database_name is None or database_name == "":
+            raise RCAInitException("table_name or tenant_name or database_name is None. Please check the input parameters.")
         if action_type is not None:
             if action_type == "add_index":
                 self.action_type = action_type
@@ -84,13 +85,23 @@ class DDlDiskFullScene(RcaScene):
         if len(tenant_data) == 0:
             raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
         self.tenant_id = tenant_data[0][0]
+        self.verbose("tenant_id is {0}".format(self.tenant_id))
         if self.tenant_id is None:
             raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
 
-        table_id_data = self.ob_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}';".format(table_name, self.tenant_id))
+        database_id_data = self.ob_connector.execute_sql("select database_id from oceanbase.__all_database where database_name = '{0}';".format(database_name))
+        if len(database_id_data) == 0:
+            raise RCAInitException("can not find database id by database name: {0}. Please check the table name.".format(database_name))
+        self.database_id = database_id_data[0][0]
+        self.verbose("database_id is{0}".format(self.database_id))
+        if self.database_id is None:
+            raise RCAInitException("can not find database id by tenant name: {0}. Please check the database name.".format(database_name))
+
+        table_id_data = self.ob_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}' and database_id='{2}';".format(table_name, self.tenant_id, self.database_id))
         if len(table_id_data) == 0:
             raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         self.table_id = table_id_data[0][0]
+        self.verbose("table_id is{0}".format(self.table_id))
         if self.table_id is None:
             raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         self.verbose("table_id is {0}, tenant_id is {1}.".format(self.table_id, self.tenant_id))
@@ -108,8 +119,8 @@ class DDlDiskFullScene(RcaScene):
             # 获取各个节点上的源表大小，单位为B
             # self.stdio._call_stdio('start_loading', 'gstart query estimated_data_size, please wait some minutes...')
             self.stdio.start_loading('start query estimated_data_size, please wait some minutes...')
-            sql = "select svr_ip, svr_port, sum(original_size) as estimated_data_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where table_id = {0}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
-                self.table_id
+            sql = "select svr_ip, svr_port, sum(original_size) as estimated_data_size from oceanbase.__all_virtual_tablet_sstable_macro_info where tablet_id in (select tablet_id from oceanbase.__all_virtual_tablet_to_table_history where tenant_id = {0} and table_id = {1}) and (svr_ip, svr_port) in (select svr_ip, svr_port from oceanbase.__all_virtual_ls_meta_table where role = 1) group by svr_ip, svr_port;".format(
+                self.tenant_id, self.table_id
             )
             self.verbose("execute_sql is {0}".format(sql))
             tablet_size_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
