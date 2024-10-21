@@ -105,10 +105,7 @@ class CheckReport:
         allMap = self.report_tobeMap()
         self.stdio.verbose("export_report_json allMap: {0}".format(allMap))
         with open(self.report_path + ".json", 'w', encoding='utf-8') as f:
-            try:
-                json.dump(allMap, f, ensure_ascii=False)
-            except:
-                f.write(json.dumps(allMap, ensure_ascii=False))
+            json.dump(allMap, f, ensure_ascii=False)
 
     def report_tobeMap(self):
         failMap = {}
