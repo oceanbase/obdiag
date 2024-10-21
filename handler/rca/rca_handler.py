@@ -324,11 +324,7 @@ class Result:
 
     def export_report_json(self):
         with open(self.record_file_name, "w", encoding='utf-8') as f:
-            # for python2 and python3
-            try:
-                json.dump(self.records_data(), f, ensure_ascii=False)
-            except:
-                f.write(unicode(json.dumps(self.records_data(), ensure_ascii=False)))
+            json.dump(self.records_data(), f, ensure_ascii=False)
 
     def export_report_xml(self):
         with open(self.record_file_name, 'w', encoding='utf-8') as f:
