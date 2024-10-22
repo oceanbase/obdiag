@@ -484,7 +484,11 @@ class ObdiagHome(object):
             self.set_offline_context('config', 'config')
             config_helper = ConfigHelper(context=self.context)
             if Util.get_option(opt, 'file'):
-                config_helper.build_configuration_by_ini(Util.get_option(opt, 'file'))
+                try:
+                    config_helper.build_configuration_by_file(Util.get_option(opt, ''))
+                except Exception as e:
+                    self._call_stdio('error', 'Build configuration by ini file failed: {0}'.format(e))
+                    return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Build configuration by ini file failed: {0}'.format(e))
                 return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "config success"})
             config_helper.build_configuration()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "config success"})
