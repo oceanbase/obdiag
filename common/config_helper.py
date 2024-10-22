@@ -325,7 +325,7 @@ class ConfigHelper(object):
             if os.path.exists(os.path.expanduser("~/.obdiag/config.yml.d")):
                 os.remove(os.path.expanduser("~/.obdiag/config.yml.d"))
             os.renames(os.path.expanduser("~/.obdiag/config.yml"), os.path.expanduser("~/.obdiag/config.yml.d"))
-        with open(os.path.expanduser("./config.yml"), "w", encoding="utf-8") as f:
+        with open(os.path.expanduser("~/.obdiag/config.yml"), "w", encoding="utf-8") as f:
             f.write(yaml_output)
             self.stdio.print("Build configuration success, please check ~/.obdiag/config.yml")
         return
