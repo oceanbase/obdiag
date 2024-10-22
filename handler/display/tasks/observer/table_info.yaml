@@ -1,0 +1,77 @@
+info_en: "[table info]"
+info_cn: "[表信息展示]"
+command: obdiag display scene run --scene=observer.table_info --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env database_name=test --env table_name=test
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ table_schema, table_name, table_type, engine, row_format, table_rows, avg_row_length,  table_collation from information_schema.tables where table_name = '{table_name}' and table_schema = '{database_name}';"
+        global: true
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, dotl.table_name, dotl.ls_id, dotl.zone, dotl.svr_ip, dotl.svr_port, dotl.role, dotl.replica_type from oceanbase.dba_ob_table_locations dotl where dotl.table_name = '{table_name}' and dotl.database_name = '{database_name}';"
+        global: true
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, 
+              dotl.table_name, 
+              dotl.table_name object_name, 
+              dotl.table_type object_type, 
+              concat(round(sum(dotr.data_size/1024/1024/1024), 2), 'G') datasize_primary, 
+              concat(round(sum(dotr.required_size/1024/1024/1024), 2), 'G') requiredsize_primary 
+              from 
+              oceanbase.dba_ob_table_locations dotl, 
+              oceanbase.dba_ob_tablet_replicas dotr 
+              where dotl.tablet_id = dotr.tablet_id 
+              and dotl.svr_ip=dotr.svr_ip 
+              and dotl.svr_port = dotr.svr_port 
+              and dotl.ls_id = dotr.ls_id 
+              and dotl.role = 'leader' 
+              and dotl.table_name = '{table_name}'
+              and dotl.database_name = '{database_name}'
+              group by dotl.table_name
+              union all
+              select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name,
+              dotl2.table_name, 
+              dotl.index_name object_name,
+              dotl.table_type object_type,
+              concat(round(sum(dotr.data_size/1024/1024/1024), 2), 'G') datasize_primary , 
+              concat(round(sum(dotr.required_size)/1024/1024/1024, 2), 'G') requiredsize_primary 
+              from 
+              oceanbase.dba_ob_table_locations dotl, 
+              oceanbase.dba_ob_tablet_replicas dotr, 
+              oceanbase.dba_ob_table_locations dotl2 
+              where  dotl.ls_id = dotl2.ls_id 
+              and dotl.svr_ip = dotl2.svr_ip 
+              and dotl.role = dotl2.role 
+              and dotl.data_table_id = dotl2.table_id 
+              and dotl.ls_id = dotr.ls_id 
+              and dotl.svr_ip = dotr.svr_ip 
+              and dotl.tablet_id = dotr.tablet_id 
+              and dotl.role = 'leader'
+              and dotl.table_type = 'INDEX' 
+              and dotl2.table_name = '{table_name}'
+              and dotl.database_name = '{database_name}'
+              group by dotl.index_name
+              union all
+              select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name,
+              dotl2.table_name, 
+              dotl.table_name object_name,
+              dotl.table_type object_type,
+              concat(round(sum(dotr.data_size/1024/1024/1024), 2), 'G') datasize_primary , 
+              concat(round(sum(dotr.required_size)/1024/1024/1024, 2), 'G') requiredsize_primary 
+              from 
+              oceanbase.dba_ob_table_locations dotl, 
+              oceanbase.dba_ob_tablet_replicas dotr, 
+              oceanbase.dba_ob_table_locations dotl2 
+              where  dotl.ls_id = dotl2.ls_id 
+              and dotl.svr_ip = dotl2.svr_ip 
+              and dotl.role = dotl2.role 
+              and dotl.data_table_id = dotl2.table_id 
+              and dotl.ls_id = dotr.ls_id 
+              and dotl.svr_ip = dotr.svr_ip 
+              and dotl.tablet_id = dotr.tablet_id 
+              and dotl.role = 'leader'
+              and dotl.table_type = 'LOB AUX TABLE' 
+              and dotl2.table_name = '{table_name}'
+              and dotl.database_name = '{database_name}'
+              group by dotl.table_name;"
+        global: true

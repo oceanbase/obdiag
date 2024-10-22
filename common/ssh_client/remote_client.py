@@ -18,6 +18,7 @@
 
 
 import os
+import re
 import sys
 import time
 import paramiko
@@ -65,7 +66,7 @@ class RemoteClient(SsherClient):
                 self._ssh_fd.load_system_host_keys()
                 self._ssh_fd.connect(hostname=self.host_ip, username=self.username, key_filename=self.key_file, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
             except AuthenticationException:
-                self.password = input("Authentication failed, Input {0}@{1} password:\n".format(self.username, self.ssh_port))
+                self.password = input("Authentication failed, Input {0}@{1} password:\n".format(self.username, self.host_ip))
                 self.need_password = True
                 self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
             except Exception as e:
@@ -78,6 +79,7 @@ class RemoteClient(SsherClient):
             self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
 
     def exec_cmd(self, cmd):
+        stdin, stdout, stderr = None, None, None
         try:
             if self.remote_client_sudo:
                 # check sudo without password
@@ -87,12 +89,25 @@ class RemoteClient(SsherClient):
                     if len(stderr.read().decode('utf-8').strip()) > 0:
                         raise Exception(stderr.read().decode('utf-8'))
                 cmd = "sudo {0}".format(cmd)
+                cmd = cmd.replace("&&", "&& sudo ")
             self.stdio.verbose('Execute Shell command on server {0}:{1}'.format(self.host_ip, cmd))
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                return err_text.decode('utf-8')
-            return stdout.read().decode('utf-8')
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8'))
+                return output_str
+            # support Kerberos
+            output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8'))
+            return output_str
+        except UnicodeDecodeError as e:
+            self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
+            if stderr:
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stderr))
+                return output_str
+            if stdout:
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stdout))
+                return output_str
+            return ""
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
 
@@ -104,6 +119,8 @@ class RemoteClient(SsherClient):
         self._sftp_client.close()
 
     def progress_bar(self, transferred, to_be_transferred, suffix=''):
+        if self.inner_config_manager.get("obdiag", {}).get("logger", {}).get("silent") or False:
+            return
         bar_len = 20
         filled_len = int(round(bar_len * transferred / float(to_be_transferred)))
         percents = round(20.0 * transferred / float(to_be_transferred), 1)

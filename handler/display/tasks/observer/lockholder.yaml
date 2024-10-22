@@ -1,0 +1,19 @@
+info_en: "[lock holder info]"
+info_cn: "[查看锁等待]"
+command: obdiag display scene run --scene=observer.lockholder --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: " select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ concat(case block
+            when 0 then 'Holder:' 
+            when 1 then 'Waiter:'
+            end, op.svr_ip, ':', op.id) as sess,
+            ol.id1, ol.id2, ol.lmode, ol.request, ol.type, round(ol.ctime/1000/1000,0) ctime, op.info, op.command, if(op.sql_id = '', 'NULL', op.sql_id) sql_id, do.owner, do.object_name
+            from oceanbase.gv$ob_locks ol, oceanbase.gv$ob_processlist op, oceanbase.dba_objects do,
+            (select id1, id2, type from oceanbase.gv$ob_locks where type = 'TR' and block = 1) l 
+            where ol.id1 = l.id1 and ol.id2= l.id2
+            and ol.trans_id = op.trans_id
+            and ol.id1 = do.data_object_id
+            order by id1, id2, ctime desc, block asc;"
+        global: true

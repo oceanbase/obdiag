@@ -189,7 +189,7 @@ def zip_dir(ssh_client, father_dir, zip_dir, stdio=None):
     Compress files through zip
     :return:
     """
-    cmd = "zip  {father_dir}/{zip_dir}.zip -rm {father_dir}/{zip_dir}".format(father_dir=father_dir, zip_dir=zip_dir)
+    cmd = "cd {father_dir} && zip {zip_dir}.zip -rm {zip_dir}".format(father_dir=father_dir, zip_dir=zip_dir)
     ssh_client.exec_cmd(cmd)
 
 
@@ -198,7 +198,7 @@ def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir, stdio=None):
     Compress files by encryption
     :return:
     """
-    cmd = "zip --password {zip_password} {father_dir}/{zip_dir}.zip -rm {father_dir}/{zip_dir}".format(zip_password=zip_password, father_dir=father_dir, zip_dir=zip_dir)
+    cmd = "cd {father_dir} && zip --password {zip_password} {zip_dir}.zip -rm {zip_dir}".format(zip_password=zip_password, father_dir=father_dir, zip_dir=zip_dir)
     ssh_client.exec_cmd(cmd)
 
 
@@ -239,9 +239,9 @@ def get_observer_version(context):
                 ob_install_dir = nodes[0].get("home_path")
                 observer_version = get_observer_version_by_ssh(sshclient, ob_install_dir, stdio)
         except Exception as e:
-            raise Exception("get observer version fail.")
+            raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     if observer_version == "":
-        raise Exception("get observer version fail.")
+        raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     return observer_version
 
 
@@ -449,7 +449,7 @@ def find_home_path_by_port(ssh_client, internal_port_str, stdio):
     for original_str in str_list:
         original_str = str(original_str)
         if original_str.endswith("/bin/observer") and not original_str.startswith('/[^\s]*'):
-            home_path = original_str.rstrip("/bin/observer")
+            home_path = original_str[: -len("/bin/observer")]
             break
     stdio.verbose("home_path:{0}".format(home_path))
     return home_path

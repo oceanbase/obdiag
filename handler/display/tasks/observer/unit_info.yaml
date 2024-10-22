@@ -1,0 +1,50 @@
+info_en: "[unit info]"
+info_cn: "[unit 信息展示]"
+command: obdiag display scene run --scene=observer.unit_info
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "SELECT
+              unit_config_id,
+              name,
+              max_cpu,
+              min_cpu,
+              round(memory_size / 1024 / 1024 / 1024) max_memory_size_gb,
+              round(memory_size / 1024 / 1024 / 1024) min_memory_size_gb,
+              round(log_disk_size / 1024 / 1024 / 1024) log_disk_size_gb,
+              max_iops,
+              min_iops,
+              iops_weight
+            FROM
+              oceanbase.dba_ob_unit_configs
+            ORDER BY
+              unit_config_id;"
+        global: true
+      - type: sql
+        sql: "SELECT
+            tenant_id,
+            svr_ip,
+            svr_port,
+            unit_id,
+            status,
+            create_time,
+            modify_time,
+            zone,
+            unit_config_id,
+            max_cpu,
+            min_cpu,
+            round(memory_size / 1024 / 1024 / 1024) memory_size_gb,
+            round(log_disk_size / 1024 / 1024 / 1024) log_disk_size_gb,
+            max_iops,
+            min_iops
+          FROM
+            oceanbase.dba_ob_units
+          ORDER BY
+            tenant_id,
+            svr_ip,
+            svr_port,
+            unit_id;"
+        global: true
+
+        

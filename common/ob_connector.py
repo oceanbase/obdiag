@@ -15,11 +15,17 @@
 @file: ob_connector.py
 @desc:
 """
+import re
+
 from prettytable import from_db_cursor
 import pymysql as mysql
 
 
 class OBConnector(object):
+    # sql be upper
+    filter_sql_list = []
+    filter_sql_re_list = [r'\bDELETE\b', r'CREATE\s+(TABLE|INDEX|SEQUENCE|VIEW|TRIGGER)']
+
     def __init__(
         self,
         ip,
@@ -71,12 +77,12 @@ class OBConnector(object):
             self.stdio.error("connect OB: {0}:{1} with user {2} failed, error:{3}".format(self.ip, self.port, self.username, e))
             return
         try:
-            ob_trx_timeout = self.timeout * 1000000
+            ob_trx_timeout = 3216672000000000
             self.execute_sql("SET SESSION ob_trx_timeout={0};".format(ob_trx_timeout))
         except Exception as e:
             self.stdio.warn("set ob_trx_timeout failed, error:{0}".format(e))
         try:
-            ob_query_timeout = self.timeout * 1000000
+            ob_query_timeout = 3216672000000000
             self.execute_sql("SET SESSION ob_query_timeout={0};".format(ob_query_timeout))
         except Exception as e:
             self.stdio.warn("set ob_query_timeout failed, error:{0}".format(e))
@@ -153,3 +159,11 @@ class OBConnector(object):
         cursor.callproc(procname, args)
         ret = cursor.fetchall()
         return ret
+
+    def filter_sql(self, sql):
+        sql = sql.strip().upper()
+        for sql in self.filter_sql_list:
+            raise Exception('sql is not safe ,not support. sql: {0}'.format(sql))
+        for filter_sql in self.filter_sql_re_list:
+            if re.match(filter_sql, sql):
+                raise Exception('sql is not safe ,not support. sql: {0}'.format(sql))

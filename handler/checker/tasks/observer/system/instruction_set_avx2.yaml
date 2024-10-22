@@ -1,6 +1,7 @@
 info: 'Check the flags of cpu'
 task:
-  - steps:
+  - version: "[4.2.0.0,4.2.0.0]"
+    steps:
       - type: ssh
         ssh: "lscpu |grep Flags"
         result:

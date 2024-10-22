@@ -42,6 +42,7 @@ class AnalyzeFltTraceHandler(object):
         self.gather_pack_dir = gather_pack_dir
         self.flt_trace_id = ''
         self.nodes = []
+        self.obproxy_nodes = []
         self.workers = const.FLT_TRACE_WORKER
         self.max_recursion = const.FLT_TRACE_TREE_MAX_RECURSION
         self.config_path = const.DEFAULT_CONFIG_PATH
@@ -51,6 +52,9 @@ class AnalyzeFltTraceHandler(object):
 
     def init_config(self):
         self.nodes = self.context.cluster_config['servers']
+        self.obproxy_nodes = self.context.obproxy_config['servers']
+        if len(self.obproxy_nodes) > 0:
+            self.nodes.extend(self.obproxy_nodes)
         self.inner_config = self.context.inner_config
         return True
 
@@ -62,6 +66,7 @@ class AnalyzeFltTraceHandler(object):
         top_option = Util.get_option(options, 'top')
         recursion_option = Util.get_option(options, 'recursion')
         output_option = Util.get_option(options, 'output')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
                 self.stdio.warn('Warning: args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
@@ -82,6 +87,8 @@ class AnalyzeFltTraceHandler(object):
             self.max_recursion = int(recursion_option)
         if output_option:
             self.output = int(output_option)
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
         return True
 
     def handle(self):
@@ -144,14 +151,14 @@ class AnalyzeFltTraceHandler(object):
             ssh_client = SshClient(self.context, node)
         except Exception as e:
             ssh = None
-            self.stdio.exception("ssh {0}@{1}: failed, Please check the {2}".format(remote_user, remote_ip, self.config_path))
+            self.stdio.exception("ssh {0}@{1}: failed, Please check the conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
-            resp["error"] = "Please check the {0}".format(self.config_path)
+            resp["error"] = "Please check the conf."
             return resp, node_files
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
-            gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+            gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
             mkdir(ssh_client, gather_dir_full_path, self.stdio)
             if self.is_ssh:
                 self.__get_online_log_file(ssh_client, node, gather_dir_full_path, local_store_dir)

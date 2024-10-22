@@ -1168,15 +1168,59 @@ class StringUtils(object):
         return env_dict
 
     @staticmethod
-    def get_observer_ip_from_trace_id(content, stdio=None):
-        if content[0] == 'Y' and len(content) >= 12:
-            sep = content.find('-')
-            uval = int(content[1:sep], 16)
+    def parse_env_display(env_list):
+        env_dict = {}
+        for env_string in env_list:
+            # 分割键和值
+            key_value = env_string.split('=', 1)
+            if len(key_value) == 2:
+                key, value = key_value
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                elif value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+                env_dict[key.strip()] = value.strip()
+        return env_dict
+
+    @staticmethod
+    def extract_parameters(query_template):
+        # 使用正则表达式查找占位符
+        pattern = re.compile(r'\{(\w+)\}')
+        parameters = pattern.findall(query_template)
+        return parameters
+
+    @staticmethod
+    def replace_parameters(query_template, params):
+        # 使用正则表达式查找占位符
+        pattern = re.compile(r'\{(\w+)\}')
+
+        # 定义替换函数
+        def replacer(match):
+            key = match.group(1)
+            return str(params.get(key, match.group(0)))
+
+        # 替换占位符
+        query = pattern.sub(replacer, query_template)
+        return query
+
+    @staticmethod
+    def get_observer_ip_port_from_trace_id(trace_id):
+        if len(trace_id) >= 50:
+            raise ValueError(f"Trace_id({trace_id}) is invalid due to its length.")
+
+        if trace_id[0] == 'Y':
+            id_ = trace_id.split('-')[0].split('Y')[1]
+            uval = int(id_, 16)
             ip = uval & 0xFFFFFFFF
             port = (uval >> 32) & 0xFFFF
-            return "%d.%d.%d.%d:%d" % ((ip >> 24 & 0xFF), (ip >> 16 & 0xFF), (ip >> 8 & 0xFF), (ip >> 0 & 0xFF), port)
+            ip_str = f"{(ip >> 24) & 0xFF}.{(ip >> 16) & 0xFF}.{(ip >> 8) & 0xFF}.{ip & 0xFF}"
+            origin_ip_port = f"{ip_str}:{port}"
         else:
-            return ""
+            parts = trace_id.split('-')
+            processed_parts = [hex(int(t))[2:].upper().zfill(16 if idx == 1 else 0) for idx, t in enumerate(parts)]
+            s = 'Y' + '-'.join(processed_parts)
+            origin_ip_port = StringUtils.get_observer_ip_port_from_trace_id(s)
+        return origin_ip_port
 
     @staticmethod
     def parse_range_string(range_str, nu, stdio=None):

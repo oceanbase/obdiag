@@ -26,7 +26,7 @@ from logging import handlers
 
 from enum import Enum
 from halo import Halo, cursor
-from colorama import Fore
+from colorama import Fore, Style
 from prettytable import PrettyTable
 from progressbar import AdaptiveETA, Bar, SimpleProgress, ETA, FileTransferSpeed, Percentage, ProgressBar
 from types import MethodType
@@ -193,6 +193,10 @@ class FormtatText(object):
     @staticmethod
     def info(text):
         return FormtatText(text, Fore.BLUE)
+
+    @staticmethod
+    def suggest(text):
+        return FormtatText(text, Fore.GREEN)
 
     @staticmethod
     def success(text):
@@ -366,6 +370,7 @@ class IO(object):
     VERBOSE_LEVEL = 0
     WARNING_PREV = FormtatText.warning('[WARN]')
     ERROR_PREV = FormtatText.error('[ERROR]')
+    SUGGEST_PREV = FormtatText.suggest('[SUGGEST]')
 
     def __init__(self, level, msg_lv=MsgLevel.DEBUG, use_cache=False, track_limit=0, root_io=None, input_stream=SysStdin, output_stream=sys.stdout, error_stream=sys.stdout, silent=False):
         self.silent = silent
@@ -805,6 +810,9 @@ class IO(object):
 
     def print(self, msg, *args, **kwargs):
         self._print(MsgLevel.INFO, msg, *args, **kwargs)
+
+    def suggest(self, msg, *args, **kwargs):
+        self._print(MsgLevel.INFO, msg, prev_msg=self.SUGGEST_PREV.format(self.isatty()), *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
         self._print(MsgLevel.WARN, msg, prev_msg=self.WARNING_PREV.format(self.isatty()), *args, **kwargs)

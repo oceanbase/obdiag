@@ -29,12 +29,15 @@ from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
+from handler.gather.plugins.redact import Redact
 from result_type import ObdiagResult
 
 
 class GatherLogHandler(BaseShellHandler):
     def __init__(self, context, gather_pack_dir='./', is_scene=False):
         super(GatherLogHandler, self).__init__()
+        self.redact_dir = None
+        self.redact = []
         self.pack_dir_this_command = ""
         self.context = context
         self.stdio = context.stdio
@@ -49,6 +52,7 @@ class GatherLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.is_scene = is_scene
         self.config_path = const.DEFAULT_CONFIG_PATH
+        self.zip_password = None
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -79,6 +83,8 @@ class GatherLogHandler(BaseShellHandler):
         grep_option = Util.get_option(options, 'grep')
         scope_option = Util.get_option(options, 'scope')
         encrypt_option = Util.get_option(options, 'encrypt')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
+        redact_option = Util.get_option(options, 'redact')
         if self.context.get_variable("gather_from", None):
             from_option = self.context.get_variable("gather_from")
         if self.context.get_variable("gather_to", None):
@@ -91,6 +97,8 @@ class GatherLogHandler(BaseShellHandler):
             scope_option = self.context.get_variable("gather_scope")
         if self.context.get_variable("gather_grep", None):
             grep_option = self.context.get_variable("gather_grep")
+        if self.context.get_variable("temp_dir", None):
+            temp_dir_option = self.context.get_variable("temp_dir")
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -128,6 +136,14 @@ class GatherLogHandler(BaseShellHandler):
             self.zip_encrypt = True
         if grep_option:
             self.grep_options = grep_option
+        if temp_dir_option:
+            self.gather_ob_log_temporary_dir = temp_dir_option
+        if redact_option:
+            if redact_option != "" and len(redact_option) != 0:
+                if "," in redact_option:
+                    self.redact = redact_option.split(",")
+                else:
+                    self.redact = [redact_option]
         return True
 
     def handle(self):
@@ -169,6 +185,19 @@ class GatherLogHandler(BaseShellHandler):
         # Persist the summary results to a file
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+        self.stdio.print(last_info)
+        try:
+            if self.redact and len(self.redact) > 0:
+                self.stdio.verbose("redact_option is {0}".format(self.redact))
+                redact_dir = "{0}_redact".format(pack_dir_this_command)
+                self.redact_dir = redact_dir
+                redact = Redact(self.context, self.pack_dir_this_command, redact_dir, zip_password=self.zip_password)
+                redact.redact_files(self.redact)
+                self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir})
+        except Exception as e:
+            self.stdio.error("redact failed {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, pack_dir_this_command, node):
@@ -187,7 +216,7 @@ class GatherLogHandler(BaseShellHandler):
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
+        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path, self.stdio)
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
@@ -319,7 +348,7 @@ class GatherLogHandler(BaseShellHandler):
             self.stdio.verbose('grep files, run cmd = [{0}]'.format(grep_cmd))
             ssh_client.exec_cmd(grep_cmd)
         else:
-            cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
+            cp_cmd = "cp -p {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
             self.stdio.verbose('copy files, run cmd = [{0}]'.format(cp_cmd))
             ssh_client.exec_cmd(cp_cmd)
 
@@ -329,6 +358,7 @@ class GatherLogHandler(BaseShellHandler):
         self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ssh_client.get_name()))
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
+            self.zip_password = zip_password
             zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
         else:
             zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)

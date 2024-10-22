@@ -52,11 +52,14 @@ from handler.gather.scenes.list import GatherScenesListHandler
 from handler.gather.gather_tabledump import GatherTableDumpHandler
 from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
+from handler.display.display_scenes import DisplaySceneHandler
+from handler.display.scenes.list import DisplayScenesListHandler
 from result_type import ObdiagResult
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style
 from common.config_helper import ConfigHelper
+from handler.analyzer.analyze_queue import AnalyzeQueueHandler
 
 from common.tool import TimeUtils, Util
 from common.command import get_observer_version_by_sql
@@ -157,7 +160,15 @@ class ObdiagHome(object):
     def update_obcluster_nodes(self, config):
         config_data = config.config_data
         cluster_config = config.config_data["obcluster"]
+        lst = Util.get_option(self.options, 'config')
+        if lst:
+            if any(item.startswith('obcluster.servers.nodes') for item in lst):
+                return
+            else:
+                self.stdio.verbose("You have already provided node information, so there is no need to query node information from the sys tenant")
         ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
+        if config_data['obcluster'] and config_data['obcluster']['servers'] and config_data['obcluster']['servers']['nodes']:
+            return
         if Util.check_none_values(ob_cluster, self.stdio):
             ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
             obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
@@ -307,6 +318,29 @@ class ObdiagHome(object):
         handler = GatherScenesListHandler(self.context)
         return handler.handle()
 
+    def display_function(self, function_type, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
+        else:
+            self.stdio.print("{0} start ...".format(function_type))
+            self.update_obcluster_nodes(config)
+            self.set_context(function_type, 'display', config)
+            timestamp = TimeUtils.get_current_us_timestamp()
+            self.context.set_variable('display_timestamp', timestamp)
+            if function_type == 'display_scenes_run':
+                handler = DisplaySceneHandler(self.context)
+                return handler.handle()
+            else:
+                self._call_stdio('error', 'Not support display function: {0}'.format(function_type))
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support display function: {0}'.format(function_type))
+
+    def display_scenes_list(self, opt):
+        self.set_offline_context('display_scenes_list', 'display')
+        handler = DisplayScenesListHandler(self.context)
+        return handler.handle()
+
     def analyze_fuction(self, function_type, opt):
         config = self.config_manager
         if not config:
@@ -322,6 +356,10 @@ class ObdiagHome(object):
             elif function_type == 'analyze_log_offline':
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
+                return handler.handle()
+            elif function_type == 'analyze_queue':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeQueueHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_flt_trace':
                 self.update_obcluster_nodes(config)
@@ -352,8 +390,7 @@ class ObdiagHome(object):
             elif function_type == 'analyze_index_space':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
-                handler.handle()
-                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=handler.execute())
+                return handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support analyze function: {0}'.format(function_type))

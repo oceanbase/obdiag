@@ -74,11 +74,11 @@ class RCAHandler:
                 )
                 self.context.set_variable("ob_connector", ob_connector)
         except Exception as e:
-            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf.yaml".format(str(e)))
+            self.stdio.warn("RCAHandler init ob_connector failed: {0}. If the scene need it, please check the conf".format(str(e)))
         # build report
         store_dir = Util.get_option(self.options, "store_dir")
         if store_dir is None:
-            store_dir = "./rca/"
+            store_dir = "./obdiag_rca/"
         self.stdio.verbose("RCAHandler.init store dir: {0}".format(store_dir))
         report = Result(self.context)
         report.set_save_path(store_dir)
@@ -124,7 +124,8 @@ class RCAHandler:
         self.report = None
         self.tasks = None
         self.context.set_variable("input_parameters", Util.get_option(self.options, "input_parameters"))
-        self.store_dir = Util.get_option(self.options, "store_dir", "./rca/")
+        self.context.set_variable("env", Util.get_option(self.options, "input_parameters"))
+        self.store_dir = Util.get_option(self.options, "store_dir", "./obdiag_rca/")
         self.context.set_variable("store_dir", self.store_dir)
         self.stdio.verbose(
             "RCAHandler init.cluster:{0}, init.nodes:{1}, init.obproxy_nodes:{2}, init.store_dir:{3}".format(
@@ -175,13 +176,15 @@ class RCAHandler:
             self.rca_scene.execute()
         except RCANotNeedExecuteException as e:
             self.stdio.warn("rca_scene.execute not need execute: {0}".format(e))
-            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data="rca_scene.execute not need execute: {0}")
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data={"result": "rca_scene.execute not need execute"})
         except Exception as e:
-            raise Exception("rca_scene.execute err: {0}".format(e))
+            self.stdio.error("rca_scene.execute err: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.execute err: {0}".format(e))
         try:
             self.rca_scene.export_result()
         except Exception as e:
-            raise Exception("rca_scene.export_result err: {0}".format(e))
+            self.stdio.error("rca_scene.export_result err: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
         self.stdio.print("rca finished. For more details, the result on '" + Fore.YELLOW + self.get_result_path() + Style.RESET_ALL + "' \nYou can get the suggest by '" + Fore.YELLOW + "cat " + self.get_result_path() + "/record" + Style.RESET_ALL + "'")
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
 

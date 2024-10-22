@@ -49,6 +49,7 @@ class GatherSceneHandler(SafeStdio):
         self.task_type = task_type
         self.variables = {}
         self.is_inner = is_inner
+        self.temp_dir = '/tmp'
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -70,6 +71,7 @@ class GatherSceneHandler(SafeStdio):
         if not self.init_config():
             self.stdio.error('init config failed')
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
+        self.context.set_variable('temp_dir', self.temp_dir)
         self.__init_variables()
         self.__init_report_path()
         self.__init_task_names()
@@ -78,6 +80,7 @@ class GatherSceneHandler(SafeStdio):
             result = self.__get_sql_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
+            self.__print_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
 
     def execute(self):
@@ -138,7 +141,9 @@ class GatherSceneHandler(SafeStdio):
                     if yaml_task_data:
                         self.yaml_tasks[item] = yaml_task_data
                     else:
-                        self.stdio.error("Invalid Task :{0}".format(item))
+                        self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
+                        if ".yaml" in item:
+                            self.stdio.suggest("'.yaml' in task :{0}. Maybe you can remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
             # hard code add gather observer.base
             if len(self.code_tasks) > 0:
                 yaml_task_base = scene.get_one_yaml_task("observer.base")
@@ -182,6 +187,8 @@ class GatherSceneHandler(SafeStdio):
         store_dir_option = Util.get_option(options, 'store_dir')
         env_option = Util.get_option(options, 'env')
         scene_option = Util.get_option(options, 'scene')
+        temp_dir_option = Util.get_option(options, 'temp_dir')
+        skip_type_option = Util.get_option(options, 'skip_type')
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -218,6 +225,10 @@ class GatherSceneHandler(SafeStdio):
         if env_option:
             env_dict = StringUtils.parse_env(env_option)
             self.env = env_dict
+        if temp_dir_option:
+            self.temp_dir = temp_dir_option
+        if skip_type_option:
+            self.context.set_variable('gather_skip_type', skip_type_option)
         return True
 
     def __get_sql_result(self):

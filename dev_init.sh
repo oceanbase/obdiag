@@ -40,6 +40,7 @@ copy_file(){
     mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
     mkdir -p ${OBDIAG_HOME}/check
     mkdir -p ${OBDIAG_HOME}/gather
+    mkdir -p ${OBDIAG_HOME}/display
     if [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
         cp -rf ${WORK_DIR}/handler/checker/tasks  ${OBDIAG_HOME}/check/
         cp -rf ${WORK_DIR}/handler/checker/tasks/obproxy_check_package.yaml  ${OBDIAG_HOME}/check/
@@ -49,6 +50,10 @@ copy_file(){
         cp -rf ${WORK_DIR}/handler/gather/tasks  ${OBDIAG_HOME}/gather/
     fi
 
+    if [ -d "${WORK_DIR}/handler/display/tasks" ]; then
+        cp -rf ${WORK_DIR}/handler/display/tasks  ${OBDIAG_HOME}/display/
+    fi
+    
     if [ -d "${WORK_DIR}/example" ]; then
         cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
     fi

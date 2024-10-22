@@ -26,13 +26,23 @@ class LocalClient(SsherClient):
         super().__init__(context, node)
 
     def exec_cmd(self, cmd):
+        stdout, stderr = None, None
         try:
             self.stdio.verbose("[local host] run cmd = [{0}] on localhost".format(cmd))
             out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable='/bin/bash')
             stdout, stderr = out.communicate()
             if stderr:
                 return stderr.decode('utf-8')
-            return stdout.decode('utf-8')
+            if stdout:
+                return stdout.decode('utf-8')
+            return ""
+        except UnicodeDecodeError as e:
+            self.stdio.warn("[localhost] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
+            if stderr:
+                return str(stderr)
+            if stdout:
+                return str(stdout)
+            return ""
         except Exception as e:
             self.stdio.error("run cmd = [{0}] on localhost, Exception = [{1}]".format(cmd, e))
             raise Exception("[localhost] Execute Shell command failed, command=[{0}]  Exception = [{1}]".format(cmd, e))

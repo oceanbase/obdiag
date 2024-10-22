@@ -9,7 +9,7 @@ task:
         report_type: execution
         verify_type: equal
         verify: 0
-        err_msg: 'not warning ,the DATA_SIZE is not 0 . need check sum(REQUIRED_SIZE)/sum(DATA_SIZE)'
+        err_msg: '[not warning] the DATA_SIZE is not 0 . need check sum(REQUIRED_SIZE)/sum(DATA_SIZE)'
     - type: sql
       sql: "select sum(REQUIRED_SIZE)/sum(DATA_SIZE) as da from oceanbase.CDB_OB_TABLET_REPLICAS  group by tenant_id  ORDER BY da DESC limit 1;"
       result:
