@@ -60,7 +60,7 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 - 一键诊断分析
 - 一键根因分析
 - 一键信息采集
-- 一键信息展示
+- 一键集群洞察
 
 
 # 参与贡献
