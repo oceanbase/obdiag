@@ -23,7 +23,7 @@ import tabulate
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from common.ob_log_level import OBLogLevel
 from handler.meta.ob_error import OB_RET_DICT
 from common.command import download_file, get_logfile_name_list, mkdir, delete_file
@@ -152,23 +152,31 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
+        analyze_info_nodes = []
+        for summary in summary_list:
+            for summary_data in summary:
+                analyze_info_node = {}
+                for m in field_names:
+                    analyze_info_node[m] = summary_data
+                analyze_info_nodes.append(analyze_info_node)
+        print("analyze_info_nodes: {0}".format(analyze_info_nodes))
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
-        self.stdio.stop_loading('analyze result sucess')
+        self.stdio.stop_loading('analyze result success')
         self.stdio.print(title)
         self.stdio.print(table)
         FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), title + str(table) + "\n\nDetails:\n\n")
-
+        # build summary details
+        summary_details_list_data = []
         for m in range(len(summary_details_list)):
+            summary_details_list_data_once = {}
             for n in range(len(field_names)):
                 extend = "\n\n" if n == len(field_names) - 1 else "\n"
                 FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
+                summary_details_list_data_once[field_names[n]] = str(summary_details_list[m][n])
+                summary_details_list_data.append(summary_details_list_data_once)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
-        # get info from local_store_parent_dir+/result_details.txt
-        analyze_info = ""
-        with open(os.path.join(local_store_parent_dir, "result_details.txt"), "r", encoding="utf-8") as f:
-            analyze_info = f.read()
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info})
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data})
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
