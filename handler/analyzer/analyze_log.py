@@ -18,6 +18,8 @@
 import datetime
 import os
 import re
+import threading
+
 import tabulate
 
 from handler.base_shell_handler import BaseShellHandler
@@ -27,7 +29,7 @@ from common.command import SshClient
 from common.ob_log_level import OBLogLevel
 from handler.meta.ob_error import OB_RET_DICT
 from common.command import download_file, get_logfile_name_list, mkdir, delete_file
-from common.tool import Util
+from common.tool import Util, NetUtils
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
@@ -141,14 +143,20 @@ class AnalyzeLogHandler(BaseShellHandler):
             resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
             analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
 
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = '127.0.0.1'
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            handle_from_node(node)
+        nodes_threads = []
+        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        self.stdio.set_silent(True)
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
+        self.stdio.set_silent(False)
 
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
