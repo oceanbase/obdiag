@@ -17,7 +17,7 @@
 """
 import sys
 
-from stdio import SafeStdio
+from obdiag.stdio import SafeStdio
 
 
 class SsherClient(SafeStdio):

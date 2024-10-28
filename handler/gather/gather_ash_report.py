@@ -22,8 +22,8 @@ from common.command import get_observer_version
 from common.ob_connector import OBConnector
 from common.obdiag_exception import OBDIAGFormatException, OBDIAGException
 from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
-from result_type import ObdiagResult
-from stdio import SafeStdio
+from obdiag.result_type import ObdiagResult
+from obdiag.stdio import SafeStdio
 from colorama import Fore, Style
 
 

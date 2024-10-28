@@ -19,7 +19,7 @@ import os.path
 from common.constant import const
 from common.tool import DynamicLoading
 from common.tool import Util
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class RcaScenesListHandler:

@@ -39,8 +39,8 @@ from common.obdiag_exception import OBDIAGSSHConnException
 from common.obdiag_exception import OBDIAGShellCmdException
 from common.tool import StringUtils
 from common.tool import TimeUtils
-from stdio import SafeStdio
-from err import EC_SSH_CONNECT
+from obdiag.stdio import SafeStdio
+from obdiag.err import EC_SSH_CONNECT
 from subprocess32 import Popen, PIPE
 
 warnings.filterwarnings("ignore")

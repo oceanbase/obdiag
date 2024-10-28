@@ -21,7 +21,7 @@ from common.ssh_client.docker_client import DockerClient
 from common.ssh_client.kubernetes_client import KubernetesClient
 from common.ssh_client.local_client import LocalClient
 from common.ssh_client.remote_client import RemoteClient
-from stdio import SafeStdio
+from obdiag.stdio import SafeStdio
 
 
 class SshClient(SafeStdio):

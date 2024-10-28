@@ -33,7 +33,7 @@ from common.tool import StringUtils
 from common.tool import FileUtil
 from common.tool import TimeUtils
 from handler.gather.gather_tabledump import GatherTableDumpHandler
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class GatherPlanMonitorHandler(object):

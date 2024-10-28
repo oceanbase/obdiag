@@ -24,7 +24,7 @@ from prettytable import PrettyTable
 import datetime
 from colorama import Fore, Style
 
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class AnalyzeVariableHandler(object):

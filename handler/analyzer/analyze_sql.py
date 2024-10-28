@@ -30,7 +30,7 @@ from handler.analyzer.sql.rule_manager import SQLReviewRuleManager
 from handler.analyzer.sql.meta.sys_tenant_meta import SysTenantMeta
 from handler.gather.gather_scenes import GatherSceneHandler
 from common.command import get_observer_version
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class AnalyzeSQLHandler(object):

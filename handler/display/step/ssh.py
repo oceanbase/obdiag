@@ -18,7 +18,7 @@
 import os
 
 from common.ssh_client.ssh import SshClient
-from stdio import SafeStdio
+from obdiag.stdio import SafeStdio
 from common.tool import StringUtils
 
 

@@ -30,7 +30,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from common.tool import TimeUtils
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class GatherPerfHandler(BaseShellHandler):

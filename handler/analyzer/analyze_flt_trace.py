@@ -28,7 +28,7 @@ from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class AnalyzeFltTraceHandler(object):

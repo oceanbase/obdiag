@@ -33,7 +33,7 @@ from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
 
-from result_type import ObdiagResult
+from obdiag.result_type import ObdiagResult
 
 
 class RCAHandler:

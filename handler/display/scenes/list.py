@@ -18,8 +18,8 @@
 
 import os
 
-from result_type import ObdiagResult
-from stdio import SafeStdio
+from obdiag.result_type import ObdiagResult
+from obdiag.stdio import SafeStdio
 from common.tool import YamlUtils
 from handler.display.scenes.register import hardcode_scene_list
 from common.tool import Util
