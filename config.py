@@ -80,9 +80,7 @@ DEFAULT_INNER_CONFIG = {
             'remote_client_sudo': False,
         },
     },
-    'analyze': {
-        "thread_nums": 3
-    },
+    'analyze': {"thread_nums": 3},
     'check': {
         'ignore_version': False,
         'work_path': '~/.obdiag/check',
