@@ -138,13 +138,17 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
+        # analyze_thread default thread nums is 3
+        analyze_thread_nums = int(self.context.inner_config_manager.config.get("obdiag", {}).get("analyze", {}).get("thread_nums") or 3)
+        pool_sema = threading.BoundedSemaphore(value=analyze_thread_nums)
 
         def handle_from_node(node):
-            resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
-            analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
+            with pool_sema:
+                resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
+                analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
 
         nodes_threads = []
-        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.set_silent(True)
         for node in self.nodes:
             if not self.is_ssh:

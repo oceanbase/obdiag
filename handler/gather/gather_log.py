@@ -162,13 +162,18 @@ class GatherLogHandler(BaseShellHandler):
         self.stdio.verbose('Use {0} as pack dir.'.format(pack_dir_this_command))
         gather_tuples = []
 
+        # gather_thread default thread nums is 3
+        gather_thread_nums = int(self.context.inner_config_manager.config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
+        pool_sema = threading.BoundedSemaphore(value=gather_thread_nums)
+
         def handle_from_node(node):
-            st = time.time()
-            resp = self.__handle_from_node(pack_dir_this_command, node)
-            file_size = ""
-            if len(resp["error"]) == 0:
-                file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
+            with pool_sema:
+                st = time.time()
+                resp = self.__handle_from_node(pack_dir_this_command, node)
+                file_size = ""
+                if len(resp["error"]) == 0:
+                    file_size = os.path.getsize(resp["gather_pack_path"])
+                gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
 
         nodes_threads = []
         self.stdio.print("gather nodes's log start. Please wait a moment...")
