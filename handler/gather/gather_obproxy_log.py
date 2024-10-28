@@ -17,13 +17,14 @@
 """
 import datetime
 import os
+import threading
 import time
 
 import tabulate
 
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from common.constant import const
 from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, zip_encrypt_dir, zip_dir
 from common.tool import Util
@@ -160,17 +161,20 @@ class GatherObProxyLogHandler(BaseShellHandler):
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
-
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
-
+        nodes_threads = []
+        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        self.stdio.set_silent(True)
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
+        self.stdio.set_silent(False)
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
