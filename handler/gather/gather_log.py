@@ -169,6 +169,7 @@ class GatherLogHandler(BaseShellHandler):
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
+
         nodes_threads = []
         self.stdio.print("gather nodes's log start. Please wait a moment...")
         self.stdio.set_silent(True)
