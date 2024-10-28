@@ -19,6 +19,7 @@ import datetime
 import os
 import time
 import tabulate
+import threading
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
@@ -169,6 +170,8 @@ class GatherLogHandler(BaseShellHandler):
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
         nodes_threads = []
+        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        self.stdio.set_silent(True)
         for node in self.nodes:
             if not self.is_ssh:
                 local_ip = NetUtils.get_inner_ip()
@@ -179,6 +182,7 @@ class GatherLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
+        self.stdio.set_silent(False)
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
