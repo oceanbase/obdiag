@@ -168,17 +168,17 @@ class GatherLogHandler(BaseShellHandler):
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
-
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
-
+        nodes_threads = []
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
