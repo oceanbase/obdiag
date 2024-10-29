@@ -139,7 +139,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
         # analyze_thread default thread nums is 3
-        analyze_thread_nums = int(self.context.inner_config_manager.config.get("obdiag", {}).get("analyze", {}).get("thread_nums") or 3)
+        analyze_thread_nums = int(self.context.inner_config.get("obdiag", {}).get("analyze", {}).get("thread_nums") or 3)
         pool_sema = threading.BoundedSemaphore(value=analyze_thread_nums)
 
         def handle_from_node(node):

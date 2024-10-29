@@ -163,7 +163,7 @@ class GatherLogHandler(BaseShellHandler):
         gather_tuples = []
 
         # gather_thread default thread nums is 3
-        gather_thread_nums = int(self.context.inner_config_manager.config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
+        gather_thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
         pool_sema = threading.BoundedSemaphore(value=gather_thread_nums)
 
         def handle_from_node(node):
