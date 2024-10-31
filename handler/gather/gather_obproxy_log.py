@@ -241,13 +241,13 @@ class GatherObProxyLogHandler(BaseShellHandler):
         else:
             get_obproxy_log = (
                 f"find {log_path} "
-                f"-name 'obproxy.*log*' "
+                f"\( -name 'obproxy.*log*' "
                 f"-o -name 'obproxy_error.*log*' "
                 f"-o -name 'obproxy_stat.*log*' "
                 f"-o -name 'obproxy_digest.*log*' "
                 f"-o -name 'obproxy_limit.*log*' "
                 f"-o -name 'obproxy_slow.*log*' "
-                f"-o -name 'obproxy_diagnosis.*log*' "
+                f"-o -name 'obproxy_diagnosis.*log*' \) "
                 f"-type f -print0 | "
                 "xargs -0 printf '%s\n' | "
                 "awk -F '/' '{print $NF}'"
