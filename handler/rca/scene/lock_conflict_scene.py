@@ -36,7 +36,7 @@ class LockConflictScene(RcaScene):
             raise RCAInitException("LockConflictScene RCAInitException: ", e)
 
     def execute(self):
-        if self.input_parameters is not None:
+        if self.input_parameters.get("tenant_name") is not None:
             tenant_name = self.input_parameters.get("tenant_name")
             tenant_data = self.ob_connector.execute_sql("select tenant_id from oceanbase.__all_tenant where tenant_name = '{0}';".format(tenant_name))
             if len(tenant_data) == 0:
