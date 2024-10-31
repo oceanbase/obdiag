@@ -236,11 +236,10 @@ class GatherObProxyLogHandler(BaseShellHandler):
     def __get_log_name(self, ssh_client, node):
         home_path = node.get("home_path")
         log_path = os.path.join(home_path, "log")
-        if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_diagnosis" or self.scope == "obproxy_error":
+        if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_error":
             get_obproxy_log = "ls -1 -F %s/*%s.*log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_error.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* %s/obproxy_diagnosis.*log*| awk -F '/' '{print $NF}'" % (
-                log_path,
+            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_error.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* | awk -F '/' '{print $NF}'" % (
                 log_path,
                 log_path,
                 log_path,

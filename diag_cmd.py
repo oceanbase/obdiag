@@ -653,7 +653,7 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
-        self.parser.add_option('--scope', type='string', help="log type constrains, choices=[obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all]", default='all')
+        self.parser.add_option('--scope', type='string', help="log type constrains, choices=[obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_error, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--encrypt', type='string', help="Whether the returned results need to be encrypted, choices=[true, false]", default="false")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
