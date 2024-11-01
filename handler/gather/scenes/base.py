@@ -15,7 +15,7 @@
 @file: base.py
 @desc:
 """
-from obdiag.stdio import SafeStdio
+from common.stdio import SafeStdio
 from common.scene import filter_by_version
 from handler.gather.step.base import Base
 from common.tool import StringUtils

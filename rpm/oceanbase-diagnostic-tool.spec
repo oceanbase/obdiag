@@ -52,7 +52,7 @@ rm -f obdiag.py oceanbase-diagnostic-tool.spec
 \cp -rf $SRC_DIR/handler/gather/plugins/redact/*.py $BUILD_DIR/SOURCES/gather/redact
 \cp -rf $SRC_DIR/init.sh $BUILD_DIR/SOURCES/init.sh
 \cp -rf $SRC_DIR/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
-\cp -rf $SRC_DIR/obdiag/conf $BUILD_DIR/SOURCES/conf
+\cp -rf $SRC_DIR/common/conf $BUILD_DIR/SOURCES/conf
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather

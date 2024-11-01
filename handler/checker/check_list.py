@@ -20,7 +20,7 @@ import os
 import yaml
 
 from common.tool import Util
-from obdiag.result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 class CheckListHandler:

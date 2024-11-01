@@ -18,7 +18,7 @@
 import os
 
 from common.ssh_client.ssh import SshClient
-from obdiag.stdio import SafeStdio
+from common.stdio import SafeStdio
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 from handler.gather.gather_log import GatherLogHandler

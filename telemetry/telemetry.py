@@ -28,7 +28,7 @@ from common.tool import NetUtils
 from common.tool import DateTimeEncoder
 from common.version import get_obdiag_version
 import ssl
-from obdiag.stdio import IO
+from common.stdio import IO
 
 ssl._create_default_https_context = ssl._create_unverified_context
 

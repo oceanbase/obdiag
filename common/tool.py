@@ -52,8 +52,8 @@ from io import BytesIO
 import copy
 from colorama import Fore, Style
 from ruamel.yaml import YAML
-from obdiag.err import EC_SQL_EXECUTE_FAILED
-from obdiag.stdio import SafeStdio
+from common.err import EC_SQL_EXECUTE_FAILED
+from common.stdio import SafeStdio
 
 _open = open
 encoding_open = open

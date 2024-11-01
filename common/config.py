@@ -18,7 +18,7 @@
 from __future__ import absolute_import, division, print_function
 import os
 from common.tool import ConfigOptionsParserUtil, DirectoryUtil
-from obdiag.stdio import SafeStdio
+from common.stdio import SafeStdio
 import oyaml as yaml
 import pathlib
 import sys

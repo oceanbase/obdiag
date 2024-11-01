@@ -16,7 +16,7 @@
 @desc:
 """
 
-from obdiag.stdio import SafeStdio
+from common.stdio import SafeStdio
 from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler

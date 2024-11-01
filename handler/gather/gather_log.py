@@ -30,7 +30,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import NetUtils
 from handler.gather.plugins.redact import Redact
-from obdiag.result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 class GatherLogHandler(BaseShellHandler):

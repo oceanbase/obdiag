@@ -19,8 +19,8 @@
 import os
 import time
 
-from obdiag.result_type import ObdiagResult
-from obdiag.stdio import SafeStdio
+from common.result_type import ObdiagResult
+from common.stdio import SafeStdio
 from common.ob_connector import OBConnector
 from common.tool import StringUtils
 from common.command import get_observer_version

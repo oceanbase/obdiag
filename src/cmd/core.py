@@ -27,9 +27,9 @@ from handler.gather.gather_ash_report import GatherAshReportHandler
 from handler.rca.rca_handler import RCAHandler
 from handler.rca.rca_list import RcaScenesListHandler
 from common.ssh import SshClient, SshConfig
-from obdiag.context import HandlerContextNamespace, HandlerContext
-from obdiag.config import ConfigManager, InnerConfigManager
-from obdiag.err import CheckStatus, SUG_SSH_FAILED
+from common.context import HandlerContextNamespace, HandlerContext
+from common.config import ConfigManager, InnerConfigManager
+from common.err import CheckStatus, SUG_SSH_FAILED
 from handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from handler.analyzer.analyze_log import AnalyzeLogHandler
 from handler.analyzer.analyze_sql import AnalyzeSQLHandler
@@ -54,7 +54,7 @@ from handler.gather.gather_parameters import GatherParametersHandler
 from handler.gather.gather_variables import GatherVariablesHandler
 from handler.display.display_scenes import DisplaySceneHandler
 from handler.display.scenes.list import DisplayScenesListHandler
-from obdiag.result_type import ObdiagResult
+from common.result_type import ObdiagResult
 from telemetry.telemetry import telemetry
 from update.update import UpdateHandler
 from colorama import Fore, Style

@@ -22,7 +22,7 @@ from prettytable import PrettyTable
 from common.tool import StringUtils, Util
 from common.ob_connector import OBConnector
 from common.command import get_observer_version
-from obdiag.result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 def translate_byte(B):

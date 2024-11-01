@@ -16,8 +16,8 @@
 """
 
 import sys
-from obdiag.diag_cmd import MainCommand
-from obdiag.stdio import IO
+from src.cmd.diag_cmd import MainCommand
+from common.stdio import IO
 
 ROOT_IO = IO(1)
 

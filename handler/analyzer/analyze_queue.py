@@ -33,7 +33,7 @@ from common.tool import DirectoryUtil
 from common.tool import FileUtil
 from common.tool import TimeUtils
 import common.ssh_client.local_client as ssh_client_local_client
-from obdiag.result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 from common.ob_connector import OBConnector
 import re
