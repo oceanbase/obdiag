@@ -172,6 +172,8 @@ class AnalyzeLogHandler(BaseShellHandler):
             for m in field_names:
                 analyze_info_node[m] = summary[field_names_nu]
                 field_names_nu += 1
+                if field_names_nu == len(summary):
+                    break
             analyze_info_nodes.append(analyze_info_node)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
         self.stdio.stop_loading('analyze result success')
