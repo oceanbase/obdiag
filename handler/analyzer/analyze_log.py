@@ -177,16 +177,18 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.stop_loading('analyze result success')
         self.stdio.print(title)
         self.stdio.print(table)
-        FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), title + str(table) + "\n\nDetails:\n\n")
+        with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+            fileobj.write(u'{}'.format(title + str(table) + "\n\nDetails:\n\n"))
         # build summary details
         summary_details_list_data = []
         for m in range(len(summary_details_list)):
             summary_details_list_data_once = {}
             for n in range(len(field_names)):
                 extend = "\n\n" if n == len(field_names) - 1 else "\n"
-                FileUtil.write_append(os.path.join(local_store_parent_dir, "result_details.txt"), field_names[n] + ": " + str(summary_details_list[m][n]) + extend)
+                with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+                    fileobj.write(u'{}'.format(field_names[n] + ": " + str(summary_details_list[m][n]) + extend))
                 summary_details_list_data_once[field_names[n]] = str(summary_details_list[m][n])
-                summary_details_list_data.append(summary_details_list_data_once)
+            summary_details_list_data.append(summary_details_list_data_once)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data})
