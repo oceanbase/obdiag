@@ -163,7 +163,7 @@ class GatherLogHandler(BaseShellHandler):
         gather_tuples = []
 
         # gather_thread default thread nums is 3
-        gather_thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
+        gather_thread_nums = int(self.context.inner_config.get("gather", {}).get("thread_nums") or 3)
         pool_sema = threading.BoundedSemaphore(value=gather_thread_nums)
 
         def handle_from_node(node):
@@ -177,6 +177,7 @@ class GatherLogHandler(BaseShellHandler):
 
         nodes_threads = []
         self.stdio.print("gather nodes's log start. Please wait a moment...")
+        old_silent = self.stdio.silent
         self.stdio.set_silent(True)
         for node in self.nodes:
             if not self.is_ssh:
@@ -188,7 +189,7 @@ class GatherLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        self.stdio.set_silent(False)
+        self.stdio.set_silent(old_silent)
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command

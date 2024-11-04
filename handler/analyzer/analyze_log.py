@@ -139,7 +139,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
         # analyze_thread default thread nums is 3
-        analyze_thread_nums = int(self.context.inner_config.get("obdiag", {}).get("analyze", {}).get("thread_nums") or 3)
+        analyze_thread_nums = int(self.context.inner_config.get("analyze", {}).get("thread_nums") or 3)
         pool_sema = threading.BoundedSemaphore(value=analyze_thread_nums)
 
         def handle_from_node(node):
@@ -149,6 +149,7 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         nodes_threads = []
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
+        old_silent = self.stdio.silent
         self.stdio.set_silent(True)
         for node in self.nodes:
             if not self.is_ssh:
@@ -160,7 +161,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        self.stdio.set_silent(False)
+        self.stdio.set_silent(old_silent)
 
         self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
