@@ -193,7 +193,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             summary_details_list_data.append(summary_details_list_data_once)
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data})
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
 
     def __handle_from_node(self, node, local_store_parent_dir):
         resp = {"skip": False, "error": ""}
