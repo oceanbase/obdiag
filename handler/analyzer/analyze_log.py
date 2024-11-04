@@ -467,8 +467,8 @@ class AnalyzeLogHandler(BaseShellHandler):
                                 ]
                             )
             if is_empty:
-                t.append([node, "\033[32mPASS\033[0m", None, None, None, None])
-                t_details.append([node, "\033[32mPASS\033[0m", None, None, None, None, None, None, None, None, None])
+                t.append([node, "PASS", None, None, None, None])
+                t_details.append([node, "PASS", None, None, None, None, None, None, None, None, None])
         title = "\nAnalyze OceanBase Offline Log Summary:\n" if is_files else "\nAnalyze OceanBase Online Log Summary:\n"
         t.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
         t_details.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
