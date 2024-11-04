@@ -167,11 +167,12 @@ class AnalyzeLogHandler(BaseShellHandler):
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         analyze_info_nodes = []
         for summary in summary_list:
-            for summary_data in summary:
-                analyze_info_node = {}
-                for m in field_names:
-                    analyze_info_node[m] = summary_data
-                analyze_info_nodes.append(analyze_info_node)
+            analyze_info_node = {}
+            field_names_nu = 0
+            for m in field_names:
+                analyze_info_node[m] = summary[field_names_nu]
+                field_names_nu += 1
+            analyze_info_nodes.append(analyze_info_node)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
         self.stdio.stop_loading('analyze result success')
         self.stdio.print(title)
