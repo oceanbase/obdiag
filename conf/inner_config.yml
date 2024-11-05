@@ -16,6 +16,8 @@ obdiag:
     silent: false
   ssh_client:
     remote_client_sudo: 0
+analyze:
+  thread_nums: 3
 check:
   ignore_version: false
   work_path: "~/.obdiag/check"
@@ -26,5 +28,6 @@ check:
 gather:
   scenes_base_path: "~/.obdiag/gather/tasks"
   redact_processing_num: 3
+  thread_nums: 3
 rca:
   result_path: "./obdiag_rca/"
