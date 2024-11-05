@@ -1007,7 +1007,7 @@ ORDER BY
 sql_dict.set_value(
     "select_all_gv_database_view",
     '''
-  SELECT /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(60000000) */ 
+  SELECT /*+ READ_CONSISTENCY(WEAK) */ 
   tenant_id, 
   tenant_name, 
   database_id, 
@@ -1021,7 +1021,7 @@ sql_dict.set_value(
 sql_dict.set_value(
     "select_cdb_database",
     '''
-  SELECT/*+ QUERY_TIMEOUT(10000000) */ 
+  SELECT 
   con_id as tenant_id, 
   object_id as database_id, 
   object_name as database_name 
@@ -1035,7 +1035,7 @@ sql_dict.set_value(
 sql_dict.set_value(
     "select_tenant_cdb_database",
     '''
-  SELECT/*+ QUERY_TIMEOUT(10000000) */ 
+  SELECT 
   con_id as tenant_id, 
   object_id as database_id, 
   object_name as database_name 
@@ -1047,7 +1047,7 @@ sql_dict.set_value(
 sql_dict.set_value(
     "select_tenant_gv_database_view",
     '''
-  SELECT /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(60000000) */ 
+  SELECT /*+ READ_CONSISTENCY(WEAK) */ 
   tenant_id, 
   tenant_name, 
   database_id, 
@@ -1137,7 +1137,7 @@ select
 sql_dict.set_value(
     "get_sql_audit_for_sql_review",
     '''
-select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
+select /*+ READ_CONSISTENCY(WEAK) */
   max(case when length(sql_id) > 0 then svr_ip else 0 end) as svrIp,
   max(case when length(sql_id) > 0 then svr_port else 0 end) as svrPort,
   max(case when length(sql_id) > 0 then request_id else 0 end) as requestId,
@@ -1212,7 +1212,7 @@ select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
 sql_dict.set_value(
     "get_sql_audit_ob4_for_sql_review",
     '''
-select /*+ READ_CONSISTENCY(WEAK) QUERY_TIMEOUT(120000000) */
+select /*+ READ_CONSISTENCY(WEAK) */
   max(case when length(sql_id) > 0 then svr_ip else 0 end) as svrIp,
   max(case when length(sql_id) > 0 then svr_port else 0 end) as svrPort,
   max(case when length(sql_id) > 0 then request_id else 0 end) as requestId,
