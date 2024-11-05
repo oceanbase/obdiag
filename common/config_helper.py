@@ -19,10 +19,12 @@ import os
 import pwinput
 import time
 from collections import OrderedDict
+import yaml
 
 from common.command import get_observer_version
 from common.constant import const
 from common.ob_connector import OBConnector
+from common.ssh_client.base import SsherClient
 from common.tool import DirectoryUtil
 from common.tool import TimeUtils
 from common.tool import StringUtils
@@ -80,6 +82,253 @@ class ConfigHelper(object):
             self.stdio.verbose("get host info: %s", host_info)
             host_info_list.append(host_info)
         return host_info_list
+
+    def build_configuration_by_file(self, file_path=""):
+        if file_path == "":
+            raise Exception("Please input the configure file path!!!")
+        if not os.path.exists(os.path.expanduser(file_path)):
+            raise Exception("The configure file path is not exist!!!")
+        file_path = os.path.expanduser(file_path)
+        if file_path.endswith(".ini"):
+            self.build_configuration_by_ini(file_path)
+        elif file_path.endswith(".yaml"):
+            self.build_configuration_by_yaml(file_path)
+        else:
+            raise Exception("The file path: {0} is not support!!!".format(file_path))
+
+    def build_configuration_by_ini(self, ini_file_path):
+        import os
+
+        self.stdio.print("ini_file_path: ", os.path.expanduser(ini_file_path))
+
+        def parse_config(file_content):
+            config_ini_dict = {}
+            current_section = None
+            # all host
+            observer_hosts = []
+            config_ini_dict["observer_hosts"] = observer_hosts
+            obproxy_hosts = []
+
+            for line in file_content.splitlines():
+                # 去除行首行尾空白
+                line = line.strip()
+
+                # 跳过空行和注释行
+                if not line or line.startswith("#"):
+                    continue
+                # 分割键和值
+                key, value = line.split('=', 1)
+                key = key.strip()  # 移除键前后的空白
+
+                value = value.strip()  # 移除值前后的空白
+                if "obs_hosts" in key:
+                    observer_hosts.append(value)
+                    continue
+                if "proxy_hosts" in key:
+                    obproxy_hosts.append(value)
+                    continue
+                if "workdir" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "clog_path" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "data_path" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "port_base" in key:
+                    config_ini_dict[key] = value
+                    continue
+                if "proxy_port" in key:
+                    config_ini_dict[key] = value
+                    continue
+
+                # 存储到字典中
+                if current_section is not None:
+                    config_ini_dict[current_section][key] = value
+                else:
+                    # 如果没有明确的节，则直接存储到顶层字典
+                    config_ini_dict[key] = value
+                observer_hosts = list(set(observer_hosts))
+                obproxy_hosts = list(set(obproxy_hosts))
+            config_ini_dict["obproxy_hosts"] = obproxy_hosts
+            config_ini_dict["observer_hosts"] = observer_hosts
+            return config_ini_dict
+
+        with open(ini_file_path, 'r', encoding='utf-8') as f:
+            file_content = f.read()
+            # get all useful config map
+            config_ini_dict = parse_config(file_content)
+            # print(json.dumps(config_ini_dict))
+
+        config_yml_dict = {"obcluster": None, "obproxy": None}
+        config_yml_obcluster = {
+            "ob_cluster_name": "obcluster",
+            "db_host": "127.0.0.1",
+            "db_port": 2881,
+            "tenant_sys": {"user": "root@sys", "password": ""},
+            "db_user": "root@sys",
+            "servers": {"nodes": [], "global": {}},
+        }
+        config_yml_obproxy = {
+            "obproxy_cluster_name": "obcluster",
+            "servers": {"nodes": [], "global": {}},
+        }
+
+        # set config_yml_obcluster ssh user and password
+        import os
+
+        local_user = os.getlogin()
+        config_yml_obcluster["servers"]["global"]["ssh_username"] = local_user
+        config_yml_obcluster["servers"]["global"]["ssh_password"] = ""
+        config_yml_obcluster["servers"]["global"]["ssh_port"] = "22"
+        config_yml_obcluster["servers"]["global"]["ssh_key_file"] = ""
+        config_yml_obproxy["servers"]["global"]["ssh_username"] = local_user
+        config_yml_obproxy["servers"]["global"]["ssh_password"] = ""
+        config_yml_obproxy["servers"]["global"]["ssh_port"] = "22"
+        config_yml_obproxy["servers"]["global"]["ssh_key_file"] = ""
+        # get home_path on node
+        # observer
+        work_dir = config_ini_dict["workdir"]
+        observer_hosts = config_ini_dict["observer_hosts"]
+        if len(observer_hosts) == 0:
+            self.stdio.error("observer_hosts is empty")
+            raise Exception("observer_hosts is empty")
+        else:
+            for observer_host in observer_hosts:
+                # get observer info by ssh
+                ## get home_path
+                node = {"ip": observer_host, "ssh_port": 22, "ssh_username": local_user, "ssh_password": ""}
+                sshhelper = SsherClient(context=self.context, node=node)
+                all_dir_name = sshhelper.run_cmd("ls {0}".format(work_dir))
+                for dir_name in all_dir_name:
+                    if "obs" in dir_name:
+                        home_path = "{0}/{1}".format(work_dir, dir_name)
+                        config_yml_obcluster["servers"]["nodes"].append({"host": observer_host, "home_path": home_path, "data_dir": home_path + "/store", "redo_dir": home_path + "/store"})
+                        continue
+
+        obproxy_hosts = config_ini_dict["obproxy_hosts"]
+        if len(obproxy_hosts) == 0:
+            print("obproxy_hosts is empty")
+            raise Exception("obproxy_hosts is empty")
+        else:
+            for obproxy_host in obproxy_hosts:
+                # get obproxy info by ssh
+                node = {"ip": obproxy_host, "ssh_port": 22, "ssh_username": local_user, "ssh_password": ""}
+                sshhelper = SsherClient(context=self.context, node=node)
+                all_dir_name = sshhelper.exec_cmd("ls {0}".format(work_dir))
+                for dir_name in all_dir_name:
+                    if "obproxy" in dir_name:
+                        home_path = "{0}/{1}".format(work_dir, dir_name)
+                        config_yml_obproxy["servers"]["nodes"].append({"host": obproxy_host, "home_path": home_path})
+                        continue
+
+        # db_host
+        db_host = config_yml_obcluster["servers"]["nodes"][0]["host"]
+        port_base = config_ini_dict.get("port_base") or 2881 - 35
+        config_yml_obcluster["db_host"] = db_host
+        config_yml_obcluster["db_port"] = port_base
+
+        # merge
+        config_yml_dict["obcluster"] = config_yml_obcluster
+        config_yml_dict["obproxy"] = config_yml_obproxy
+
+        # print(json.dumps(config_yml_dict))
+        # 将字典转换为YAML
+        yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
+        if os.path.exists(os.path.expanduser("~/.obdiag/config.yml")):
+            if os.path.exists(os.path.expanduser("~/.obdiag/config.yml.d")):
+                os.remove(os.path.expanduser("~/.obdiag/config.yml.d"))
+            os.renames(os.path.expanduser("~/.obdiag/config.yml"), os.path.expanduser("~/.obdiag/config.yml.d"))
+        with open(os.path.expanduser("~/.obdiag/config.yml"), "w", encoding="utf-8") as f:
+            f.write(yaml_output)
+            self.stdio.print("Build configuration success, please check ~/.obdiag/config.yml")
+        return
+
+    def build_configuration_by_yaml(self, file_path):
+        import os
+
+        self.stdio.print("yaml_file_path: ", os.path.expanduser(file_path))
+        with open(file_path, 'r', encoding='utf-8') as f:
+            yaml_data = yaml.safe_load(f)
+        obcluster = None
+        obproxy = None
+        # get all ip
+        if "oceanbase-ce" in yaml_data:
+            obcluster = yaml_data["oceanbase-ce"]
+        if "oceanbase" in yaml_data:
+            obcluster = yaml_data["oceanbase"]
+
+        if "obproxy-ce" in yaml_data:
+            obproxy = yaml_data["obproxy-ce"]
+
+        if "obproxy" in yaml_data:
+            obproxy = yaml_data["obproxy"]
+        data_obcluster_servers = []
+
+        # get global info
+        obcluster_global_info = obcluster.get("global") or {}
+        # get server key
+        obcluster_servers = obcluster["servers"]
+        ob_conn_info = {}
+        for obcluster_server_data in obcluster_servers:
+            obcluster_server = {}
+            obcluster_server_name = obcluster_server_data["name"]  # get server name
+            # ob_conn_info host flush
+            ob_conn_info["db_host"] = obcluster_server_data["ip"]
+            # get ip
+            obcluster_server["ip"] = obcluster_server_data["ip"]  # get server ip
+            # ob_conn_info port flush
+            ob_conn_info["db_port"] = obcluster[obcluster_server_name].get("mysql_port") or obcluster_global_info.get("mysql_port") or 2881
+            # get home_path
+            obcluster_server["home_path"] = obcluster[obcluster_server_name].get("home_path") or obcluster_global_info.get("home_path") or ""
+            # set data_dir
+            obcluster_server["data_dir"] = os.path.join(obcluster_server["home_path"], "store")
+            # set redo_dir
+            obcluster_server["redo_dir"] = os.path.join(obcluster_server["home_path"], "store")
+            data_obcluster_servers.append(obcluster_server)
+        config_yml_dict = {"obcluster": None, "obproxy": None}
+        config_yml_obcluster = {
+            "ob_cluster_name": "obcluster",
+            "db_host": ob_conn_info["db_host"],
+            "db_port": int(ob_conn_info["db_port"]),
+            "tenant_sys": {"user": "root@sys", "password": ""},
+            "db_user": "root@sys",
+            "servers": {"nodes": data_obcluster_servers, "global": {}},
+        }
+        local_user = os.getlogin()
+        config_yml_obcluster["servers"]["global"]["ssh_username"] = local_user
+        config_yml_obcluster["servers"]["global"]["ssh_password"] = ""
+        config_yml_obcluster["servers"]["global"]["ssh_port"] = "22"
+        config_yml_obcluster["servers"]["global"]["ssh_key_file"] = ""
+        config_yml_dict["obcluster"] = config_yml_obcluster
+        # get obproxy info
+        if obproxy is not None:
+            config_yml_obproxy = {
+                "obproxy_cluster_name": "obcluster",
+                "servers": {"nodes": [], "global": {}},
+            }
+            obproxy_node = []
+            obproxy_global = obproxy.get("global") or {}
+            for obproxy_server in obproxy["servers"]:
+                obproxy_node.append(obproxy_server)
+            config_yml_obproxy["servers"]["nodes"] = obproxy_node
+            config_yml_obproxy["servers"]["global"]["ssh_username"] = local_user
+            config_yml_obproxy["servers"]["global"]["ssh_password"] = ""
+            config_yml_obproxy["servers"]["global"]["ssh_port"] = "22"
+            config_yml_obproxy["servers"]["global"]["ssh_key_file"] = ""
+            config_yml_obproxy["servers"]["global"]["home_path"] = obproxy_global.get("home_path") or "~/"
+            config_yml_dict["obproxy"] = config_yml_obproxy
+        # dict to yaml
+        yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
+        if os.path.exists(os.path.expanduser("~/.obdiag/config.yml")):
+            if os.path.exists(os.path.expanduser("~/.obdiag/config.yml.d")):
+                os.remove(os.path.expanduser("~/.obdiag/config.yml.d"))
+            os.renames(os.path.expanduser("~/.obdiag/config.yml"), os.path.expanduser("~/.obdiag/config.yml.d"))
+        with open(os.path.expanduser("~/.obdiag/config.yml"), "w", encoding="utf-8") as f:
+            f.write(yaml_output)
+            self.stdio.print("Build configuration success, please check ~/.obdiag/config.yml")
+        return
 
     def build_configuration(self):
         self.stdio.verbose("Getting all the node information of the cluster, please wait a moment ...")

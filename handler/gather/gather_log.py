@@ -19,6 +19,7 @@ import datetime
 import os
 import time
 import tabulate
+import threading
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
@@ -161,24 +162,34 @@ class GatherLogHandler(BaseShellHandler):
         self.stdio.verbose('Use {0} as pack dir.'.format(pack_dir_this_command))
         gather_tuples = []
 
+        # gather_thread default thread nums is 3
+        gather_thread_nums = int(self.context.inner_config.get("gather", {}).get("thread_nums") or 3)
+        pool_sema = threading.BoundedSemaphore(value=gather_thread_nums)
+
         def handle_from_node(node):
-            st = time.time()
-            resp = self.__handle_from_node(pack_dir_this_command, node)
-            file_size = ""
-            if len(resp["error"]) == 0:
-                file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
+            with pool_sema:
+                st = time.time()
+                resp = self.__handle_from_node(pack_dir_this_command, node)
+                file_size = ""
+                if len(resp["error"]) == 0:
+                    file_size = os.path.getsize(resp["gather_pack_path"])
+                gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
 
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
-
+        nodes_threads = []
+        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        old_silent = self.stdio.silent
+        self.stdio.set_silent(True)
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
+        self.stdio.set_silent(old_silent)
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command

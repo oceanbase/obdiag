@@ -80,6 +80,7 @@ DEFAULT_INNER_CONFIG = {
             'remote_client_sudo': False,
         },
     },
+    'analyze': {"thread_nums": 3},
     'check': {
         'ignore_version': False,
         'work_path': '~/.obdiag/check',
@@ -90,7 +91,7 @@ DEFAULT_INNER_CONFIG = {
         'package_file': '~/.obdiag/check/check_package.yaml',
         'tasks_base_path': '~/.obdiag/check/tasks/',
     },
-    'gather': {'scenes_base_path': '~/.obdiag/gather/tasks', 'redact_processing_num': 3},
+    'gather': {'scenes_base_path': '~/.obdiag/gather/tasks', 'redact_processing_num': 3, "thread_nums": 3},
     'rca': {
         'result_path': './obdiag_rca/',
     },

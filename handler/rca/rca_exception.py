@@ -18,7 +18,7 @@
 import pprint
 
 
-# rce
+# rca
 class RCAInitException(Exception):
     def __init__(self, msg=None, obj=None):
         self.msg, self.obj = msg, obj
@@ -50,3 +50,8 @@ class RCANotNeedExecuteException(Exception):
 
     def __str__(self):
         return repr(self)
+
+
+class RCAReportException(Exception):
+    def __init__(self, msg=None, obj=None):
+        super(RCAReportException, self).__init__(msg, obj)
