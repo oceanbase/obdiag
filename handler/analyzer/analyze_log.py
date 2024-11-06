@@ -149,7 +149,7 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         nodes_threads = []
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
-        self.stdio.start_loading('analyze result start')
+        self.stdio.start_loading('analyze start')
         for node in self.nodes:
             if not self.is_ssh:
                 local_ip = NetUtils.get_inner_ip()
@@ -160,7 +160,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        self.stdio.start_loading('analyze result success')
+        self.stdio.start_loading('analyze successes')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         analyze_info_nodes = []
         for summary in summary_list:
