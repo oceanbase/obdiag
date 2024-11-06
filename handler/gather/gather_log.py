@@ -178,6 +178,7 @@ class GatherLogHandler(BaseShellHandler):
         nodes_threads = []
         self.stdio.print("gather nodes's log start. Please wait a moment...")
         old_silent = self.stdio.silent
+        self.stdio.start_loading("start gather")
         self.stdio.set_silent(True)
         for node in self.nodes:
             if not self.is_ssh:
@@ -190,6 +191,7 @@ class GatherLogHandler(BaseShellHandler):
         for node_thread in nodes_threads:
             node_thread.join()
         self.stdio.set_silent(old_silent)
+        self.stdio.stop_loading("succeed")
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
