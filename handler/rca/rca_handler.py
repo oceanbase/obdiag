@@ -35,7 +35,7 @@ from common.tool import Util
 from common.tool import StringUtils
 from colorama import Fore, Style
 from jinja2 import Template
-from result_type import ObdiagResult
+from common.result_type import ObdiagResult
 from common.version import OBDIAG_VERSION
 from common.scene import get_version_by_type
 

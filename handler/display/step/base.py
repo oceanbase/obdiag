@@ -16,7 +16,7 @@
 @desc:
 """
 from common.ssh_client.ssh import SshClient
-from stdio import SafeStdio
+from common.stdio import SafeStdio
 from handler.display.step.ssh import SshHandler
 from handler.display.step.sql import StepSQLHandler
 

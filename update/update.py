@@ -26,7 +26,7 @@ from common.tool import Util
 from common.version import OBDIAG_VERSION
 import yaml
 
-from result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 # for update obdiag files without obdiag

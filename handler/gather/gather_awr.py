@@ -27,7 +27,7 @@ from common.tool import FileUtil
 from common.tool import Util
 from common.tool import TimeUtils
 from common.ocp import ocp_task, ocp_api
-from result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 class GatherAwrHandler(object):

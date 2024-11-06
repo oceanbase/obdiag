@@ -18,8 +18,8 @@
 
 import os
 import re
-from result_type import ObdiagResult
-from stdio import SafeStdio
+from common.result_type import ObdiagResult
+from common.stdio import SafeStdio
 import datetime
 from handler.display.scenes.base import SceneBase
 from common.obdiag_exception import OBDIAGFormatException

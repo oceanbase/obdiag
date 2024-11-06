@@ -26,7 +26,7 @@ import json
 import datetime
 from colorama import Fore, Style
 
-from result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 class AnalyzeParameterHandler(object):

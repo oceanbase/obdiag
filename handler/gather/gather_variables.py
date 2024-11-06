@@ -22,7 +22,7 @@ from common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style
 
-from result_type import ObdiagResult
+from common.result_type import ObdiagResult
 
 
 class GatherVariablesHandler(object):

@@ -17,7 +17,7 @@
 """
 import sys
 
-from stdio import SafeStdio
+from common.stdio import SafeStdio
 
 
 class SsherClient(SafeStdio):

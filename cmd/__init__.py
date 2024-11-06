@@ -11,27 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@file: main.py
+@time: 2024/11/06
+@file: __init__.py
 @desc:
 """
-
-import sys
-from cmd.diag_cmd import MainCommand
-from common.stdio import IO
-
-ROOT_IO = IO(1)
-
-if __name__ == '__main__':
-    defaultencoding = 'utf-8'
-    if sys.getdefaultencoding() != defaultencoding:
-        try:
-            from imp import reload
-        except:
-            pass
-        reload(sys)
-        sys.setdefaultencoding(defaultencoding)
-    ROOT_IO.track_limit += 2
-    if MainCommand().init(sys.argv[0], sys.argv[1:]).do_command():
-        ROOT_IO.exit(0)
-    else:
-        ROOT_IO.exit(1)
