@@ -674,7 +674,7 @@ class FileUtil(object):
                 for file in files:
                     file_path = os.path.join(root, file)
                     files_to_compress.append(file_path)
-            
+
             if password:
                 # Use pyminizip to create the encrypted zip file
                 pyminizip.compress_multiple(files_to_compress, [], output_zip, password, 5)  # 5 is the compression level
@@ -700,7 +700,6 @@ class FileUtil(object):
             return False
 
         return True
-
 
 
 class YamlLoader(YAML):

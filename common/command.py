@@ -192,6 +192,7 @@ def zip_dir(ssh_client, father_dir, zip_dir, stdio=None):
     cmd = "cd {father_dir} && zip {zip_dir}.zip -rm {zip_dir}".format(father_dir=father_dir, zip_dir=zip_dir)
     ssh_client.exec_cmd(cmd)
 
+
 def tar_gz_dir(ssh_client, father_dir, tar_dir, stdio=None):
     """
     Compress files through tar.gz on a remote server
@@ -204,6 +205,7 @@ def tar_gz_dir(ssh_client, father_dir, tar_dir, stdio=None):
     tar_gz_file = f"{tar_dir}.tar.gz"
     cmd = f"cd {father_dir} && tar -czf {tar_gz_file} {tar_dir} && rm {tar_dir}"
     ssh_client.exec_cmd(cmd)
+
 
 def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir, stdio=None):
     """
