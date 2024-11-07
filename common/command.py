@@ -203,7 +203,7 @@ def tar_gz_dir(ssh_client, father_dir, tar_dir, stdio=None):
     :return: None
     """
     tar_gz_file = f"{tar_dir}.tar.gz"
-    cmd = f"cd {father_dir} && tar -czf {tar_gz_file} {tar_dir} && rm {tar_dir}"
+    cmd = f"cd {father_dir} && tar -zcvf {tar_gz_file} {tar_dir} && rm {tar_dir}"
     ssh_client.exec_cmd(cmd)
 
 

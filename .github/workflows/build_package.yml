@@ -27,7 +27,6 @@ jobs:
           export PATH=/opt/miniconda3/bin:$PATH
           source activate obdiag
           ldd --version
-          yum install gcc gcc-c++ make
           pip3 install -r requirements3.txt
 
       - name: Build package
