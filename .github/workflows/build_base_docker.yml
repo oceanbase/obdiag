@@ -32,4 +32,4 @@ jobs:
           file: build/DockerFile
           push: true
           tags: |
-            ${{ vars.DOCKER_PUSH_BASE }}/oceanbase/obdiag-builder:latest
+            ${{ vars.DOCKER_PUSH_BASE }}/obdiag-builder:latest
