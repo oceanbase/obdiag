@@ -32,7 +32,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          file: build/Dockerfile
+          file: build/DockerFile
           push: true
           tags: |
             ${{ vars.DOCKER_PUSH_BASE }}/oceanbase/obdiag-builder:latest
