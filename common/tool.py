@@ -666,7 +666,7 @@ class FileUtil(object):
             # 1. Extract the tar.gz file
             with tarfile.open(tar_gz_file, 'r:gz') as tar:
                 tar.extractall(path=extract_dir)
-            stdio.verbose("tar.gz file extracted to {extract_dir}")
+            stdio.verbose("tar.gz file extracted to {0}".format(extract_dir))
 
             # 2. Gather all extracted files and their relative paths
             files_to_compress = []
@@ -677,38 +677,37 @@ class FileUtil(object):
                     base_path = os.path.basename(root)
                     files_to_compress.append(file_path)
                     base_paths.append(base_path)
-            stdio.verbose("files_to_compress: {0}, base_paths:{1}".format(files_to_compress, base_paths))
 
             # 3. Compress the extracted files into a (possibly) encrypted zip file
             if password:
                 # Use pyminizip to create the encrypted zip file
                 pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
-                stdio.verbose("extracted files compressed into encrypted {output_zip}")
+                stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
             else:
                 # Create an unencrypted zip file
                 pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
-                stdio.verbose("extracted files compressed into unencrypted {output_zip}")
+                stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
 
             # 4. Remove the extracted directory
             shutil.rmtree(extract_dir)
-            stdio.verbose("extracted directory {extract_dir} removed")
+            stdio.verbose("extracted directory {0} removed".format(extract_dir))
 
             # 5. Optionally remove the original tar.gz file
             os.remove(tar_gz_file)
-            stdio.verbose("original tar.gz file {tar_gz_file} removed")
+            stdio.verbose("original tar.gz file {0} removed".format(tar_gz_file))
 
         except tarfile.TarError as te:
-            stdio.exception("tar file error: {te}")
+            stdio.exception("tar file error: {0}".format(te))
             if os.path.exists(extract_dir):
                 shutil.rmtree(extract_dir)
             return False
         except pyminizip.compress_error as ce:
-            stdio.exception("compression error: {ce}")
+            stdio.exception("compression error: {0}".format(ce))
             if os.path.exists(extract_dir):
                 shutil.rmtree(extract_dir)
             return False
         except Exception as e:
-            stdio.exception("an error occurred: {e}")
+            stdio.exception("an error occurred: {0}".format(e))
             if os.path.exists(extract_dir):
                 shutil.rmtree(extract_dir)
             return False
