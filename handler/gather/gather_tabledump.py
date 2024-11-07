@@ -148,9 +148,7 @@ class GatherTableDumpHandler(SafeStdio):
                 return
             self.database_id = database_data.fetchall()[0].get("database_id")
             table_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-                "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ t.table_id from oceanbase.__all_virtual_table t where t.tenant_id = '{0}' and t.database_id = '{1}' and table_name = '{2}' limit 1 ".format(
-                    self.tenant_id, self.database_id, self.table
-                )
+                "select /*+read_consistency(weak) */ t.table_id from oceanbase.__all_virtual_table t where t.tenant_id = '{0}' and t.database_id = '{1}' and table_name = '{2}' limit 1 ".format(self.tenant_id, self.database_id, self.table)
             )
             if table_data.rowcount == 0:
                 self.stdio.error("table is None")
@@ -158,10 +156,8 @@ class GatherTableDumpHandler(SafeStdio):
             self.table_id = table_data.fetchall()[0].get("table_id")
 
             ## 查询行数
-            query_count = (
-                "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ table_name , ifnull(num_rows,0) as num_rows from oceanbase.cdb_tables where con_id = '{0}' and owner = '{1}' and table_name = '{2}' order by num_rows desc limit 1".format(
-                    self.tenant_id, self.database, self.table
-                )
+            query_count = "select /*+read_consistency(weak) */ table_name , ifnull(num_rows,0) as num_rows from oceanbase.cdb_tables where con_id = '{0}' and owner = '{1}' and table_name = '{2}' order by num_rows desc limit 1".format(
+                self.tenant_id, self.database, self.table
             )
             columns, result = self.ob_connector.execute_sql_return_columns_and_data(query_count)
             if result.count == 0:
@@ -171,7 +167,7 @@ class GatherTableDumpHandler(SafeStdio):
 
             self.__report(query_count, columns, result)
             ## 查询数据量
-            query_data = '''select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ t1.SVR_IP,t1.role,ifnull(t2.data_size,0) as total_data_size from (select SVR_IP,tenant_id, database_name, role, table_id, tablet_id from oceanbase.cdb_ob_table_locations) t1 left join (select tenant_id, tablet_id,data_size from oceanbase.cdb_ob_tablet_replicas) t2 on t1.tenant_id = t2.tenant_id and t1.tablet_id = t2.tablet_id where  t1.tenant_id = '{0}' and t1.table_id = '{1}' order by total_data_size desc limit 1'''.format(
+            query_data = '''select /*+read_consistency(weak) */ t1.SVR_IP,t1.role,ifnull(t2.data_size,0) as total_data_size from (select SVR_IP,tenant_id, database_name, role, table_id, tablet_id from oceanbase.cdb_ob_table_locations) t1 left join (select tenant_id, tablet_id,data_size from oceanbase.cdb_ob_tablet_replicas) t2 on t1.tenant_id = t2.tenant_id and t1.tablet_id = t2.tablet_id where  t1.tenant_id = '{0}' and t1.table_id = '{1}' order by total_data_size desc limit 1'''.format(
                 self.tenant_id, self.table_id
             )
 
@@ -203,7 +199,7 @@ class GatherTableDumpHandler(SafeStdio):
                 self.stdio.error("table is None")
                 return
             self.table_id = table_data.fetchall()[0].get("table_id")
-            query_count = '''select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ m.svr_ip,m.role,m.data_size total_data_size, m.row_count as total_rows_count from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
+            query_count = '''select /*+read_consistency(weak) */ m.svr_ip,m.role,m.data_size total_data_size, m.row_count as total_rows_count from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
                             where m.table_id = t.table_id and m.tenant_id = '{0}' and m.table_id = '{1}' and t.table_name = '{2}' order by total_rows_count desc limit 1'''.format(
                 self.tenant_id, self.table_id, self.table
             )

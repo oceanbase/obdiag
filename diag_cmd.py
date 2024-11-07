@@ -998,7 +998,7 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
-        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
+        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml", "html". default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -1021,6 +1021,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./obdiag_rca/')
         self.parser.add_option('--input_parameters', action='callback', type='string', callback=self._env_scene, help='input parameters of scene')
         self.parser.add_option('--env', action='callback', type='string', callback=self._env_scene, help='env of scene')
+        self.parser.add_option('--report_type', type='string', help='The type of the rca report, support "table", "json", "xml", "yaml", "html". default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.scene_input_param_map = {}

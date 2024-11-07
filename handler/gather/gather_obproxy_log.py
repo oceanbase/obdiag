@@ -17,13 +17,14 @@
 """
 import datetime
 import os
+import threading
 import time
 
 import tabulate
 
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from common.constant import const
 from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, zip_encrypt_dir, zip_dir
 from common.tool import Util
@@ -153,24 +154,33 @@ class GatherObProxyLogHandler(BaseShellHandler):
         self.stdio.verbose("Use {0} as pack dir.".format(pack_dir_this_command))
         gather_tuples = []
 
+        # gather_thread default thread nums is 3
+        gather_thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
+        pool_sema = threading.BoundedSemaphore(value=gather_thread_nums)
+
         def handle_from_node(node):
-            st = time.time()
-            resp = self.__handle_from_node(node, pack_dir_this_command)
-            file_size = ""
-            if len(resp["error"]) == 0:
-                file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
+            with pool_sema:
+                st = time.time()
+                resp = self.__handle_from_node(node, pack_dir_this_command)
+                file_size = ""
+                if len(resp["error"]) == 0:
+                    file_size = os.path.getsize(resp["gather_pack_path"])
+                gather_tuples.append((node.get("ip"), False, resp["error"], file_size, resp["zip_password"], int(time.time() - st), resp["gather_pack_path"]))
 
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
-
+        nodes_threads = []
+        self.stdio.print("gather nodes's log start. Please wait a moment...")
+        self.stdio.set_silent(True)
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
+        self.stdio.set_silent(False)
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
@@ -239,14 +249,18 @@ class GatherObProxyLogHandler(BaseShellHandler):
         if self.scope == "obproxy" or self.scope == "obproxy_stat" or self.scope == "obproxy_digest" or self.scope == "obproxy_limit" or self.scope == "obproxy_slow" or self.scope == "obproxy_diagnosis" or self.scope == "obproxy_error":
             get_obproxy_log = "ls -1 -F %s/*%s.*log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
         else:
-            get_obproxy_log = "ls -1 -F %s/obproxy.*log* %s/obproxy_error.*log* %s/obproxy_stat.*log* %s/obproxy_digest.*log* %s/obproxy_limit.*log* %s/obproxy_slow.*log* %s/obproxy_diagnosis.*log*| awk -F '/' '{print $NF}'" % (
-                log_path,
-                log_path,
-                log_path,
-                log_path,
-                log_path,
-                log_path,
-                log_path,
+            get_obproxy_log = (
+                f"find {log_path} "
+                f"\( -name 'obproxy.*log*' "
+                f"-o -name 'obproxy_error.*log*' "
+                f"-o -name 'obproxy_stat.*log*' "
+                f"-o -name 'obproxy_digest.*log*' "
+                f"-o -name 'obproxy_limit.*log*' "
+                f"-o -name 'obproxy_slow.*log*' "
+                f"-o -name 'obproxy_diagnosis.*log*' \) "
+                f"-type f -print0 | "
+                "xargs -0 printf '%s\n' | "
+                "awk -F '/' '{print $NF}'"
             )
         log_files = ssh_client.exec_cmd(get_obproxy_log)
         log_name_list = []
