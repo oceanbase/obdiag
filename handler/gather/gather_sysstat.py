@@ -22,7 +22,7 @@ import datetime
 import tabulate
 from common.constant import const
 from common.command import LocalClient, SshClient
-from common.command import get_file_size, download_file, mkdir, zip_dir
+from common.command import get_file_size, download_file, mkdir, tar_gz_dir
 from handler.base_shell_handler import BaseShellHandler
 from common.tool import Util
 from common.tool import DirectoryUtil
@@ -147,13 +147,15 @@ class GatherOsInfoHandler(BaseShellHandler):
                 self.__gather_io_info(ssh_client, remote_dir_full_path)
                 self.__gather_traffic_info(ssh_client, remote_dir_full_path)
                 self.__gather_tcp_udp_info(ssh_client, remote_dir_full_path)
-            zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-            remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
+            tar_gz_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
+            remote_file_full_path = "{0}.tar.gz".format(remote_dir_full_path)
             file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
-                local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                self.stdio.verbose("local file path {0}...".format(local_file_path))
-                download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
+                local_tar_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
+                self.stdio.verbose("local tar file path {0}...".format(local_tar_file_path))
+                download_file(ssh_client, remote_file_full_path, local_tar_file_path, self.stdio)
+                local_zip_file_path = local_stored_path + "/{0}.zip".format(remote_dir_name)
+                FileUtil.tar_gz_to_zip(local_stored_path, local_tar_file_path, local_zip_file_path, None, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"

@@ -26,7 +26,7 @@ from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.command import SshClient
 from common.constant import const
-from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, zip_encrypt_dir, zip_dir
+from common.command import get_file_size, download_file, is_empty_dir, get_logfile_name_list, mkdir, delete_empty_file, rm_rf_file, tar_gz_dir
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
@@ -306,17 +306,16 @@ class GatherObProxyLogHandler(BaseShellHandler):
         gather_dir_full_path = "{0}/{1}".format(self.gather_log_temporary_dir, gather_dir_name)
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            zip_encrypt_dir(ssh_client, zip_password, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
-        else:
-            zip_dir(ssh_client, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
-        gather_package_dir = "{0}.zip".format(gather_dir_full_path)
-
+        tar_gz_dir(ssh_client, self.gather_log_temporary_dir, gather_dir_name, self.stdio)
+        gather_package_dir = "{0}.tar.gz".format(gather_dir_full_path)
         gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
         self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size))
         local_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
-            local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
-            local_path = download_file(ssh_client, gather_package_dir, local_store_path, self.stdio)
+            local_store_tar_gz_file = pack_dir_this_command + "/{0}.tar.gz".format(gather_dir_name)
+            download_file(ssh_client, gather_package_dir, local_store_tar_gz_file, self.stdio)
+            local_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
+            FileUtil.tar_gz_to_zip(pack_dir_this_command, local_store_tar_gz_file, local_path, zip_password, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:
