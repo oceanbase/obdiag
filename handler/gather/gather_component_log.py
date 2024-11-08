@@ -31,7 +31,6 @@ class GatherComponentLogHandler(BaseShellHandler):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.oms_module_id = None
-        self.zip_encrypt = None
         self.redact_dir = None
         self.gather_log_conf_dict = None
         self.thread_nums = None
@@ -58,8 +57,8 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio = self.context.stdio
             self.inner_config = self.context.inner_config
             self.target = kwargs.get('target', None)
-            self.from_option = kwargs.get('from', None)
-            self.to_option = kwargs.get('to', None)
+            self.from_option = kwargs.get('from_option', None)
+            self.to_option = kwargs.get('to_option', None)
             self.since_option = kwargs.get('since', None)
             self.scope = kwargs.get('scope', None)
             self.grep = kwargs.get('grep', None)
@@ -71,7 +70,6 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.is_scene = kwargs.get('is_scene', False)
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
-            self.zip_encrypt = kwargs.get('zip_encrypt', False)
             self.oms_module_id = kwargs.get('oms_module_id', None)
             self._check_option()
             # build config dict for gather log on node
@@ -134,7 +132,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
         # check encrypt
-        if self.zip_encrypt:
+        if self.encrypt:
             self.zip_password = Util.gen_password(16)
             self.stdio.verbose("zip_encrypt is True, zip_password is {0}".format(self.zip_password))
         # check redact
@@ -161,7 +159,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
         self.stdio.verbose("thread_nums: {0}".format(self.thread_nums))
 
-    def handler(self):
+    def handle(self):
         try:
             # run on every node
             def run_on_node(context, conf_dict, node, pool_sema, gather_tuple):
