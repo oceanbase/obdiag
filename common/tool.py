@@ -46,6 +46,10 @@ import oyaml as yaml
 import ast
 import lzma
 import pymysql as mysql
+import shutil
+import tarfile
+import pyminizip
+import os
 from datetime import timedelta
 from random import choice
 from io import BytesIO
@@ -654,6 +658,61 @@ class FileUtil(object):
     def write_append(filename, result, stdio=None):
         with io.open(filename, 'a', encoding='utf-8') as fileobj:
             fileobj.write(u'{}'.format(result))
+
+    def tar_gz_to_zip(temp_dir, tar_gz_file, output_zip, password, stdio):
+        extract_dir = os.path.join(temp_dir, 'extracted_files')
+
+        try:
+            # 1. Extract the tar.gz file
+            with tarfile.open(tar_gz_file, 'r:gz') as tar:
+                tar.extractall(path=extract_dir)
+            stdio.verbose("tar.gz file extracted to {0}".format(extract_dir))
+
+            # 2. Gather all extracted files and their relative paths
+            files_to_compress = []
+            base_paths = []
+            for root, dirs, files in os.walk(extract_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    base_path = os.path.basename(root)
+                    files_to_compress.append(file_path)
+                    base_paths.append(base_path)
+
+            # 3. Compress the extracted files into a (possibly) encrypted zip file
+            if password:
+                # Use pyminizip to create the encrypted zip file
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
+                stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
+            else:
+                # Create an unencrypted zip file
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
+                stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
+
+            # 4. Remove the extracted directory
+            shutil.rmtree(extract_dir)
+            stdio.verbose("extracted directory {0} removed".format(extract_dir))
+
+            # 5. Optionally remove the original tar.gz file
+            os.remove(tar_gz_file)
+            stdio.verbose("original tar.gz file {0} removed".format(tar_gz_file))
+
+        except tarfile.TarError as te:
+            stdio.exception("tar file error: {0}".format(te))
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir)
+            return False
+        except pyminizip.compress_error as ce:
+            stdio.exception("compression error: {0}".format(ce))
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir)
+            return False
+        except Exception as e:
+            stdio.exception("an error occurred: {0}".format(e))
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir)
+            return False
+
+        return True
 
 
 class YamlLoader(YAML):
