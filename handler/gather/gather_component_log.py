@@ -9,26 +9,29 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
+import datetime
 import os
 import threading
 import uuid
 
-from common.command import get_file_start_time, get_file_size
+from prettytable import PrettyTable
+from common.command import get_file_start_time, get_file_size, is_empty_dir
 from common.constant import const
 from common.ssh_client.ssh import SshClient
-from common.tool import FileUtil, TimeUtils
+from common.tool import FileUtil, TimeUtils, Util
 from handler.base_shell_handler import BaseShellHandler
 from handler.gather.plugins.redact import Redact
 from result_type import ObdiagResult
 
 
 class GatherComponentLogHandler(BaseShellHandler):
-
     # log_scope_list
     log_scope_list = {"observer": ["observer", "rootservice", "election"], "obproxy": ["obproxy", "obproxy_digest", "obproxy_stat", "obproxy_slow", "obproxy_limit"], "oms": ["connector", "error"]}
 
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.oms_module_id = None
+        self.zip_encrypt = None
         self.redact_dir = None
         self.gather_log_conf_dict = None
         self.thread_nums = None
@@ -38,7 +41,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         self.stdio = None
         self.context = None
         self.target = None
-        self.target_dir = None
         self.from_option = None
         self.to_option = None
         self.since_option = None
@@ -56,7 +58,6 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio = self.context.stdio
             self.inner_config = self.context.inner_config
             self.target = kwargs.get('target', None)
-            self.target_dir = kwargs.get('target_dir', None)
             self.from_option = kwargs.get('from', None)
             self.to_option = kwargs.get('to', None)
             self.since_option = kwargs.get('since', None)
@@ -70,9 +71,11 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.is_scene = kwargs.get('is_scene', False)
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
+            self.zip_encrypt = kwargs.get('zip_encrypt', False)
+            self.oms_module_id = kwargs.get('oms_module_id', None)
             self._check_option()
             # build config dict for gather log on node
-            self.gather_log_conf_dict = {"target": self.target, "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT}
+            self.gather_log_conf_dict = {"target": self.target, "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT, "zip_password": self.zip_password}
         except Exception as e:
             self.stdio.error("init GatherComponentLogHandler failed, error: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, "init GatherComponentLogHandler failed, error: {0}".format(str(e)))
@@ -89,13 +92,15 @@ class GatherComponentLogHandler(BaseShellHandler):
         if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms':
             raise Exception("target option can only be observer or obproxy or oms")
 
-        # target_dir check
-        if self.target_dir is None or self.target_dir == "":
-            self.target_dir = 'obdiag_gather_{0}'.format(self.target)
-        else:
-            self.target_dir = self.target_dir.strip()
-        if not isinstance(self.target, str):
-            raise Exception("target option can only be string")
+        # check store_dir
+        if not os.path.exists(self.store_dir):
+            raise Exception("store_dir: {0} is not exist".format(self.store_dir))
+        if self.is_scene is False:
+            target_dir = 'obdiag_gather_{0}'.format(self.target)
+            self.store_dir = os.path.join(self.inner_config.get("store_dir"), target_dir)
+            if not os.path.exists(self.store_dir):
+                os.makedirs(self.store_dir)
+        self.stdio.verbose("store_dir rebase: {0}".format(self.store_dir))
 
         # check nodes
         if self.nodes is None or len(self.nodes) == 0:
@@ -125,7 +130,18 @@ class GatherComponentLogHandler(BaseShellHandler):
         else:
             self.scope = self.scope.strip()
             if self.scope not in self.log_scope_list[self.target]:
-                raise Exception("scope option can only be {0},the {1} just support {2}".format(log_scope, self.target, log_scope))
+                raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
+        # check encrypt
+        if self.zip_encrypt:
+            self.zip_password = Util.gen_password(16)
+            self.stdio.verbose("zip_encrypt is True, zip_password is {0}".format(self.zip_password))
+        # check redact
+        if self.redact:
+            if self.redact != "" and len(self.redact) != 0:
+                if "," in self.redact and isinstance(self.redact, str):
+                    self.redact = self.redact.split(",")
+                else:
+                    self.redact = [self.redact]
 
         # check inner_config
         if self.inner_config is None:
@@ -136,18 +152,20 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.file_number_limit = int(basic_config["file_number_limit"])
             self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
             self.config_path = basic_config['config_path']
+        self.stdio.verbose("file_number_limit: {0}, file_size_limit: {1}, gather log config_path: {2}".format(self.file_number_limit, self.file_size_limit, self.config_path))
 
         # check thread_nums
         if self.thread_nums is None or not isinstance(self.thread_nums, int) or self.thread_nums <= 0:
             self.thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or 3)
+        self.stdio.verbose("thread_nums: {0}".format(self.thread_nums))
 
     def handler(self):
         try:
             # run on every node
-            def run_on_node(context, conf_dict, node, pool_sema):
+            def run_on_node(context, conf_dict, node, pool_sema, gather_tuple):
                 with pool_sema:
                     try:
-                        task = GatherLogOnNode(context, node, conf_dict, pool_sema)
+                        task = GatherLogOnNode(context, node, conf_dict, pool_sema, gather_tuple)
                         task.handle()
                     except Exception as e:
                         self.stdio.exception(e)
@@ -157,19 +175,29 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio.start_loading("gather start")
             pool_sema = threading.BoundedSemaphore(value=self.thread_nums)
             node_threads = []
+            gather_tuples = []
             for node in self.nodes:
                 next_context = self.context
                 next_context.stdio = self.stdio.sub_io()
+                gather_tuple = {}
                 node_thread = threading.Thread(
                     target=run_on_node,
-                    args=(next_context, self.gather_log_conf_dict, node, pool_sema),
+                    args=(next_context, self.gather_log_conf_dict, node, pool_sema, gather_tuple),
                 )
                 node_thread.start()
                 node_threads.append(node_threads)
+                gather_tuples.append(gather_tuple)
             for node_thread in node_threads:
                 node_thread.join()
+            self.stdio.verbose("gather_tuples: {0}".format(gather_tuples))
             self.stdio.stop_loading("gather successes")
-            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
+            # save result
+            summary_tuples = self.__get_overall_summary(gather_tuples)
+            self.stdio.print(summary_tuples)
+            with open(os.path.join(self.store_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+                fileobj.write(summary_tuples.get_string())
+
+            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
             self.stdio.print(last_info)
             try:
                 if self.redact and len(self.redact) > 0:
@@ -191,16 +219,34 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio.error("gather log failed: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log failed: {0}".format(str(e)))
 
+    def __get_overall_summary(self, node_summary_tuple):
+        """
+        generate overall summary from all node summary tuples
+        :param node_summary_tuple: (node, is_err, err_msg, size, consume_time, node_summary) for each node
+        :return: a string indicating the overall summary
+        """
+        summary_tb = PrettyTable()
+        summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        if self.zip_password:
+            summary_tb.field_names = ["Node", "Status", "Size", "Password"]
+        try:
+            for tup in node_summary_tuple:
+                summary_tb.add_row([tup["node"], tup["success"], tup["info"], tup["file_size"]])
+        except Exception as e:
+            self.stdio.error("gather log __get_overall_summary failed: {0}".format(str(e)))
+        return summary_tb
+
 
 # if target need add, you should check def about *_by_target
 class GatherLogOnNode:
-    def __init__(self, context, node, config, pool_sema):
+    def __init__(self, context, node, config, pool_sema, gather_tuple):
         self.ssh_client = node["ssh_client"]
         self.context = context
         self.stdio = context.stdio
         self.config = config
         self.node = node
         self.pool_sema = pool_sema
+        self.gather_tuple = gather_tuple
         self.target = self.config.get("target")
 
         # mkdir tmp_dir
@@ -221,24 +267,16 @@ class GatherLogOnNode:
         self.to_time_str = self.config.get("to_time")
         self.grep_option = self.config.get("grep_option")
         self.store_dir = self.config.get("store_dir")
+        self.zip_password = self.config.get("zip_password")
         #
+        self.file_number_limit = self.config.get("file_number_limit")
         self.file_size_limit = self.config.get("file_size_limit")
-
-    def __find_logs_name(self):
-        try:
-            logs_scope = ""
-            for scope in self.scope:
-                if logs_scope == "":
-                    logs_scope = scope
-                    continue
-                logs_scope = logs_scope + "|" + scope
-            self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-            find_cmd = "ls -1 -F {0} |grep -E '{1}'| awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
-            self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
-            logs_name = self.ssh_client.exec_cmd(find_cmd)
-            return logs_name
-        except Exception as e:
-            raise Exception("gather_log_on_node {0} find logs failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+        self.gather_tuple = {
+            "node": self.ssh_client.get_name(),
+            "success": False,
+            "info": "",
+            "file_size": 0,
+        }
 
     def handle(self):
 
@@ -253,26 +291,50 @@ class GatherLogOnNode:
             # find logs
             logs_name = self.__find_logs_name()
             if logs_name is None or len(logs_name) == 0:
-                self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
+                self.stdio.error("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
+                self.gather_tuple["info"] = "no log found"
                 return
-            # gather log to remote tmp_dir
+            elif len(logs_name) > self.file_number_limit:
+                self.stdio.error('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
+                self.gather_tuple["info"] = "too many files {0} > {1}".format(len(logs_name), self.file_number_limit)
+                return
+
+            # gather log to remote tmp_dir ,if grep is exit, with grep
             self.__grep_log_to_tmp(logs_name, tmp_log_dir)
+
             # build tar file
+            if is_empty_dir(self.ssh_client, tmp_log_dir, self.stdio):
+                # if remote tmp_log_dir is empty, rm the dir and return
+                self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
+                self.stdio.error("gather_log_on_node {0} failed: tmp_log_dir({1}) no log found".format(self.ssh_client.get_name(), tmp_log_dir))
+                self.gather_tuple["info"] = "tmp_log_dir({0}) no log found".format(tmp_log_dir)
+                return
+
             tar_file = os.path.join(self.tmp_dir, "{0}.tar.gz".format(tmp_log_dir))
             tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_log_dir)
             self.stdio.verbose("gather_log_on_node {0} tar_cmd: {1}".format(self.ssh_client.get_ip(), tar_cmd))
             self.ssh_client.exec_cmd(tar_cmd)
 
             # download log to local store_dir
-            if int(get_file_size(self.ssh_client, tar_file)) > self.file_size_limit:
+            tar_file_size = int(get_file_size(self.ssh_client, tar_file))
+            if tar_file_size > self.file_size_limit:
                 self.stdio.error("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
-                raise Exception("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
+                self.gather_tuple["info"] = "File too large over gather.file_size_limit"
+                return
             else:
                 self.stdio.verbose("gather_log_on_node {0} download log to local store_dir: {1}".format(self.ssh_client.get_ip(), self.store_dir))
                 self.ssh_client.download(tar_file, self.store_dir)
+
+            # tar to zip
+            tar_file_name = "{0}.tar.gz".format(tmp_log_dir)
+            local_zip_store_path = os.path.join(self.store_dir, "{0}.zip".format(tmp_log_dir))
+            FileUtil.tar_gz_to_zip(self.store_dir, tar_file_name, local_zip_store_path, self.zip_password, self.stdio)
+            self.gather_tuple["file_size"] = tar_file_size
+            self.gather_tuple["info"] = "file save in {0}".format(local_zip_store_path)
+            self.gather_tuple["success"] = True
         except Exception as e:
             self.stdio.error("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
-            raise Exception("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+            self.gather_tuple["info"] = str(e)
         finally:
             self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
