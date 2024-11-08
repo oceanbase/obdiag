@@ -76,6 +76,8 @@ class GatherComponentLogHandler(BaseShellHandler):
             self._check_option()
             # build config dict for gather log on node
             self.gather_log_conf_dict = {"target": self.target, "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT, "zip_password": self.zip_password}
+            if self.oms_module_id:
+                self.gather_log_conf_dict["oms_module_id"] = self.oms_module_id
         except Exception as e:
             self.stdio.error("init GatherComponentLogHandler failed, error: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, "init GatherComponentLogHandler failed, error: {0}".format(str(e)))
@@ -256,10 +258,11 @@ class GatherLogOnNode:
 
         self.scope = self.config.get("scope")
         # todo log_path for oms
+        self.oms_module_id = self.config.get("oms_module_id")
         if self.target == "oms":
-            self.log_path = os.path.join(
-                node.get("home_path"),
-            )
+            if self.oms_module_id is None:
+                raise Exception("gather log on oms, but oms_module_id is None")
+            self.log_path = os.path.join(node.get("run_path"), self.oms_module_id, "logs")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
 
