@@ -1,11 +1,12 @@
 info_en: "[event]"
 info_cn: "[event信息]"
-command: obdiag display scene run --scene=observer.event --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
+# command: obdiag display scene run --scene=observer.event --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'
+command: obdiag display scene run --scene=observer.event --env tenant_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "SELECT
+        sql: "select b.tenant_name,a.* from (SELECT
               /* MONITOR_AGENT */
               con_id tenant_id,
               CASE
@@ -27,9 +28,9 @@ task:
               SUM(total_waits) AS total_waits,
               SUM(time_waited_micro / 1000000) AS time_waited
             FROM
-              oceanbase.v$system_event
+              oceanbase.gv$system_event
             WHERE
-              oceanbase.v$system_event.wait_class <> 'IDLE'
+              oceanbase.gv$system_event.wait_class <> 'IDLE'
               AND (
                 con_id > 1000
                 OR con_id = 1
@@ -39,5 +40,46 @@ task:
               event_group
             ORDER BY
               tenant_id,
-              event_group;"
+              event_group) a, oceanbase.__all_tenant b 
+              where a.tenant_id=b.tenant_id and b.tenant_name='{tenant_name}';"
+        global: true
+  - version: "[3.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select b.tenant_name,a.* from (SELECT
+              /* MONITOR_AGENT */
+              con_id tenant_id,
+              CASE
+              WHEN event_id = 10000 THEN 'INTERNAL'
+              WHEN event_id = 13000 THEN 'SYNC_RPC'
+              WHEN event_id = 14003 THEN 'ROW_LOCK_WAIT'
+              WHEN (
+                event_id >= 10001
+                AND event_id <= 11006
+              )
+              OR (
+                event_id >= 11008
+                AND event_id <= 11011
+              ) THEN 'IO'
+              WHEN event LIKE 'latch:%' THEN 'LATCH'
+              ELSE 'OTHER'
+            END
+              event_group,
+              SUM(total_waits) AS total_waits,
+              SUM(time_waited_micro / 1000000) AS time_waited
+            FROM
+              oceanbase.gv$system_event
+            WHERE
+              oceanbase.gv$system_event.wait_class <> 'IDLE'
+              AND (
+                con_id > 1000
+                OR con_id = 1
+              )
+            GROUP BY
+              tenant_id,
+              event_group
+            ORDER BY
+              tenant_id,
+              event_group) a, oceanbase.__all_tenant b 
+              where a.tenant_id=b.tenant_id and b.tenant_name='{tenant_name}';"
         global: true

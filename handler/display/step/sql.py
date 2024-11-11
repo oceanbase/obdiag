@@ -63,6 +63,10 @@ class StepSQLHandler(SafeStdio):
             table = PrettyTable(columns)
             for row in data:
                 table.add_row(row)
+            title = self.step.get("tittle")
+            if title is not None:
+                formatted_title = f"\n[obdiag display]: {title} "
+                self.stdio.print(formatted_title)
             self.stdio.print(table)
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
