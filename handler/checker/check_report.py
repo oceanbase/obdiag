@@ -53,10 +53,10 @@ class CheckReport:
         date_format = now.strftime("%Y-%m-%d-%H-%M-%S")
         self.report_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        file_name = "/obdiag_check_report_{0}_".format(report_target) + date_format
+        file_name = "obdiag_check_report_{0}_".format(report_target) + date_format
         self.report_target = report_target
 
-        report_path = self.export_report_path + file_name
+        report_path = os.path.join(self.export_report_path, file_name)
         self.report_path = report_path
         self.stdio.verbose("export report to {0}".format(report_path))
 
