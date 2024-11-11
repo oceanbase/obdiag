@@ -243,14 +243,15 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            options = self.context.options
             self.stdio.print("{0} start ...".format(function_type))
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
+            options = self.context.options
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
             if function_type == 'gather_log':
-                handler = GatherComponentLogHandler(
+                handler = GatherComponentLogHandler()
+                handler.init(
                     self.context,
                     target="observer",
                     from_option=Util.get_option(options, 'from'),
@@ -324,7 +325,21 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_context_skip_cluster_conn('gather_obproxy_log', 'gather', config)
-            handler = GatherObProxyLogHandler(self.context)
+            options = self.context.options
+            handler = GatherComponentLogHandler()
+            handler.init(
+                self.context,
+                target="obproxy",
+                from_option=Util.get_option(options, 'from'),
+                to_option=Util.get_option(options, 'to'),
+                since=Util.get_option(options, 'since'),
+                scope=Util.get_option(options, 'scope'),
+                grep=Util.get_option(options, 'grep'),
+                encrypt=Util.get_option(options, 'encrypt'),
+                store_dir=Util.get_option(options, 'store_dir'),
+                temp_dir=Util.get_option(options, 'temp_dir'),
+                redact=Util.get_option(options, 'redact'),
+            )
             return handler.handle()
 
     def gather_scenes_list(self, opt):

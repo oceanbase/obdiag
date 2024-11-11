@@ -110,7 +110,6 @@ class Gather_log:
             for zip_file in zip_files:
                 if "zip" not in zip_file:
                     continue
-
                 # open zip file
                 self.stdio.verbose("open zip file: {0}".format(os.path.join(gather_result, zip_file)))
                 with zipfile.ZipFile(os.path.join(gather_result, zip_file), 'r') as zip_ref:
@@ -122,7 +121,6 @@ class Gather_log:
                     for log_file in os.listdir(log_dir):
                         result_log_files.append(os.path.join(log_dir, log_file))
                         self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
-
             self.reset()
 
             return result_log_files
