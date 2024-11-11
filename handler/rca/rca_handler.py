@@ -152,15 +152,9 @@ class RCAHandler:
             if self.rca_scene is None:
                 raise Exception("rca_scene :{0} is not exist".format(scene_name))
 
-            self.store_dir = os.path.expanduser(
-                "{0}/obdiag_{1}_{2}".format(
-                    self.store_dir,
-                    scene_name,
-                    datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
-                )
-            )
+            self.store_dir = os.path.expanduser(os.path.join(self.store_dir, "obdiag_{0}_{1}".format(scene_name, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))))
             if not os.path.exists(self.store_dir):
-                os.mkdir(self.store_dir)
+                os.makedirs(self.store_dir)
             self.context.set_variable("store_dir", self.store_dir)
             self.stdio.verbose("{1} store_dir:{0}".format(self.store_dir, scene_name))
             # build gather_log
@@ -209,6 +203,7 @@ class RCAHandler:
 
 class RcaScene:
     def __init__(self):
+        self.work_path = None
         self.record = None
         self.gather_log = None
         self.stdio = None
@@ -241,6 +236,7 @@ class RcaScene:
         self.ob_cluster = context.get_variable("ob_cluster")
         self.input_parameters = context.get_variable("input_parameters") or {}
         self.gather_log = context.get_variable("gather_log")
+        self.work_path = self.store_dir
 
     def execute(self):
         # 获取获取根因分析结果(包括运维建议)，返回RCA_ResultRecord格式
