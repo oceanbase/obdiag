@@ -84,6 +84,7 @@ class SshClient(SafeStdio):
         return self.client.exec_cmd(cmd).strip()
 
     def download(self, remote_path, local_path):
+        self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))
         return self.client.download(remote_path, local_path)
 
     def upload(self, remote_path, local_path):
