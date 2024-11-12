@@ -222,7 +222,7 @@ class CheckHandler:
                 if version:
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
-                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report)
+                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
                     self.stdio.verbose("{0} execute!".format(task_name))
                     task.execute()
                     self.stdio.verbose("execute tasks end : {0}".format(task_name))
