@@ -23,7 +23,7 @@ import threading
 from handler.base_shell_handler import BaseShellHandler
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
-from common.command import get_file_size, download_file, is_empty_dir, rm_rf_file, get_logfile_name_list, mkdir, delete_empty_file, zip_encrypt_dir, zip_dir
+from common.command import get_file_size, download_file, is_empty_dir, rm_rf_file, get_logfile_name_list, mkdir, delete_empty_file, tar_gz_dir
 from common.command import SshClient
 from common.tool import TimeUtils
 from common.tool import Util
@@ -177,8 +177,7 @@ class GatherLogHandler(BaseShellHandler):
 
         nodes_threads = []
         self.stdio.print("gather nodes's log start. Please wait a moment...")
-        old_silent = self.stdio.silent
-        self.stdio.set_silent(True)
+        self.stdio.start_loading("gather start")
         for node in self.nodes:
             if not self.is_ssh:
                 local_ip = NetUtils.get_inner_ip()
@@ -189,7 +188,7 @@ class GatherLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        self.stdio.set_silent(old_silent)
+        self.stdio.stop_loading("gather successes")
         summary_tuples = self.__get_overall_summary(gather_tuples, self.zip_encrypt)
         self.stdio.print(summary_tuples)
         self.pack_dir_this_command = pack_dir_this_command
@@ -366,21 +365,20 @@ class GatherLogHandler(BaseShellHandler):
     def __handle_zip_file(self, ssh_client, resp, gather_dir_name, pack_dir_this_command):
         zip_password = ""
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
-        self.stdio.start_loading('[ip: {0}] zip observer log start'.format(ssh_client.get_name()))
+        self.stdio.print('[ip: {0}] gather observer log start'.format(ssh_client.get_name()))
         if self.zip_encrypt:
             zip_password = Util.gen_password(16)
-            self.zip_password = zip_password
-            zip_encrypt_dir(ssh_client, zip_password, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
-        else:
-            zip_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
-        self.stdio.stop_loading('[{0}] zip observer log end'.format(ssh_client.get_name()))
-        gather_package_dir = "{0}.zip".format(gather_dir_full_path)
+        tar_gz_dir(ssh_client, self.gather_ob_log_temporary_dir, gather_dir_name, self.stdio)
+        self.stdio.print('[{0}] gather observer log end'.format(ssh_client.get_name()))
+        gather_package_dir = "{0}.tar.gz".format(gather_dir_full_path)
         gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
         self.stdio.print(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size))
         local_store_path = ""
         if int(gather_log_file_size) < self.file_size_limit:
+            local_store_tar_gz_file = pack_dir_this_command + "/{0}.tar.gz".format(gather_dir_name)
+            download_file(ssh_client, gather_package_dir, local_store_tar_gz_file, self.stdio)
             local_store_path = pack_dir_this_command + "/{0}.zip".format(gather_dir_name)
-            download_file(ssh_client, gather_package_dir, local_store_path, self.stdio)
+            FileUtil.tar_gz_to_zip(pack_dir_this_command, local_store_tar_gz_file, local_store_path, zip_password, self.stdio)
             resp["error"] = ""
             resp["zip_password"] = zip_password
         else:

@@ -193,6 +193,20 @@ def zip_dir(ssh_client, father_dir, zip_dir, stdio=None):
     ssh_client.exec_cmd(cmd)
 
 
+def tar_gz_dir(ssh_client, father_dir, tar_dir, stdio=None):
+    """
+    Compress files through tar.gz on a remote server
+    :param ssh_client: An instance of SSHClient
+    :param father_dir: The parent directory containing the directory to be compressed
+    :param tar_dir: The directory to be compressed
+    :param stdio: An optional stream for logging output
+    :return: None
+    """
+    tar_gz_file = f"{tar_dir}.tar.gz"
+    cmd = f"cd {father_dir} && tar -zcvf {tar_gz_file} {tar_dir} && rm {tar_dir}"
+    ssh_client.exec_cmd(cmd)
+
+
 def zip_encrypt_dir(ssh_client, zip_password, father_dir, zip_dir, stdio=None):
     """
     Compress files by encryption

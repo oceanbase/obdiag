@@ -22,7 +22,7 @@ import datetime
 
 import tabulate
 
-from common.command import download_file, is_empty_dir, is_support_arch, get_observer_version, get_observer_pid, mkdir, zip_dir, get_file_size, delete_file_force, is_empty_file, upload_file
+from common.command import download_file, is_empty_dir, is_support_arch, get_observer_version, get_observer_pid, mkdir, tar_gz_dir, get_file_size, delete_file_force, is_empty_file, upload_file
 from common.constant import const
 from common.command import LocalClient, SshClient
 from handler.base_shell_handler import BaseShellHandler
@@ -167,15 +167,17 @@ class GatherObstack2Handler(BaseShellHandler):
         if is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio):
             resp["error"] = "gather failed, folder is empty"
             return resp
+        tar_gz_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
+        remote_tar_file_path = "{0}.tar.gz".format(remote_dir_full_path)
 
-        zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-        remote_zip_file_path = "{0}.zip".format(remote_dir_full_path)
-
-        file_size = get_file_size(ssh_client, remote_zip_file_path, self.stdio)
-        remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
+        file_size = get_file_size(ssh_client, remote_tar_file_path, self.stdio)
+        remote_file_full_path = "{0}.tar.gz".format(remote_dir_full_path)
         if int(file_size) < self.file_size_limit:
-            local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-            download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
+            local_tar_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
+            self.stdio.verbose("local tar file path {0}...".format(local_tar_file_path))
+            download_file(ssh_client, remote_file_full_path, local_tar_file_path, self.stdio)
+            local_zip_file_path = local_stored_path + "/{0}.zip".format(remote_dir_name)
+            FileUtil.tar_gz_to_zip(local_stored_path, local_tar_file_path, local_zip_file_path, None, self.stdio)
             resp["error"] = ""
         else:
             resp["error"] = "File too large"

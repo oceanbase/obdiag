@@ -149,8 +149,7 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         nodes_threads = []
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
-        old_silent = self.stdio.silent
-        self.stdio.set_silent(True)
+        self.stdio.start_loading('analyze start')
         for node in self.nodes:
             if not self.is_ssh:
                 local_ip = NetUtils.get_inner_ip()
@@ -161,9 +160,6 @@ class AnalyzeLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        self.stdio.set_silent(old_silent)
-
-        self.stdio.start_loading('analyze result start')
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         analyze_info_nodes = []
         for summary in summary_list:
@@ -227,9 +223,9 @@ class AnalyzeLogHandler(BaseShellHandler):
             else:
                 self.__pharse_log_file(ssh_client, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
                 analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
-            self.stdio.start_loading('analyze log start')
+            self.stdio.print('analyze log start')
             file_result = self.__parse_log_lines(analyze_log_full_path)
-            self.stdio.stop_loading('analyze log sucess')
+            self.stdio.print('analyze log sucess')
             node_results.append(file_result)
         delete_file(ssh_client, gather_dir_full_path, self.stdio)
         ssh_client.ssh_close()
