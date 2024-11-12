@@ -12,6 +12,7 @@
 import datetime
 import os
 import threading
+import traceback
 import uuid
 
 from prettytable import PrettyTable
@@ -72,7 +73,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
             self.oms_module_id = kwargs.get('oms_module_id', None)
-            self._check_option()
+            self.__check_option()
             if self.oms_module_id:
                 self.gather_log_conf_dict["oms_module_id"] = self.oms_module_id
             # build config dict for gather log on node
@@ -95,7 +96,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio.error("init GatherComponentLogHandler failed, error: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, "init GatherComponentLogHandler failed, error: {0}".format(str(e)))
 
-    def _check_option(self):
+    def __check_option(self):
         # target check
         if self.target is None or self.target == "":
             self.target = 'observer'
@@ -209,14 +210,12 @@ class GatherComponentLogHandler(BaseShellHandler):
             def run_on_node(context, conf_dict, node, pool_sema, gather_tuples):
                 with pool_sema:
                     try:
-                        gather_tuple = {}
                         task = GatherLogOnNode(context, node, conf_dict, pool_sema)
                         task.handle()
                         gather_tuple = task.get_result()
                         gather_tuples.append(gather_tuple)
                     except Exception as e:
-                        self.stdio.exception(e)
-                        self.stdio.error("gather log failed: {0}".format(str(e)))
+                        self.stdio.error("gather log run_on_node failed: {0}".format(str(e)))
                         return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log failed: {0}".format(str(e)))
 
             self.stdio.start_loading("gather start")
@@ -258,11 +257,12 @@ class GatherComponentLogHandler(BaseShellHandler):
                     self.stdio.stop_loading("gather redact successes")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
+                self.stdio.verbose(traceback.format_exc())
                 self.stdio.error("redact failed {0}".format(e))
                 return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.store_dir})
         except Exception as e:
-            self.stdio.exception(e)
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("gather log failed: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log failed: {0}".format(str(e)))
 
@@ -275,9 +275,14 @@ class GatherComponentLogHandler(BaseShellHandler):
         summary_tb = PrettyTable()
         summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         summary_tb.field_names = ["Node", "Status", "Size", "info"]
+        if self.zip_password:
+            summary_tb.field_names = ["Node", "Status", "Size", "info", "zip_password"]
         try:
             for tup in node_summary_tuple:
-                summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"]])
+                if self.zip_password:
+                    summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"], self.zip_password])
+                else:
+                    summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"]])
         except Exception as e:
             self.stdio.error("gather log __get_overall_summary failed: {0}".format(str(e)))
         return summary_tb
@@ -331,7 +336,7 @@ class GatherLogOnNode:
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
 
-        tmp_log_dir = os.path.join(self.tmp_dir, "ob_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, uuid.uuid4()))
+        tmp_log_dir = os.path.join(self.tmp_dir, "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target))
         # mkdir tmp_log_dir
         self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
         self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}".format(self.ssh_client.get_ip(), tmp_log_dir))

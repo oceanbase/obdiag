@@ -40,9 +40,7 @@ from handler.analyzer.analyze_variable import AnalyzeVariableHandler
 from handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
-from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
-from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_sysstat import GatherOsInfoHandler
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_obadmin import GatherObAdminHandler
@@ -292,9 +290,35 @@ class ObdiagHome(object):
                 handler_stack.handle()
                 handler_perf = GatherPerfHandler(self.context)
                 handler_perf.handle()
-                handler_log = GatherLogHandler(self.context)
-                handler_log.handle()
-                handler_obproxy = GatherObProxyLogHandler(self.context)
+                handler_observer_log = GatherComponentLogHandler()
+                handler_observer_log.init(
+                    self.context,
+                    target="observer",
+                    from_option=Util.get_option(options, 'from'),
+                    to_option=Util.get_option(options, 'to'),
+                    since=Util.get_option(options, 'since'),
+                    scope=Util.get_option(options, 'scope'),
+                    grep=Util.get_option(options, 'grep'),
+                    encrypt=Util.get_option(options, 'encrypt'),
+                    store_dir=Util.get_option(options, 'store_dir'),
+                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    redact=Util.get_option(options, 'redact'),
+                )
+                handler_observer_log.handle()
+                handler_obproxy = GatherComponentLogHandler()
+                handler_obproxy.init(
+                    self.context,
+                    target="obproxy",
+                    from_option=Util.get_option(options, 'from'),
+                    to_option=Util.get_option(options, 'to'),
+                    since=Util.get_option(options, 'since'),
+                    scope=Util.get_option(options, 'scope'),
+                    grep=Util.get_option(options, 'grep'),
+                    encrypt=Util.get_option(options, 'encrypt'),
+                    store_dir=Util.get_option(options, 'store_dir'),
+                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    redact=Util.get_option(options, 'redact'),
+                )
                 return handler_obproxy.handle()
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)

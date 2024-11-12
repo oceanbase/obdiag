@@ -18,10 +18,10 @@
 import os
 
 from common.ssh_client.ssh import SshClient
+from handler.gather.gather_component_log import GatherComponentLogHandler
 from stdio import SafeStdio
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
-from handler.gather.gather_log import GatherLogHandler
 
 
 class CPUHighScene(SafeStdio):
@@ -74,7 +74,8 @@ class CPUHighScene(SafeStdio):
     def __gather_log(self):
         try:
             self.stdio.print("gather observer log start")
-            handler = GatherLogHandler(self.context, self.report_path, is_scene=True)
+            handler = GatherComponentLogHandler()
+            handler.init(self.context, store_dir=self.report_path, target="observer", is_scene=True)
             handler.handle()
             self.stdio.print("gather observer log end")
         except Exception as e:
