@@ -991,26 +991,89 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
         return obdiag.analyze_fuction('analyze_sql_review', self.opts)
 
 
-class ObdiagCheckCommand(ObdiagOriginCommand):
+class ObdiagCheckRunCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckCommand, self).__init__('check', 'check OceanBase cluster')
+        super(ObdiagCheckRunCommand, self).__init__('check', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
-        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml", "html". default table', default='table')
+        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--env', action='callback', type='string', callback=self._env, help='env of scene')
+        self.check_input_param_map = {}
+
+    def _env(self, option, opt_str, value, parser):
+        """
+        env of check task
+        """
+        try:
+            # env option is key=val format
+            key, val = value.split('=', 1)
+            if key is None or key == "":
+                return
+            m = self._env_set(key, val)
+
+            def _scene_input_param(param_map, scene_param_map):
+                for scene_param_map_key, scene_param_map_value in scene_param_map.items():
+                    if scene_param_map_key in param_map:
+                        if isinstance(scene_param_map_value, dict):
+                            _scene_input_param(param_map[scene_param_map_key], scene_param_map_value)
+                        else:
+                            param_map[scene_param_map_key] = scene_param_map_value
+                    else:
+                        param_map[scene_param_map_key] = scene_param_map_value
+                return param_map
+
+            self.scene_input_param_map = _scene_input_param(self.check_input_param_map, m)
+        except Exception as e:
+            raise Exception("Key or val ({1}) is illegal: {0}".format(e, value))
+
+    def _env_set(self, key, val):
+        def recursion(param_map, key, val):
+            if key is None or key == "":
+                raise Exception("key is None")
+            if val is None or val == "":
+                raise Exception("val is None")
+            if key.startswith(".") or key.endswith("."):
+                raise Exception("Key starts or ends '.'")
+            if "." in key:
+                map_key = key.split(".")[0]
+                param_map[map_key] = recursion({}, key[len(map_key) + 1 :], val)
+                return param_map
+            else:
+                param_map[key] = val
+                return param_map
+
+        return recursion({}, key, val)
 
     def init(self, cmd, args):
-        super(ObdiagCheckCommand, self).init(cmd, args)
+        super(ObdiagCheckRunCommand, self).init(cmd, args)
         self.parser.set_usage('%s [options]' % self.prev_cmd)
         return self
 
     def _do_command(self, obdiag):
         if 'list' in self.args:
             return obdiag.check_list(self.opts)
+        Util.set_option(self.opts, 'env', self.check_input_param_map)
         return obdiag.check(self.opts)
+
+
+class ObdiagCheckListCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagCheckListCommand, self).__init__('list', 'check list')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagCheckListCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.check_list(self.opts)
 
 
 class ObdiagRCARunCommand(ObdiagOriginCommand):
@@ -1204,6 +1267,14 @@ class ObdiagRCACommand(MajorCommand):
         super(ObdiagRCACommand, self).__init__('rca', 'root cause analysis')
         self.register_command(ObdiagRCARunCommand())
         self.register_command(ObdiagRCAListCommand())
+
+
+class ObdiagCheckCommand(MajorCommand):
+
+    def __init__(self):
+        super(ObdiagCheckCommand, self).__init__('check', 'Check OceanBase cluster info')
+        self.register_command(ObdiagCheckRunCommand())
+        self.register_command(ObdiagCheckListCommand())
 
 
 class MainCommand(MajorCommand):
