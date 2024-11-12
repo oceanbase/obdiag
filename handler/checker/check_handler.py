@@ -54,7 +54,8 @@ class CheckHandler:
         self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
         self.options = self.context.options
-        self.input_env = Util.get_option(self.options, 'checck_env')
+        env_option = Util.get_option(self.options, 'env')
+        self.input_env = StringUtils.parse_env_display(env_option) or {}
         # init output parameters
         self.stdio.verbose(
             "CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
