@@ -95,7 +95,7 @@ class GatherComponentLogHandler(BaseShellHandler):
 
         except Exception as e:
             self.stdio.error("init GatherComponentLogHandler failed, error: {0}".format(str(e)))
-            self.result=ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init GatherComponentLogHandler failed, error: {0}".format(str(e)))
+            self.result = ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init GatherComponentLogHandler failed, error: {0}".format(str(e)))
 
     def __check_option(self):
         # target check
@@ -209,7 +209,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         try:
             if not self.result.is_success():
                 return self.result
-
 
             # run on every node
             def run_on_node(context, conf_dict, node, pool_sema, gather_tuples):
