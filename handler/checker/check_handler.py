@@ -54,10 +54,12 @@ class CheckHandler:
         self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
 
+        self.input_env = self.context.inner_config["check"]["env"] or "prod"
+        # init output parameters
         self.stdio.verbose(
             "CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
             "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
-            " tasks_base_path is {6}.".format(
+            " tasks_base_path is {6}, input_env is {7}".format(
                 self.ignore_version,
                 self.cluster.get("ob_cluster_name") or self.cluster.get("obproxy_cluster_name"),
                 StringUtils.node_cut_passwd_for_log(self.nodes),
@@ -65,6 +67,7 @@ class CheckHandler:
                 self.export_report_type,
                 self.check_target_type,
                 self.tasks_base_path,
+                self.input_env
             )
         )
 

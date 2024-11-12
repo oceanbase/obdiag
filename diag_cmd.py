@@ -994,7 +994,7 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
 class ObdiagCheckRunCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckRunCommand, self).__init__('check', 'check OceanBase cluster')
+        super(ObdiagCheckRunCommand, self).__init__('run', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
@@ -1054,8 +1054,6 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        if 'list' in self.args:
-            return obdiag.check_list(self.opts)
         Util.set_option(self.opts, 'env', self.check_input_param_map)
         return obdiag.check(self.opts)
 
