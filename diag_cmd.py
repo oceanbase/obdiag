@@ -1054,7 +1054,7 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        Util.set_option(self.opts, 'env', self.check_input_param_map)
+        Util.set_option(self.opts, 'checck_env', self.check_input_param_map)
         return obdiag.check(self.opts)
 
 

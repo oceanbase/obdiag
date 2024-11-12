@@ -53,8 +53,8 @@ class CheckHandler:
             self.nodes = self.context.obproxy_config.get("servers")
         self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
-
-        self.input_env = self.context.inner_config["check"]["env"] or "prod"
+        self.options = self.context.options
+        self.input_env = Util.get_option(self.options, 'checck_env')
         # init output parameters
         self.stdio.verbose(
             "CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
