@@ -67,7 +67,7 @@ class CheckHandler:
                 self.export_report_type,
                 self.check_target_type,
                 self.tasks_base_path,
-                self.input_env
+                self.input_env,
             )
         )
 
