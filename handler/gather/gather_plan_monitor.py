@@ -85,7 +85,8 @@ class GatherPlanMonitorHandler(object):
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         if env_option is not None:
-            self.__init_db_conn(env_option)
+            if not self.__init_db_conn(env_option):
+                return False
         else:
             self.db_connector = self.sys_connector
         return self.tenant_mode_detected()
@@ -231,12 +232,13 @@ class GatherPlanMonitorHandler(object):
             self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_db_connector()
+                return True
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env {0}".format(env_dict))
-                self.db_connector = self.sys_connector
+                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'],  but provided {0}, please check the --env option".format(env_dict))
+                return False
         except Exception as e:
             self.db_connector = self.sys_connector
-            self.stdio.exception("init db connector, error: {0}, please check --env option ")
+            self.stdio.exception("init db connector, error: {0}, please check --env option ".format(e))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
