@@ -97,7 +97,7 @@ class DisplaySceneHandler(SafeStdio):
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_db_connector()
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env {0}".format(env_dict))
+                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env db_connect={0}".format(cli_connection_string))
                 self.db_connector = self.sys_connector
         except Exception as e:
             self.stdio.exception("init db connector, error: {0}, please check --env option ")
