@@ -273,6 +273,7 @@ class GatherPlanMonitorHandler(object):
             if self.enable_dump_db:
                 words = [w.strip(',') for w in ("%s" % sql).split() if not ("[" in w or "=" in w or "|" in w or "(" in w or "--" in w or "]" in w or ")" in w or "*" in w or "/" in w or "%" in w or "'" in w or "-" in w or w.isdigit())]
                 for t in words:
+                    t = t.replace('`', '')
                     if t in valid_words:
                         continue
                     valid_words.append(t)
