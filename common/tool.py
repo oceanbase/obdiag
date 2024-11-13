@@ -31,6 +31,8 @@ import re
 import json
 import hashlib
 import datetime
+import uuid
+
 import tabulate
 import tarfile
 import socket
@@ -660,7 +662,7 @@ class FileUtil(object):
             fileobj.write(u'{}'.format(result))
 
     def tar_gz_to_zip(temp_dir, tar_gz_file, output_zip, password, stdio):
-        extract_dir = os.path.join(temp_dir, 'extracted_files')
+        extract_dir = os.path.join(temp_dir, 'extracted_files_{0}'.format(str(uuid.uuid4())[:6]))
 
         try:
             # 1. Extract the tar.gz file
