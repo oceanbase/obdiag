@@ -46,7 +46,7 @@ task:
             svr_port,
             unit_id;"
         global: true
-  - version: "[3.0.0.0, *]"
+  - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
         sql: "SELECT

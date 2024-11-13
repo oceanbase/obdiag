@@ -1,6 +1,5 @@
 info_en: "[slowsql]"
 info_cn: "[查看慢sql]"
-# command: obdiag display scene run --scene=observer.slowsql --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env mtime=10
 command: obdiag display scene run --scene=observer.slowsql --env tenant_name=test --env mtime=10
 
 task:
@@ -38,7 +37,7 @@ task:
               elapsed_time DESC
             LIMIT 10;"
         global: true
-  - version: "[3.0.0.0, *]"
+  - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
         sql: "SELECT

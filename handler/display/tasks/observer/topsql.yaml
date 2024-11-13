@@ -1,29 +1,14 @@
 info_en: "[topsql info]"
 info_cn: "[查看topsql]"
-# command: obdiag display scene run --scene=observer.topsql --env db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest' --env mtime=10
-command: obdiag display scene run --scene=observer.tenant_info --env tenant_name=test --env mtime=10
+command: obdiag display scene run --scene=observer.topsql --env tenant_name=test --env mtime=10
 
 task:
-  # - version: "[4.0.0.0, *]"
-  #   steps:
-  #     - type: sql
-  #       sql: "select tenant_name, SQL_ID, count(*) as QPS, avg(t1.ELAPSED_TIME) as ELAPSED_TIME_AVG, substr(query_sql,1,50)
-  #             from oceanbase.gv$ob_sql_audit t1
-  #             where 
-  #             IS_EXECUTOR_RPC = 0
-  #             and request_time > (time_to_usec(now()) - {mtime} * 60 * 1000000)
-  #             and request_time < time_to_usec(now())
-  #             and length(query_sql) > 0
-  #             and IS_INNER_SQL = 0
-  #             and length(sql_id) > 0
-  #             group by t1.sql_id order by QPS desc limit 10;"
-  #       global: true
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
         tittle: Top SQL time consumption in the last {mtime} minutes
         sql: "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,SQL_ID,QUERY_SQL,count(1),avg(ELAPSED_TIME),avg(EXECUTE_TIME),avg(QUEUE_TIME),avg(AFFECTED_ROWS),avg(GET_PLAN_TIME) 
-              from gv$ob_sql_audit  
+              from oceanbase.gv$ob_sql_audit  
               where time_to_usec(now(6))-request_time <{mtime}*60*1000000 
               and tenant_name='{tenant_name}' 
               group by SQL_ID order by avg(ELAPSED_TIME)*count(1) desc limit 20;"
@@ -50,7 +35,7 @@ task:
         global: true
       - type: sql
         tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past {mtime} minutes
-        sql: "select/ *+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type    
+        sql: "select / *+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type    
               from oceanbase.gv$ob_sql_audit     
               where tenant_name ='{tenant_name}'          
               and IS_EXECUTOR_RPC = 0          
@@ -67,12 +52,12 @@ task:
               and request_time < time_to_usec(now())
               group by sql_id limit 20;"
         global: true
-  - version: "[3.0.0.0, *]"
+  - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
         tittle: Top SQL time consumption in the last {mtime} minutes
         sql: "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,SQL_ID,QUERY_SQL,count(1),avg(ELAPSED_TIME),avg(EXECUTE_TIME),avg(QUEUE_TIME),avg(AFFECTED_ROWS),avg(GET_PLAN_TIME) 
-              from gv$sql_audit  
+              from oceanbase.gv$sql_audit  
               where time_to_usec(now(6))-request_time <{mtime}*60*1000000 
               and tenant_name='{tenant_name}'  
               group by SQL_ID order by avg(ELAPSED_TIME)*count(1) desc limit 20 ;"

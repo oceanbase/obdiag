@@ -53,7 +53,7 @@ task:
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use_per\" stat_name, concat(round(sum(data_disk_in_use/1024/1024/1024)/sum(data_disk_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers;"
         global: true
-  - version: "[3.0.0.0, *]"
+  - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cluster_name\" stat_name, cluster_name value from oceanbase.v$ob_cluster limit 1

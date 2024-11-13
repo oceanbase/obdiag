@@ -7,7 +7,7 @@ task:
       - type: sql
         sql: "select * from oceanbase.dba_ob_zones;"
         global: true
-  - version: "[3.0.0.0, *]"
+  - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
         sql: "select * from oceanbase.__all_zone;"
