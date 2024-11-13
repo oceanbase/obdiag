@@ -65,7 +65,7 @@ class StepSQLHandler(SafeStdio):
                 table.add_row(row)
             title = self.step.get("tittle")
             if title is not None:
-                title = StringUtils.replace_parameters(formatted_title, self.env)
+                title = StringUtils.replace_parameters(title, self.env)
                 formatted_title = f"\n[obdiag display]: {title} "
                 self.stdio.print(formatted_title)
             self.stdio.print(table)
