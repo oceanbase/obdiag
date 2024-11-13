@@ -702,11 +702,6 @@ class FileUtil(object):
             if os.path.exists(extract_dir):
                 shutil.rmtree(extract_dir)
             return False
-        except pyminizip.compress_error as ce:
-            stdio.exception("compression error: {0}".format(ce))
-            if os.path.exists(extract_dir):
-                shutil.rmtree(extract_dir)
-            return False
         except Exception as e:
             stdio.exception("an error occurred: {0}".format(e))
             if os.path.exists(extract_dir):
