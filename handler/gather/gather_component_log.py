@@ -380,11 +380,13 @@ class GatherLogOnNode:
                 return
             else:
                 self.stdio.verbose("gather_log_on_node {0} download log to local store_dir: {1}".format(self.ssh_client.get_ip(), self.store_dir))
-                self.ssh_client.download(tar_file, self.store_dir)
-
+                self.ssh_client.download(tar_file, os.path.join(self.store_dir, os.path.basename("{0}".format(tar_file))))
             # tar to zip
-            tar_file_name = "{0}.tar.gz".format(tmp_log_dir)
-            local_zip_store_path = os.path.join(self.store_dir, os.path.basename("{0}.zip".format(tmp_log_dir)))
+            tar_file_name = os.path.basename("{0}".format(tar_file))
+            self.stdio.verbose("tar_file_name: {0}".format(tar_file_name))
+            local_tar_file_path = os.path.join(self.store_dir, tar_file_name)
+            local_zip_store_path = os.path.join(self.store_dir, os.path.basename("{0}.zip".format(tar_file)))
+            self.stdio.verbose("local_tar_file_path: {0}; local_zip_store_path: {1}".format(local_tar_file_path, local_zip_store_path))
             FileUtil.tar_gz_to_zip(self.store_dir, tar_file_name, local_zip_store_path, self.zip_password, self.stdio)
             self.gather_tuple["file_size"] = FileUtil.size_format(num=int(os.path.getsize(local_zip_store_path) or 0), output_str=True)
             self.gather_tuple["info"] = "file save in {0}".format(local_zip_store_path)
@@ -393,6 +395,7 @@ class GatherLogOnNode:
             self.stdio.verbose("clear tar file: {0}".format(local_tar_file_name))
             os.remove(local_tar_file_name)
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
             self.gather_tuple["info"] = str(e)
         finally:
