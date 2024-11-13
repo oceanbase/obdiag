@@ -10,3 +10,11 @@ task:
       - type: sql
         sql: "select * from oceanbase.__all_rootservice_event_history order by 1 desc limit 10;"
         global: true
+  - version: "[3.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "show parameters like '%rootservice_list%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history order by 1 desc limit 10;"
+        global: true
