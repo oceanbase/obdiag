@@ -11,9 +11,9 @@
 # See the Mulan PSL v2 for more details.
 import datetime
 import os
-import threading
 import traceback
 import uuid
+import multiprocessing as mp
 
 from prettytable import PrettyTable
 from common.command import get_file_start_time, get_file_size, is_empty_dir
@@ -132,14 +132,6 @@ class GatherComponentLogHandler(BaseShellHandler):
                 raise Exception("can not get nodes by target: {0}".format(self.target))
         if len(self.nodes) == 0:
             raise Exception("can not get nodes by target: {0}, nodes's len is 0.".format(self.target))
-        # build ssh_client for every node
-        new_nodes = []
-        for node in self.nodes:
-            new_node = node
-            ssh_client = SshClient(self.context, node)
-            new_node["ssh_client"] = ssh_client
-            new_nodes.append(new_node)
-        self.nodes = new_nodes
         # check scope
         if self.scope is None or self.scope == "" or self.scope == "all":
             self.scope = "all"
@@ -211,39 +203,30 @@ class GatherComponentLogHandler(BaseShellHandler):
                 return self.result
 
             # run on every node
-            def run_on_node(context, conf_dict, node, pool_sema, gather_tuples):
-                with pool_sema:
-                    try:
-                        task = GatherLogOnNode(context, node, conf_dict, pool_sema)
-                        task.handle()
-                        gather_tuple = task.get_result()
-                        gather_tuples.append(gather_tuple)
-                    except Exception as e:
-                        self.stdio.error("gather log run_on_node failed: {0}".format(str(e)))
-                        raise Exception("gather log run_on_node failed: {0}".format(str(e)))
-
-            self.stdio.start_loading("gather start")
-            pool_sema = threading.BoundedSemaphore(value=self.thread_nums)
             node_threads = []
             gather_tuples = []
+            tasks = []
+            self.stdio.start_loading("gather redact start")
             for node in self.nodes:
-                next_context = self.context
-                next_context.stdio = self.stdio.sub_io()
-                node_thread = threading.Thread(
-                    target=run_on_node,
-                    args=(next_context, self.gather_log_conf_dict, node, pool_sema, gather_tuples),
-                )
-                node_thread.start()
-                node_threads.append(node_thread)
-            for node_thread in node_threads:
-                node_thread.join()
+                new_context = self.context
+                new_context.stdio = self.stdio.sub_io()
+                tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict))
+            with mp.Pool(processes=self.thread_nums) as pool:
+                for task in tasks:
+                    node_threads.append(pool.apply_async(task.handle()))
+                pool.close()
+                pool.join()  # wait for all task to finish
+            for task in tasks:
+                gather_tuple = task.get_result()
+                gather_tuples.append(gather_tuple)
             self.stdio.verbose("gather_tuples: {0}".format(gather_tuples))
-            self.stdio.stop_loading("gather successes")
+            self.stdio.stop_loading("succeed")
             # save result
             summary_tuples = self.__get_overall_summary(gather_tuples)
             self.stdio.print(summary_tuples)
             with open(os.path.join(self.store_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
                 fileobj.write(summary_tuples.get_string())
+            self.stdio.stop_loading("succeed")
 
             last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
             self.stdio.print(last_info)
@@ -258,7 +241,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                     redact = Redact(self.context, self.store_dir, redact_dir, zip_password=self.zip_password)
                     redact.redact_files(self.redact)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
-                    self.stdio.stop_loading("gather redact successes")
+                    self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
                 self.stdio.verbose(traceback.format_exc())
@@ -295,13 +278,12 @@ class GatherComponentLogHandler(BaseShellHandler):
 
 
 class GatherLogOnNode:
-    def __init__(self, context, node, config, pool_sema):
-        self.ssh_client = node["ssh_client"]
+    def __init__(self, context, node, config):
         self.context = context
+        self.ssh_client = SshClient(context, node)
         self.stdio = context.stdio
         self.config = config
         self.node = node
-        self.pool_sema = pool_sema
         self.target = self.config.get("target")
 
         # mkdir tmp_dir
