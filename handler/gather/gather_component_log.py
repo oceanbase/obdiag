@@ -278,9 +278,11 @@ class GatherComponentLogHandler(BaseShellHandler):
         """
         summary_tb = PrettyTable()
         summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        summary_tb.field_names = ["Node", "Status", "Size", "info"]
+        self.stdio.verbose("node_summary_tuple: {0}".format(node_summary_tuple))
         if self.zip_password:
             summary_tb.field_names = ["Node", "Status", "Size", "info", "zip_password"]
+        else:
+            summary_tb.field_names = ["Node", "Status", "Size", "info"]
         try:
             for tup in node_summary_tuple:
                 if self.zip_password:
@@ -385,20 +387,18 @@ class GatherLogOnNode:
             tar_file_name = os.path.basename("{0}".format(tar_file))
             self.stdio.verbose("tar_file_name: {0}".format(tar_file_name))
             local_tar_file_path = os.path.join(self.store_dir, tar_file_name)
-            local_zip_store_path = os.path.join(self.store_dir, os.path.basename("{0}.zip".format(tar_file)))
+            local_zip_store_path = os.path.join(self.store_dir, os.path.basename("{0}.zip".format(tmp_log_dir)))
             self.stdio.verbose("local_tar_file_path: {0}; local_zip_store_path: {1}".format(local_tar_file_path, local_zip_store_path))
-            FileUtil.tar_gz_to_zip(self.store_dir, tar_file_name, local_zip_store_path, self.zip_password, self.stdio)
+            FileUtil.tar_gz_to_zip(self.store_dir, local_tar_file_path, local_zip_store_path, self.zip_password, self.stdio)
             self.gather_tuple["file_size"] = FileUtil.size_format(num=int(os.path.getsize(local_zip_store_path) or 0), output_str=True)
             self.gather_tuple["info"] = "file save in {0}".format(local_zip_store_path)
             self.gather_tuple["success"] = "Success"
-            local_tar_file_name = os.path.join(self.store_dir, os.path.basename("{0}".format(tar_file_name)))
-            self.stdio.verbose("clear tar file: {0}".format(local_tar_file_name))
-            os.remove(local_tar_file_name)
         except Exception as e:
             self.stdio.verbose(traceback.format_exc())
             self.stdio.error("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
             self.gather_tuple["info"] = str(e)
         finally:
+            self.stdio.verbose("clear tmp_log_dir: {0}".format(tmp_log_dir))
             self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
 
