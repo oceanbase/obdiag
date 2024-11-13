@@ -35,7 +35,7 @@ task:
         global: true
       - type: sql
         tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past {mtime} minutes
-        sql: "select / *+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type    
+        sql: "select /*+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type    
               from oceanbase.gv$ob_sql_audit     
               where tenant_name ='{tenant_name}'          
               and IS_EXECUTOR_RPC = 0          
