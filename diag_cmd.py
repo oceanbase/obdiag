@@ -955,7 +955,6 @@ class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
         self.parser.add_option('--limit', type='string', help="The limit on the number of data rows returned by sql_audit for the tenant.", default=2000)
         self.parser.add_option('--store_dir', type='string', help='the dir to store result, current dir by default.', default='./obdiag_analyze/')
         self.parser.add_option('--elapsed_time', type='string', help='The minimum threshold for filtering execution time, measured in microseconds.', default=100000)
-        self.parser.add_option('--run_mode', type='string', help='run mode, choices=[single, continuous', default='single')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -1195,8 +1194,8 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeVariableCommand())
         self.register_command(ObdiagAnalyzeQueueCommand())
         self.register_command(ObdiagAnalyzeIndexSpaceCommand())
-        self.register_command(ObdiagAnalyzeSQLCommand())
-        self.register_command(ObdiagAnalyzeSQLReviewCommand())
+        # self.register_command(ObdiagAnalyzeSQLCommand())
+        # self.register_command(ObdiagAnalyzeSQLReviewCommand())
 
 
 class ObdiagRCACommand(MajorCommand):
