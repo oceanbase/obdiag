@@ -206,16 +206,20 @@ class GatherComponentLogHandler(BaseShellHandler):
             node_threads = []
             gather_tuples = []
             tasks = []
-            self.stdio.start_loading("gather redact start")
+            self.stdio.start_loading("gather start")
+            semaphore = mp.Semaphore(self.thread_nums)
             for node in self.nodes:
                 new_context = self.context
                 new_context.stdio = self.stdio.sub_io()
-                tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict))
-            with mp.Pool(processes=self.thread_nums) as pool:
-                for task in tasks:
-                    node_threads.append(pool.apply_async(task.handle()))
-                pool.close()
-                pool.join()  # wait for all task to finish
+                tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
+            file_queue = []
+            for task in tasks:
+                semaphore.acquire()
+                file_thread = mp.Process(target=task.handle())
+                file_thread.start()
+                file_queue.append(file_thread)
+            for file_thread in file_queue:
+                file_thread.join()
             for task in tasks:
                 gather_tuple = task.get_result()
                 gather_tuples.append(gather_tuple)
@@ -278,13 +282,14 @@ class GatherComponentLogHandler(BaseShellHandler):
 
 
 class GatherLogOnNode:
-    def __init__(self, context, node, config):
+    def __init__(self, context, node, config, semaphore):
         self.context = context
         self.ssh_client = SshClient(context, node)
         self.stdio = context.stdio
         self.config = config
         self.node = node
         self.target = self.config.get("target")
+        self.semaphore = semaphore
 
         # mkdir tmp_dir
         self.tmp_dir = self.config.get("tmp_dir")
@@ -383,6 +388,7 @@ class GatherLogOnNode:
             self.stdio.verbose("clear tmp_log_dir: {0}".format(tmp_log_dir))
             self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
+            self.semaphore.release()
 
     def __grep_log_to_tmp(self, logs_name, tmp_log_dir):
         grep_cmd = ""
