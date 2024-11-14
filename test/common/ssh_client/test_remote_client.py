@@ -204,7 +204,7 @@ class TestRemoteClient(unittest.TestCase):
         self.remote_client.download(remote_path, local_path)
 
         # Verify that the get method was called once with the correct parameters during the download process
-        self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path, callback=self.remote_client.progress_bar)
+        self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path)
 
         # Verify that the close method was called once after the download completes
         self.remote_client._sftp_client.close.assert_called_once()
@@ -243,7 +243,7 @@ class TestRemoteClient(unittest.TestCase):
             self.remote_client.download(remote_path, local_path)
 
         # Confirm that the get method was called once with the correct parameters
-        self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path, callback=self.remote_client.progress_bar)
+        self.remote_client._sftp_client.get.assert_called_once_with(remote_path, local_path)
 
         # Manually call the close method to mimic actual behavior
         self.remote_client._sftp_client.close()
