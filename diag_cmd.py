@@ -932,6 +932,7 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--version', type="string", help='specify the OceanBase version of the log file to be analyzed.This option is only used for offline analysis.')
 
     def init(self, cmd, args):
         super(ObdiagAnalyzeMemoryCommand, self).init(cmd, args)

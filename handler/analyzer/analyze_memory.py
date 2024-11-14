@@ -75,6 +75,7 @@ class AnalyzeMemoryHandler(object):
     def init_option(self):
         options = self.context.options
         from_option = Util.get_option(options, 'from')
+        version = Util.get_option(options, 'version')
         to_option = Util.get_option(options, 'to')
         since_option = Util.get_option(options, 'since')
         store_dir_option = Util.get_option(options, 'store_dir')
@@ -87,6 +88,7 @@ class AnalyzeMemoryHandler(object):
             self.is_ssh = False
             self.directly_analyze_files = True
             self.analyze_files_list = files_option
+            self.version = version
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
