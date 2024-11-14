@@ -46,5 +46,47 @@ task:
             svr_port,
             unit_id;"
         global: true
+  - version: "[3.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "SELECT
+              unit_config_id,
+              name,
+              max_cpu,
+              min_cpu,
+              round(max_memory / 1024 / 1024 / 1024) max_memory_gb,
+              round(min_memory / 1024 / 1024 / 1024) min_memory_gb,
+              round(max_disk_size / 1024 / 1024 / 1024) max_disk_size_gb,
+              max_iops,
+              min_iops,
+              max_session_num
+            FROM
+              oceanbase.__all_unit_config
+            ORDER BY unit_config_id;"
+        global: true
+      - type: sql
+        sql: "SELECT
+            tenant_name,
+            tenant_id,
+            svr_ip,
+            svr_port,
+            zone,
+            unit_config_id,
+            max_cpu,
+            min_cpu,
+            round(max_memory / 1024 / 1024 / 1024) max_memory_gb,
+            round(min_memory / 1024 / 1024 / 1024) min_memory_gb,
+            round(max_disk_size / 1024 / 1024 / 1024) max_disk_size_gb,
+            max_iops,
+            min_iops,
+            max_session_num
+          FROM
+            oceanbase.gv$unit
+          ORDER BY
+            tenant_id,
+            svr_ip,
+            svr_port;"
+        global: true
+
 
         
