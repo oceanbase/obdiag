@@ -36,8 +36,6 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 
-
-
 class AnalyzeMemoryHandler(object):
     def __init__(self, context):
         super(AnalyzeMemoryHandler, self).__init__()
@@ -246,9 +244,7 @@ class AnalyzeMemoryHandler(object):
                 exit(-1)
         try:
             fig = go.Figure()
-            colors = [
-                'blue', 'orange', 'green', 'red', 'purple', 'cyan', 'magenta', 'yellow', 'black',
-                'brown', 'pink', 'gray', 'lime', 'teal', 'navy']
+            colors = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'magenta', 'yellow', 'black', 'brown', 'pink', 'gray', 'lime', 'teal', 'navy']
             if len(tenant_memory_info_dict) < 20:
                 i = 0
                 x_lines = []
@@ -278,13 +274,10 @@ class AnalyzeMemoryHandler(object):
                         else:
                             if x_vals[-1] != x_lines[-1]:
                                 x_vals.append(x_lines[-1])
-                    tenant_hold_lines = [round(int(tenant_memory_info_dict[tenant_id][t]['hold'])/1024/1024) for t in sorted(tenant_memory_info_dict[tenant_id].keys())]
+                    tenant_hold_lines = [round(int(tenant_memory_info_dict[tenant_id][t]['hold']) / 1024 / 1024) for t in sorted(tenant_memory_info_dict[tenant_id].keys())]
                     fig_tenant.add_trace(go.Scatter(x=x_lines, y=tenant_hold_lines, mode='lines'))
                     fig_tenant.update_layout(title='租户-{0} hold内存曲线图'.format(tenant_id), xaxis_title='时间', yaxis_title='值(MB)')
-                    fig_tenant.update_xaxes(
-                        tickvals=x_vals,
-                        ticktext=[str(x) for x in x_vals]
-                    )
+                    fig_tenant.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                     fig_tenant.update_yaxes(tickformat='.0f')
                     ctx_memory_info_dict = dict()
                     mod_memory_info_dict = dict()
@@ -307,14 +300,10 @@ class AnalyzeMemoryHandler(object):
                                         mod_memory_info_dict[key_name] = dict()
                                         mod_memory_info_dict[key_name][t] = mod['mod_hold_bytes']
                     for ctx_name in ctx_memory_info_dict:
-                        ctx_hold_lines = [round(int(ctx_memory_info_dict[ctx_name][t])/1024/1024) for t in sorted(ctx_memory_info_dict[ctx_name].keys())]
+                        ctx_hold_lines = [round(int(ctx_memory_info_dict[ctx_name][t]) / 1024 / 1024) for t in sorted(ctx_memory_info_dict[ctx_name].keys())]
                         fig_ctx.add_trace(go.Scatter(x=x_lines, y=ctx_hold_lines, mode='lines', name='{0}'.format(ctx_name)))
-                        fig_ctx.update_layout(title='租户-{0} ctx hold内存曲线图'.format(tenant_id), xaxis_title='时间',
-                                                 yaxis_title='值(MB)')
-                        fig_ctx.update_xaxes(
-                            tickvals=x_vals,
-                            ticktext=[str(x) for x in x_vals]
-                        )
+                        fig_ctx.update_layout(title='租户-{0} ctx hold内存曲线图'.format(tenant_id), xaxis_title='时间', yaxis_title='值(MB)')
+                        fig_ctx.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                         fig_ctx.update_yaxes(tickformat='.0f')
                     if len(mod_memory_info_dict) > 10:
                         mod_avg_memory_info_dict = dict()
@@ -325,28 +314,18 @@ class AnalyzeMemoryHandler(object):
                                 mod_avg_memory_info_dict[mod_name] = mod_avg
                         top_10_keys = sorted(mod_avg_memory_info_dict, key=mod_avg_memory_info_dict.get, reverse=True)[:10]
                         for key in top_10_keys:
-                            mod_hold_lines = [round(mod_memory_info_dict[key][t]/1024/1024) for t in sorted(mod_memory_info_dict[key].keys())]
-                            fig_mod.add_trace(
-                                go.Scatter(x=x_lines, y=mod_hold_lines, mode='lines', name='{0}'.format(key)))
-                            fig_mod.update_layout(title='租户-{0} top10 mod hold内存曲线图'.format(tenant_id), xaxis_title='时间',
-                                                  yaxis_title='值(MB)')
-                            fig_mod.update_xaxes(
-                                tickvals=x_vals,
-                                ticktext=[str(x) for x in x_vals]
-                            )
+                            mod_hold_lines = [round(mod_memory_info_dict[key][t] / 1024 / 1024) for t in sorted(mod_memory_info_dict[key].keys())]
+                            fig_mod.add_trace(go.Scatter(x=x_lines, y=mod_hold_lines, mode='lines', name='{0}'.format(key)))
+                            fig_mod.update_layout(title='租户-{0} top10 mod hold内存曲线图'.format(tenant_id), xaxis_title='时间', yaxis_title='值(MB)')
+                            fig_mod.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                             fig_mod.update_yaxes(tickformat='.0f')
                     else:
                         for key in mod_memory_info_dict:
                             if '-SUMMARY' not in key:
-                                mod_hold_lines = [round(mod_memory_info_dict[key][t]/1024/1024) for t in sorted(mod_memory_info_dict[key].keys())]
-                                fig_mod.add_trace(
-                                    go.Scatter(x=x_lines, y=mod_hold_lines, mode='lines', name='{0}'.format(key)))
-                                fig_mod.update_layout(title='租户-{0} top10 mod hold内存曲线图'.format(tenant_id), xaxis_title='时间',
-                                                      yaxis_title='值(MB)')
-                                fig_mod.update_xaxes(
-                                    tickvals=x_vals,
-                                    ticktext=[str(x) for x in x_vals]
-                                )
+                                mod_hold_lines = [round(mod_memory_info_dict[key][t] / 1024 / 1024) for t in sorted(mod_memory_info_dict[key].keys())]
+                                fig_mod.add_trace(go.Scatter(x=x_lines, y=mod_hold_lines, mode='lines', name='{0}'.format(key)))
+                                fig_mod.update_layout(title='租户-{0} top10 mod hold内存曲线图'.format(tenant_id), xaxis_title='时间', yaxis_title='值(MB)')
+                                fig_mod.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                                 fig_mod.update_yaxes(tickformat='.0f')
                     html_fig_tenant = pio.to_html(fig_tenant, full_html=False)
                     html_fig_ctx = pio.to_html(fig_ctx, full_html=False)
@@ -406,15 +385,14 @@ class AnalyzeMemoryHandler(object):
     {3}
 </body>
 </html>
-'''.format(tenant_id, html_fig_tenant, html_fig_ctx, html_fig_mod)
+'''.format(
+                        tenant_id, html_fig_tenant, html_fig_ctx, html_fig_mod
+                    )
                     with open('{0}/tenant-{1}_hold_memory.html'.format(local_store_dir, tenant_id), 'w') as f:
                         f.write(html_combined)
                     fig.add_trace(go.Scatter(x=x_lines, y=tenant_hold_lines, mode='lines', name='tenant-{0}'.format(tenant_id), line=dict(color=color)))
                 fig.update_layout(title='TOP 15租户hold内存曲线图', xaxis_title='时间', yaxis_title='值(MB)')
-                fig.update_xaxes(
-                    tickvals=x_vals,
-                    ticktext=[str(x) for x in x_vals]
-                )
+                fig.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                 fig.update_yaxes(tickformat='.0f')
                 html_fig = pio.to_html(fig, full_html=False)
                 html_top15_combined = '''
@@ -468,7 +446,9 @@ class AnalyzeMemoryHandler(object):
     {0}
 </body>
 </html>
-'''.format(html_fig)
+'''.format(
+                    html_fig
+                )
                 with open('{0}/TOP15_tenant_hold_memory.html'.format(local_store_dir), 'w') as f:
                     f.write(html_top15_combined)
                 # plot(fig, filename='{0}/TOP15_tenant_hold_memory.html'.format(local_store_dir))
