@@ -215,6 +215,9 @@ class GatherComponentLogHandler(BaseShellHandler):
             for node in self.nodes:
                 new_context = self.context
                 new_context.stdio = self.stdio.sub_io()
+                # use Process must delete ssh_client, and GatherLogOnNode rebuild it.
+                if "ssh_client" in node:
+                    del node["ssh_client"]
                 tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
             file_queue = []
             result_list = mp.Queue()

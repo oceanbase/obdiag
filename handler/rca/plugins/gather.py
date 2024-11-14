@@ -35,9 +35,9 @@ class Gather_log:
 
     def init_parameters(self):
         self.conf_map["filter_nodes_list"] = []
-        self.conf_map["gather_from"] = ""
-        self.conf_map["gather_to"] = ""
-        self.conf_map["gather_since"] = ""
+        self.conf_map["gather_from"] = None
+        self.conf_map["gather_to"] = None
+        self.conf_map["gather_since"] = None
         self.conf_map["gather_scope"] = ""
         self.conf_map["store_dir"] = self.work_path
         self.conf_map["gather_target"] = "observer"
