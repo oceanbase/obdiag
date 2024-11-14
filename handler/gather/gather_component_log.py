@@ -144,6 +144,13 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.scope = self.scope.strip()
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
+        # check grep
+        if self.grep:
+            if isinstance(self.grep, list):
+                pass
+            elif isinstance(self.grep, str):
+                self.grep = self.grep.strip()
+
         # check since from_option and to_option
         from_timestamp = None
         to_timestamp = None
@@ -313,7 +320,7 @@ class GatherLogOnNode:
 
         self.from_time_str = self.config.get("from_time")
         self.to_time_str = self.config.get("to_time")
-        self.grep_option = self.config.get("grep_option")
+        self.grep_option = self.config.get("grep")
         self.store_dir = self.config.get("store_dir")
         self.zip_password = self.config.get("zip_password") or None
         #
@@ -334,9 +341,8 @@ class GatherLogOnNode:
         self.result_list = result_list
         self.ssh_client = SshClient(self.context, self.node)
         self.gather_tuple["node"] = self.ssh_client.get_name()
-        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())))
+        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())[:6]))
         self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
-        self.stdio.verbose("do it")
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
 
@@ -374,6 +380,11 @@ class GatherLogOnNode:
 
             # download log to local store_dir
             tar_file_size = int(get_file_size(self.ssh_client, tar_file))
+            self.stdio.verbose("gather_log_on_node {0} tar_file_size: {1}".format(self.ssh_client.get_ip(), tar_file_size))
+            if tar_file_size == 0:
+                self.stdio.error("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
+                self.gather_tuple["info"] = "tar file size is 0"
+                return
             if tar_file_size > self.file_size_limit:
                 self.stdio.error("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "File too large over gather.file_size_limit"
@@ -407,10 +418,11 @@ class GatherLogOnNode:
     def __grep_log_to_tmp(self, logs_name, tmp_log_dir):
         grep_cmd = ""
         if self.grep_option:
-            self.stdio.verbose("grep files, grep_option = [{0}]".format(self.grep_option))
+            self.stdio.verbose("grep files, grep_option = {0}".format(self.grep_option))
             for grep_option in self.grep_option:
                 if grep_cmd == "":
                     grep_cmd = "grep -e '{0}' ".format(grep_option)
+                    continue
                 grep_cmd += "| grep -e '{0}'".format(grep_option)
         for log_name in logs_name:
             source_log_name = "{0}/{1}".format(self.log_path, log_name)
