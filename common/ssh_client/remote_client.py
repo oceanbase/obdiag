@@ -115,7 +115,7 @@ class RemoteClient(SsherClient):
         transport = self._ssh_fd.get_transport()
         self._sftp_client = paramiko.SFTPClient.from_transport(transport)
         self.stdio.verbose('Download {0}:{1}'.format(self.host_ip, remote_path))
-        self._sftp_client.get(remote_path, local_path )
+        self._sftp_client.get(remote_path, local_path)
         self._sftp_client.close()
 
     def progress_bar(self, transferred, to_be_transferred, suffix=''):
