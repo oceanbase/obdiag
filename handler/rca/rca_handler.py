@@ -25,6 +25,7 @@ from common.command import (
     get_obproxy_version,
     get_observer_version,
 )
+import traceback
 from prettytable import PrettyTable
 from common.ob_connector import OBConnector
 from common.ssh_client.ssh import SshClient
@@ -168,7 +169,7 @@ class RCAHandler:
             return self.__execute()
         else:
             self.stdio.error("rca_scene :{0} is not exist or not input".format(scene_name))
-            raise Exception("rca_scene :{0} is not exist or not input".format(scene_name))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="rca_scene :{0} is not exist or not input".format(scene_name))
 
     # get all tasks
     def __execute(self):
@@ -178,11 +179,13 @@ class RCAHandler:
             self.stdio.warn("rca_scene.execute not need execute: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data={"result": "rca_scene.execute not need execute"})
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("rca_scene.execute err: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.execute err: {0}".format(e))
         try:
             self.rca_scene.export_result()
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("rca_scene.export_result err: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
         self.stdio.print(
