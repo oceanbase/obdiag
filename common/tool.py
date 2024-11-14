@@ -1217,17 +1217,20 @@ class StringUtils(object):
     @staticmethod
     def parse_env(env_string, stdio=None):
         env_dict = {}
-        inner_str = env_string[1:-1]
+        inner_str = env_string[1:-1].strip()
         pairs = inner_str.split(',')
         for pair in pairs:
-            key_value = pair.strip().split('=')
+            pair = pair.strip()
+            key_value = pair.split('=', 1)
             if len(key_value) == 2:
                 key, value = key_value
+                key = key.strip()
+                value = value.strip()
                 if value.startswith('"') and value.endswith('"'):
                     value = value[1:-1]
                 elif value.startswith("'") and value.endswith("'"):
                     value = value[1:-1]
-                env_dict[key.strip()] = value.strip()
+                env_dict[key] = value
         return env_dict
 
     @staticmethod
