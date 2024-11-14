@@ -15,14 +15,17 @@
 @file: px_collect_log.py
 @desc:
 """
+import os
+import shutil
+
 from common.ssh_client.ssh import SshClient
-from handler.gather.gather_log import GatherLogHandler
-from common.command import uzip_dir_local, analyze_log_get_sqc_addr, delete_file_in_folder, find_home_path_by_port
+from handler.gather.gather_component_log import GatherComponentLogHandler
+from common.command import uzip_dir_local, analyze_log_get_sqc_addr, find_home_path_by_port
 import datetime
 
 
 class SQLPXCollectLogScene(object):
-    def __init__(self, context, scene_name, report_path, task_variable_dict=None, env={}):
+    def __init__(self, context, scene_name, report_path, task_variable_dict=None, env=None):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -31,6 +34,8 @@ class SQLPXCollectLogScene(object):
             self.task_variable_dict = task_variable_dict
         self.report_path = report_path
         self.env = env
+        if self.env is None:
+            self.env = {}
         self.is_ssh = True
         self.scene_name = scene_name
         self.db_conn = {}
@@ -56,7 +61,7 @@ class SQLPXCollectLogScene(object):
             #    否则不存在，则删除被解压的目录
             if len(self.sql_task_node) != 0:
                 self.stdio.verbose("delete file start")
-                delete_file_in_folder(False, None, self.report_path, self.stdio)
+                shutil.rmtree(self.report_path)
                 self.stdio.verbose("delete file end")
                 self.__gather_log()
                 uzip_dir_local(self.report_path, self.stdio)
@@ -64,14 +69,18 @@ class SQLPXCollectLogScene(object):
     def __gather_log(self):
         try:
             self.stdio.verbose("gather observer log start, trace id: {0}".format(self.trace_id))
-            handler = GatherLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
-            self.context.set_variable('filter_nodes_list', self.sql_task_node)
-            self.context.set_variable('gather_grep', self.trace_id)
-            self.context.set_variable('gather_mode', 'trace_id_log')
             from_time_str = (self.search_time - datetime.timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S')
             to_time_str = (self.search_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            self.context.set_variable("gather_from", from_time_str)
-            self.context.set_variable("gather_to", to_time_str)
+            handler = GatherComponentLogHandler()
+            handler.init(
+                self.context,
+                target="observer",
+                from_option=from_time_str,
+                to_option=to_time_str,
+                grep=[self.trace_id],
+                is_scene=True,
+                store_dir=self.report_path,
+            )
             handler.handle()
             self.stdio.verbose("gather observer log end")
         except Exception as e:

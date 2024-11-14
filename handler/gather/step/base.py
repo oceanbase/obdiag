@@ -16,16 +16,17 @@
 @desc:
 """
 from common.ssh_client.ssh import SshClient
+from handler.gather.gather_component_log import GatherComponentLogHandler
 from stdio import SafeStdio
 from handler.gather.step.ssh import SshHandler
 from handler.gather.step.sql import StepSQLHandler
-from handler.gather.gather_log import GatherLogHandler
-from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_sysstat import GatherOsInfoHandler
 
 
 class Base(SafeStdio):
-    def __init__(self, context, step, node, cluster, report_path, task_variable_dict=None, env={}, node_number=1):
+    def __init__(self, context, step, node, cluster, report_path, task_variable_dict=None, env=None, node_number=1):
+        if env is None:
+            env = {}
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -67,17 +68,17 @@ class Base(SafeStdio):
                     handler.execute()
                 elif self.step["type"] == "log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBSERVER":
-                        handler = GatherLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
-                        self.context.set_variable('filter_nodes_list', [self.node])
-                        self.context.set_variable('gather_grep', self.step.get("grep"))
+                        handler = GatherComponentLogHandler()
+                        handler.init(self.context, target="observer", grep=self.step.get("grep"), nodes=[self.node], store_dir=self.report_path, is_scene=True)
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBSERVER, skipping gather log".format(self.node.get("host_type")))
                 elif self.step["type"] == "obproxy_log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBPROXY":
-                        handler = GatherObProxyLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
                         self.context.set_variable('filter_nodes_list', [self.node])
                         self.context.set_variable('gather_grep', self.step.get("grep"))
+                        handler = GatherComponentLogHandler()
+                        handler.init(self.context, target="obproxy", grep=self.step.get("grep"), nodes=[self.node], store_dir=self.report_path, is_scene=True)
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBPROXY, skipping gather log".format(self.node.get("host_type")))

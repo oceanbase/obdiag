@@ -24,6 +24,7 @@ from copy import copy
 
 from common.ssh_client.remote_client import dis_rsa_algorithms
 from handler.gather.gather_ash_report import GatherAshReportHandler
+from handler.gather.gather_component_log import GatherComponentLogHandler
 from handler.rca.rca_handler import RCAHandler
 from handler.rca.rca_list import RcaScenesListHandler
 from common.ssh import SshClient, SshConfig
@@ -39,9 +40,7 @@ from handler.analyzer.analyze_variable import AnalyzeVariableHandler
 from handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
-from handler.gather.gather_log import GatherLogHandler
 from handler.gather.gather_awr import GatherAwrHandler
-from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_sysstat import GatherOsInfoHandler
 from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_obadmin import GatherObAdminHandler
@@ -245,10 +244,24 @@ class ObdiagHome(object):
             self.stdio.print("{0} start ...".format(function_type))
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
+            options = self.context.options
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
             if function_type == 'gather_log':
-                handler = GatherLogHandler(self.context)
+                handler = GatherComponentLogHandler()
+                handler.init(
+                    self.context,
+                    target="observer",
+                    from_option=Util.get_option(options, 'from'),
+                    to_option=Util.get_option(options, 'to'),
+                    since=Util.get_option(options, 'since'),
+                    scope=Util.get_option(options, 'scope'),
+                    grep=Util.get_option(options, 'grep'),
+                    encrypt=Util.get_option(options, 'encrypt'),
+                    store_dir=Util.get_option(options, 'store_dir'),
+                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    redact=Util.get_option(options, 'redact'),
+                )
                 return handler.handle()
             elif function_type == 'gather_awr':
                 handler = GatherAwrHandler(self.context)
@@ -277,9 +290,35 @@ class ObdiagHome(object):
                 handler_stack.handle()
                 handler_perf = GatherPerfHandler(self.context)
                 handler_perf.handle()
-                handler_log = GatherLogHandler(self.context)
-                handler_log.handle()
-                handler_obproxy = GatherObProxyLogHandler(self.context)
+                handler_observer_log = GatherComponentLogHandler()
+                handler_observer_log.init(
+                    self.context,
+                    target="observer",
+                    from_option=Util.get_option(options, 'from'),
+                    to_option=Util.get_option(options, 'to'),
+                    since=Util.get_option(options, 'since'),
+                    scope=Util.get_option(options, 'scope'),
+                    grep=Util.get_option(options, 'grep'),
+                    encrypt=Util.get_option(options, 'encrypt'),
+                    store_dir=Util.get_option(options, 'store_dir'),
+                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    redact=Util.get_option(options, 'redact'),
+                )
+                handler_observer_log.handle()
+                handler_obproxy = GatherComponentLogHandler()
+                handler_obproxy.init(
+                    self.context,
+                    target="obproxy",
+                    from_option=Util.get_option(options, 'from'),
+                    to_option=Util.get_option(options, 'to'),
+                    since=Util.get_option(options, 'since'),
+                    scope=Util.get_option(options, 'scope'),
+                    grep=Util.get_option(options, 'grep'),
+                    encrypt=Util.get_option(options, 'encrypt'),
+                    store_dir=Util.get_option(options, 'store_dir'),
+                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    redact=Util.get_option(options, 'redact'),
+                )
                 return handler_obproxy.handle()
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)
@@ -310,7 +349,21 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.set_context_skip_cluster_conn('gather_obproxy_log', 'gather', config)
-            handler = GatherObProxyLogHandler(self.context)
+            options = self.context.options
+            handler = GatherComponentLogHandler()
+            handler.init(
+                self.context,
+                target="obproxy",
+                from_option=Util.get_option(options, 'from'),
+                to_option=Util.get_option(options, 'to'),
+                since=Util.get_option(options, 'since'),
+                scope=Util.get_option(options, 'scope'),
+                grep=Util.get_option(options, 'grep'),
+                encrypt=Util.get_option(options, 'encrypt'),
+                store_dir=Util.get_option(options, 'store_dir'),
+                temp_dir=Util.get_option(options, 'temp_dir'),
+                redact=Util.get_option(options, 'redact'),
+            )
             return handler.handle()
 
     def gather_scenes_list(self, opt):
@@ -401,31 +454,34 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            self.stdio.print("check start ...")
-            self.update_obcluster_nodes(config)
-            self.set_context('check', 'check', config)
-            obproxy_check_handler = None
-            observer_check_handler = None
-            result_data = {}
-            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
-                obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
-                obproxy_check_handler.handle()
-                obproxy_result = obproxy_check_handler.execute()
-                result_data['obproxy'] = obproxy_result
-            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
-                observer_check_handler = CheckHandler(self.context, check_target_type="observer")
-                observer_check_handler.handle()
-                observer_result = observer_check_handler.execute()
-                result_data['observer'] = observer_result
-            if obproxy_check_handler is not None:
-                obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
-                if os.path.exists(obproxy_report_path):
-                    self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-            if observer_check_handler is not None:
-                observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
-                if os.path.exists(observer_report_path):
-                    self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
+            try:
+                self.stdio.print("check start ...")
+                self.update_obcluster_nodes(config)
+                self.set_context('check', 'check', config)
+                obproxy_check_handler = None
+                observer_check_handler = None
+                result_data = {}
+                if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
+                    obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
+                    obproxy_result = obproxy_check_handler.handle()
+                    result_data['obproxy'] = obproxy_result
+                if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
+                    observer_check_handler = CheckHandler(self.context, check_target_type="observer")
+                    observer_result = observer_check_handler.handle()
+                    result_data['observer'] = observer_result
+                if obproxy_check_handler is not None:
+                    obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
+                    if os.path.exists(obproxy_report_path):
+                        self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                if observer_check_handler is not None:
+                    observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
+                    if os.path.exists(observer_report_path):
+                        self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
+            except Exception as e:
+                self.stdio.error("check Exception: {0}".format(e))
+                self.stdio.verbose(traceback.format_exc())
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="check Exception: {0}".format(e))
 
     def check_list(self, opts):
         config = self.config_manager

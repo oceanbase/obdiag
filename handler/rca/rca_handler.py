@@ -165,11 +165,13 @@ class RCAHandler:
             except Exception as e:
                 raise Exception("rca_scene.init err: {0}".format(e))
             self.stdio.verbose("{0} init success".format(scene_name))
+            return self.__execute()
         else:
+            self.stdio.error("rca_scene :{0} is not exist or not input".format(scene_name))
             raise Exception("rca_scene :{0} is not exist or not input".format(scene_name))
 
     # get all tasks
-    def execute(self):
+    def __execute(self):
         try:
             self.rca_scene.execute()
         except RCANotNeedExecuteException as e:

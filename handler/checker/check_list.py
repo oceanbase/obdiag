@@ -82,4 +82,5 @@ class CheckListHandler:
                     Util.print_scene(cases_map, stdio=self.stdio)
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_map)
         except Exception as e:
+
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
