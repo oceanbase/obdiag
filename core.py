@@ -37,6 +37,7 @@ from handler.analyzer.analyze_sql import AnalyzeSQLHandler
 from handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from handler.analyzer.analyze_parameter import AnalyzeParameterHandler
 from handler.analyzer.analyze_variable import AnalyzeVariableHandler
+from handler.analyzer.analyze_memory import AnalyzeMemoryHandler
 from handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
 from handler.checker.check_handler import CheckHandler
 from handler.checker.check_list import CheckListHandler
@@ -444,6 +445,10 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
+            elif function_type == 'analyze_memory':
+                self.set_context(function_type, 'analyze', config)
+                handler = AnalyzeMemoryHandler(self.context)
+                return handler.handle()
             else:
                 self._call_stdio('error', 'Not support analyze function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support analyze function: {0}'.format(function_type))
@@ -503,8 +508,7 @@ class ObdiagHome(object):
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)
-                handler.handle()
-                return handler.execute()
+                return handler.handle()
             except Exception as e:
                 self.stdio.error("rca run Exception: {0}".format(e))
                 self.stdio.verbose(traceback.format_exc())

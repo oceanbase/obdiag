@@ -61,7 +61,11 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.inner_config = self.context.inner_config
             self.target = kwargs.get('target', None)
             self.from_option = kwargs.get('from_option', None)
+            if self.from_option:
+                self.from_option = self.from_option.strip()
             self.to_option = kwargs.get('to_option', None)
+            if self.to_option:
+                self.to_option = self.to_option.strip()
             self.since_option = kwargs.get('since', None)
             self.scope = kwargs.get('scope', None)
             self.grep = kwargs.get('grep', None)
@@ -213,22 +217,22 @@ class GatherComponentLogHandler(BaseShellHandler):
                 new_context.stdio = self.stdio.sub_io()
                 tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
             file_queue = []
+            result_list = mp.Queue()
             for task in tasks:
                 semaphore.acquire()
-                file_thread = mp.Process(target=task.handle())
+                file_thread = mp.Process(target=task.handle, args=(result_list,))
                 file_thread.start()
                 file_queue.append(file_thread)
             for file_thread in file_queue:
                 file_thread.join()
-            for task in tasks:
-                gather_tuple = task.get_result()
-                gather_tuples.append(gather_tuple)
+            for _ in range(result_list.qsize()):
+                gather_tuples.append(result_list.get())
             self.stdio.verbose("gather_tuples: {0}".format(gather_tuples))
             self.stdio.stop_loading("succeed")
             # save result
             summary_tuples = self.__get_overall_summary(gather_tuples)
             self.stdio.print(summary_tuples)
-            with open(os.path.join(self.store_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+            with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
                 fileobj.write(summary_tuples.get_string())
             self.stdio.stop_loading("succeed")
 
@@ -284,7 +288,7 @@ class GatherComponentLogHandler(BaseShellHandler):
 class GatherLogOnNode:
     def __init__(self, context, node, config, semaphore):
         self.context = context
-        self.ssh_client = SshClient(context, node)
+        self.ssh_client = None
         self.stdio = context.stdio
         self.config = config
         self.node = node
@@ -293,8 +297,6 @@ class GatherLogOnNode:
 
         # mkdir tmp_dir
         self.tmp_dir = self.config.get("tmp_dir")
-        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())))
-        self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
 
         self.scope = self.config.get("scope")
         # todo log_path for oms
@@ -315,17 +317,23 @@ class GatherLogOnNode:
         self.file_number_limit = self.config.get("file_number_limit")
         self.file_size_limit = self.config.get("file_size_limit")
         self.gather_tuple = {
-            "node": self.ssh_client.get_name(),
+            "node": "",
             "success": "Fail",
             "info": "",
             "file_size": 0,
         }
+        self.result_list = None
 
     def get_result(self):
         return self.gather_tuple
 
-    def handle(self):
-
+    def handle(self, result_list=None):
+        self.result_list = result_list
+        self.ssh_client = SshClient(self.context, self.node)
+        self.gather_tuple["node"] = self.ssh_client.get_name()
+        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())))
+        self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
+        self.stdio.verbose("do it")
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
 
@@ -388,6 +396,9 @@ class GatherLogOnNode:
             self.stdio.verbose("clear tmp_log_dir: {0}".format(tmp_log_dir))
             self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
+            self.stdio.verbose("gather_log_on_node {0} gather_tuple: {1}".format(self.ssh_client.get_ip(), self.gather_tuple))
+            if self.result_list:
+                self.result_list.put(self.gather_tuple)
             self.semaphore.release()
 
     def __grep_log_to_tmp(self, logs_name, tmp_log_dir):

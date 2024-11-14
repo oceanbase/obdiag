@@ -919,6 +919,34 @@ class ObdiagAnalyzeVariableCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeVariableDiffCommand())
 
 
+class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagAnalyzeMemoryCommand, self).__init__('memory', 'Analyze OceanBase Memory info from online observer machines or offline OceanBase log files')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
+        self.parser.add_option('--files', action="append", type='string', help="specify files")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--version', type="string", help='specify the OceanBase version of the log file to be analyzed.This option is only used for offline analysis.')
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzeMemoryCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        offline_args_sign = '--files'
+        if self.args and (offline_args_sign in self.args):
+            return obdiag.analyze_fuction('analyze_memory', self.opts)
+        else:
+            return obdiag.analyze_fuction('analyze_memory', self.opts)
+
+
 class ObdiagAnalyzeIndexSpaceCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagAnalyzeIndexSpaceCommand, self).__init__('index_space', 'Analyze the space of existing or non-existent index and estimate it through the columns included in the index')
@@ -1210,6 +1238,7 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeVariableCommand())
         self.register_command(ObdiagAnalyzeQueueCommand())
         self.register_command(ObdiagAnalyzeIndexSpaceCommand())
+        self.register_command(ObdiagAnalyzeMemoryCommand())
         # self.register_command(ObdiagAnalyzeSQLCommand())
         # self.register_command(ObdiagAnalyzeSQLReviewCommand())
 

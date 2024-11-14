@@ -133,7 +133,7 @@ class Gather_log:
                     # Extract all files to the current directory
                     zip_ref.extractall(gather_result)
             for file_name in os.listdir(gather_result):
-                if "zip" not in file_name and "result_summary.txt" not in file_name:
+                if "zip" not in file_name and not file_name.endswith(".txt"):
                     log_dir = os.path.join(gather_result, file_name)
                     for log_file in os.listdir(log_dir):
                         result_log_files.append(os.path.join(log_dir, log_file))
