@@ -53,3 +53,51 @@ task:
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use_per\" stat_name, concat(round(sum(data_disk_in_use/1024/1024/1024)/sum(data_disk_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers;"
         global: true
+  - version: "[3.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cluster_name\" stat_name, cluster_name value from oceanbase.v$ob_cluster limit 1
+        union all 
+        (select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cluster_id\" stat_name, cluster_id value from oceanbase.v$ob_cluster limit 1)
+        union all
+        (select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/  \"version\" stat_name, build_version value from oceanbase.__all_server limit 1)
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"observers\" stat_name, count(*) value from oceanbase.__all_server
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"zones\" stat_name, count(distinct zone) value from oceanbase.__all_server
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenants\" stat_name, count(*) value from oceanbase.__all_tenant
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/  \"rs_list\" stat_name, value from oceanbase.__all_sys_parameter where name ='rootservice_list'
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/  \"config_url\" stat_name, value  from oceanbase.__all_sys_parameter where name ='obconfig_url'
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_limit\" stat_name, concat(sum(round((memory_limit+value)/1024/1024/1024,2)),'G') value from (select concat(round(a.mem_capacity/1024/1024/1024,2),'G') 
+        mem_capacity,a.mem_capacity memory_limit,
+        case when right(b.value,1)='G' then substring(b.value,1,position('G' in b.value)-1)*1024*1024*1024
+        when right(b.value,1)='M' then substring(b.value,1,position('G' in b.value)-1)*1024*1024 
+        end as value,a.svr_ip 
+        from oceanbase.__all_virtual_server_stat a
+        inner join oceanbase.__all_virtual_sys_parameter_stat b on a.svr_ip=b.svr_ip and b.name='system_memory')
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_allocated\" stat_name, concat(sum(TRUNCATE(disk_assigned/1024/1024/1024,0)),'G') value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_total\" stat_name, sum(cpu_capacity) value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_assigned\" stat_name, sum(cpu_assigned) value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_assinged_per\" stat_name, concat(round(sum(cpu_assigned)/sum(cpu_capacity), 2)*100, '%') value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_total\" stat_name, concat(sum(TRUNCATE(mem_total/1024/1024/1024,0)),'G') value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_assigned\" stat_name, concat(sum(TRUNCATE(mem_assigned/1024/1024/1024,0)),'G') value from oceanbase.__all_virtual_server_stat
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_assigned_per\" stat_name, concat(round(sum(mem_assigned/1024/1024/1024)/sum(mem_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.__all_virtual_server_stat
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_total\" stat_name, concat(sum(TRUNCATE(disk_total/1024/1024/1024,0)),'G') value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use\" stat_name, concat(sum(TRUNCATE(disk_in_use/1024/1024/1024,0)),'G') value from oceanbase.__all_virtual_server_stat
+        union all
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use_per\" stat_name, concat(round(sum(disk_in_use/1024/1024/1024)/sum(disk_total/1024/1024/1024), 2)*100, '%') value from oceanbase.__all_virtual_server_stat;"
+        global: true
+       

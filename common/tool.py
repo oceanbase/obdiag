@@ -16,6 +16,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
+import multiprocessing as mp
 
 import os
 import io
@@ -32,6 +33,7 @@ import json
 import hashlib
 import datetime
 import uuid
+
 import tabulate
 import tarfile
 import socket
@@ -678,16 +680,22 @@ class FileUtil(object):
                     base_path = os.path.basename(root)
                     files_to_compress.append(file_path)
                     base_paths.append(base_path)
-
+            stdio.verbose("start pyminizip compress_multiple")
             # 3. Compress the extracted files into a (possibly) encrypted zip file
+            zip_process = None
             if password:
                 # Use pyminizip to create the encrypted zip file
-                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
+                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, password, 5))
+                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
                 stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
             else:
                 # Create an unencrypted zip file
-                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
+                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, None, 5))
+                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
                 stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
+            zip_process.start()
+            if zip_process is not None:
+                zip_process.join()
 
             # 4. Remove the extracted directory
             shutil.rmtree(extract_dir)
@@ -1209,17 +1217,20 @@ class StringUtils(object):
     @staticmethod
     def parse_env(env_string, stdio=None):
         env_dict = {}
-        inner_str = env_string[1:-1]
+        inner_str = env_string[1:-1].strip()
         pairs = inner_str.split(',')
         for pair in pairs:
-            key_value = pair.strip().split('=')
+            pair = pair.strip()
+            key_value = pair.split('=', 1)
             if len(key_value) == 2:
                 key, value = key_value
+                key = key.strip()
+                value = value.strip()
                 if value.startswith('"') and value.endswith('"'):
                     value = value[1:-1]
                 elif value.startswith("'") and value.endswith("'"):
                     value = value[1:-1]
-                env_dict[key.strip()] = value.strip()
+                env_dict[key] = value
         return env_dict
 
     @staticmethod
