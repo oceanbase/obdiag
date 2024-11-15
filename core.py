@@ -392,7 +392,12 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
+            elif function_type == 'analyze_memory_offline':
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzeMemoryHandler(self.context)
+                return handler.handle()
             elif function_type == 'analyze_memory':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
