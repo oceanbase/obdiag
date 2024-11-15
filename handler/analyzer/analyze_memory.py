@@ -150,7 +150,7 @@ class AnalyzeMemoryHandler(object):
                 st = time.time()
                 resp = self.__handle_from_node(node, local_store_parent_dir)
                 analyze_tuples.append((node.get("ip"), False, resp["error"], int(time.time() - st), resp["result_pack_path"]))
-        
+
         nodes_threads = []
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze memory start')
