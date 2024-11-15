@@ -503,7 +503,8 @@ class ObdiagHome(object):
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)
-                return handler.handle()
+                handler.handle()
+                return handler.execute()
             except Exception as e:
                 self.stdio.error("rca run Exception: {0}".format(e))
                 self.stdio.verbose(traceback.format_exc())
