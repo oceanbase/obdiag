@@ -17,22 +17,19 @@
 """
 import os
 import time
-from common.command import get_observer_version_by_sql
-from common.tool import DirectoryUtil, TimeUtils, Util
-from common.obdiag_exception import OBDIAGFormatException
-import datetime
-from common.constant import const
-from common.tool import FileUtil
-import tabulate
-from common.command import download_file, get_logfile_name_list, mkdir, delete_file
-from common.command import SshClient
-import common.ssh_client.local_client as ssh_client_local_client
-from handler.meta.ob_error import OB_RET_DICT
-from result_type import ObdiagResult
-import traceback
-import json
 import plotly.graph_objects as go
 import plotly.io as pio
+import datetime
+import tabulate
+import threading
+import common.ssh_client.local_client as ssh_client_local_client
+from common.command import get_observer_version_by_sql
+from common.tool import DirectoryUtil, TimeUtils, Util, NetUtils, FileUtil
+from common.obdiag_exception import OBDIAGFormatException
+from common.constant import const
+from common.command import download_file, get_logfile_name_list, mkdir, delete_file
+from common.command import SshClient
+from result_type import ObdiagResult
 
 
 class AnalyzeMemoryHandler(object):
@@ -144,20 +141,29 @@ class AnalyzeMemoryHandler(object):
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
 
-        def handle_from_node(node):
-            st = time.time()
-            resp = self.__handle_from_node(node, local_store_parent_dir)
-            analyze_tuples.append((node.get("ip"), False, resp["error"], int(time.time() - st), resp["result_pack_path"]))
+        # analyze_thread default thread nums is 3
+        analyze_thread_nums = int(self.context.inner_config.get("analyze", {}).get("thread_nums") or 3)
+        pool_sema = threading.BoundedSemaphore(value=analyze_thread_nums)
 
+        def handle_from_node(node):
+            with pool_sema:
+                st = time.time()
+                resp = self.__handle_from_node(node, local_store_parent_dir)
+                analyze_tuples.append((node.get("ip"), False, resp["error"], int(time.time() - st), resp["result_pack_path"]))
+        
+        nodes_threads = []
+        self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze memory start')
-        if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
-        else:
-            local_ip = '127.0.0.1'
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            handle_from_node(node)
+        for node in self.nodes:
+            if not self.is_ssh:
+                local_ip = NetUtils.get_inner_ip()
+                node = self.nodes[0]
+                node["ip"] = local_ip
+            node_threads = threading.Thread(target=handle_from_node, args=(node,))
+            node_threads.start()
+            nodes_threads.append(node_threads)
+        for node_thread in nodes_threads:
+            node_thread.join()
 
         summary_tuples = self.__get_overall_summary(analyze_tuples)
         self.stdio.stop_loading('analyze memory sucess')
@@ -188,7 +194,6 @@ class AnalyzeMemoryHandler(object):
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path)
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
-        self.stdio.print(log_list)
         resp["result_pack_path"] = local_store_dir
         if resp["skip"]:
             return resp
@@ -219,12 +224,8 @@ class AnalyzeMemoryHandler(object):
                         tenant_memory_info_dict[tenant] = dict()
                         tenant_memory_info_dict[tenant][sample_time] = memory_info[sample_time][tenant]
             self.stdio.verbose('analyze memory info from {0} sucess'.format(log_name))
-            result_file = analyze_log_full_path + '.json'
-            try:
-                with open(result_file, 'w', encoding='utf8') as rf:
-                    rf.write(json.dumps(memory_info, indent=4))
-            except Exception as e:
-                self.stdio.exception('write json result failed, error: {0}'.format(e))
+            self.stdio.verbose("rm local file storage path: {0}".format(analyze_log_full_path))
+            FileUtil.rm(analyze_log_full_path, self.stdio)
         try:
             fig = go.Figure()
             colors = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'magenta', 'yellow', 'black', 'brown', 'pink', 'gray', 'lime', 'teal', 'navy']
@@ -239,9 +240,6 @@ class AnalyzeMemoryHandler(object):
 
                     color = colors[i % len(colors)]
                     i += 1
-                    tenant_memory_info_file = '{0}/tenant-{1}_memory_info.json'.format(local_store_dir, tenant_id)
-                    with open(tenant_memory_info_file, 'w', encoding='utf8') as rf:
-                        rf.write(json.dumps(tenant_memory_info_dict[tenant_id], indent=4))
                     if not x_lines:
                         x_lines = [t.split(' ')[1] for t in sorted(tenant_memory_info_dict[tenant_id].keys())]
                         x_interval = 12
