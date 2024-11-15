@@ -533,7 +533,7 @@ class ObdiagHome(object):
             self.stdio.print("update start ...")
             self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
-            return handler.execute()
+            return handler.handle()
 
     def config(self, opt):
         config = self.config_manager
