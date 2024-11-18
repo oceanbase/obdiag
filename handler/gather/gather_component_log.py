@@ -305,9 +305,9 @@ class GatherComponentLogHandler(BaseShellHandler):
                     tar.extractall(path=extract_path)
                     extracted_files = tar.getnames()
                     self.stdio.verbose("extracted_files: {0}".format(extracted_files))
-                    extracted_files_new=[]
+                    extracted_files_new = []
                     for extracted_file in extracted_files:
-                        extracted_files_new.append(os.path.join(self.store_dir,extracted_file))
+                        extracted_files_new.append(os.path.join(self.store_dir, extracted_file))
                     all_files[file_path] = extracted_files_new
             except Exception as e:
                 self.stdio.verbose(traceback.format_exc())
