@@ -1,19 +1,18 @@
 import os
 import shutil
-import zipfile
+import tarfile
 
 from common.import_module import import_modules
 import multiprocessing as mp
 
 
 class Redact:
-    def __init__(self, context, input_file_dir, output_file_dir, zip_password=None):
+    def __init__(self, context, input_file_dir, output_file_dir):
         self.context = context
         self.stdio = context.stdio
         self.redacts = {}
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
-        self.zip_password = zip_password
         self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
         self.inner_config = self.context.inner_config
 
@@ -37,7 +36,10 @@ class Redact:
                 self.stdio.verbose(f"Redact {input_redact} found")
                 self.redacts[input_redact] = self.all_redact[input_redact]
 
-    def redact_files(self, input_redacts):
+    def redact_files(self, input_redacts, files_name):
+        if len(files_name) == 0:
+            self.stdio.warn("No files to redact")
+            return True
         self.stdio.verbose("redact_files start")
         self.check_redact(input_redacts)
         # check self.redacts
@@ -50,23 +52,10 @@ class Redact:
         # use threading to redact the files
         files_name = os.listdir(self.input_file_dir)
         self.stdio.verbose(files_name)
-        # unzip the log file
-        for zip_file in files_name:
-            if ".zip" in zip_file:
-                self.stdio.verbose("open zip file: {0}".format(os.path.join(self.input_file_dir, zip_file)))
-                with zipfile.ZipFile(os.path.join(self.input_file_dir, zip_file), 'r') as zip_ref:
-                    # Extract all files to the current directory
-                    if self.zip_password is not None:
-                        zip_ref.extractall(self.input_file_dir, pwd=self.zip_password.encode('utf-8'))
-                    else:
-                        zip_ref.extractall(self.input_file_dir)
-        gather_log_files = []
-        for file_name in os.listdir(self.input_file_dir):
-            if "zip" not in file_name and "result_summary.txt" not in file_name:
-                log_dir = os.path.join(self.input_file_dir, file_name)
-                for log_file in os.listdir(log_dir):
-                    gather_log_files.append(os.path.join(log_dir, log_file))
-                    self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
+        # gather all files
+        gather_log_files = files_name
+        self.stdio.verbose("gather_log_files: {0}".format(gather_log_files))
+        gather_log_files = sorted(gather_log_files)
         if len(gather_log_files) == 0:
             self.stdio.warn("No log file found. The redact process will be skipped.")
             return False
@@ -90,22 +79,19 @@ class Redact:
         for file_name in gather_log_files:
             self.stdio.verbose("delete file: {0}".format(file_name))
             os.remove(file_name)
-        # zip the dir by node
+        # tar the dir by node
         subfolders = [f for f in os.listdir(self.output_file_dir) if os.path.isdir(os.path.join(self.output_file_dir, f))]
         for subfolder in subfolders:
             subfolder_path = os.path.join(self.output_file_dir, subfolder)
-            zip_filename = os.path.join(self.output_file_dir, f"{subfolder}.zip")
-            if self.zip_password is not None:
-                self.stdio.warn("the redacted log without passwd")
-            with zipfile.ZipFile(zip_filename, 'w') as zipf:
+            tar_filename = os.path.join(self.output_file_dir, f"{subfolder}.tar.gz")
+            with tarfile.open(tar_filename, "w:gz") as tar:
                 for root, dirs, files in os.walk(subfolder_path):
                     for file in files:
                         file_path = os.path.join(root, file)
-                        zipf.write(file_path, os.path.relpath(file_path, subfolder_path))
-                self.stdio.verbose("zip the redact log with passwd: {0}".format(self.zip_password.encode('utf-8')))
+                        tar.add(file_path, os.path.relpath(file_path, subfolder_path))
             self.stdio.verbose("delete the dir: {0}".format(subfolder_path))
             shutil.rmtree(subfolder_path)
-            self.stdio.print(f"{subfolder} is zipped on {zip_filename}")
+            self.stdio.print(f"{subfolder} is tar on {tar_filename}")
         return True
 
     def redact_file(self, input_file, output_file, semaphore):
