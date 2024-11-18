@@ -15,6 +15,7 @@ import tarfile
 import traceback
 import uuid
 import multiprocessing as mp
+import shutil
 
 from prettytable import PrettyTable
 from common.command import get_file_start_time, get_file_size, is_empty_dir
@@ -255,7 +256,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                     redact = Redact(self.context, self.store_dir, redact_dir)
                     redact.redact_files(self.redact, all_files)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
-                    # self.__delete_all_files_in_tar()
+                    self.__delete_all_files_in_tar()
                     self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
@@ -304,9 +305,9 @@ class GatherComponentLogHandler(BaseShellHandler):
                     tar.extractall(path=extract_path)
                     extracted_files = tar.getnames()
                     self.stdio.verbose("extracted_files: {0}".format(extracted_files))
-                    extracted_files_new = []
+                    extracted_files_new=[]
                     for extracted_file in extracted_files:
-                        extracted_files_new.append(os.path.join(self.store_dir, extracted_file))
+                        extracted_files_new.append(os.path.join(self.store_dir,extracted_file))
                     all_files[file_path] = extracted_files_new
             except Exception as e:
                 self.stdio.verbose(traceback.format_exc())
@@ -316,11 +317,10 @@ class GatherComponentLogHandler(BaseShellHandler):
         return all_files
 
     def __delete_all_files_in_tar(self):
-        if self.all_files:
-            for dir_name in self.all_files:
-                files = os.listdir(dir_name)
-                for file in files:
-                    os.remove(file)
+        for item in os.listdir(self.store_dir):
+            item_path = os.path.join(self.store_dir, item)
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)
         return True
 
 

@@ -121,25 +121,11 @@ class Gather_log:
                 raise Exception("rca gather handle the target cannot be empty!")
             else:
                 handler.handle()
-            gather_result = handler.store_dir
-            zip_files = os.listdir(gather_result)
             result_log_files = []
-            for zip_file in zip_files:
-                if "zip" not in zip_file:
-                    continue
-                # open zip file
-                self.stdio.verbose("open zip file: {0}".format(os.path.join(gather_result, zip_file)))
-                with zipfile.ZipFile(os.path.join(gather_result, zip_file), 'r') as zip_ref:
-                    # Extract all files to the current directory
-                    zip_ref.extractall(gather_result)
-            for file_name in os.listdir(gather_result):
-                if "zip" not in file_name and not file_name.endswith(".txt"):
-                    log_dir = os.path.join(gather_result, file_name)
-                    for log_file in os.listdir(log_dir):
-                        result_log_files.append(os.path.join(log_dir, log_file))
-                        self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
+            result_log_dir_data = handler.open_all_file()
+            for dir_name in result_log_dir_data:
+                result_log_files.extend(result_log_dir_data[dir_name])
             self.reset()
-
             return result_log_files
         except Exception as e:
             raise Exception("rca plugins Gather_log execute error: {0}".format(e))
