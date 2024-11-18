@@ -251,10 +251,11 @@ class GatherComponentLogHandler(BaseShellHandler):
                     redact_dir = "{0}_redact".format(self.store_dir)
                     self.redact_dir = redact_dir
                     all_files = self.open_all_file()
+                    self.stdio.verbose(all_files)
                     redact = Redact(self.context, self.store_dir, redact_dir)
                     redact.redact_files(self.redact, all_files)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
-                    self.__delete_all_files_in_tar()
+                    # self.__delete_all_files_in_tar()
                     self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
@@ -298,17 +299,21 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.stdio.verbose("open file {0}".format(tup["file_path"]))
                 # 打开 tar.gz 文件
                 extract_path = os.path.dirname(file_path)
-                with tarfile.open(extract_path, 'r:gz') as tar:
+                with tarfile.open(file_path, 'r:gz') as tar:
                     # get all files in tar
                     tar.extractall(path=extract_path)
                     extracted_files = tar.getnames()
-                    all_files[self.gather_tuples] = extracted_files
+                    self.stdio.verbose("extracted_files: {0}".format(extracted_files))
+                    extracted_files_new = []
+                    for extracted_file in extracted_files:
+                        extracted_files_new.append(os.path.join(self.store_dir, extracted_file))
+                    all_files[file_path] = extracted_files_new
             except Exception as e:
                 self.stdio.verbose(traceback.format_exc())
-                self.stdio.error("open file failed: {0}".format(str(e)))
+                self.stdio.error("gather open_all_filefailed: {0}".format(str(e)))
                 continue
         self.all_files = all_files
-        return self.all_files
+        return all_files
 
     def __delete_all_files_in_tar(self):
         if self.all_files:
@@ -363,8 +368,8 @@ class GatherLogOnNode:
         self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-
-        tmp_log_dir = os.path.join(self.tmp_dir, "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target))
+        tmp_dir = "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target)
+        tmp_log_dir = os.path.join(self.tmp_dir, tmp_dir)
         # mkdir tmp_log_dir
         self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
         self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}".format(self.ssh_client.get_ip(), tmp_log_dir))
@@ -392,7 +397,7 @@ class GatherLogOnNode:
                 return
 
             tar_file = os.path.join(self.tmp_dir, "{0}.tar.gz".format(tmp_log_dir))
-            tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_log_dir)
+            tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_dir)
             self.stdio.verbose("gather_log_on_node {0} tar_cmd: {1}".format(self.ssh_client.get_ip(), tar_cmd))
             self.ssh_client.exec_cmd(tar_cmd)
 
