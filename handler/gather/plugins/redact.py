@@ -13,6 +13,7 @@ class Redact:
         self.redacts = {}
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
+        self.stdio.verbose("Redact output_file_dir: {0}".format(self.output_file_dir))
         self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
         self.inner_config = self.context.inner_config
 
@@ -49,36 +50,25 @@ class Redact:
         # create dir to save the files after redact
         if not os.path.exists(self.output_file_dir):
             os.makedirs(self.output_file_dir)
-        # use threading to redact the files
-        files_name = os.listdir(self.input_file_dir)
-        self.stdio.verbose(files_name)
         # gather all files
-        gather_log_files = files_name
-        self.stdio.verbose("gather_log_files: {0}".format(gather_log_files))
-        gather_log_files = sorted(gather_log_files)
-        if len(gather_log_files) == 0:
+        self.stdio.verbose("gather_log_files: {0}".format(files_name))
+        if len(files_name) == 0:
             self.stdio.warn("No log file found. The redact process will be skipped.")
             return False
         file_queue = []
         max_processes = int(self.inner_config.get('gather').get('redact_processing_num')) or 3
         self.stdio.verbose("max_processes: {0}".format(max_processes))
         semaphore = mp.Semaphore(max_processes)
-        for file_name in gather_log_files:
-            if "result_summary.txt" in file_name:
-                continue
-            self.stdio.verbose("inport file name: {0}".format(file_name))
-            self.stdio.verbose("output file name: {0}".format(file_name.replace(self.input_file_dir, self.output_file_dir)))
-            semaphore.acquire()
-            file_thread = mp.Process(target=self.redact_file, args=(file_name, file_name.replace(self.input_file_dir, self.output_file_dir), semaphore))
-            file_thread.start()
-            file_queue.append(file_thread)
+        for dir_name in files_name:
+            for file_name in files_name[dir_name]:
+                self.stdio.verbose("inport file name: {0}".format(file_name))
+                self.stdio.verbose("output file name: {0}".format(file_name.replace(self.input_file_dir, self.output_file_dir)))
+                semaphore.acquire()
+                file_thread = mp.Process(target=self.redact_file, args=(file_name, file_name.replace(self.input_file_dir, self.output_file_dir), semaphore))
+                file_thread.start()
+                file_queue.append(file_thread)
         for file_thread in file_queue:
             file_thread.join()
-        # delete gather_log_files
-        self.stdio.verbose("redact end. delete all gather_log_files")
-        for file_name in gather_log_files:
-            self.stdio.verbose("delete file: {0}".format(file_name))
-            os.remove(file_name)
         # tar the dir by node
         subfolders = [f for f in os.listdir(self.output_file_dir) if os.path.isdir(os.path.join(self.output_file_dir, f))]
         for subfolder in subfolders:

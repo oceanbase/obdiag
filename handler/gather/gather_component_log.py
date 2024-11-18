@@ -32,6 +32,7 @@ class GatherComponentLogHandler(BaseShellHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.all_files = None
         self.gather_tuples = None
         self.oms_module_id = None
         self.redact_dir = None
@@ -253,6 +254,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                     redact = Redact(self.context, self.store_dir, redact_dir)
                     redact.redact_files(self.redact, all_files)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
+                    self.__delete_all_files_in_tar()
                     self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
@@ -297,7 +299,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 # 打开 tar.gz 文件
                 extract_path = os.path.dirname(file_path)
                 with tarfile.open(extract_path, 'r:gz') as tar:
-                    # 提取所有文件
+                    # get all files in tar
                     tar.extractall(path=extract_path)
                     extracted_files = tar.getnames()
                     all_files[self.gather_tuples] = extracted_files
@@ -305,7 +307,16 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.stdio.verbose(traceback.format_exc())
                 self.stdio.error("open file failed: {0}".format(str(e)))
                 continue
-        return all_files
+        self.all_files = all_files
+        return self.all_files
+
+    def __delete_all_files_in_tar(self):
+        if self.all_files:
+            for dir_name in self.all_files:
+                files = os.listdir(dir_name)
+                for file in files:
+                    os.remove(file)
+        return True
 
 
 class GatherLogOnNode:
