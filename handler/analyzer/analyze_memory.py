@@ -194,7 +194,8 @@ class AnalyzeMemoryHandler(object):
         gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
         mkdir(ssh_client, gather_dir_full_path)
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
-        resp["result_pack_path"] = local_store_dir
+        result_pack_path = "./{0}".format(os.path.relpath(local_store_dir, self.gather_pack_dir))
+        resp["result_pack_path"] = result_pack_path
         if resp["skip"]:
             return resp
         self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
@@ -452,9 +453,9 @@ class AnalyzeMemoryHandler(object):
                 resp["error"] = "Too many files {0} > {1}, " "Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
             return log_list, resp
         elif len(log_list) == 0:
-            self.stdio.warn("{0} The number of log files is {1}, No files found, " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
+            self.stdio.warn("{0} The number of observer.log*  files is {1}, No files found".format(node.get("ip"), len(log_list)))
             resp["skip"] = (True,)
-            resp["error"] = "No files found"
+            resp["error"] = "No observer.log* found"
             return log_list, resp
         return log_list, resp
 
@@ -484,11 +485,13 @@ class AnalyzeMemoryHandler(object):
             for path in self.analyze_files_list:
                 if os.path.exists(path):
                     if os.path.isfile(path):
-                        log_name_list.append(path)
+                        if os.path.basename(path).startswith('observer.log'):
+                            log_name_list.append(path)
                     else:
                         log_names = FileUtil.find_all_file(path)
-                        if len(log_names) > 0:
-                            log_name_list.extend(log_names)
+                        if log_names:
+                            filtered_logs = [name for name in log_names if os.path.basename(name).startswith('observer.log')]
+                            log_name_list.extend(filtered_logs)
         self.stdio.verbose("get log list {}".format(log_name_list))
         return log_name_list
 
@@ -729,7 +732,7 @@ class AnalyzeMemoryHandler(object):
         field_names.append("ResultPath")
         for tup in node_summary_tuple:
             node = tup[0]
-            is_err = tup[1]
+            is_err = tup[2]
             consume_time = tup[3]
             pack_path = tup[4]
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", "{0} s".format(consume_time), pack_path))
