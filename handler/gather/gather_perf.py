@@ -21,7 +21,7 @@ import datetime
 
 import tabulate
 
-from common.command import get_observer_pid, mkdir, tar_gz_dir, get_file_size, download_file, delete_file_force
+from common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
 from common.command import SshClient
 from common.constant import const
 from handler.base_shell_handler import BaseShellHandler
@@ -151,15 +151,12 @@ class GatherPerfHandler(BaseShellHandler):
                     self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
                 self.__gather_top(ssh_client, remote_dir_full_path, pid_observer)
 
-            tar_gz_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-            remote_file_full_path = "{0}.tar.gz".format(remote_dir_full_path)
+            zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
+            remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
             file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
-                local_tar_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
-                self.stdio.verbose("local tar file path {0}...".format(local_tar_file_path))
-                download_file(ssh_client, remote_file_full_path, local_tar_file_path, self.stdio)
-                local_zip_file_path = local_stored_path + "/{0}.zip".format(remote_dir_name)
-                FileUtil.tar_gz_to_zip(local_stored_path, local_tar_file_path, local_zip_file_path, None, self.stdio)
+                local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+                download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
