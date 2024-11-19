@@ -29,7 +29,11 @@ from result_type import ObdiagResult
 
 class GatherComponentLogHandler(BaseShellHandler):
     # log_scope_list
-    log_scope_list = {"observer": ["observer", "rootservice", "election"], "obproxy": ["obproxy", "obproxy_digest", "obproxy_stat", "obproxy_slow", "obproxy_limit"], "oms": ["connector", "error"]}
+    log_scope_list = {
+        "observer": {"observer": {"key": "*observer*"}, "rootservice": {"key": "*rootservice*"}, "election": {"key": "*election*"}},
+        "obproxy": {"obproxy": {"key": "*obproxy*"}, "obproxy_digest": {"key": "*obproxy_digest*"}, "obproxy_stat": {"key": "*obproxy_stat*"}, "obproxy_slow": {"key": "*obproxy_slow*"}, "obproxy_limit": {"key": "*obproxy_limit*"}},
+        "oms": {"connector": {"key": "connector"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -140,7 +144,6 @@ class GatherComponentLogHandler(BaseShellHandler):
             raise Exception("can not get nodes by target: {0}, nodes's len is 0.".format(self.target))
         # check scope
         if self.scope is None or self.scope == "" or self.scope == "all":
-            self.scope = "all"
             self.scope = self.log_scope_list[self.target]
         else:
             self.scope = self.scope.strip()
@@ -219,7 +222,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             for node in self.nodes:
                 new_context = self.context
                 new_context.stdio = self.stdio.sub_io()
-                # use Process must delete ssh_client, and GatherLogOnNode rebuild it.
+                # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
                 if "ssh_client" in node:
                     del node["ssh_client"]
                 tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
@@ -338,11 +341,12 @@ class GatherLogOnNode:
         self.tmp_dir = self.config.get("tmp_dir")
 
         self.scope = self.config.get("scope")
-        # todo log_path for oms
         self.oms_module_id = self.config.get("oms_module_id")
         if self.target == "oms":
             if self.oms_module_id is None:
-                raise Exception("gather log on oms, but oms_module_id is None")
+                raise Exception("gather log on oms, but oms_module_id is None. please check your config")
+            if node.get("run_path") is None:
+                raise Exception("gather log on oms, but run_path is None. please check your config")
             self.log_path = os.path.join(node.get("run_path"), self.oms_module_id, "logs")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
@@ -449,6 +453,7 @@ class GatherLogOnNode:
             source_log_name = "{0}/{1}".format(self.log_path, log_name)
             target_log_name = "{0}/{1}".format(tmp_log_dir, log_name)
             self.stdio.verbose("grep files, source_log_name = [{0}], target_log_name = [{1}]".format(source_log_name, target_log_name))
+            # for oms log
             if log_name.endswith(".gz"):
                 log_grep_cmd = "cp {0} {1}".format(source_log_name, target_log_name)
                 self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
@@ -467,13 +472,23 @@ class GatherLogOnNode:
         try:
             logs_scope = ""
             for scope in self.scope:
-                if logs_scope == "":
-                    logs_scope = scope
-                    continue
-                logs_scope = logs_scope + "|" + scope
+                target_scopes = self.scope[scope]["key"]
+                if isinstance(target_scopes, list):
+                    for target_scope in target_scopes:
+                        if logs_scope == "":
+                            logs_scope = ' -name "{0}" '.format(target_scope)
+                            continue
+                        logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scope)
+                else:
+                    if logs_scope == "":
+                        logs_scope = ' -name "{0}" '.format(target_scopes)
+                        continue
+                    logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scopes)
+            if logs_scope == "":
+                self.stdio.warn("gather_log_on_node {0} find logs scope is null".format(self.ssh_client.get_ip(), logs_scope))
+                return []
             self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-
-            find_cmd = "ls -1 -F {0} |grep -E '{1}'| awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
+            find_cmd = "find {0} {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
@@ -486,7 +501,7 @@ class GatherLogOnNode:
             raise Exception("gather_log_on_node {0} find logs failed: {1}".format(self.ssh_client.get_ip(), str(e)))
 
     def __get_logfile_name_list(self, from_time_str, to_time_str, log_dir, log_files):
-        # TODO oms get all log file name list
+        # oms get all log file name list, the log size is so small
         if self.target == "oms":
             return log_files
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))

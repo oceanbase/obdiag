@@ -255,6 +255,37 @@ class ConfigManager(Manager):
             'servers': ob_proxy_nodes,
         }
 
+    def get_oms_config(self):
+        oms = self.config_data.get('oms', {})
+        nodes = oms.get('servers', {}).get('nodes', [])
+
+        def create_oms_node(node_config, global_config):
+            return {
+                'ip': node_config.get('ip'),
+                'ssh_username': node_config.get('ssh_username', global_config.get('ssh_username', '')),
+                'ssh_password': node_config.get('ssh_password', global_config.get('ssh_password', '')),
+                'ssh_port': node_config.get('ssh_port', global_config.get('ssh_port', 22)),
+                'home_path': node_config.get('home_path', global_config.get('home_path', '/root/obproxy')),
+                'log_path': node_config.get('log_path', global_config.get('log_path', '/home/admin/logs')),
+                'run_path': node_config.get('run_path', global_config.get('run_path', '/home/admin/run')),
+                'store_path': node_config.get('store_path', global_config.get('store_path', '/home/admin/store')),
+                'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
+                'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
+                'container_name': node_config.get('container_name', global_config.get('container_name')),
+                'namespace': node_config.get('namespace', global_config.get('namespace', '')),
+                'pod_name': node_config.get('pod_name', global_config.get('pod_name', '')),
+                "kubernetes_config_file": node_config.get('kubernetes_config_file', global_config.get('kubernetes_config_file', '')),
+                'host_type': 'OMS',
+            }
+
+        global_config = oms.get('servers', {}).get('global', {})
+        oms_nodes = [create_oms_node(node, global_config) for node in nodes]
+
+        return {
+            'oms_cluster_name': oms.get('oms_cluster_name'),
+            'servers': oms_nodes,
+        }
+
     @property
     def get_node_config(self, type, node_ip, config_item):
         if type == 'ob_cluster':

@@ -115,6 +115,29 @@ class Gather_log:
                     grep=self.greps_key,
                     store_dir=self.work_path,
                 )
+            elif self.conf_map["gather_target"] == 'oms':
+                all_node = self.context.oms_config
+                if self.conf_map["filter_nodes_list"]:
+                    # execute on specific nodes_list
+                    for node in all_node:
+                        if node not in self.conf_map["filter_nodes_list"]:
+                            self.stdio.warn("{0} is not in the nodes list".format(node.get("ip")))
+                            continue
+                        else:
+                            nodes_list.append(node)
+                    self.conf_map["filter_nodes_list"] = nodes_list
+                handler = GatherComponentLogHandler()
+                handler.init(
+                    self.context,
+                    target="oms",
+                    nodes=nodes_list,
+                    from_option=self.conf_map.get("gather_from"),
+                    to_option=self.conf_map.get("gather_to"),
+                    since=self.conf_map.get("gather_since"),
+                    scope=self.conf_map.get("gather_scope"),
+                    grep=self.greps_key,
+                    store_dir=self.work_path,
+                )
 
             if handler is None:
                 self.stdio.error("rca gather handle the target cannot be empty!")
