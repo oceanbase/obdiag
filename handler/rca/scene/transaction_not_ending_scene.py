@@ -65,6 +65,7 @@ class TransactionNotEndingScene(RcaScene):
             if self.tx_id is not None:
                 self.record.add_record("tx_id is {0}".format(self.tx_id))
                 transaction_datas = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_trans_stat where tx_id!='{0}';".format(self.tx_id)).fetchall()
+                self.record.add_record("transaction_data is {0}".format(transaction_datas))
                 pass
             if self.phase is None:
                 raise RCANotNeedExecuteException("phase is None. Please check --input_parameters")
