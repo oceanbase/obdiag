@@ -149,7 +149,7 @@ class AnalyzeMemoryHandler(object):
             with pool_sema:
                 st = time.time()
                 resp = self.__handle_from_node(node, local_store_parent_dir)
-                analyze_tuples.append((node.get("ip"), False, resp["error"], int(time.time() - st), resp["result_pack_path"]))
+                analyze_tuples.append((node.get("ip"), resp["skip"], resp["error"], int(time.time() - st), resp["result_pack_path"]))
 
         nodes_threads = []
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
@@ -565,6 +565,7 @@ class AnalyzeMemoryHandler(object):
         """
         self.stdio.verbose("start parse log {0}".format(file_full_path))
         memory_print_line_list = self.__parse_memory_label(file_full_path)
+        tenant_dict = dict()
         if memory_print_line_list:
             with open(file_full_path, 'r', encoding='utf8', errors='replace') as file:
                 line_num = 0
@@ -613,7 +614,6 @@ class AnalyzeMemoryHandler(object):
                                     cache_hold_bytes = line.split('cache_hold:')[1].split('cache_used')[0].strip()
                                     cache_used_bytes = line.split('cache_used:')[1].split('cache_item_count')[0].strip()
                                     cache_item_count = line.split('cache_item_count:')[1].strip()
-                                    tenant_dict = dict()
                                     tenant_dict['hold'] = self.__convert_string_bytes_2_int_bytes(hold_bytes)
                                     tenant_dict['rpc_hold'] = self.__convert_string_bytes_2_int_bytes(rpc_hold_bytes)
                                     tenant_dict['cache_hold'] = self.__convert_string_bytes_2_int_bytes(cache_hold_bytes)
@@ -734,6 +734,6 @@ class AnalyzeMemoryHandler(object):
             node = tup[0]
             is_err = tup[2]
             consume_time = tup[3]
-            pack_path = tup[4]
+            pack_path = tup[4] if not is_err else None
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", "{0} s".format(consume_time), pack_path))
         return "\nAnalyze Ob Log Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)
