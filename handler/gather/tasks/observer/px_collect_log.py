@@ -24,8 +24,8 @@ from common.command import uzip_dir_local, analyze_log_get_sqc_addr, find_home_p
 import datetime
 
 
-class SQLPXCollectLogScene(object):
-    def __init__(self, context, scene_name, report_path, task_variable_dict=None, env=None):
+class PXCollectLog(object):
+    def init(self, context, scene_name, report_path, task_variable_dict=None, env=None):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -189,3 +189,5 @@ class SQLPXCollectLogScene(object):
             return True
         except Exception as e:
             self.stdio.error("Parse env fail. Exception : {0} .".format(e))
+
+px_collect_log = PXCollectLog()

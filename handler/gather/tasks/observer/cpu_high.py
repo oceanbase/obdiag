@@ -24,8 +24,8 @@ from handler.gather.gather_obstack2 import GatherObstack2Handler
 from handler.gather.gather_perf import GatherPerfHandler
 
 
-class CPUHighScene(SafeStdio):
-    def __init__(self, context, report_path, task_variable_dict=None, env={}):
+class CPUHigh(SafeStdio):
+    def init(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -89,3 +89,5 @@ class CPUHighScene(SafeStdio):
                 f.write(data + '\n')
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error: ".format(file_path))
+
+cpu_high = CPUHigh()

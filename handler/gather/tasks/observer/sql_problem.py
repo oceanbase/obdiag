@@ -23,8 +23,8 @@ from common.ssh_client.ssh import SshClient
 from common.command import find_home_path_by_port
 
 
-class SQLProblemScene(SafeStdio):
-    def __init__(self, context, scene_name, report_path, task_variable_dict=None, env={}):
+class SQLProblem(SafeStdio):
+    def init(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -130,3 +130,5 @@ class SQLProblemScene(SafeStdio):
         else:
             self.stdio.error("option env not found, please run 'obdiag gather scene list' to check usage")
             return False
+
+sql_problem = SQLProblem()
