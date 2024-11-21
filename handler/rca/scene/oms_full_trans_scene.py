@@ -15,6 +15,8 @@
 @file: oms_full_trans.py
 @desc:
 """
+import os.path
+
 from handler.rca.rca_exception import (
     RCAInitException,
     RCAExecuteException,
@@ -56,16 +58,21 @@ class OMSFullTransScene(RcaScene):
                 try:
                     self.stdio.verbose("node:{0} download oms error.details".format(ssh_client.get_ip()))
                     # check error.details is exist
-                    local_error_details_path = "{0}/error.details/error.details_{1}".format(self.store_dir, ssh_client.get_name())
+                    if not os.path.exists("{0}/error.details".format(self.store_dir)):
+                        os.makedirs("{0}/error.details".format(self.store_dir))
+                    local_error_details_path = "{0}/error.details_{1}".format(self.store_dir, ssh_client.get_name())
+                    self.stdio.verbose("local_error_details_path:{0}".format(local_error_details_path))
                     ssh_client.download("{0}/{1}/error.details".format(server.get("run_path"), self.component_id), local_error_details_path)
                     self.record.add_record("download oms error.details is success.")
-                    error_details_paths.append("{0}/error.details/error.details_{1}".format(self.store_dir, self.component_id, ssh_client.get_ip()))
+                    error_details_paths.append(local_error_details_path)
                 except Exception as e:
-                    if "No such file" in e:
-                        self.record.add_record("not find error.details.")
+                    if "No such file" in "{0}".format(e):
+                        self.record.add_record("node:{0} not find error.details.".format(ssh_client.get_ip()))
                     else:
                         self.stdio.error("node:{0} download oms error.details error: {1}".format(ssh_client.get_ip(), e))
                         self.record.add_record("node:{0} download oms error.details error: {1}".format(ssh_client.get_ip(), e))
+            if len(error_details_paths) == 0:
+                self.record.add_record("not find oms error.details")
             self.record.add_record("downland oms error.details is end.")
             # 3. gather the oms log
             oms_logs_name = []
@@ -90,39 +97,43 @@ class OMSFullTransScene(RcaScene):
             for server in self.oms_nodes:
                 ssh_client = server["ssher"]
                 try:
-                    sinkType_data = ssh_client.exec_cmd('cat {0}/conf/coordinator.json|grep "sinkType_data"'.format(server.get("run_path"), self.component_id))
-                    sourceType_data = ssh_client.exec_cmd('cat {0}/conf/coordinator.json|grep "sourceType_data"'.format(server.get("run_path"), self.component_id))
+                    sinkType_data = ssh_client.exec_cmd('cat {0}/{1}/conf/coordinator.json|grep "sinkType"'.format(server.get("run_path"), self.component_id))
+                    sourceType_data = ssh_client.exec_cmd('cat {0}/{1}/conf/coordinator.json|grep "sourceType"'.format(server.get("run_path"), self.component_id))
                     self.record.add_record("on node {0}, sinkType: {1}, sourceType: {2}".format(ssh_client.get_name(), sinkType_data, sourceType_data))
                 except Exception as e:
                     self.record.add_record("get {1} sinkType and sourceType on conf/coordinator.json error: {0}".format(e, ssh_client.get_ip()))
                     continue
 
             # 4. check the oms full trans
-            self.record.add_record("check log error.details is start.")
-            # error.details SINK_TABLE_NOT_FOUND
-            for error_details_path in error_details_paths:
-                try:
-                    self.stdio.verbose("check {0} is start.".format(error_details_path))
-                    with open(error_details_path, 'r', encoding='utf-8') as f:
-                        # TDDO find something on error.details
-                        SINK_TABLE_NOT_FOUND_tag = False
-                        SINK_TABLE_IS_NOT_EMPTY_tag = False
-                        for line in f.readlines():
-                            if "SINK_TABLE_NOT_FOUND" in line and SINK_TABLE_NOT_FOUND_tag is False:
-                                self.record.add_record("error.details SINK_TABLE_NOT_FOUND is exist.")
-                                self.record.add_suggest("the component_id is {0}, the sink table is not found.".format(self.component_id))
-                                SINK_TABLE_NOT_FOUND_tag = True
-                                continue
-                            elif "SINK_TABLE_IS_NOT_EMPTY" in line and SINK_TABLE_IS_NOT_EMPTY_tag is False:
-                                self.record.add_record("error.details SINK_TABLE_IS_NOT_EMPTY is exist.")
-                                self.record.add_suggest("the component_id is {0}, the sink table is not empty.".format(self.component_id))
-                                SINK_TABLE_IS_NOT_EMPTY_tag = True
-                                continue
-                        if SINK_TABLE_NOT_FOUND_tag is False and SINK_TABLE_IS_NOT_EMPTY_tag is False:
-                            self.record.add_record("error.details SINK_TABLE_NOT_FOUND and SINK_TABLE_IS_NOT_EMPTY is not exist.")
-                            self.record.add_suggest("the component_id is {0}, the sink table is empty.".format(self.component_id))
-                except Exception as e:
-                    raise RCAExecuteException("error.details SINK_TABLE_NOT_FOUND error: {0}".format(e))
+            if len(error_details_paths) > 0:
+                self.record.add_record("check log error.details is start.")
+                # error.details SINK_TABLE_NOT_FOUND
+                for error_details_path in error_details_paths:
+                    try:
+                        self.stdio.verbose("check {0} is start.".format(error_details_path))
+                        with open(error_details_path, 'r', encoding='utf-8') as f:
+                            # TDDO find something on error.details
+                            SINK_TABLE_NOT_FOUND_tag = False
+                            SINK_TABLE_IS_NOT_EMPTY_tag = False
+                            for line in f.readlines():
+                                if "SINK_TABLE_NOT_FOUND" in line and SINK_TABLE_NOT_FOUND_tag is False:
+                                    self.record.add_record("error.details SINK_TABLE_NOT_FOUND is exist.")
+                                    self.record.add_suggest("the component_id is {0}, the sink table is not found.".format(self.component_id))
+                                    SINK_TABLE_NOT_FOUND_tag = True
+                                    continue
+                                elif "SINK_TABLE_IS_NOT_EMPTY" in line and SINK_TABLE_IS_NOT_EMPTY_tag is False:
+                                    self.record.add_record("error.details SINK_TABLE_IS_NOT_EMPTY is exist.")
+                                    self.record.add_suggest("the component_id is {0}, the sink table is not empty.".format(self.component_id))
+                                    SINK_TABLE_IS_NOT_EMPTY_tag = True
+                                    continue
+                            if SINK_TABLE_NOT_FOUND_tag is False and SINK_TABLE_IS_NOT_EMPTY_tag is False:
+                                self.record.add_record("error.details SINK_TABLE_NOT_FOUND and SINK_TABLE_IS_NOT_EMPTY is not exist.")
+                                self.record.add_suggest("the component_id is {0}, the sink table is empty.".format(self.component_id))
+                    except Exception as e:
+                        raise RCAExecuteException("error.details SINK_TABLE_NOT_FOUND error: {0}".format(e))
+                else:
+                    pass
+
         except Exception as e:
             self.record.add_record("execute oms full trans error: {0}".format(e))
             raise RCAExecuteException(e)
