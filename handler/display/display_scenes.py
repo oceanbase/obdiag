@@ -215,7 +215,6 @@ class DisplaySceneHandler(SafeStdio):
         if env_option:
             env_dict = StringUtils.parse_env_display(env_option)
             self.env = env_dict
-            print("jinghsun test 100 {0}, env:{1}".format(env_dict,self.env))
             cli_connection_string = self.env.get("db_connect")
             if cli_connection_string != None:
                 self.__init_db_conn(cli_connection_string)
