@@ -79,6 +79,7 @@ class StepSQLHandler(SafeStdio):
         def replacer(match):
             key = match.group(1)
             return str(params.get(key, match.group(0)))
+
         query = pattern.sub(replacer, query_template)
         return query
 
