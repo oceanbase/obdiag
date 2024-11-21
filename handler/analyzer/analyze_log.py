@@ -151,10 +151,15 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze start')
         for node in self.nodes:
-            if not self.is_ssh:
-                local_ip = NetUtils.get_inner_ip()
-                node = self.nodes[0]
-                node["ip"] = local_ip
+            if self.directly_analyze_files:
+                if nodes_threads:
+                    break
+                node["ip"] = '127.0.0.1'
+            else:
+                if not self.is_ssh:
+                    local_ip = NetUtils.get_inner_ip()
+                    node = self.nodes[0]
+                    node["ip"] = local_ip
             node_threads = threading.Thread(target=handle_from_node, args=(node,))
             node_threads.start()
             nodes_threads.append(node_threads)
