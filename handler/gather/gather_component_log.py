@@ -508,11 +508,12 @@ class GatherLogOnNode:
         # oms get all log file name list, the log size is so small
         if self.target == "oms":
             log_name_list = []
+            formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
             for file_name in log_files.split('\n'):
                 if file_name == "":
                     self.stdio.verbose("existing file name is empty")
                     continue
-                if "log.gz" not in file_name:
+                if "log.gz" not in file_name or formatted_time in file_name:
                     log_name_list.append(file_name)
                     continue
             return log_name_list
