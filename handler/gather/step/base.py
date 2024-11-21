@@ -63,7 +63,7 @@ class Base(SafeStdio):
                     handler = SshHandler(self.context, self.step, self.node, self.report_path, self.task_variable_dict)
                     handler.execute()
                 elif self.step["type"] == "sql" and (skip_type != "sql"):
-                    handler = StepSQLHandler(self.context, self.step, self.cluster, self.report_path, self.task_variable_dict)
+                    handler = StepSQLHandler(self.context, self.step, self.cluster, self.report_path, self.task_variable_dict, self.env)
                     handler.execute()
                 elif self.step["type"] == "log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBSERVER":

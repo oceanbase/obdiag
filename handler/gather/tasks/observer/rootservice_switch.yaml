@@ -121,13 +121,13 @@ task:
         sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where event like '%migrat%' and name6 like '%fail%' and value6=1;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module='FAILURE_DETECTOR' limit 10;"
+        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module='FAILURE_DETECTOR';"
         global: true
       - type: sql
-        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module like '%ELECTION%' limit 10;"
+        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module like '%ELECTION%';"
         global: true
       - type: sql
-        sql: "select * from oceanbase.GV$OB_LOG_STAT where role='LEADER' limit 20;"
+        sql: "select * from oceanbase.GV$OB_LOG_STAT where role='LEADER';"
         global: true
       - type: sql
         sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, STATUS, SWITCHOVER_STATUS FROM oceanbase.DBA_OB_TENANTS"

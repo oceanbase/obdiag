@@ -16,6 +16,7 @@
 @desc:
 """
 import os
+import re
 from stdio import SafeStdio
 from common.ob_connector import OBConnector
 from tabulate import tabulate
@@ -23,7 +24,7 @@ from common.tool import StringUtils
 
 
 class StepSQLHandler(SafeStdio):
-    def __init__(self, context, step, ob_cluster, report_path, task_variable_dict):
+    def __init__(self, context, step, ob_cluster, report_path, task_variable_dict, env):
         self.context = context
         self.stdio = context.stdio
         try:
@@ -32,6 +33,7 @@ class StepSQLHandler(SafeStdio):
             self.tenant_mode = None
             self.sys_database = None
             self.database = None
+            self.env = env
             self.ob_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
         except Exception as e:
             self.stdio.error("StepSQLHandler init fail. Please check the OBCLUSTER conf. OBCLUSTER: {0} Exception : {1} .".format(ob_cluster, e))
@@ -49,6 +51,13 @@ class StepSQLHandler(SafeStdio):
                 self.stdio.error("StepSQLHandler execute sql is not set")
                 return
             sql = StringUtils.build_sql_on_expr_by_dict(self.step["sql"], self.task_variable_dict)
+            params = StringUtils.extract_parameters(sql)
+            for param in params:
+                values = self.env.get(param)
+                if values is None or len(values) == 0:
+                    self.stdio.error("the values of param %s is None", param)
+                    return
+            sql = StringUtils.replace_parameters(sql, self.env)
             self.stdio.verbose("StepSQLHandler execute: {0}".format(sql))
             columns, data = self.ob_connector.execute_sql_return_columns_and_data(sql)
             if data is None or len(data) == 0:
@@ -56,6 +65,22 @@ class StepSQLHandler(SafeStdio):
             self.report(sql, columns, data)
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
+
+    @staticmethod
+    def extract_parameters(query_template):
+        pattern = re.compile(r'\$\{(\w+)\}')
+        parameters = pattern.findall(query_template)
+        return parameters
+
+    @staticmethod
+    def replace_parameters(query_template, params):
+        pattern = re.compile(r'\$\{(\w+)\}')
+
+        def replacer(match):
+            key = match.group(1)
+            return str(params.get(key, match.group(0)))
+        query = pattern.sub(replacer, query_template)
+        return query
 
     def update_step_variable_dict(self):
         return self.task_variable_dict
