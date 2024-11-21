@@ -601,7 +601,7 @@ class AnalyzeMemoryHandler(object):
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
                                     memory_dict[memory_print_time] = dict()
-                            elif self.version > '4.0' and self.version < '4.3' :
+                            elif self.version > '4.0' and self.version < '4.3':
                                 if 'runTimerTask' in line and 'MemDumpTimer' in line:
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
@@ -618,7 +618,7 @@ class AnalyzeMemoryHandler(object):
                                         memory_print_line_list.remove(memory_print_begin_line)
                                     else:
                                         break
-                            elif self.version >= '4.0' and self.version < '4.3' :
+                            elif self.version >= '4.0' and self.version < '4.3':
                                 if 'print_tenant_usage' in line and 'MemDumpTimer' in line and 'CHUNK_MGR' in line:
                                     if memory_print_line_list:
                                         memory_print_begin_line = memory_print_line_list[0]
