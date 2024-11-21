@@ -76,7 +76,7 @@ class TransactionOtherErrorScene(RcaScene):
                 self.record.add_suggest("It is highly likely that there is an issue with the RPC and we need to use 'tsar' to check the network conditions in the environment at that time. And send it to Oceanbase Community")
                 return
             if self.error_code == "-4030":
-                self.record.add_record("error_code is {0}, error_msg_type is {1}")
+                self.record.add_record("error_code is {0}, error_msg_type is {1}".format(self.error_code, self.error_msg_type))
                 self.record.add_suggest("Tenant out of memory, please expand")
                 return
             # gather log about EASY SLOW

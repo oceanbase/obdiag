@@ -133,7 +133,6 @@ class ObdiagHome(object):
             namespace=namespace,
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
-            oms_config=config.get_oms_config,
             ocp_config=config.get_ocp_config,
             cmd=self.cmds,
             options=self.options,
@@ -247,7 +246,6 @@ class ObdiagHome(object):
             self.stdio.print("{0} start ...".format(function_type))
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
-            options = self.context.options
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
             if function_type == 'gather_log':
@@ -447,7 +445,12 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
+            elif function_type == 'analyze_memory_offline':
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzeMemoryHandler(self.context)
+                return handler.handle()
             elif function_type == 'analyze_memory':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
