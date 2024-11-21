@@ -255,6 +255,7 @@ class ConfigManager(Manager):
             'servers': ob_proxy_nodes,
         }
 
+    @property
     def get_oms_config(self):
         oms = self.config_data.get('oms', {})
         nodes = oms.get('servers', {}).get('nodes', [])

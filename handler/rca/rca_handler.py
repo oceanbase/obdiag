@@ -65,6 +65,15 @@ class RCAHandler:
                 node["ssher"] = ssh
                 context_obproxy_nodes.append(node)
             self.context.set_variable("obproxy_nodes", context_obproxy_nodes)
+        # build oms_nodes
+        oms_nodes = self.context.oms_config.get("servers")
+        context_oms_nodes = []
+        if oms_nodes is not None:
+            for node in oms_nodes:
+                ssh = SshClient(context, node)
+                node["ssher"] = ssh
+                context_oms_nodes.append(node)
+            self.context.set_variable("oms_nodes", context_oms_nodes)
 
         # build ob_connector
         try:
@@ -221,6 +230,7 @@ class RcaScene:
         self.report = None
         self.obproxy_nodes = None
         self.observer_nodes = None
+        self.oms_nodes = None
         self.context = None
         self.name = type(self).__name__
         self.Result = None
@@ -233,6 +243,7 @@ class RcaScene:
         self.Result.records.append(self.record)
         self.observer_nodes = context.get_variable("observer_nodes")
         self.obproxy_nodes = context.get_variable("obproxy_nodes")
+        self.oms_nodes = context.get_variable("oms_nodes")
         self.report = context.get_variable("report")
         self.obproxy_version = context.get_variable("obproxy_version", default="")
         self.observer_version = context.get_variable("observer_version", default="")

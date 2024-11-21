@@ -16,7 +16,6 @@
 @desc:
 """
 import os.path
-import zipfile
 
 from handler.gather.gather_component_log import GatherComponentLogHandler
 
@@ -41,11 +40,12 @@ class Gather_log:
         self.conf_map["gather_scope"] = ""
         self.conf_map["store_dir"] = self.work_path
         self.conf_map["gather_target"] = "observer"
+        self.conf_map["gather_oms_component_id"] = None
         self.greps_key = []
 
     def grep(self, key):
         if key is None or len(key) < 1 or type(key) != str:
-            raise Exception("The keyword cannot be empty!")
+            raise Exception("The keyword {0} cannot be empty!".format(key))
         self.greps_key.append(key)
 
     def execute(self, save_path=""):
@@ -62,9 +62,6 @@ class Gather_log:
                 self.work_path = save_path
             self.conf_map["store_dir"] = self.work_path
             self.stdio.verbose("Gather_log execute,the conf_map: {0}".format(self.conf_map))
-            if len(self.greps_key) == 0:
-                self.stdio.error("The keyword cannot be empty!")
-                raise Exception("The keyword cannot be empty!")
             self.stdio.verbose("gather_grep is {0}".format(self.greps_key))
             nodes_list = []
             # execute on all nodes_list
@@ -137,6 +134,7 @@ class Gather_log:
                     scope=self.conf_map.get("gather_scope"),
                     grep=self.greps_key,
                     store_dir=self.work_path,
+                    oms_component_id=self.conf_map.get("gather_oms_component_id"),
                 )
 
             if handler is None:

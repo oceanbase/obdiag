@@ -32,14 +32,14 @@ class GatherComponentLogHandler(BaseShellHandler):
     log_scope_list = {
         "observer": {"observer": {"key": "*observer*"}, "rootservice": {"key": "*rootservice*"}, "election": {"key": "*election*"}},
         "obproxy": {"obproxy": {"key": "*obproxy*"}, "obproxy_digest": {"key": "*obproxy_digest*"}, "obproxy_stat": {"key": "*obproxy_stat*"}, "obproxy_slow": {"key": "*obproxy_slow*"}, "obproxy_limit": {"key": "*obproxy_limit*"}},
-        "oms": {"connector": {"key": "connector"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
+        "oms": {"connector": {"key": "*connector.*"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.all_files = None
         self.gather_tuples = None
-        self.oms_module_id = None
+        self.oms_component_id = None
         self.redact_dir = None
         self.gather_log_conf_dict = None
         self.thread_nums = None
@@ -84,10 +84,8 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.is_scene = kwargs.get('is_scene', False)
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
-            self.oms_module_id = kwargs.get('oms_module_id', None)
+            self.oms_component_id = kwargs.get('oms_component_id', None)
             self.__check_option()
-            if self.oms_module_id:
-                self.gather_log_conf_dict["oms_module_id"] = self.oms_module_id
             # build config dict for gather log on node
             self.gather_log_conf_dict = {
                 "target": self.target,
@@ -100,7 +98,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "to_time": self.to_time_str,
                 "file_number_limit": self.file_number_limit,
                 "file_size_limit": self.file_size_limit,
-                "oms_module_id": self.oms_module_id,
+                "oms_component_id": self.oms_component_id,
             }
 
         except Exception as e:
@@ -223,9 +221,15 @@ class GatherComponentLogHandler(BaseShellHandler):
                 new_context = self.context
                 new_context.stdio = self.stdio.sub_io()
                 # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
-                if "ssh_client" in node:
-                    del node["ssh_client"]
-                tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
+                if "ssh_client" in node or "ssher" in node:
+                    clear_node = node
+                    if "ssh_client" in node:
+                        del clear_node["ssh_client"]
+                    if "ssher" in node:
+                        del clear_node["ssher"]
+                    tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
+                else:
+                    tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
             file_queue = []
             result_list = mp.Queue()
             for task in tasks:
@@ -341,13 +345,13 @@ class GatherLogOnNode:
         self.tmp_dir = self.config.get("tmp_dir")
 
         self.scope = self.config.get("scope")
-        self.oms_module_id = self.config.get("oms_module_id")
+        self.oms_component_id = self.config.get("oms_component_id")
         if self.target == "oms":
-            if self.oms_module_id is None:
-                raise Exception("gather log on oms, but oms_module_id is None. please check your config")
+            if self.oms_component_id is None:
+                raise Exception("gather log on oms, but oms_component_id is None. please check your config")
             if node.get("run_path") is None:
                 raise Exception("gather log on oms, but run_path is None. please check your config")
-            self.log_path = os.path.join(node.get("run_path"), self.oms_module_id, "logs")
+            self.log_path = os.path.join(node.get("run_path"), self.oms_component_id, "logs")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
 
@@ -488,7 +492,7 @@ class GatherLogOnNode:
                 self.stdio.warn("gather_log_on_node {0} find logs scope is null".format(self.ssh_client.get_ip(), logs_scope))
                 return []
             self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-            find_cmd = "find {0} {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
+            find_cmd = "cd {0} &&find . {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
@@ -503,7 +507,15 @@ class GatherLogOnNode:
     def __get_logfile_name_list(self, from_time_str, to_time_str, log_dir, log_files):
         # oms get all log file name list, the log size is so small
         if self.target == "oms":
-            return log_files
+            log_name_list = []
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "log.gz" not in file_name:
+                    log_name_list.append(file_name)
+                    continue
+            return log_name_list
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
         log_name_list = []
         last_file_dict = {"prefix_file_name": "", "file_name": "", "file_end_time": ""}
