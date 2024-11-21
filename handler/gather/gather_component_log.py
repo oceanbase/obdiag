@@ -11,15 +11,17 @@
 # See the Mulan PSL v2 for more details.
 import datetime
 import os
+import tarfile
 import traceback
 import uuid
 import multiprocessing as mp
+import shutil
 
 from prettytable import PrettyTable
 from common.command import get_file_start_time, get_file_size, is_empty_dir
 from common.constant import const
 from common.ssh_client.ssh import SshClient
-from common.tool import FileUtil, TimeUtils, Util
+from common.tool import FileUtil, TimeUtils
 from handler.base_shell_handler import BaseShellHandler
 from handler.gather.plugins.redact import Redact
 from result_type import ObdiagResult
@@ -27,11 +29,17 @@ from result_type import ObdiagResult
 
 class GatherComponentLogHandler(BaseShellHandler):
     # log_scope_list
-    log_scope_list = {"observer": ["observer", "rootservice", "election"], "obproxy": ["obproxy", "obproxy_digest", "obproxy_stat", "obproxy_slow", "obproxy_limit"], "oms": ["connector", "error"]}
+    log_scope_list = {
+        "observer": {"observer": {"key": "*observer*"}, "rootservice": {"key": "*rootservice*"}, "election": {"key": "*election*"}},
+        "obproxy": {"obproxy": {"key": "*obproxy*"}, "obproxy_digest": {"key": "*obproxy_digest*"}, "obproxy_stat": {"key": "*obproxy_stat*"}, "obproxy_slow": {"key": "*obproxy_slow*"}, "obproxy_limit": {"key": "*obproxy_limit*"}},
+        "oms": {"connector": {"key": "*connector.*"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        self.oms_module_id = None
+        self.all_files = None
+        self.gather_tuples = None
+        self.oms_component_id = None
         self.redact_dir = None
         self.gather_log_conf_dict = None
         self.thread_nums = None
@@ -51,7 +59,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         self.temp_dir = None
         self.redact = None
         self.nodes = None
-        self.zip_password = None
         self.result = ObdiagResult(ObdiagResult.SUCCESS_CODE, data={})
 
     def init(self, context, *args, **kwargs):
@@ -77,15 +84,12 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.is_scene = kwargs.get('is_scene', False)
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
-            self.oms_module_id = kwargs.get('oms_module_id', None)
+            self.oms_component_id = kwargs.get('oms_component_id', None)
             self.__check_option()
-            if self.oms_module_id:
-                self.gather_log_conf_dict["oms_module_id"] = self.oms_module_id
             # build config dict for gather log on node
             self.gather_log_conf_dict = {
                 "target": self.target,
                 "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT,
-                "zip_password": self.zip_password,
                 "scope": self.scope,
                 "grep": self.grep,
                 "encrypt": self.encrypt,
@@ -94,7 +98,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "to_time": self.to_time_str,
                 "file_number_limit": self.file_number_limit,
                 "file_size_limit": self.file_size_limit,
-                "oms_module_id": self.oms_module_id,
+                "oms_component_id": self.oms_component_id,
             }
 
         except Exception as e:
@@ -138,12 +142,18 @@ class GatherComponentLogHandler(BaseShellHandler):
             raise Exception("can not get nodes by target: {0}, nodes's len is 0.".format(self.target))
         # check scope
         if self.scope is None or self.scope == "" or self.scope == "all":
-            self.scope = "all"
             self.scope = self.log_scope_list[self.target]
         else:
             self.scope = self.scope.strip()
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
+        # check grep
+        if self.grep:
+            if isinstance(self.grep, list):
+                pass
+            elif isinstance(self.grep, str):
+                self.grep = self.grep.strip()
+
         # check since from_option and to_option
         from_timestamp = None
         to_timestamp = None
@@ -171,12 +181,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
             self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
-        # check encrypt
-        if self.encrypt:
-            if self.encrypt.strip().upper() == "TRUE":
-                self.encrypt = True
-                self.zip_password = Util.gen_password(16)
-                self.stdio.verbose("zip_encrypt is True, zip_password is {0}".format(self.zip_password))
+
         # check redact
         if self.redact:
             if self.redact != "" and len(self.redact) != 0:
@@ -208,14 +213,23 @@ class GatherComponentLogHandler(BaseShellHandler):
 
             # run on every node
             node_threads = []
-            gather_tuples = []
+            self.gather_tuples = []
             tasks = []
             self.stdio.start_loading("gather start")
             semaphore = mp.Semaphore(self.thread_nums)
             for node in self.nodes:
                 new_context = self.context
                 new_context.stdio = self.stdio.sub_io()
-                tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
+                # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
+                if "ssh_client" in node or "ssher" in node:
+                    clear_node = node
+                    if "ssh_client" in node:
+                        del clear_node["ssh_client"]
+                    if "ssher" in node:
+                        del clear_node["ssher"]
+                    tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
+                else:
+                    tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
             file_queue = []
             result_list = mp.Queue()
             for task in tasks:
@@ -226,11 +240,11 @@ class GatherComponentLogHandler(BaseShellHandler):
             for file_thread in file_queue:
                 file_thread.join()
             for _ in range(result_list.qsize()):
-                gather_tuples.append(result_list.get())
-            self.stdio.verbose("gather_tuples: {0}".format(gather_tuples))
+                self.gather_tuples.append(result_list.get())
+            self.stdio.verbose("gather_tuples: {0}".format(self.gather_tuples))
             self.stdio.stop_loading("succeed")
             # save result
-            summary_tuples = self.__get_overall_summary(gather_tuples)
+            summary_tuples = self.__get_overall_summary(self.gather_tuples)
             self.stdio.print(summary_tuples)
             with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
                 fileobj.write(summary_tuples.get_string())
@@ -238,17 +252,18 @@ class GatherComponentLogHandler(BaseShellHandler):
 
             last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
             self.stdio.print(last_info)
-            if self.zip_password:
-                self.stdio.print("zip password is {0}".format(self.zip_password))
             try:
                 if self.redact and len(self.redact) > 0:
                     self.stdio.start_loading("gather redact start")
                     self.stdio.verbose("redact_option is {0}".format(self.redact))
                     redact_dir = "{0}_redact".format(self.store_dir)
                     self.redact_dir = redact_dir
-                    redact = Redact(self.context, self.store_dir, redact_dir, zip_password=self.zip_password)
-                    redact.redact_files(self.redact)
+                    all_files = self.open_all_file()
+                    self.stdio.verbose(all_files)
+                    redact = Redact(self.context, self.store_dir, redact_dir)
+                    redact.redact_files(self.redact, all_files)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
+                    self.__delete_all_files_in_tar()
                     self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
             except Exception as e:
@@ -270,19 +285,50 @@ class GatherComponentLogHandler(BaseShellHandler):
         summary_tb = PrettyTable()
         summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.stdio.verbose("node_summary_tuple: {0}".format(node_summary_tuple))
-        if self.zip_password:
-            summary_tb.field_names = ["Node", "Status", "Size", "info", "zip_password"]
-        else:
-            summary_tb.field_names = ["Node", "Status", "Size", "info"]
+        summary_tb.field_names = ["Node", "Status", "Size", "info"]
         try:
             for tup in node_summary_tuple:
-                if self.zip_password:
-                    summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"], self.zip_password])
-                else:
-                    summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"]])
+                summary_tb.add_row([tup["node"], tup["success"], tup["file_size"], tup["info"]])
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("gather log __get_overall_summary failed: {0}".format(str(e)))
         return summary_tb
+
+    def open_all_file(self):
+        all_files = {}
+        if not self.gather_tuples:
+            raise Exception("summary_tuples is None. can't open all file")
+        for tup in self.gather_tuples:
+            if not tup["file_path"] or len(tup["file_path"]) == 0 or not os.path.exists(tup["file_path"]):
+                self.stdio.verbose("file_path is None or not exists, can't open file")
+                continue
+            try:
+                file_path = tup["file_path"]
+                self.stdio.verbose("open file {0}".format(tup["file_path"]))
+                # 打开 tar.gz 文件
+                extract_path = os.path.dirname(file_path)
+                with tarfile.open(file_path, 'r:gz') as tar:
+                    # get all files in tar
+                    tar.extractall(path=extract_path)
+                    extracted_files = tar.getnames()
+                    self.stdio.verbose("extracted_files: {0}".format(extracted_files))
+                    extracted_files_new = []
+                    for extracted_file in extracted_files:
+                        extracted_files_new.append(os.path.join(self.store_dir, extracted_file))
+                    all_files[file_path] = extracted_files_new
+            except Exception as e:
+                self.stdio.verbose(traceback.format_exc())
+                self.stdio.error("gather open_all_filefailed: {0}".format(str(e)))
+                continue
+        self.all_files = all_files
+        return all_files
+
+    def __delete_all_files_in_tar(self):
+        for item in os.listdir(self.store_dir):
+            item_path = os.path.join(self.store_dir, item)
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+        return True
 
 
 class GatherLogOnNode:
@@ -299,29 +345,24 @@ class GatherLogOnNode:
         self.tmp_dir = self.config.get("tmp_dir")
 
         self.scope = self.config.get("scope")
-        # todo log_path for oms
-        self.oms_module_id = self.config.get("oms_module_id")
+        self.oms_component_id = self.config.get("oms_component_id")
         if self.target == "oms":
-            if self.oms_module_id is None:
-                raise Exception("gather log on oms, but oms_module_id is None")
-            self.log_path = os.path.join(node.get("run_path"), self.oms_module_id, "logs")
+            if self.oms_component_id is None:
+                raise Exception("gather log on oms, but oms_component_id is None. please check your config")
+            if node.get("run_path") is None:
+                raise Exception("gather log on oms, but run_path is None. please check your config")
+            self.log_path = os.path.join(node.get("run_path"), self.oms_component_id, "logs")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
 
         self.from_time_str = self.config.get("from_time")
         self.to_time_str = self.config.get("to_time")
-        self.grep_option = self.config.get("grep_option")
+        self.grep_option = self.config.get("grep")
         self.store_dir = self.config.get("store_dir")
-        self.zip_password = self.config.get("zip_password") or None
         #
         self.file_number_limit = self.config.get("file_number_limit")
         self.file_size_limit = self.config.get("file_size_limit")
-        self.gather_tuple = {
-            "node": "",
-            "success": "Fail",
-            "info": "",
-            "file_size": 0,
-        }
+        self.gather_tuple = {"node": "", "success": "Fail", "info": "", "file_size": 0, "file_path": ""}
         self.result_list = None
 
     def get_result(self):
@@ -331,13 +372,12 @@ class GatherLogOnNode:
         self.result_list = result_list
         self.ssh_client = SshClient(self.context, self.node)
         self.gather_tuple["node"] = self.ssh_client.get_name()
-        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())))
+        self.tmp_dir = os.path.join(self.tmp_dir, "obdiag_gather_{0}".format(str(uuid.uuid4())[:6]))
         self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
-        self.stdio.verbose("do it")
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-
-        tmp_log_dir = os.path.join(self.tmp_dir, "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target))
+        tmp_dir = "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target)
+        tmp_log_dir = os.path.join(self.tmp_dir, tmp_dir)
         # mkdir tmp_log_dir
         self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
         self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}".format(self.ssh_client.get_ip(), tmp_log_dir))
@@ -365,12 +405,17 @@ class GatherLogOnNode:
                 return
 
             tar_file = os.path.join(self.tmp_dir, "{0}.tar.gz".format(tmp_log_dir))
-            tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_log_dir)
+            tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_dir)
             self.stdio.verbose("gather_log_on_node {0} tar_cmd: {1}".format(self.ssh_client.get_ip(), tar_cmd))
             self.ssh_client.exec_cmd(tar_cmd)
 
             # download log to local store_dir
             tar_file_size = int(get_file_size(self.ssh_client, tar_file))
+            self.stdio.verbose("gather_log_on_node {0} tar_file_size: {1}".format(self.ssh_client.get_ip(), tar_file_size))
+            if tar_file_size == 0:
+                self.stdio.error("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
+                self.gather_tuple["info"] = "tar file size is 0"
+                return
             if tar_file_size > self.file_size_limit:
                 self.stdio.error("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "File too large over gather.file_size_limit"
@@ -378,16 +423,14 @@ class GatherLogOnNode:
             else:
                 self.stdio.verbose("gather_log_on_node {0} download log to local store_dir: {1}".format(self.ssh_client.get_ip(), self.store_dir))
                 self.ssh_client.download(tar_file, os.path.join(self.store_dir, os.path.basename("{0}".format(tar_file))))
-            # tar to zip
             tar_file_name = os.path.basename("{0}".format(tar_file))
             self.stdio.verbose("tar_file_name: {0}".format(tar_file_name))
             local_tar_file_path = os.path.join(self.store_dir, tar_file_name)
-            local_zip_store_path = os.path.join(self.store_dir, os.path.basename("{0}.zip".format(tmp_log_dir)))
-            self.stdio.verbose("local_tar_file_path: {0}; local_zip_store_path: {1}".format(local_tar_file_path, local_zip_store_path))
-            FileUtil.tar_gz_to_zip(self.store_dir, local_tar_file_path, local_zip_store_path, self.zip_password, self.stdio)
-            self.gather_tuple["file_size"] = FileUtil.size_format(num=int(os.path.getsize(local_zip_store_path) or 0), output_str=True)
-            self.gather_tuple["info"] = "file save in {0}".format(local_zip_store_path)
+            self.stdio.verbose("local_tar_file_path: {0}".format(local_tar_file_path))
+            self.gather_tuple["file_size"] = FileUtil.size_format(num=int(os.path.getsize(local_tar_file_path) or 0), output_str=True)
+            self.gather_tuple["info"] = "file save in {0}".format(local_tar_file_path)
             self.gather_tuple["success"] = "Success"
+            self.gather_tuple["file_path"] = local_tar_file_path
         except Exception as e:
             self.stdio.verbose(traceback.format_exc())
             self.stdio.error("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
@@ -404,15 +447,17 @@ class GatherLogOnNode:
     def __grep_log_to_tmp(self, logs_name, tmp_log_dir):
         grep_cmd = ""
         if self.grep_option:
-            self.stdio.verbose("grep files, grep_option = [{0}]".format(self.grep_option))
+            self.stdio.verbose("grep files, grep_option = {0}".format(self.grep_option))
             for grep_option in self.grep_option:
                 if grep_cmd == "":
                     grep_cmd = "grep -e '{0}' ".format(grep_option)
+                    continue
                 grep_cmd += "| grep -e '{0}'".format(grep_option)
         for log_name in logs_name:
             source_log_name = "{0}/{1}".format(self.log_path, log_name)
             target_log_name = "{0}/{1}".format(tmp_log_dir, log_name)
             self.stdio.verbose("grep files, source_log_name = [{0}], target_log_name = [{1}]".format(source_log_name, target_log_name))
+            # for oms log
             if log_name.endswith(".gz"):
                 log_grep_cmd = "cp {0} {1}".format(source_log_name, target_log_name)
                 self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
@@ -431,13 +476,23 @@ class GatherLogOnNode:
         try:
             logs_scope = ""
             for scope in self.scope:
-                if logs_scope == "":
-                    logs_scope = scope
-                    continue
-                logs_scope = logs_scope + "|" + scope
+                target_scopes = self.scope[scope]["key"]
+                if isinstance(target_scopes, list):
+                    for target_scope in target_scopes:
+                        if logs_scope == "":
+                            logs_scope = ' -name "{0}" '.format(target_scope)
+                            continue
+                        logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scope)
+                else:
+                    if logs_scope == "":
+                        logs_scope = ' -name "{0}" '.format(target_scopes)
+                        continue
+                    logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scopes)
+            if logs_scope == "":
+                self.stdio.warn("gather_log_on_node {0} find logs scope is null".format(self.ssh_client.get_ip(), logs_scope))
+                return []
             self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-
-            find_cmd = "ls -1 -F {0} |grep -E '{1}'| awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
+            find_cmd = "cd {0} &&find . {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
@@ -450,9 +505,18 @@ class GatherLogOnNode:
             raise Exception("gather_log_on_node {0} find logs failed: {1}".format(self.ssh_client.get_ip(), str(e)))
 
     def __get_logfile_name_list(self, from_time_str, to_time_str, log_dir, log_files):
-        # TODO oms get all log file name list
+        # oms get all log file name list, the log size is so small
         if self.target == "oms":
-            return log_files
+            log_name_list = []
+            formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "log.gz" not in file_name or formatted_time in file_name:
+                    log_name_list.append(file_name)
+                    continue
+            return log_name_list
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
         log_name_list = []
         last_file_dict = {"prefix_file_name": "", "file_name": "", "file_end_time": ""}

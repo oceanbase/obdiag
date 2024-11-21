@@ -17,6 +17,7 @@
 """
 import datetime
 import os
+import traceback
 
 from common.command import get_observer_version
 from common.ob_connector import OBConnector
@@ -74,6 +75,7 @@ class GatherAshReportHandler(SafeStdio):
         try:
             observer_version = get_observer_version(self.context)
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
             return False
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
@@ -108,6 +110,7 @@ class GatherAshReportHandler(SafeStdio):
                 f.write(self.ash_report_file_name)
 
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("ash report gather failed, error message: {0}".format(e))
 
     def __init_report_path(self):
@@ -116,6 +119,7 @@ class GatherAshReportHandler(SafeStdio):
             self.stdio.verbose("Use {0} as pack dir.".format(self.report_path))
             DirectoryUtil.mkdir(path=self.report_path, stdio=self.stdio)
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("init_report_path failed, error:{0}".format(e))
 
     def init_option(self):

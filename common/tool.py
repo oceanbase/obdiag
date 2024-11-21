@@ -682,20 +682,14 @@ class FileUtil(object):
                     base_paths.append(base_path)
             stdio.verbose("start pyminizip compress_multiple")
             # 3. Compress the extracted files into a (possibly) encrypted zip file
-            zip_process = None
             if password:
                 # Use pyminizip to create the encrypted zip file
-                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, password, 5))
-                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
                 stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
             else:
                 # Create an unencrypted zip file
-                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, None, 5))
-                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
                 stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
-            zip_process.start()
-            if zip_process is not None:
-                zip_process.join()
 
             # 4. Remove the extracted directory
             shutil.rmtree(extract_dir)
