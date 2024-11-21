@@ -90,4 +90,5 @@ class CPUHigh(SafeStdio):
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error: ".format(file_path))
 
+
 cpu_high = CPUHigh()

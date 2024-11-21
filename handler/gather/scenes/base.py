@@ -88,6 +88,7 @@ class SceneBase(SafeStdio):
 
     def __execute_code_mode(self):
         pass
+
     # def __execute_code_mode(self):
     #     skip_type = self.context.get_variable("gather_skip_type", None)
     #     if skip_type:

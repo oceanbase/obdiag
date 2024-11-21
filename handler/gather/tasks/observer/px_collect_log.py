@@ -190,4 +190,5 @@ class PXCollectLog(object):
         except Exception as e:
             self.stdio.error("Parse env fail. Exception : {0} .".format(e))
 
+
 px_collect_log = PXCollectLog()
