@@ -221,6 +221,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         if resp["skip"]:
             return resp, node_results
         self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
+        self.stdio.start_loading("analyze log start")
         for log_name in log_list:
             if self.directly_analyze_files:
                 self.__pharse_offline_log_file(ssh_client, log_name=log_name, local_store_dir=local_store_dir)
@@ -228,10 +229,9 @@ class AnalyzeLogHandler(BaseShellHandler):
             else:
                 self.__pharse_log_file(ssh_client, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
                 analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
-            self.stdio.print('analyze log start')
             file_result = self.__parse_log_lines(analyze_log_full_path)
-            self.stdio.print('analyze log sucess')
             node_results.append(file_result)
+        self.stdio.stop_loading("succeed")
         delete_file(ssh_client, gather_dir_full_path, self.stdio)
         ssh_client.ssh_close()
         return resp, node_results
