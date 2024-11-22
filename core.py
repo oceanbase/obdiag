@@ -246,6 +246,7 @@ class ObdiagHome(object):
             self.stdio.print("{0} start ...".format(function_type))
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
+            options = self.context.options
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
             if function_type == 'gather_log':
