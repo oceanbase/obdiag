@@ -563,6 +563,9 @@ class AnalyzeMemoryHandler(object):
                     memory_print_line_list.append(print_begin_line)
             except ValueError:
                 continue
+            except Exception as e:
+                self.stdio.warn('parse memory label failed, error: {0}'.format(e))
+                continue
         return sorted(memory_print_line_list)
 
     def __convert_string_bytes_2_int_bytes(self, string_bytes):
