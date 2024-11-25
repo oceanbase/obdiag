@@ -556,10 +556,13 @@ class AnalyzeMemoryHandler(object):
         memory_begin_list = memory_begin_str.split('\n')
         memory_print_line_list = []
         for row in memory_begin_list:
-            print_begin_line = row.split(':')[0]
-            if print_begin_line:
-                print_begin_line = int(print_begin_line)
-                memory_print_line_list.append(print_begin_line)
+            try:
+                print_begin_line = row.split(':')[0]
+                if print_begin_line:
+                    print_begin_line = int(print_begin_line)
+                    memory_print_line_list.append(print_begin_line)
+            except ValueError:
+                continue
         return sorted(memory_print_line_list)
 
     def __convert_string_bytes_2_int_bytes(self, string_bytes):
