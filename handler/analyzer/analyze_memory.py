@@ -22,6 +22,7 @@ import plotly.io as pio
 import datetime
 import tabulate
 import threading
+import uuid
 import common.ssh_client.local_client as ssh_client_local_client
 from common.command import get_observer_version_by_sql
 from common.tool import DirectoryUtil, TimeUtils, Util, NetUtils, FileUtil
@@ -201,7 +202,7 @@ class AnalyzeMemoryHandler(object):
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
+        gather_dir_full_path = "{0}/{1}_{2}".format(self.gather_ob_log_temporary_dir, gather_dir_name, str(uuid.uuid4())[:6])
         mkdir(ssh_client, gather_dir_full_path)
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
         result_pack_path = "./{0}".format(os.path.relpath(local_store_dir, self.gather_pack_dir))
@@ -209,6 +210,7 @@ class AnalyzeMemoryHandler(object):
         if resp["skip"]:
             return resp
         self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
+        self.stdio.start_loading("analyze memory start")
         for log_name in log_list:
             if self.directly_analyze_files:
                 self.__pharse_offline_log_file(ssh_client, log_name=log_name, local_store_dir=local_store_dir)
@@ -225,7 +227,6 @@ class AnalyzeMemoryHandler(object):
                 analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
             else:
                 analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
-            self.stdio.verbose('analyze memory info from {0} start'.format(log_name))
             self.__parse_log_lines(analyze_log_full_path, memory_info)
             for sample_time in memory_info:
                 for tenant in memory_info[sample_time]:
@@ -234,9 +235,9 @@ class AnalyzeMemoryHandler(object):
                     else:
                         tenant_memory_info_dict[tenant] = dict()
                         tenant_memory_info_dict[tenant][sample_time] = memory_info[sample_time][tenant]
-            self.stdio.verbose('analyze memory info from {0} sucess'.format(log_name))
             self.stdio.verbose("rm local file storage path: {0}".format(analyze_log_full_path))
             FileUtil.rm(analyze_log_full_path, self.stdio)
+        self.stdio.stop_loading("analyze memory succeed")
         try:
             fig = go.Figure()
             colors = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'magenta', 'yellow', 'black', 'brown', 'pink', 'gray', 'lime', 'teal', 'navy']
