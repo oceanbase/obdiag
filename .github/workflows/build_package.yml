@@ -8,6 +8,7 @@ on:
     branches:
       - master
       - v3.0-dev
+      - enhancement-optimize_external_script
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
