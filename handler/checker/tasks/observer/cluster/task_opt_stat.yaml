@@ -1,4 +1,4 @@
-info: 'Check whether data_dir and log_dir_disk are on the same disk.'
+info: 'Check task opt stat gather history.'
 task:
   - version: "[4.2.0.0,*]"
     steps:
@@ -13,4 +13,4 @@ WHERE  NOT EXISTS(SELECT 1
       result:
         set_value: failed_scheduler_tenant_id
         verify: '[ -z "${failed_scheduler_tenant_id}" ]'
-        err_msg: "failed_scheduler_tenant_id is exists. Please check the tenant_ids: #{failed_scheduler_tenant_id}"
+        err_msg: "The collection of statistical information related to tenants has issues.. Please check the tenant_ids: #{failed_scheduler_tenant_id}"
