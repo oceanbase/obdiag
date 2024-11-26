@@ -428,16 +428,15 @@ class ObdiagHome(object):
                 observer_check_handler.handle()
                 observer_result = observer_check_handler.execute()
                 result_data['observer'] = observer_result
-            result_data['store_dir'] = os.path.expanduser("./check_report/")
             if obproxy_check_handler is not None:
                 obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                 if os.path.exists(obproxy_report_path):
-                    result_data['store_dir'] = os.path.dirname(obproxy_report_path)
+                    result_data['obproxy_report_path'] = os.path.abspath(obproxy_report_path)
                     self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
             if observer_check_handler is not None:
                 observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                 if os.path.exists(observer_report_path):
-                    result_data['store_dir'] = os.path.dirname(observer_report_path)
+                    result_data['observer_report_path'] = os.path.abspath(observer_report_path)
                     self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
 
