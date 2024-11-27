@@ -1021,13 +1021,14 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
 class ObdiagCheckRunCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckRunCommand, self).__init__('check', 'check OceanBase cluster')
+        super(ObdiagCheckRunCommand, self).__init__('run', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
-        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml", "html". default table', default='table')
+        self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('--env', action="append", type='string', help='env of scene')
 
     def init(self, cmd, args):
         super(ObdiagCheckRunCommand, self).init(cmd, args)
@@ -1041,8 +1042,9 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
 class ObdiagCheckListCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckListCommand, self).__init__('list', 'show check package')
-        self.parser.add_option('--all', action="store_true", help="check observer's cases on package_file")
+        super(ObdiagCheckListCommand, self).__init__('list', 'check list')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
         super(ObdiagCheckListCommand, self).init(cmd, args)
@@ -1051,14 +1053,6 @@ class ObdiagCheckListCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         return obdiag.check_list(self.opts)
-
-
-class ObdiagCheckCommand(MajorCommand):
-
-    def __init__(self):
-        super(ObdiagCheckCommand, self).__init__('check', 'check OceanBase cluster')
-        self.register_command(ObdiagCheckRunCommand())
-        self.register_command(ObdiagCheckListCommand())
 
 
 class ObdiagRCARunCommand(ObdiagOriginCommand):
@@ -1253,6 +1247,14 @@ class ObdiagRCACommand(MajorCommand):
         super(ObdiagRCACommand, self).__init__('rca', 'root cause analysis')
         self.register_command(ObdiagRCARunCommand())
         self.register_command(ObdiagRCAListCommand())
+
+
+class ObdiagCheckCommand(MajorCommand):
+
+    def __init__(self):
+        super(ObdiagCheckCommand, self).__init__('check', 'Check OceanBase cluster info')
+        self.register_command(ObdiagCheckRunCommand())
+        self.register_command(ObdiagCheckListCommand())
 
 
 class MainCommand(MajorCommand):
