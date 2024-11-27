@@ -22,6 +22,11 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
 
     steps:
+      - name: checkout fix
+        run: |
+          cd $RUNNER_HOME/actions-runner/externals
+          mv node20 node20.bak
+          ln -s node16 node20
       - name: Checkout code
         uses: actions/checkout@v3
         
