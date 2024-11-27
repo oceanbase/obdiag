@@ -1018,10 +1018,10 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
         return obdiag.analyze_fuction('analyze_sql_review', self.opts)
 
 
-class ObdiagCheckCommand(ObdiagOriginCommand):
+class ObdiagCheckRunCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagCheckCommand, self).__init__('check', 'check OceanBase cluster')
+        super(ObdiagCheckRunCommand, self).__init__('check', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
@@ -1030,14 +1030,35 @@ class ObdiagCheckCommand(ObdiagOriginCommand):
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
-        super(ObdiagCheckCommand, self).init(cmd, args)
+        super(ObdiagCheckRunCommand, self).init(cmd, args)
         self.parser.set_usage('%s [options]' % self.prev_cmd)
         return self
 
     def _do_command(self, obdiag):
-        if 'list' in self.args:
-            return obdiag.check_list(self.opts)
         return obdiag.check(self.opts)
+
+
+class ObdiagCheckListCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagCheckListCommand, self).__init__('list', 'show check package')
+        self.parser.add_option('--all', action="store_true", help="check observer's cases on package_file")
+
+    def init(self, cmd, args):
+        super(ObdiagCheckListCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.check_list(self.opts)
+
+
+class ObdiagCheckCommand(MajorCommand):
+
+    def __init__(self):
+        super(ObdiagCheckCommand, self).__init__('check', 'check OceanBase cluster')
+        self.register_command(ObdiagCheckRunCommand())
+        self.register_command(ObdiagCheckListCommand())
 
 
 class ObdiagRCARunCommand(ObdiagOriginCommand):
