@@ -1,6 +1,6 @@
 info_en: "[database data_size]"
 info_cn: "[查看库占用磁盘大小]"
-command: obdiag display scene run --scene=observer.database_datasize --env tenant_id=1006 --env database_name=test
+command: obdiag display scene run --scene=observer.database_datasize --env tenant_id=1 --env database_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:
