@@ -1,6 +1,6 @@
 info: "OB has been upgraded to version 4.2.1, and some partition tables are executing DDL with error code -4109 and error message: Server state or role not the same as expected. github issue #182"
 task:
-  - version: "[4.0.0.0,*]"
+  - version: "[4.2.1.0,*]"
     steps:
     - type: sql
       sql: 'select tenant_id, table_id, table_name, database_id, table_type, load_type, def_type, rowkey_column_num, index_column_num, max_used_column_id, autoinc_column_id, auto_increment, read_only, rowkey_split_pos, compress_func_name, expire_condition, is_use_bloomfilter, comment, block_size, collation_type, data_table_id, index_status, tablegroup_id, progressive_merge_num, index_type, part_level, part_func_type, part_func_expr, part_num, sub_part_func_type, sub_part_func_expr, sub_part_num, schema_version, view_definition, view_check_option, view_is_updatable, index_using_type, parser_name, index_attributes_set, tablet_size, pctfree, partition_status, partition_schema_version, session_id, pk_comment, sess_active_time, row_store_type, store_format, duplicate_scope, progressive_merge_round, storage_format_version, table_mode, encryption, tablespace_id, sub_part_template_flags, dop, character_set_client, collation_connection, auto_part_size, auto_part, association_table_id, tablet_id, max_dependency_version, define_user_id, transition_point, b_transition_point, interval_range, b_interval_range, object_status, table_flags, truncate_version, 0 as is_deleted from OCEANBASE.__all_table
