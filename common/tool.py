@@ -526,6 +526,7 @@ class FileUtil(object):
             stdio and getattr(stdio, 'exception', print)('failed to unzip %s' % source)
         return None
 
+    @staticmethod
     def extract_tar(tar_path, output_path, stdio=None):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -578,6 +579,7 @@ class FileUtil(object):
         fcntl.flock(obj, fcntl.LOCK_UN)
         return obj
 
+    @staticmethod
     def size_format(num, unit="B", output_str=False, stdio=None):
         if num < 0:
             raise ValueError("num cannot be negative!")
@@ -637,6 +639,7 @@ class FileUtil(object):
         except Exception as e:
             return ""
 
+    @staticmethod
     def size(size_str, unit='B', stdio=None):
         unit_size_dict = {
             "b": 1,
@@ -658,10 +661,12 @@ class FileUtil(object):
             raise ValueError('size cannot be negative!')
         return real_size / unit_size_dict[unit]
 
+    @staticmethod
     def write_append(filename, result, stdio=None):
         with io.open(filename, 'a', encoding='utf-8') as fileobj:
             fileobj.write(u'{}'.format(result))
 
+    @staticmethod
     def tar_gz_to_zip(temp_dir, tar_gz_file, output_zip, password, stdio):
         extract_dir = os.path.join(temp_dir, 'extracted_files_{0}'.format(str(uuid.uuid4())[:6]))
 
@@ -1574,6 +1579,7 @@ class Util(object):
     def gen_password(length=8, chars=string.ascii_letters + string.digits, stdio=None):
         return ''.join([choice(chars) for i in range(length)])
 
+    @staticmethod
     def retry(retry_count=3, retry_interval=2, stdio=None):
         def real_decorator(decor_method):
             def wrapper(*args, **kwargs):
