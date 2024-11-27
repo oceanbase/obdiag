@@ -472,27 +472,33 @@ class ObdiagHome(object):
                 obproxy_check_handler = None
                 observer_check_handler = None
                 result_data = {}
+
                 if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
                     obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
-                    obproxy_result = obproxy_check_handler.handle()
+                    obproxy_check_handler.handle()
+                    obproxy_result = obproxy_check_handler.execute()
                     result_data['obproxy'] = obproxy_result
                 if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
                     observer_check_handler = CheckHandler(self.context, check_target_type="observer")
-                    observer_result = observer_check_handler.handle()
+                    observer_check_handler.handle()
+                    observer_result = observer_check_handler.execute()
                     result_data['observer'] = observer_result
                 if obproxy_check_handler is not None:
                     obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                     if os.path.exists(obproxy_report_path):
+                        result_data['obproxy_report_path'] = os.path.abspath(obproxy_report_path)
                         self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
                 if observer_check_handler is not None:
                     observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                     if os.path.exists(observer_report_path):
+                        result_data['observer_report_path'] = os.path.abspath(observer_report_path)
                         self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
                 return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
             except Exception as e:
                 self.stdio.error("check Exception: {0}".format(e))
                 self.stdio.verbose(traceback.format_exc())
                 return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="check Exception: {0}".format(e))
+
 
     def check_list(self, opts):
         config = self.config_manager
@@ -514,7 +520,8 @@ class ObdiagHome(object):
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)
-                return handler.handle()
+                handler.handle()
+                return handler.execute()
             except Exception as e:
                 self.stdio.error("rca run Exception: {0}".format(e))
                 self.stdio.verbose(traceback.format_exc())
