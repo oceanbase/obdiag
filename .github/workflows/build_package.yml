@@ -24,8 +24,8 @@ jobs:
     steps:
       - name: Run on old node
         run: |
-          sudo yum update -y
-          sudo yum install -y wget
+          yum update -y
+          yum install -y wget
           touch "$HOME/.bashrc"
           wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
           export NVM_DIR="$HOME/.nvm"
