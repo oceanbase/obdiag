@@ -120,9 +120,7 @@ class AnalyzeSQLHandler(object):
         ob_cluster = self.context.cluster_config
         self.stdio.verbose('cluster config: {0}'.format(StringUtils.mask_passwords(ob_cluster)))
         self.ob_cluster = ob_cluster
-        self.sys_connector = OBConnector(
-            context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), timeout=100
-        )
+        self.sys_connector = OBConnector(context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), timeout=100)
         self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
         self.stdio.print('init cluster config complete')
         return True
