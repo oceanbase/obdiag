@@ -925,7 +925,6 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
         super(ObdiagAnalyzeMemoryCommand, self).__init__('memory', 'Analyze OceanBase Memory info from online observer machines or offline OceanBase log files')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--files', action="append", type='string', help="specify files")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
@@ -942,7 +941,7 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
     def _do_command(self, obdiag):
         offline_args_sign = '--files'
         if self.args and (offline_args_sign in self.args):
-            return obdiag.analyze_fuction('analyze_memory', self.opts)
+            return obdiag.analyze_fuction('analyze_memory_offline', self.opts)
         else:
             return obdiag.analyze_fuction('analyze_memory', self.opts)
 
