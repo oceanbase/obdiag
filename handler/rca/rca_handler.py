@@ -79,11 +79,11 @@ class RCAHandler:
         try:
             if self.ob_cluster is not None:
                 ob_connector = OBConnector(
+                    context=self.context,
                     ip=self.ob_cluster.get("db_host"),
                     port=self.ob_cluster.get("db_port"),
                     username=self.ob_cluster.get("tenant_sys").get("user"),
                     password=self.ob_cluster.get("tenant_sys").get("password"),
-                    stdio=self.stdio,
                     timeout=10000,
                 )
                 self.context.set_variable("ob_connector", ob_connector)

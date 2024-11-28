@@ -139,7 +139,7 @@ class ObdiagHome(object):
             stdio=self.stdio,
             inner_config=self.inner_config_manager.config,
         )
-        telemetry.set_cluster_conn(config.get_ob_cluster_config)
+        telemetry.set_cluster_conn(self.context, config.get_ob_cluster_config)
 
     def set_context_skip_cluster_conn(self, handler_name, namespace, config):
         self.context = HandlerContext(
@@ -175,7 +175,7 @@ class ObdiagHome(object):
             return
 
         ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
-        obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio)
+        obConnetcor = OBConnector(context=self.context, ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"])
 
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
         if ob_version.startswith(("1", "2", "3")):
