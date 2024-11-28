@@ -44,7 +44,6 @@ class GatherVariablesHandler(object):
                 port=self.ob_cluster.get("db_port"),
                 username=self.ob_cluster.get("tenant_sys").get("user"),
                 password=self.ob_cluster.get("tenant_sys").get("password"),
-                stdio=self.stdio,
                 timeout=10000,
                 database="oceanbase",
             )

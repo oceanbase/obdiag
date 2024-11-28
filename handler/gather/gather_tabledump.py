@@ -88,9 +88,9 @@ class GatherTableDumpHandler(SafeStdio):
             else:
                 self.tenant_name = self.__extract_string(user)
             self.ob_connector = OBConnector(
-                context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
+                context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), timeout=100
             )
-            self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=user, password=password, stdio=self.stdio, timeout=100)
+            self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=user, password=password, timeout=100)
             self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.store_dir, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
             return True
         except Exception as e:

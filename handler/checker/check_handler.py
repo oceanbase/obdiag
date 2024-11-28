@@ -262,7 +262,7 @@ class checkOBConnectorPool:
         try:
             for i in range(max_size):
                 conn = OBConnector(
-                    context=context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000
+                    context=context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), timeout=10000
                 )
                 self.connections.put(conn)
             self.stdio.verbose("obConnectorPool init success!")

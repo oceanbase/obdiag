@@ -58,7 +58,6 @@ class GatherAshReportHandler(SafeStdio):
                 port=self.cluster.get("db_port"),
                 username=self.cluster.get("tenant_sys").get("user"),
                 password=self.cluster.get("tenant_sys").get("password"),
-                stdio=self.stdio,
                 timeout=10000,
                 database="oceanbase",
             )

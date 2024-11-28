@@ -34,7 +34,6 @@ class OBConnector(object):
         username,
         password=None,
         database=None,
-        stdio=None,
         timeout=30,
     ):
         self.context = context
@@ -44,7 +43,7 @@ class OBConnector(object):
         self.password = str(password)
         self.timeout = timeout
         self.conn = None
-        self.stdio = stdio
+        self.stdio = context.stdio
         self.database = database
         self.init()
 

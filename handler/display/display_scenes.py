@@ -58,7 +58,7 @@ class DisplaySceneHandler(SafeStdio):
     def init_config(self):
         self.cluster = self.context.cluster_config
         self.sys_connector = OBConnector(
-            context=self.context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
+            context=self.context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), timeout=100
         )
         self.obproxy_nodes = self.context.obproxy_config['servers']
         self.ob_nodes = self.context.cluster_config['servers']
@@ -92,7 +92,7 @@ class DisplaySceneHandler(SafeStdio):
 
     def __init_db_connector(self):
         self.db_connector = OBConnector(
-            context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), stdio=self.stdio, timeout=100
+            context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100
         )
 
     def __init_db_conn(self, cli_connection_string):

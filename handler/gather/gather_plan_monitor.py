@@ -64,7 +64,7 @@ class GatherPlanMonitorHandler(object):
         ob_cluster = self.context.cluster_config
         self.ob_cluster = ob_cluster
         self.sys_connector = OBConnector(
-            context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
+            context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), timeout=100
         )
         self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
         return True
@@ -95,7 +95,7 @@ class GatherPlanMonitorHandler(object):
 
     def __init_db_connector(self):
         self.db_connector = OBConnector(
-            context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), stdio=self.stdio, timeout=100
+            context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100
         )
 
     def handle(self):

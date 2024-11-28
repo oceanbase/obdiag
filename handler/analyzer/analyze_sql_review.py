@@ -59,7 +59,7 @@ class AnalyzeSQLReviewHandler(object):
         self.stdio.verbose('cluster config: {0}'.format(StringUtils.mask_passwords(ob_cluster)))
         self.ob_cluster = ob_cluster
         self.sys_connector = OBConnector(
-            context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100
+            context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), timeout=100
         )
         self.ob_cluster_name = ob_cluster.get("ob_cluster_name")
         self.stdio.print('init cluster config complete')
@@ -69,7 +69,7 @@ class AnalyzeSQLReviewHandler(object):
         if self.db_user:
             self.stdio.verbose("init db connector start")
             self.db_connector_provided = True
-            self.db_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.db_user, password=self.db_password, stdio=self.stdio, timeout=100)
+            self.db_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.db_user, password=self.db_password, timeout=100)
             self.stdio.verbose("init db connector complete")
         else:
             self.db_connector = self.sys_connector

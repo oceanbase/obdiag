@@ -173,7 +173,7 @@ class ObdiagHome(object):
             return
         if Util.check_none_values(ob_cluster, self.stdio):
             ob_version = get_observer_version_by_sql(self.context, ob_cluster, self.stdio)
-            obConnetcor = OBConnector(context=self.context, ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
+            obConnetcor = OBConnector(context=self.context, ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], timeout=100)
             sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
             if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
                 sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
