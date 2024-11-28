@@ -1,6 +1,6 @@
 info_en: "[backup clean]"
 info_cn: "[备份清理问题]"
-command: obdiag gather scene run --scene=observer.backup_clean
+command: obdiag gather scene run --scene=observer.backup_clean --env "{tenant_id=xxx}"
 task:
   - version: "[2.0.0.0, 4.0.0.0]"
     steps:
@@ -50,7 +50,7 @@ task:
         sql: "select * from oceanbase.__all_virtual_sys_task_status where comment like '%backup%';"
         global: true
       - type: sql
-        sql: "select * from oceanbase.CDB_OB_BACKUP_SET_DETAILS order by START_TIME asc limit 1;"
+        sql: "select * from oceanbase.CDB_OB_BACKUP_SET_DETAILS order by START_TIME desc"
         global: true
       - type: sql
         sql: "select * from oceanbase.__all_backup_task_clean_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
@@ -106,34 +106,34 @@ task:
         sql: "show parameters like '%backup%';"
         global: true
       - type: sql
-        sql: "select * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY"
+        sql: "select * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY where tenant_id=${tenant_id}"
         global: true
       - type: sql
         sql: "SELECT * FROM oceanbase.DBA_OB_ROOTSERVICE_EVENT_HISTORY WHERE module='backup_data' AND event ='start_backup_data';"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_TASKS limit 20;"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_TASKS where tenant_id=${tenant_id};"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.__all_virtual_backup_schedule_task limit 20"
+        sql: "SELECT * FROM oceanbase.__all_virtual_backup_schedule_task where tenant_id=${tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY where STATUS = 'FAILED' limit 20;"
+        sql: "SELECT * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY where STATUS = 'FAILED' and tenant_id=${tenant_id};"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_POLICY;"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_POLICY where tenant_id=${tenant_id};"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_JOBS limit 20"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_JOBS where tenant_id=${tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_TASKS limit 20"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_TASKS where tenant_id=${tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_TASK_HISTORY limit 20"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_TASK_HISTORY where tenant_id=${tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_JOB_HISTORY limit 20"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_DELETE_JOB_HISTORY where tenant_id=${tenant_id}"
         global: true
       - type: log
         global: false

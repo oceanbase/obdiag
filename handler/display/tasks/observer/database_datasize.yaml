@@ -1,33 +1,34 @@
 info_en: "[database data_size]"
 info_cn: "[查看库占用磁盘大小]"
-command: obdiag display scene run --scene=observer.database_datasize --env tenant_id=1006 --env database_name=test
+command: obdiag display scene run --scene=observer.database_datasize --env tenant_id=1 --env database_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "select tenant_id,tenant_name,DATABASE_NAME,sum(data_size_in_GB) as data_size_in_GB  from 
-             (SELECT /*+ query_timeout(30000000) */  a.TENANT_ID, c.tenant_name, a.DATABASE_NAME, a.TABLE_NAME, a.TABLE_ID,    
-             SUM(CASE WHEN b.nested_offset = 0 THEN IFNULL(b.data_block_count + b.index_block_count + b.linked_block_count, 0) * 2 * 1024 * 1024 ELSE IFNULL(b.size, 0) END ) /1024.0 /1024/1024 AS data_size_in_GB 
-             FROM oceanbase.CDB_OB_TABLE_LOCATIONS a INNER JOIN oceanbase.__all_virtual_table_mgr b ON a.svr_ip = b.svr_ip 
-             AND a.svr_port = b.svr_port AND a.tenant_id = b.tenant_id AND a.LS_ID = b.LS_ID AND a.TABLET_ID = b.TABLET_ID 
-             inner join oceanbase.__all_tenant c on a.tenant_id=c.tenant_id WHERE a.role = 'LEADER' 
-             AND  c.tenant_id = {tenant_id}  AND b.table_type >= 10 AND b.size > 0 AND a.TABLE_NAME NOT REGEXP '^__'  
-             and a.database_name='{database_name}' GROUP BY a.TABLE_ID) group by database_name;"
+        sql:
+          "select tenant_id,tenant_name,DATABASE_NAME,sum(data_size_in_B) as data_size_in_B  from
+          (SELECT /*+ query_timeout(30000000) */  a.TENANT_ID, c.tenant_name, a.DATABASE_NAME, a.TABLE_NAME, a.TABLE_ID,
+          SUM(CASE WHEN b.nested_offset = 0 THEN IFNULL(b.data_block_count + b.index_block_count + b.linked_block_count, 0) * 2 * 1024 * 1024 ELSE IFNULL(b.size, 0) END ) AS data_size_in_B
+          FROM oceanbase.CDB_OB_TABLE_LOCATIONS a INNER JOIN oceanbase.__all_virtual_table_mgr b ON a.svr_ip = b.svr_ip
+          AND a.svr_port = b.svr_port AND a.tenant_id = b.tenant_id AND a.LS_ID = b.LS_ID AND a.TABLET_ID = b.TABLET_ID
+          inner join oceanbase.__all_tenant c on a.tenant_id=c.tenant_id WHERE a.role = 'LEADER'
+          AND  c.tenant_id = {tenant_id}  AND b.table_type >= 10 AND b.size > 0 AND a.TABLE_NAME NOT REGEXP '^__'
+          and a.database_name='{database_name}' GROUP BY a.TABLE_ID) group by database_name;"
         global: true
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
-        sql: "select  a.tenant_id,  b.database_name,SUM(a.data_size) / 1024 / 1024 / 1024 AS data_size_G, 
-              SUM(a.required_size) / 1024 / 1024 / 1024 AS required_size_G  from 
-              oceanbase.__all_virtual_meta_table a inner join
-              (select a.* from 
-              oceanbase.gv$table a
-              inner join 
-              oceanbase.gv$database b
-              on a.database_id=b.database_id
-              where b.tenant_id={tenant_id} and b.database_name='{database_name}')b
-              on a.table_id=b.table_id 
-              where  a.role = 1
-              group by a.tenant_id, b.database_name;"
+        sql:
+          "select  a.tenant_id,  b.database_name,SUM(a.data_size) AS data_size_B,
+          SUM(a.required_size) AS required_size_B  from
+          oceanbase.__all_virtual_meta_table a inner join
+          (select a.* from
+          oceanbase.gv$table a
+          inner join
+          oceanbase.gv$database b
+          on a.database_id=b.database_id
+          where b.tenant_id={tenant_id} and b.database_name='{database_name}')b
+          on a.table_id=b.table_id
+          where  a.role = 1
+          group by a.tenant_id, b.database_name;"
         global: true
-  

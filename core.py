@@ -133,7 +133,6 @@ class ObdiagHome(object):
             namespace=namespace,
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
-            oms_config=config.get_oms_config,
             ocp_config=config.get_ocp_config,
             cmd=self.cmds,
             options=self.options,
@@ -148,7 +147,6 @@ class ObdiagHome(object):
             namespace=namespace,
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
-            oms_config=config.get_oms_config,
             ocp_config=config.get_ocp_config,
             cmd=self.cmds,
             options=self.options,
@@ -161,42 +159,46 @@ class ObdiagHome(object):
 
     def update_obcluster_nodes(self, config):
         config_data = config.config_data
-        cluster_config = config.config_data["obcluster"]
+        cluster_config = config.config_data.get("obcluster", {})
+
         lst = Util.get_option(self.options, 'config')
-        if lst:
-            if any(item.startswith('obcluster.servers.nodes') for item in lst):
-                return
-            else:
-                self.stdio.verbose("You have already provided node information, so there is no need to query node information from the sys tenant")
-        ob_cluster = {"db_host": cluster_config["db_host"], "db_port": cluster_config["db_port"], "tenant_sys": {"user": cluster_config["tenant_sys"]["user"], "password": cluster_config["tenant_sys"]["password"]}}
-        if config_data['obcluster'] and config_data['obcluster']['servers'] and config_data['obcluster']['servers']['nodes']:
+        if lst and any(item.startswith('obcluster.servers.nodes') for item in lst):
+            self.stdio.verbose("You have already provided node information, so there is no need to query node information from the sys tenant")
             return
-        if Util.check_none_values(ob_cluster, self.stdio):
-            ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
-            obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio, timeout=100)
+
+        ob_cluster = {"db_host": cluster_config.get("db_host"), "db_port": cluster_config.get("db_port"), "tenant_sys": {"user": cluster_config.get("tenant_sys", {}).get("user"), "password": cluster_config.get("tenant_sys", {}).get("password")}}
+
+        if not all(ob_cluster.values()) or not all(ob_cluster['tenant_sys'].values()):
+            raise ValueError("Missing required configuration values in ob_cluster or tenant_sys")
+
+        if (obcluster := config_data.get('obcluster')) and (servers := obcluster.get('servers')) and servers.get('nodes'):
+            return
+
+        ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
+        obConnetcor = OBConnector(ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"], stdio=self.stdio)
+
+        sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
+        if ob_version.startswith(("1", "2", "3")):
             sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
-            if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
-                sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
+
+        try:
             res = obConnetcor.execute_sql(sql)
-            if len(res) == 0:
-                raise Exception("Failed to get the node from sql [{0}], " "please check whether the --config option correct!!!".format(sql))
-            host_info_list = []
-            for row in res:
-                host_info = OrderedDict()
-                host_info["ip"] = row[0]
-                self.stdio.verbose("get host info: %s", host_info)
-                host_info_list.append(host_info)
+            if not res:
+                raise Exception(f"Failed to get the node from SQL [{sql}], please check whether the --config option is correct!!!")
+
+            host_info_list = [{"ip": row[0]} for row in res]
+            self.stdio.verbose("get host info: %s", host_info_list)
+
             config_data_new = copy(config_data)
-            if 'servers' in config_data_new['obcluster']:
-                if not isinstance(config_data_new['obcluster']['servers'], dict):
-                    config_data_new['obcluster']['servers'] = {}
-            if 'nodes' not in config_data_new['obcluster']['servers'] or not isinstance(config_data_new['obcluster']['servers']['nodes'], list):
-                config_data_new['obcluster']['servers']['nodes'] = []
+            config_data_new.setdefault('obcluster', {}).setdefault('servers', {}).setdefault('nodes', [])
+
             for item in host_info_list:
-                ip = item['ip']
-                config_data_new['obcluster']['servers']['nodes'].append({'ip': ip})
-            self.stdio.verbose("update nodes [{0}]] config: %s", host_info)
+                config_data_new['obcluster']['servers']['nodes'].append({'ip': item['ip']})
+
+            self.stdio.verbose("update nodes config: %s", config_data_new['obcluster']['servers']['nodes'])
             config.update_config_data(config_data_new)
+        except Exception as e:
+            self.stdio.error(f"An error occurred: {e}")
 
     def get_namespace(self, spacename):
         if spacename in self.namespaces:
@@ -447,7 +449,12 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
+            elif function_type == 'analyze_memory_offline':
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzeMemoryHandler(self.context)
+                return handler.handle()
             elif function_type == 'analyze_memory':
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
@@ -461,34 +468,34 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            try:
-                self.stdio.print("check start ...")
-                self.update_obcluster_nodes(config)
-                self.set_context('check', 'check', config)
-                obproxy_check_handler = None
-                observer_check_handler = None
-                result_data = {}
-                if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
-                    obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
-                    obproxy_result = obproxy_check_handler.handle()
-                    result_data['obproxy'] = obproxy_result
-                if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
-                    observer_check_handler = CheckHandler(self.context, check_target_type="observer")
-                    observer_result = observer_check_handler.handle()
-                    result_data['observer'] = observer_result
-                if obproxy_check_handler is not None:
-                    obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
-                    if os.path.exists(obproxy_report_path):
-                        self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-                if observer_check_handler is not None:
-                    observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
-                    if os.path.exists(observer_report_path):
-                        self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
-                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
-            except Exception as e:
-                self.stdio.error("check Exception: {0}".format(e))
-                self.stdio.verbose(traceback.format_exc())
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="check Exception: {0}".format(e))
+            self.stdio.print("check start ...")
+            self.update_obcluster_nodes(config)
+            self.set_context('check', 'check', config)
+            obproxy_check_handler = None
+            observer_check_handler = None
+            result_data = {}
+
+            if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
+                obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
+                obproxy_check_handler.handle()
+                obproxy_result = obproxy_check_handler.execute()
+                result_data['obproxy'] = obproxy_result
+            if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
+                observer_check_handler = CheckHandler(self.context, check_target_type="observer")
+                observer_check_handler.handle()
+                observer_result = observer_check_handler.execute()
+                result_data['observer'] = observer_result
+            if obproxy_check_handler is not None:
+                obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
+                if os.path.exists(obproxy_report_path):
+                    result_data['obproxy_report_path'] = os.path.abspath(obproxy_report_path)
+                    self.stdio.print("Check obproxy finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(obproxy_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+            if observer_check_handler is not None:
+                observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
+                if os.path.exists(observer_report_path):
+                    result_data['observer_report_path'] = os.path.abspath(observer_report_path)
+                    self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
 
     def check_list(self, opts):
         config = self.config_manager
