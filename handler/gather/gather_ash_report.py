@@ -53,7 +53,7 @@ class GatherAshReportHandler(SafeStdio):
         self.observer_nodes = self.context.cluster_config.get("servers")
         try:
             self.obconn = OBConnector(
-                ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000, database="oceanbase"
+                context=self.context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000, database="oceanbase"
             )
         except Exception as e:
             self.stdio.error("Failed to connect to database: {0}".format(e))

@@ -64,6 +64,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
         self.scope = None
         try:
             self.obconn = OBConnector(
+                context=self.context,
                 ip=self.ob_cluster.get("db_host"),
                 port=self.ob_cluster.get("db_port"),
                 username=self.ob_cluster.get("tenant_sys").get("user"),
@@ -159,7 +160,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
     def get_version(self):
         observer_version = ""
         try:
-            observer_version = get_observer_version_by_sql(self.ob_cluster, self.stdio)
+            observer_version = get_observer_version_by_sql(self.context, self.ob_cluster, self.stdio)
         except Exception as e:
             self.stdio.warn("AnalyzeQueueHandler failed to get observer version:{0}".format(e))
         self.stdio.verbose("AnalyzeQueueHandler get observer version: {0}".format(observer_version))

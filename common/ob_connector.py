@@ -28,6 +28,7 @@ class OBConnector(object):
 
     def __init__(
         self,
+        context,
         ip,
         port,
         username,
@@ -36,6 +37,7 @@ class OBConnector(object):
         stdio=None,
         timeout=30,
     ):
+        self.context = context
         self.ip = str(ip)
         self.port = int(port)
         self.username = str(username)

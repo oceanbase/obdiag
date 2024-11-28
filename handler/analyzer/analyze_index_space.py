@@ -58,7 +58,7 @@ class AnalyzeIndexSpaceHandler(object):
         ob_cluster = self.context.cluster_config
         self.stdio.verbose('cluster config: {0}'.format(StringUtils.mask_passwords(ob_cluster)))
         self.ob_cluster = ob_cluster
-        self.sys_connector = OBConnector(ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100)
+        self.sys_connector = OBConnector(context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=100)
         tenant_name = Util.get_option(options, 'tenant_name')
         table_name = Util.get_option(options, 'table_name')
         index_name = Util.get_option(options, 'index_name')

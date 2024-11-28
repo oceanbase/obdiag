@@ -48,7 +48,7 @@ class Telemetry:
         self.version = get_obdiag_version()
         self.stdio = IO(1)
 
-    def set_cluster_conn(self, obcluster):
+    def set_cluster_conn(self, context, obcluster):
         try:
             if not self.work_tag:
                 return
@@ -60,7 +60,7 @@ class Telemetry:
             if obcluster is not None:
                 try:
 
-                    self.cluster_conn = OBConnector(ip=obcluster.get("db_host"), port=obcluster.get("db_port"), username=obcluster.get("tenant_sys").get("user"), password=obcluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
+                    self.cluster_conn = OBConnector(context=context, ip=obcluster.get("db_host"), port=obcluster.get("db_port"), username=obcluster.get("tenant_sys").get("user"), password=obcluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
                     self.threads.append(threading.Thread(None, self.get_cluster_info()))
                     # self.threads.append(threading.Thread(None, self.get_tenant_info()))
                     for thread in self.threads:

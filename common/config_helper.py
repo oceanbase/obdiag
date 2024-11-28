@@ -55,7 +55,7 @@ class ConfigHelper(object):
 
     def get_cluster_name(self):
         ob_version = get_observer_version(self.context)
-        obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
+        obConnetcor = OBConnector(context=self.context, ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         if ob_version.startswith("3") or ob_version.startswith("2"):
             sql = "select cluster_name from oceanbase.v$ob_cluster"
             res = obConnetcor.execute_sql(sql)
@@ -68,7 +68,7 @@ class ConfigHelper(object):
 
     def get_host_info_list_by_cluster(self):
         ob_version = get_observer_version(self.context)
-        obConnetcor = OBConnector(ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
+        obConnetcor = OBConnector(context=self.context, ip=self.db_host, port=self.db_port, username=self.sys_tenant_user, password=self.sys_tenant_password, stdio=self.stdio, timeout=100)
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.DBA_OB_SERVERS"
         if ob_version.startswith("3") or ob_version.startswith("2") or ob_version.startswith("1"):
             sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
