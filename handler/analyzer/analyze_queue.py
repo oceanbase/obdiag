@@ -159,7 +159,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
     def get_version(self):
         observer_version = ""
         try:
-            observer_version = get_observer_version_by_sql(self.context, self.ob_cluster, self.stdio)
+            observer_version = get_observer_version_by_sql(self.context, self.ob_cluster)
         except Exception as e:
             self.stdio.warn("AnalyzeQueueHandler failed to get observer version:{0}".format(e))
         self.stdio.verbose("AnalyzeQueueHandler get observer version: {0}".format(observer_version))
