@@ -477,13 +477,11 @@ class ObdiagHome(object):
 
             if self.context.obproxy_config.get("servers") is not None and len(self.context.obproxy_config.get("servers")) > 0:
                 obproxy_check_handler = CheckHandler(self.context, check_target_type="obproxy")
-                obproxy_check_handler.handle()
-                obproxy_result = obproxy_check_handler.execute()
+                obproxy_result = obproxy_check_handler.handle()
                 result_data['obproxy'] = obproxy_result
             if self.context.cluster_config.get("servers") is not None and len(self.context.cluster_config.get("servers")) > 0:
                 observer_check_handler = CheckHandler(self.context, check_target_type="observer")
-                observer_check_handler.handle()
-                observer_result = observer_check_handler.execute()
+                observer_result = observer_check_handler.handle()
                 result_data['observer'] = observer_result
             if obproxy_check_handler is not None:
                 obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
