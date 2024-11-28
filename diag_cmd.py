@@ -1036,6 +1036,7 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
+
         return obdiag.check(self.opts)
 
 

@@ -42,7 +42,7 @@ class GatherSceneHandler(SafeStdio):
         self.gather_pack_dir = gather_pack_dir
         self.report_path = None
         self.yaml_tasks = {}
-        self.code_tasks = []
+        self.code_tasks = {}
         self.env = {}
         self.scene = "observer.base"
         self.tasks_base_path = tasks_base_path
@@ -88,8 +88,8 @@ class GatherSceneHandler(SafeStdio):
             self.stdio.verbose("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
                 self.__execute_yaml_task_one(key, value)
-            for task in self.code_tasks:
-                self.__execute_code_task_one(task)
+            for key, value in zip(self.code_tasks.keys(), self.code_tasks.values()):
+                self.__execute_code_task_one(key, value)
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
 
@@ -116,11 +116,11 @@ class GatherSceneHandler(SafeStdio):
             self.stdio.error("__execute_yaml_task_one Exception : {0}".format(e))
 
     # execute code task
-    def __execute_code_task_one(self, task_name):
+    def __execute_code_task_one(self, task_name, task_data):
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
-            scene = {"name": task_name}
-            task = SceneBase(context=self.context, scene=scene, report_dir=self.report_path, env=self.env, mode='code', task_type=task_name)
+            task = task_data["module"]
+            task.init(self.context, task_name, self.report_path)
             self.stdio.verbose("{0} execute!".format(task_name))
             task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))
@@ -133,21 +133,18 @@ class GatherSceneHandler(SafeStdio):
             items = re.split(r'[;,]', new)
             scene = GatherScenesListHandler(self.context)
             for item in items:
-                yaml_task_data = scene.get_one_yaml_task(item)
-                is_code_task = scene.is_code_task(item)
-                if is_code_task:
-                    self.code_tasks.append(item)
+                task_data = scene.get_one_task(item)
+                if task_data["task_type"] == 'py':
+                    self.code_tasks[item] = task_data
+                elif task_data["task_type"] == 'yaml':
+                    self.yaml_tasks[item] = task_data
                 else:
-                    if yaml_task_data:
-                        self.yaml_tasks[item] = yaml_task_data
-                    else:
-                        self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
-                        if ".yaml" in item:
-                            self.stdio.suggest("'.yaml' in task :{0}. Maybe you can remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
+                    self.stdio.error("Invalid Task :{0}. Please check the task is exist.".format(item))
+                    if ".yaml" in item:
+                        self.stdio.suggest("'.yaml' in task :{0}. Maybe you can remove it. use '--scene={1}'".format(item, item.replace(".yaml", "")))
             # hard code add gather observer.base
             if len(self.code_tasks) > 0:
-                yaml_task_base = scene.get_one_yaml_task("observer.base")
-                self.yaml_tasks["observer.base"] = yaml_task_base
+                self.yaml_tasks["observer.base"] = scene.get_one_task("observer.base")
         else:
             self.stdio.error("get task name failed")
 
