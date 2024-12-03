@@ -18,6 +18,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Upload source code
+        uses: actions/upload-artifact@v3
+        with:
+          name: source-code
+          path: ./
+          retention-days: 3
   
   build-rpm:
     needs: checkout_code
@@ -26,6 +32,13 @@ jobs:
       image: "oceanbase/obdiag-builder:latest"
 
     steps:
+      # 下载之前上传的源码
+      - name: Download source code
+        uses: actions/download-artifact@v3
+        with:
+          name: source-code
+          path: .
+      
       - name: Install dependencies
         run: |
           export PATH=/opt/miniconda3/bin:$PATH
