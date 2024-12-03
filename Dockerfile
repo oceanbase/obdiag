@@ -16,7 +16,8 @@ RUN rm -rf /etc/yum.repos.d/* \
 && bash Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda -b \
 && rm -rf Miniconda3-latest-Linux-x86_64.sh \
 && conda create -n obdiag -y python=3.8 \
-&& source /opt/miniconda/bin/activate obdiag
+&& source /opt/miniconda/bin/activate obdiag \
+&& python3 -m pip install --upgrade pip wheel
 
 COPY ./requirements3.txt /workspaces/obdiag/requirements3.txt
 RUN /opt/miniconda/envs/obdiag/bin/pip install -r /workspaces/obdiag/requirements3.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
