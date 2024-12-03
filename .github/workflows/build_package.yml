@@ -26,9 +26,11 @@ jobs:
         run: |
           yum install curl -yyq
           curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
-          mv /__e/node20 /__e/node20_backup
-          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /__e/node20
-          ldd /__e/node20/bin/node
+          mkdir -p /node20217
+          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
+          ldd /node20217/bin/node
+          export PATH=/node20217/bin:$PATH
+          source ~/.bashrc
           
       - name: Checkout code
         uses: actions/checkout@v3
