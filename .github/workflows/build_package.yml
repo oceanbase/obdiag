@@ -22,16 +22,12 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
 
     steps:
-      - name: Run on old node
+      - name: install nodejs20glibc2.17
         run: |
-          yum update -y
-          yum install -y wget
-          touch "$HOME/.bashrc"
-          wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm uninstall 20
-          nvm install 14
+          yum install curl -yyq
+          curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
+          ldd /__e/node20/bin/node
           
       - name: Checkout code
         uses: actions/checkout@v3
