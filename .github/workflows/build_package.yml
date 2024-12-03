@@ -17,20 +17,11 @@ jobs:
     name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
-      image: "oceanbase/obdiag-builder:latest"
+      image: "quay.io/pypa/manylinux2014_x86_64"
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
 
     steps:
-      - name: install nodejs20glibc2.17
-        run: |
-          yum install curl -yyq
-          curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
-          mkdir -p /node20217
-          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
-          ldd /node20217/bin/node
-          export PATH=/node20217/bin:$PATH
-          source ~/.bashrc
           
       - name: Checkout code
         uses: actions/checkout@v3
