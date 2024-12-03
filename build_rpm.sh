@@ -6,6 +6,7 @@ sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get
 python3 get-pip.py\n\
 pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
 cat ./rpm/oceanbase-diagnostic-tool.spec
+yum install rpm-build -y
 rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 # 展示对应的包路径
 find / -name oceanbase-diagnostic-tool-*.rpm 
