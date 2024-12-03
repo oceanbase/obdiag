@@ -31,12 +31,12 @@ jobs:
       #     ldd /__e/node20/bin/node
           
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@v3
+      #   with:
+      #     node-version: '14'
         
       - name: Install dependencies
         run: |
