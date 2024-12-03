@@ -210,6 +210,7 @@ class AnalyzeMemoryHandler(object):
         if resp["skip"]:
             return resp
         self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
+        self.stdio.print("analyze log. Please wait a moment...")
         self.stdio.start_loading("analyze memory start")
         for log_name in log_list:
             if self.directly_analyze_files:
@@ -567,6 +568,8 @@ class AnalyzeMemoryHandler(object):
             except Exception as e:
                 self.stdio.warn('parse memory label failed, error: {0}'.format(e))
                 continue
+        if len(memory_print_line_list) == 0 and self.directly_analyze_files:
+            self.stdio.warn('failed to get memory information. Please confirm that the file:{0} and version:{1} you are passing are consistent'.format(file_full_path, self.version))
         return sorted(memory_print_line_list)
 
     def __convert_string_bytes_2_int_bytes(self, string_bytes):

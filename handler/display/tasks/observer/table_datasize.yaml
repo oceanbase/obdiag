@@ -1,6 +1,6 @@
 info_en: "[table data_size]"
 info_cn: "[查看表占用磁盘大小]"
-command: obdiag display scene run --scene=observer.table_datasize --env tenant_id=1006 --env database_name=test --env table_name=ttt2
+command: obdiag display scene run --scene=observer.table_datasize --env tenant_id=1 --env database_name=test --env table_name=test
 task:
   - version: "[4.0.0.0, *]"
     steps:
