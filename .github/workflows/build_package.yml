@@ -22,16 +22,21 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
 
     steps:
-      - name: install nodejs20glibc2.17
-        run: |
-          yum install curl -yyq
-          curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
-          mkdir /node20217
-          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
-          ldd /__e/node20/bin/node
+      # - name: install nodejs20glibc2.17
+      #   run: |
+      #     yum install curl -yyq
+      #     curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+      #     mkdir /node20217
+      #     tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
+      #     ldd /__e/node20/bin/node
           
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
         
       - name: Install dependencies
         run: |
