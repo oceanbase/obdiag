@@ -9,23 +9,23 @@ on:
       - master
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
-  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
 
 jobs:
-  build-rpm:
-    name: Run on CentOS 7
+  checkout_code:
+    name: checkout code
     runs-on: ubuntu-latest
-    container:
-      image: "quay.io/pypa/manylinux2014_x86_64"
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
 
     steps:
-          
       - name: Checkout code
         uses: actions/checkout@v3
-        
+  
+  build-rpm:
+    needs: checkout_code
+    runs-on: ubuntu-latest
+    container:
+      image: "oceanbase/obdiag-builder:latest"
+
+    steps:
       - name: Install dependencies
         run: |
           export PATH=/opt/miniconda3/bin:$PATH
@@ -68,7 +68,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Download RPM Artifact
         uses: actions/download-artifact@v3
         with:
