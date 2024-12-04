@@ -432,11 +432,11 @@ class AnalyzeLogHandler(BaseShellHandler):
         :param node_summary_tuple
         :return: a string indicating the overall summary
         """
-        field_names = ["Node", "Status", "FileName", "ErrorCode", "Message", "Count"]
+        field_names = ["Node", "Status", "FileName", "First Found Time", "ErrorCode", "Message", "Count"]
         t = []
         t_details = []
         field_names_details = field_names
-        field_names_details.extend(["Cause", "Solution", "First Found Time", "Last Found Time", "Trace_IDS"])
+        field_names_details.extend(["Last Found Time", "Cause", "Solution", "Trace_IDS"])
         for tup in node_summary_tuples:
             is_empty = True
             node = tup[0]
@@ -452,24 +452,24 @@ class AnalyzeLogHandler(BaseShellHandler):
                         error_code_info = OB_RET_DICT.get(ret_key, "")
                         if len(error_code_info) > 3:
                             is_empty = False
-                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_key, error_code_info[1], ret_value["count"]])
+                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_value["first_found_time"], ret_key, error_code_info[1], ret_value["count"]])
                             t_details.append(
                                 [
                                     node,
                                     "Error:" + tup[2] if is_err else "Completed",
                                     ret_value["file_name"],
+                                    ret_value["first_found_time"],
                                     ret_key,
                                     error_code_info[1],
                                     ret_value["count"],
+                                    ret_value["last_found_time"],
                                     error_code_info[2],
                                     error_code_info[3],
-                                    ret_value["first_found_time"],
-                                    ret_value["last_found_time"],
                                     str(ret_value["trace_id_list"]),
                                 ]
                             )
             if is_empty:
-                t.append([node, "PASS", None, None, None, None])
+                t.append([node, "PASS", None, None, None, None, None])
                 t_details.append([node, "PASS", None, None, None, None, None, None, None, None, None])
         title = "\nAnalyze OceanBase Offline Log Summary:\n" if is_files else "\nAnalyze OceanBase Online Log Summary:\n"
         t.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
