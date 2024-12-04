@@ -162,11 +162,11 @@ html_dict.set_value(
       var ext_footer = "";
       switch(type) {
       case "dfo":
-        ext_header = "<td width='5%'>估行</td>";
+        ext_header = "<td width='4%'>估行</td>";
         ext_footer = "<td></td>";
         break;
       case "detail":
-        ext_header = "<td width='5%'>RESCAN</td>";
+        ext_header = "<td width='4%'>RESCAN</td>";
         ext_footer = "<td></td>";
         break;
       default:
@@ -177,9 +177,273 @@ html_dict.set_value(
         var ext_data = "";
         ext_data += (serial[i].est_rows === undefined ? "" : "<td>" + serial[i].est_rows + "</td>");
         ext_data += (serial[i].rescan === undefined ? "" : "<td>" + serial[i].rescan + "</td>");
-        var row = "<tr><td width='5%'>" +  serial[i].tid + "</td><td width='10%'>" + "&nbsp;".repeat(serial[i].depth) + serial[i].op + "(" + serial[i].opid + ")</td>" + ext_data + "<td width='5%' style='text-align:right'>" +  serial[i].rows + "</td>";
+        var row = "<tr><td width='4%'>" +  serial[i].tid + "</td><td width='10%'>" + "&nbsp;".repeat(serial[i].depth) + serial[i].op + "(" + serial[i].opid + ")</td>" + ext_data + "<td width='4%' style='text-align:right'>" +  serial[i].rows + "</td>";
         if (serial[i].start > 0) {
           row += "<td width='80%'><div tabindex='" + i + "' class='b graphrow' data-toggle='popover' data-trigger='focus' data-placement='bottom' data-content='" + JSON.stringify(serial[i]).replace(/,/g,'\\n') + "' style='margin-left:" + serial[i].a + "%;width:" + serial[i].b + "%;background-color:" + colors[serial[i].opid] + "' title='" + serial[i].op + "(" + serial[i].diff + "s, " + serial[i].svr_ip +")'><span class='diff'>" +  serial[i].op  + "(" + serial[i].opid + ")" + ' ' + serial[i].diff + "s</span></div></td>";
+        } else {
+          row += "<td><div class='empty' style='width:100%;'></div></td>";
+        }
+        // extra data
+        if (undefined !== serial[i].otherstat) {
+          if (serial[i].otherstat.length <= 1) {
+            row += "<td></td>";
+          } else {
+            row += "<td width='500px'><div tabindex='" + i + "' class='b graphrow c' data-html='true' data-toggle='popover' data-trigger='focus' data-placement='bottom' data-content='" + serial[i].otherstat  + "'><span></span></div></td>";
+          }
+        } else {
+          row += "<td></td>";
+        }
+        row += "</tr>";
+        table += row;
+      }
+      table += "<tr><td class='lastline'><button style='line-height:1.4em' class='enlarge'>缩放</button></td><td></td>"+ext_footer+"<td>总时间</td><td class='b' style='text-align:center;'>" + (Math.round(total * 1000000) / 1000000.0) + "s</td></tr></table>"
+      topnode.get(0).innerHTML = table;
+    }
+    </script>
+    ''',
+)
+
+
+html_dict.set_value(
+    "sql_plan_monitor_report_header_obversion4",
+    '''
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="./resources/web/bootstrap.min.css" >
+    <script src="./resources/web/jquery-3.2.1.min.js" ></script>
+    <script src="./resources/web/popper.min.js"></script>
+    <script src="./resources/web/bootstrap.min.js" ></script>
+    <script>window.jQuery || alert('请将 sql_plan_monitor_report.html 文件放到 resources 相同目录后再访问。否则无法显示可视化图表。'); </script>
+    <style>
+    body{ padding:10px; padding-bottom:50px;}
+    table {font-family: Consolas,"Courier New",Courier,FreeMono,monospace !important;}
+    .fixed{ position:fixed; right:20px; bottom:0px; width:200px; height:50px; background-color:#fef8e9; z-index:9999;border-radius:10px;padding:5px;margin: 0 auto;}
+    h2 { text-decoration:underline;color:blue; cursor:pointer; margin-bottom:20px;}
+    .load_detail_graph {text-decoration:underline;color:blue; cursor:pointer;}
+    .diff {display:none;margin-left:20px;padding:5px;background-color:#fef8e9;color:black;border-radius:5px;position:absolute;}
+    .graph-table tr {padding:0px;line-height:0.4em;}
+    .graph-table>tr>td, .graph-table>tr>th {padding:0px !important;line-height:0.4em !important;vertical-align:middle !important;}
+    .graph-table>tr>.lastline {padding:0px !important;line-height:1.4em !important;vertical-align:middle !important;}
+    .graph-table {font-size:10px;line-height:0.6em;width:1000px;}
+    *{margin: 0; padding: 0;}
+    .b {height: 14px;}
+    .c {background-color:#ffcc66;}
+    .empty { height: 14px; background: rgba(200,200,200,0.2);}
+    .bar { margin-left:5%; margin-top: 20px; margin-bottom:100px; }
+    .help {background-color:#fef8e9;width:100%;border-left:6px solid orange;padding:30px 20px;}
+    .shortcut {color:gray;text-align:right;}
+    .dbtime {display:inline-block;}
+    </style>
+    </head>
+    <body>
+    <div class='help'><h1>SQL Monitor Report</h1></div>
+    <script>
+    $(function() {
+      $('table').addClass('table-bordered');
+      $('.v table').addClass('table table-bordered table-striped');
+      $('#schema_anchor').click(function() {
+        $('#schema').toggle();
+      });
+      $('#agg_table_anchor').click(function() {
+        $('#agg_table').toggle();
+      });
+      $('#svr_agg_table_anchor').click(function() {
+        $('#svr_agg_table').toggle();
+      });
+      $('#detail_table_anchor').click(function() {
+        $('#detail_table').toggle();
+      });
+      $('#sql_audit_table_anchor').click(function() {
+        $('#sql_audit_table').toggle();
+      });
+      $('#ash_anchor').click(function () {
+        $('#ash').toggle();
+      });
+      setTimeout(function() {
+        $('#debug').hide();
+      }, 30*1000);
+
+    });
+
+    //获取随机安全色
+    function getSafeColor(n) {
+      var base = ['00','33','66','99','CC','FF'];     //基础色代码
+      var len = base.length;                          //基础色长度
+      var bg = new Array();                           //返回的结果
+      var random = Math.ceil( n * 17 % 200 + 13);    //获取1-216之间的随机数
+      var res;
+      for(var r = 0; r  <  len; r++){
+        for(var g = 0; g  <  len; g++){
+          for(var b = 0; b  <  len; b++){
+            bg.push('#'+base[r].toString()+base[g].toString()+base[b].toString());
+          }
+        };
+      };
+      for(var i=0;i < bg.length;i++){
+        res =  bg[random];
+      }
+      return res;
+    }
+
+    var colors = [];
+    for (var n = 0; n < 1000; ++n) {
+      colors[n] = getSafeColor(n);
+    }
+
+    function padding(n) {
+      return "";
+    }
+
+    function generate_graph(type, serial, topnode) {
+      var max = 0;
+      var min = 999999999999999;
+      var cpumax = 0;
+      var cpumin = 999999999999999;
+      for (var i = 0; i < serial.length; ++i) {
+        if (serial[i].start > 0) {
+          max = Math.max(max, serial[i].end);
+          min = Math.min(min, serial[i].start);
+
+          cpumax = Math.max(cpumax, serial[i].cpu+serial[i].io);
+          cpumin = Math.min(cpumin, serial[i].cpu+serial[i].io);
+        }
+      }
+
+      var total = max - min;
+      var cputotal = cpumax - cpumin;
+
+      // normalize
+
+      for (var i = 0; i < serial.length; ++i) {
+        if (serial[i].start > 0) {
+            serial[i].start_relative = serial[i].start - min;
+            serial[i].length = serial[i].end - serial[i].start;
+
+            serial[i].a = Math.round(serial[i].start_relative * 100 / total);
+            serial[i].b = Math.max(0.1, Math.round(serial[i].length * 100 / total));
+            serial[i].c = Math.round(100 - serial[i].a - serial[i].b);
+
+            serial[i].cpu_pct = serial[i].cpu * 100 / cputotal;
+            serial[i].io_pct = serial[i].io * 100 / cputotal;
+        }
+      }
+      console.log(topnode, "my", serial);
+
+
+      var c1 = (undefined == serial[0] || serial[0].tag == 'op') ? '线程ID' : '线程数';
+      var timeline_title = (undefined == serial[0] || serial[0].tag != 'db_time') ? '执行吐行时间线' : '耗时';
+      var ext_header = "";
+      var ext_footer = "";
+      var table = "";
+      switch(type) {
+      case "dfo":
+      ext_header = "<td>算子</td><td width='4%'>估行</td><td>吐行</td><td width='4%' title='(最大耗时-最小耗时)/最大耗时'>倾斜度</td>";
+        table = "<table class='graph-table'><tr class='lastline' style='line-height:1.4em;'><td class='b'>" + c1 + "</td>" + ext_header + "<td>DBTime</td><td>" +  timeline_title + "</td><td>Ext</td></tr>";
+      ext_footer = "<td></td><td></td><td></td>";
+      break;
+      case "sqc":
+      ext_header = "<td>算子</td><td>吐行</td><td width='4%' title='(最大耗时-最小耗时)/最大耗时'>倾斜度</td>";
+        table = "<table class='graph-table'><tr class='lastline' style='line-height:1.4em;'><td class='b'>" + c1 + "</td>" + ext_header + "<td>DBTime</td><td>" +  timeline_title + "</td><td>Ext</td></tr>";
+      ext_footer = "<td></td><td></td>";
+        break;
+      case "detail":
+      ext_header = "<td>算子</td><td width='4%'>RESCAN</td><td>吐行</td>";
+        table = "<table class='graph-table'><tr class='lastline' style='line-height:1.4em;'><td class='b'>" + c1 + "</td>" + ext_header + "<td>DBTime</td><td>" +  timeline_title + "</td><td>Ext</td></tr>";
+      ext_footer = "<td></td><td></td></td>";
+      break;
+      default:
+      break;
+      }
+      for (var i = 0; i < serial.length - 1; ++i) {
+        var skew_highlight = '';
+        if (total > 0 && serial[i].length / total > 0.2 && serial[i].skewness > 0.3)
+            skew_highlight = 'color:red;';
+        var row = "<tr><td width='4%'>" +  serial[i].tid + "</td><td width='10%'>" + "&nbsp;".repeat(serial[i].depth) + serial[i].op + "(" + serial[i].opid + ")</td>";
+        row += (serial[i].est_rows === undefined ? "" : "<td>" + serial[i].est_rows + "</td>");
+        row += (serial[i].rescan === undefined ? "" : "<td>" + serial[i].rescan + "</td>");
+        row += "<td width='4%' style='text-align:right'>" +  serial[i].rows + "</td>";
+        row += (serial[i].skewness === undefined ? "" : "<td style='text-align:right;" + skew_highlight + "'>" + serial[i].skewness+ "</td>");
+        if (serial[i].cpu + serial[i].io > 0) {
+          row += "<td width='16%'><div class='dbtime b graphrow' style='width:" + serial[i].cpu_pct + "%;background-color:#339933'><span class='diff'>" + serial[i].cpu + "s</span></div><div class='dbtime b graphrow' style='width:" + serial[i].io_pct + "%;background-color:red'><span class='diff'>" + serial[i].io + "s</span></div> </td>";
+        } else {
+          row += "<td><div class='empty' style='width:100%;'></div></td>";
+        }
+        if (serial[i].start > 0) {
+          row += "<td width='64%'><div tabindex='" + i + "' class='b graphrow' data-toggle='popover' data-trigger='focus' data-placement='bottom' data-content='" + JSON.stringify(serial[i]).replace(/,/g,'\\n') + "' style='margin-left:" + serial[i].a + "%;width:" + serial[i].b + "%;background-color:" + colors[serial[i].opid] + "' title='" + serial[i].op + "(" + serial[i].diff + "s, " + serial[i].svr_ip +")'><span class='diff'>" +  serial[i].op  + "(" + serial[i].opid + ")" + ' ' + serial[i].diff + "s</span></div></td>";
+        } else {
+          row += "<td><div class='empty' style='width:100%;'></div></td>";
+        }
+        // extra data
+        if (undefined !== serial[i].otherstat) {
+          if (serial[i].otherstat.length <= 1) {
+            row += "<td></td>";
+          } else {
+            row += "<td width='500px'><div tabindex='" + i + "' class='b graphrow c' data-html='true' data-toggle='popover' data-trigger='focus' data-placement='bottom' data-content='" + serial[i].otherstat  + "'><span></span></div></td>";
+          }
+        } else {
+          row += "<td></td>";
+        }
+        row += "</tr>";
+        table += row;
+      }
+      table += "<tr><td class='lastline'><button style='line-height:1.4em' class='enlarge'>缩放</button></td>"+ext_footer+"<td>总时间</td><td class='b' style='text-align:center;'>" + (Math.round(cputotal * 1000000) / 1000000.0) + "s</td><td class='b' style='text-align:center;'>" + (Math.round(total * 1000000) / 1000000.0) + "s</td></tr></table>"
+      topnode.get(0).innerHTML = table;
+    }
+
+
+    function generate_db_time_graph(type, serial, topnode) {
+      var max = 0;
+      var min = 999999999999999;
+      for (var i = 0; i < serial.length; ++i) {
+        if (serial[i].start > 0) {
+          max = Math.max(max, serial[i].end);
+          min = Math.min(min, serial[i].start);
+        }
+      }
+
+      var total = max - min;
+
+      // normalize
+
+      for (var i = 0; i < serial.length; ++i) {
+        if (serial[i].start > 0) {
+            serial[i].start_relative = serial[i].start - min;
+            serial[i].length = serial[i].end - serial[i].start;
+
+            serial[i].a = Math.round(serial[i].my_cpu_time * 100 / total);
+            serial[i].b = Math.round(serial[i].my_io_time * 100 / total);
+        }
+      }
+      console.log(topnode, "my", serial);
+
+
+      var c1 = (undefined == serial[0] || serial[0].tag == 'op') ? '线程ID' : '线程数';
+      var timeline_title = (undefined == serial[0] || serial[0].tag != 'db_time') ? '执行吐行时间线' : '耗时';
+      var ext_header = "";
+      var ext_footer = "";
+      switch(type) {
+      case "dfo":
+      ext_header = "<td width='4%'>估行</td>";
+      ext_footer = "<td></td>";
+      break;
+      case "detail":
+      ext_header = "<td width='4%'>RESCAN</td>";
+      ext_footer = "<td></td>";
+      break;
+      default:
+      break;
+      }
+      var table = "<table class='graph-table'><tr class='lastline' style='line-height:1.4em;'><td class='b'>" + c1 + "</td><td>算子</td>" + ext_header + "<td>吐行</td><td>" + timeline_title + "</td><td>Ext</td></tr>";
+      for (var i = 0; i < serial.length - 1; ++i) {
+        var ext_data = "";
+        ext_data += (serial[i].est_rows === undefined ? "" : "<td>" + serial[i].est_rows + "</td>");
+        ext_data += (serial[i].rescan === undefined ? "" : "<td>" + serial[i].rescan + "</td>");
+        var row = "<tr><td width='4%'>" +  serial[i].tid + "</td><td width='10%'>" + "&nbsp;".repeat(serial[i].depth) + serial[i].op + "(" + serial[i].opid + ")</td>" + ext_data + "<td width='4%' style='text-align:right'>" +  serial[i].rows + "</td>";
+        if (serial[i].diff > 0) {
+          row += "<td width='80%'><div tabindex='" + i + "' class='dbtime b graphrow' data-toggle='popover' data-trigger='focus' data-placement='bottom' style='width:" + serial[i].a + "%;background-color:#339933' title='" + serial[i].op + "(cpu_time=" + serial[i].my_cpu_time + "s)'><span class='diff'>" +  serial[i].op  + "(" + serial[i].opid + ") cpu_time=" + serial[i].my_cpu_time + "s</span></div><div tabindex='" + i + "' class='dbtime b graphrow' data-toggle='popover' data-trigger='focus' data-placement='bottom' style='width:" + serial[i].b + "%;background-color:red' title='" + serial[i].op + "(io_wait=" + serial[i].my_io_time + "s)'><span class='diff'>" +  serial[i].op  + "(" + serial[i].opid + ") io_wait_time=" + serial[i].my_io_time + "s</span></div> </td>";
         } else {
           row += "<td><div class='empty' style='width:100%;'></div></td>";
         }
