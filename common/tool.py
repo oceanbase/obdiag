@@ -1235,6 +1235,8 @@ class StringUtils(object):
     @staticmethod
     def parse_env_display(env_list):
         env_dict = {}
+        if not env_list:
+            return {}
         for env_string in env_list:
             # 分割键和值
             key_value = env_string.split('=', 1)
