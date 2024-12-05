@@ -27,13 +27,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to Quay io
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_IO_USERNAME }}
-          password: ${{ secrets.QUAY_IO_PASSWORD }}
-
       - name: Create and push manifests w/o cache
         uses: docker/build-push-action@v6
         with:
@@ -42,4 +35,4 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            quay.io/${{ vars.QUAY_IO_PUSH_BASE }}/obdiag-dev:latest
+            ${{ vars.DOCKER_PUSH_BASE }}/obdiag-builder:latest
