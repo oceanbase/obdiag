@@ -828,21 +828,13 @@ class GatherPlanMonitorHandler(object):
             else:
                 sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_detail_template_oracle")
         return sql
-    
+
     def sql_ash_top_event_sql(self, tenant_id, trace_id):
-        sql = (
-                str(GlobalSqlMeta().get_value(key="ash_top_event_mysql"))
-                .replace("##REPLACE_TENANT_ID##", str(tenant_id))
-                .replace("##REPLACE_TRACE_ID##", trace_id)
-            )
+        sql = str(GlobalSqlMeta().get_value(key="ash_top_event_mysql")).replace("##REPLACE_TENANT_ID##", str(tenant_id)).replace("##REPLACE_TRACE_ID##", trace_id)
         return sql
-    
+
     def sql_plan_monitor_db_time_sql(self, tenant_id, trace_id):
-        sql = (
-            str(GlobalSqlMeta().get_value(key="sql_plan_monitor_db_time_mysql_template_obversion4"))
-            .replace("##REPLACE_TENANT_ID##", str(tenant_id))
-            .replace("##REPLACE_TRACE_ID##", trace_id)
-        )
+        sql = str(GlobalSqlMeta().get_value(key="sql_plan_monitor_db_time_mysql_template_obversion4")).replace("##REPLACE_TENANT_ID##", str(tenant_id)).replace("##REPLACE_TRACE_ID##", trace_id)
         return sql
 
     # sql audit 细节
@@ -975,7 +967,6 @@ class GatherPlanMonitorHandler(object):
             self.report_detail_graph_data("detail_serial_v2", cursor_sql_plan_monitor_detail_v2, '线程优先视图')
         self.stdio.verbose("report SQL_PLAN_MONITOR details server priority complete")
 
-
     def report_ash_obversion4(self, ash_top_event_sql):
         ash_report = ""
         try:
@@ -984,7 +975,7 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("execute SQL: %s", ash_top_event_sql)
                 s = from_db_cursor(cursor)
                 s.align = 'l'
-                ash_report = ash_report + "<pre style='margin:20px;border:1px solid gray;'>%s\n%s</pre>" %(ash_top_event_sql, s)
+                ash_report = ash_report + "<pre style='margin:20px;border:1px solid gray;'>%s\n%s</pre>" % (ash_top_event_sql, s)
                 self.__report("<div><h2 id='ash_anchor'>ASH 信息</h2><div id='ash' style='display: none'>" + ash_report + "</div></div>")
                 self.stdio.verbose("ash report complete")
             else:
@@ -1008,4 +999,3 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception("DB Time display> %s" % sql_plan_monitor_db_time)
             self.stdio.exception(repr(e))
             pass
-
