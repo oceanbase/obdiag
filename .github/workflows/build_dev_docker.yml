@@ -33,7 +33,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          file: ../Dockerfile
+          file: Dockerfile
           push: true
           tags: |
             quay.io/${{ vars.QUAY_IO_PUSH_BASE }}/obdiag-dev:latest
