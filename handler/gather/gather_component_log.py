@@ -9,6 +9,12 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
+
+"""
+@time: 2024/11/8
+@file: gather_component_log.py
+@desc:
+"""
 import datetime
 import os
 import tarfile
