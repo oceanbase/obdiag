@@ -183,14 +183,14 @@ class GatherObstack2Handler(BaseShellHandler):
         resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
         return resp
 
-    @Util.retry(5, 2)
+    @Util.retry(10, 5)
     def is_ready(self, ssh_client, pid, remote_dir_name):
         try:
             self.stdio.verbose("Check whether the directory /tmp/{dir_name} or " "file /tmp/{dir_name}/observer_{pid}_obstack.txt is empty".format(dir_name=remote_dir_name, pid=pid))
             is_empty_dir_res = is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio)
             is_empty_file_res = is_empty_file(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
             if is_empty_dir_res or is_empty_file_res:
-                self.stdio.verbose(
+                self.stdio.warn(
                     "The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid)
                 )
                 raise

@@ -148,6 +148,8 @@ class GatherPlanMonitorHandler(object):
                 sql_plan_monitor_detail_v2 = str(sql_plan_monitor_detail_template).replace("##REPLACE_TRACE_ID##", trace_id).replace("##REPLACE_ORDER_BY##", "PROCESS_NAME ASC, PLAN_LINE_ID ASC, FIRST_REFRESH_TIME ASC")
 
                 sql_plan_monitor_dfo_op = self.sql_plan_monitor_dfo_op_sql(tenant_id, plan_id, trace_id, svr_ip, svr_port)
+                sql_ash_top_event = self.sql_ash_top_event_sql(tenant_id, trace_id)
+                sql_plan_monitor_db_time = self.sql_plan_monitor_db_time_sql(tenant_id, trace_id)
                 full_audit_sql_by_trace_id_sql = self.full_audit_sql_by_trace_id_sql(trace_id)
                 plan_explain_sql = self.plan_explain_sql(tenant_id, plan_id, svr_ip, svr_port)
 
@@ -167,6 +169,9 @@ class GatherPlanMonitorHandler(object):
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql, tenant_name)
+                # ASH 统计
+                self.stdio.verbose("[ash report task] report ash, sql: [{0}]".format(sql_ash_top_event))
+                self.report_ash_obversion4(sql_ash_top_event)
                 self.init_monitor_stat()
                 # 输出sql_audit的详细信息
                 self.stdio.verbose("[sql plan monitor report task] report sql_audit details")
@@ -174,6 +179,9 @@ class GatherPlanMonitorHandler(object):
                 # 输出算子信息 表+图
                 self.stdio.verbose("[sql plan monitor report task] report sql plan monitor dfo")
                 self.report_sql_plan_monitor_dfo_op(sql_plan_monitor_dfo_op)
+                # db time
+                self.stdio.verbose("[db time display task] report db time display")
+                self.report_db_time_display_op(sql_plan_monitor_db_time)
                 # 输出算子信息按 svr 级汇总 表+图
                 self.stdio.verbose("[sql plan monitor report task] report sql plan monitor group by server")
                 self.report_sql_plan_monitor_svr_agg(sql_plan_monitor_svr_agg_v1, sql_plan_monitor_svr_agg_v2)
@@ -324,7 +332,10 @@ class GatherPlanMonitorHandler(object):
         self.__report(pre)
 
     def report_header(self):
-        header = GlobalHtmlMeta().get_value(key="sql_plan_monitor_report_header")
+        if self.ob_major_version >= 4:
+            header = GlobalHtmlMeta().get_value(key="sql_plan_monitor_report_header_obversion4")
+        else:
+            header = GlobalHtmlMeta().get_value(key="sql_plan_monitor_report_header")
         with open(self.report_file_path, 'w') as f:
             f.write(header)
         self.stdio.verbose("report header complete")
@@ -627,6 +638,7 @@ class GatherPlanMonitorHandler(object):
     def report_fast_preview(self):
         content = '''
         <script>
+        generate_db_time_graph("dfo", db_time_serial, $('#db_time_serial'));
         generate_graph("dfo", agg_serial, $('#agg_serial'));
         generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
         generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
@@ -817,6 +829,14 @@ class GatherPlanMonitorHandler(object):
                 sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_detail_template_oracle")
         return sql
 
+    def sql_ash_top_event_sql(self, tenant_id, trace_id):
+        sql = str(GlobalSqlMeta().get_value(key="ash_top_event_mysql")).replace("##REPLACE_TENANT_ID##", str(tenant_id)).replace("##REPLACE_TRACE_ID##", trace_id)
+        return sql
+
+    def sql_plan_monitor_db_time_sql(self, tenant_id, trace_id):
+        sql = str(GlobalSqlMeta().get_value(key="sql_plan_monitor_db_time_mysql_template_obversion4")).replace("##REPLACE_TENANT_ID##", str(tenant_id)).replace("##REPLACE_TRACE_ID##", trace_id)
+        return sql
+
     # sql audit 细节
     def report_sql_audit_details(self, sql):
         if self.enable_dump_db:
@@ -898,6 +918,11 @@ class GatherPlanMonitorHandler(object):
             self.report_dfo_agg_graph_data(cursor_sql_plan_monitor_dfo_op, '数据时序图')
         self.stdio.verbose("report SQL_PLAN_MONITOR DFO graph data complete")
 
+    def report_db_time_display_op(self, sql):
+        if self.ob_major_version >= 4:
+            self.report_db_time_display_obversion4(sql)
+            self.stdio.verbose("report db time display complete")
+
     def report_sql_plan_monitor_svr_agg(self, sql_plan_monitor_svr_agg_v1, sql_plan_monitor_svr_agg_v2):
         cursor_sql_plan_monitor_svr_agg = self.sys_connector.execute_sql_return_cursor(sql_plan_monitor_svr_agg_v1)
         self.__report(
@@ -941,3 +966,36 @@ class GatherPlanMonitorHandler(object):
         else:
             self.report_detail_graph_data("detail_serial_v2", cursor_sql_plan_monitor_detail_v2, '线程优先视图')
         self.stdio.verbose("report SQL_PLAN_MONITOR details server priority complete")
+
+    def report_ash_obversion4(self, ash_top_event_sql):
+        ash_report = ""
+        try:
+            if self.ob_major_version >= 4:
+                cursor = self.db_connector.execute_sql_return_cursor(ash_top_event_sql)
+                self.stdio.verbose("execute SQL: %s", ash_top_event_sql)
+                s = from_db_cursor(cursor)
+                s.align = 'l'
+                ash_report = ash_report + "<pre style='margin:20px;border:1px solid gray;'>%s\n%s</pre>" % (ash_top_event_sql, s)
+                self.__report("<div><h2 id='ash_anchor'>ASH 信息</h2><div id='ash' style='display: none'>" + ash_report + "</div></div>")
+                self.stdio.verbose("ash report complete")
+            else:
+                self.stdio.verbose("ash report requires the OB version to be greater than 4.0. Your version: {0} does not meet this requirement.".format(self.ob_major_version))
+        except Exception as e:
+            self.stdio.exception("ash report> %s" % ash_top_event_sql)
+            self.stdio.exception(repr(e))
+            pass
+
+    # DB Time display
+    def report_db_time_display_obversion4(self, sql_plan_monitor_db_time):
+        try:
+            if self.ob_major_version >= 4:
+                cursor = self.db_connector.execute_sql_return_cursor_dictionary(sql_plan_monitor_db_time)
+                self.stdio.verbose("execute SQL: %s", sql_plan_monitor_db_time)
+                self.report_dfo_agg_db_time_graph_data_obversion4(cursor, 'DB Time 算子真实耗时分析图')
+                self.stdio.verbose("DB Time display complete")
+            else:
+                self.stdio.verbose("DB Time display requires the OB version to be greater than 4.0. Your version: {0} does not meet this requirement.".format(self.ob_major_version))
+        except Exception as e:
+            self.stdio.exception("DB Time display> %s" % sql_plan_monitor_db_time)
+            self.stdio.exception(repr(e))
+            pass
