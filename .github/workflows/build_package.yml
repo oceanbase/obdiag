@@ -11,34 +11,16 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  checkout_code:
-    name: checkout code
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Upload source code
-        uses: actions/upload-artifact@v3
-        with:
-          name: source-code
-          path: ./
-          retention-days: 3
-  
   build-rpm:
-    needs: checkout_code
+    name: Run on CentOS 7
     runs-on: ubuntu-latest
     container:
       image: "oceanbase/obdiag-builder:latest"
 
     steps:
-      # 下载之前上传的源码
-      - name: Download source code
-        uses: actions/download-artifact@v3
-        with:
-          name: source-code
-          path: .
-      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           export PATH=/opt/miniconda3/bin:$PATH
@@ -103,4 +85,4 @@ jobs:
         with:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
-          retention-days: 3
+          retention-days: 5
