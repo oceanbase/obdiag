@@ -1,6 +1,5 @@
-FROM centos:7
-RUN rm -rf /etc/yum.repos.d/*
-RUN curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
+FROM registry.openanolis.cn/openanolis/anolisos:8.9
+
 RUN yum install -y wget rpm-build
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
 RUN sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
