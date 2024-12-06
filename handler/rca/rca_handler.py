@@ -25,6 +25,7 @@ from common.command import (
     get_obproxy_version,
     get_observer_version,
 )
+import traceback
 from prettytable import PrettyTable
 from common.ob_connector import OBConnector
 from common.ssh_client.ssh import SshClient
@@ -64,16 +65,25 @@ class RCAHandler:
                 node["ssher"] = ssh
                 context_obproxy_nodes.append(node)
             self.context.set_variable("obproxy_nodes", context_obproxy_nodes)
+        # build oms_nodes
+        oms_nodes = self.context.oms_config.get("servers")
+        context_oms_nodes = []
+        if oms_nodes is not None:
+            for node in oms_nodes:
+                ssh = SshClient(context, node)
+                node["ssher"] = ssh
+                context_oms_nodes.append(node)
+            self.context.set_variable("oms_nodes", context_oms_nodes)
 
         # build ob_connector
         try:
             if self.ob_cluster is not None:
                 ob_connector = OBConnector(
+                    context=self.context,
                     ip=self.ob_cluster.get("db_host"),
                     port=self.ob_cluster.get("db_port"),
                     username=self.ob_cluster.get("tenant_sys").get("user"),
                     password=self.ob_cluster.get("tenant_sys").get("password"),
-                    stdio=self.stdio,
                     timeout=10000,
                 )
                 self.context.set_variable("ob_connector", ob_connector)
@@ -165,22 +175,26 @@ class RCAHandler:
             except Exception as e:
                 raise Exception("rca_scene.init err: {0}".format(e))
             self.stdio.verbose("{0} init success".format(scene_name))
+            return self.__execute()
         else:
-            raise Exception("rca_scene :{0} is not exist or not input".format(scene_name))
+            self.stdio.error("rca_scene :{0} is not exist or not input".format(scene_name))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="rca_scene :{0} is not exist or not input".format(scene_name))
 
     # get all tasks
-    def execute(self):
+    def __execute(self):
         try:
             self.rca_scene.execute()
         except RCANotNeedExecuteException as e:
             self.stdio.warn("rca_scene.execute not need execute: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, data={"result": "rca_scene.execute not need execute"})
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("rca_scene.execute err: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.execute err: {0}".format(e))
         try:
             self.rca_scene.export_result()
         except Exception as e:
+            self.stdio.verbose(traceback.format_exc())
             self.stdio.error("rca_scene.export_result err: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
         self.stdio.print(
@@ -216,6 +230,7 @@ class RcaScene:
         self.report = None
         self.obproxy_nodes = None
         self.observer_nodes = None
+        self.oms_nodes = None
         self.context = None
         self.name = type(self).__name__
         self.Result = None
@@ -228,6 +243,7 @@ class RcaScene:
         self.Result.records.append(self.record)
         self.observer_nodes = context.get_variable("observer_nodes")
         self.obproxy_nodes = context.get_variable("obproxy_nodes")
+        self.oms_nodes = context.get_variable("oms_nodes")
         self.report = context.get_variable("report")
         self.obproxy_version = context.get_variable("obproxy_version", default="")
         self.observer_version = context.get_variable("observer_version", default="")

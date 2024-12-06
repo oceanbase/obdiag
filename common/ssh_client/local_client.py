@@ -78,4 +78,4 @@ class LocalClient(SsherClient):
         return "local"
 
     def get_ip(self):
-        return self.client.get_ip()
+        return "127.0.0.1"

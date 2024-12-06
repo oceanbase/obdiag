@@ -28,21 +28,22 @@ class OBConnector(object):
 
     def __init__(
         self,
+        context,
         ip,
         port,
         username,
         password=None,
         database=None,
-        stdio=None,
         timeout=30,
     ):
+        self.context = context
         self.ip = str(ip)
         self.port = int(port)
         self.username = str(username)
         self.password = str(password)
         self.timeout = timeout
         self.conn = None
-        self.stdio = stdio
+        self.stdio = context.stdio
         self.database = database
         self.init()
 

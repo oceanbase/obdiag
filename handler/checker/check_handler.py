@@ -30,7 +30,6 @@ from handler.checker.check_report import TaskReport, CheckReport, CheckrReportEx
 from handler.checker.check_task import TaskBase
 import re
 from common.tool import Util
-from common.tool import YamlUtils
 from common.tool import StringUtils
 
 
@@ -53,11 +52,14 @@ class CheckHandler:
             self.nodes = self.context.obproxy_config.get("servers")
         self.tasks_base_path = os.path.expanduser(self.work_path + "/tasks/")
         self.check_target_type = check_target_type
-
+        self.options = self.context.options
+        env_option = Util.get_option(self.options, 'env')
+        self.input_env = StringUtils.parse_env_display(env_option) or {}
+        # init output parameters
         self.stdio.verbose(
             "CheckHandler input. ignore_version is {0} , cluster is {1} , nodes is {2}, "
             "export_report_path is {3}, export_report_type is {4} , check_target_type is {5}, "
-            " tasks_base_path is {6}.".format(
+            " tasks_base_path is {6}, input_env is {7}".format(
                 self.ignore_version,
                 self.cluster.get("ob_cluster_name") or self.cluster.get("obproxy_cluster_name"),
                 StringUtils.node_cut_passwd_for_log(self.nodes),
@@ -65,6 +67,7 @@ class CheckHandler:
                 self.export_report_type,
                 self.check_target_type,
                 self.tasks_base_path,
+                self.input_env,
             )
         )
 
@@ -167,11 +170,11 @@ class CheckHandler:
                             new_tasks[task_name] = task_value
                     self.tasks = new_tasks
             self.stdio.verbose("tasks is {0}".format(self.tasks.keys()))
-            return True
+            return self.__execute()
         except Exception as e:
             self.stdio.error("Get package tasks failed. Error info is {0}".format(e))
             self.stdio.verbose(traceback.format_exc())
-            return False
+            raise CheckException("Internal error :{0}".format(e))
 
     # get all tasks
     def get_all_tasks(self):
@@ -209,7 +212,7 @@ class CheckHandler:
         return packege_tasks[package_name].get("tasks")
 
     # execute task
-    def execute_one(self, task_name):
+    def __execute_one(self, task_name):
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
             # Verify if the version is within a reasonable range
@@ -219,7 +222,7 @@ class CheckHandler:
                 if version:
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
-                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report)
+                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
                     self.stdio.verbose("{0} execute!".format(task_name))
                     task.execute()
                     self.stdio.verbose("execute tasks end : {0}".format(task_name))
@@ -232,22 +235,21 @@ class CheckHandler:
             self.stdio.error("execute_one Exception : {0}".format(e))
             raise CheckException("execute_one Exception : {0}".format(e))
 
-    def execute(self):
+    def __execute(self):
         try:
             self.stdio.verbose("execute_all_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.tasks.keys()), self.tasks.keys()))
             self.report = CheckReport(self.context, export_report_path=self.export_report_path, export_report_type=self.export_report_type, report_target=self.check_target_type)
             # one of tasks to execute
             for task in self.tasks:
-                t_report = self.execute_one(task)
+                t_report = self.__execute_one(task)
                 self.report.add_task_report(t_report)
             self.report.export_report()
             return self.report.report_tobeMap()
         except CheckrReportException as e:
             self.stdio.error("Report error :{0}".format(e))
-            self.stdio.verbose(traceback.format_exc())
+            raise CheckException("Report error :{0}".format(e))
         except Exception as e:
-            self.stdio.error("Internal error :{0}".format(e))
-            self.stdio.verbose(traceback.format_exc())
+            raise CheckException("Internal error :{0}".format(e))
 
 
 class checkOBConnectorPool:
@@ -259,7 +261,7 @@ class checkOBConnectorPool:
         self.stdio.verbose("obConnectorPool init success!")
         try:
             for i in range(max_size):
-                conn = OBConnector(ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), stdio=self.stdio, timeout=10000)
+                conn = OBConnector(context=context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), timeout=10000)
                 self.connections.put(conn)
             self.stdio.verbose("obConnectorPool init success!")
         except Exception as e:

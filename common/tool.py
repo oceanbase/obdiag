@@ -526,6 +526,7 @@ class FileUtil(object):
             stdio and getattr(stdio, 'exception', print)('failed to unzip %s' % source)
         return None
 
+    @staticmethod
     def extract_tar(tar_path, output_path, stdio=None):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -578,6 +579,7 @@ class FileUtil(object):
         fcntl.flock(obj, fcntl.LOCK_UN)
         return obj
 
+    @staticmethod
     def size_format(num, unit="B", output_str=False, stdio=None):
         if num < 0:
             raise ValueError("num cannot be negative!")
@@ -637,6 +639,7 @@ class FileUtil(object):
         except Exception as e:
             return ""
 
+    @staticmethod
     def size(size_str, unit='B', stdio=None):
         unit_size_dict = {
             "b": 1,
@@ -658,10 +661,12 @@ class FileUtil(object):
             raise ValueError('size cannot be negative!')
         return real_size / unit_size_dict[unit]
 
+    @staticmethod
     def write_append(filename, result, stdio=None):
         with io.open(filename, 'a', encoding='utf-8') as fileobj:
             fileobj.write(u'{}'.format(result))
 
+    @staticmethod
     def tar_gz_to_zip(temp_dir, tar_gz_file, output_zip, password, stdio):
         extract_dir = os.path.join(temp_dir, 'extracted_files_{0}'.format(str(uuid.uuid4())[:6]))
 
@@ -682,20 +687,14 @@ class FileUtil(object):
                     base_paths.append(base_path)
             stdio.verbose("start pyminizip compress_multiple")
             # 3. Compress the extracted files into a (possibly) encrypted zip file
-            zip_process = None
             if password:
                 # Use pyminizip to create the encrypted zip file
-                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, password, 5))
-                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
                 stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
             else:
                 # Create an unencrypted zip file
-                zip_process = mp.Process(target=pyminizip.compress_multiple, args=(files_to_compress, base_paths, output_zip, None, 5))
-                # pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
+                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
                 stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
-            zip_process.start()
-            if zip_process is not None:
-                zip_process.join()
 
             # 4. Remove the extracted directory
             shutil.rmtree(extract_dir)
@@ -1236,6 +1235,8 @@ class StringUtils(object):
     @staticmethod
     def parse_env_display(env_list):
         env_dict = {}
+        if not env_list:
+            return {}
         for env_string in env_list:
             # 分割键和值
             key_value = env_string.split('=', 1)
@@ -1580,6 +1581,7 @@ class Util(object):
     def gen_password(length=8, chars=string.ascii_letters + string.digits, stdio=None):
         return ''.join([choice(chars) for i in range(length)])
 
+    @staticmethod
     def retry(retry_count=3, retry_interval=2, stdio=None):
         def real_decorator(decor_method):
             def wrapper(*args, **kwargs):
