@@ -274,7 +274,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                     self.__delete_all_files_in_tar()
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
                 except Exception as e:
-                    self.stdio.verbose(traceback.format_exc())
+                    self.stdio.exception(e)
                     self.stdio.error("redact failed {0}".format(e))
                     return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
                 finally:
