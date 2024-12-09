@@ -16,10 +16,8 @@
 @desc:
 """
 import os.path
-import zipfile
 
-from handler.gather.gather_log import GatherLogHandler
-from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
+from handler.gather.gather_component_log import GatherComponentLogHandler
 
 
 class Gather_log:
@@ -36,17 +34,18 @@ class Gather_log:
 
     def init_parameters(self):
         self.conf_map["filter_nodes_list"] = []
-        self.conf_map["gather_from"] = ""
-        self.conf_map["gather_to"] = ""
-        self.conf_map["gather_since"] = ""
+        self.conf_map["gather_from"] = None
+        self.conf_map["gather_to"] = None
+        self.conf_map["gather_since"] = None
         self.conf_map["gather_scope"] = ""
         self.conf_map["store_dir"] = self.work_path
         self.conf_map["gather_target"] = "observer"
+        self.conf_map["gather_oms_component_id"] = None
         self.greps_key = []
 
     def grep(self, key):
         if key is None or len(key) < 1 or type(key) != str:
-            raise Exception("The keyword cannot be empty!")
+            raise Exception("The keyword {0} cannot be empty!".format(key))
         self.greps_key.append(key)
 
     def execute(self, save_path=""):
@@ -63,18 +62,10 @@ class Gather_log:
                 self.work_path = save_path
             self.conf_map["store_dir"] = self.work_path
             self.stdio.verbose("Gather_log execute,the conf_map: {0}".format(self.conf_map))
-            if len(self.greps_key) == 0:
-                self.stdio.error("The keyword cannot be empty!")
-                raise Exception("The keyword cannot be empty!")
-            self.context.set_variable("gather_grep", self.greps_key)
             self.stdio.verbose("gather_grep is {0}".format(self.greps_key))
             nodes_list = []
-            if not self.conf_map["filter_nodes_list"] or len(self.conf_map["filter_nodes_list"]) == 0:
-                self.context.set_variable("filter_nodes_list", self.conf_map["filter_nodes_list"])
-                # execute on all nodes_list
-            handle = None
-            for conf in self.conf_map:
-                self.context.set_variable(conf, self.conf_map[conf])
+            # execute on all nodes_list
+            handler = None
             if self.conf_map["gather_target"] == 'observer':
                 all_node = self.context.cluster_config.get("servers")
                 if self.conf_map["filter_nodes_list"] and len(self.conf_map["filter_nodes_list"] > 0):
@@ -85,7 +76,19 @@ class Gather_log:
                                 nodes_list.append(node)
                                 self.stdio.verbose("{0} is in the nodes list".format(node.get("ip")))
                     self.conf_map["filter_nodes_list"] = nodes_list
-                handle = GatherLogHandler(self.context)
+                handler = GatherComponentLogHandler()
+                handler.init(
+                    self.context,
+                    target="observer",
+                    nodes=nodes_list,
+                    from_option=self.conf_map.get("gather_from"),
+                    to_option=self.conf_map.get("gather_to"),
+                    since=self.conf_map.get("gather_since"),
+                    scope=self.conf_map.get("gather_scope"),
+                    grep=self.greps_key,
+                    store_dir=self.work_path,
+                )
+
             elif self.conf_map["gather_target"] == 'obproxy':
                 all_node = self.context.get_variable('obproxy_nodes')
                 if self.conf_map["filter_nodes_list"]:
@@ -97,34 +100,53 @@ class Gather_log:
                         else:
                             nodes_list.append(node)
                     self.conf_map["filter_nodes_list"] = nodes_list
-                handle = GatherObProxyLogHandler(self.context)
+                handler = GatherComponentLogHandler()
+                handler.init(
+                    self.context,
+                    target="obproxy",
+                    nodes=nodes_list,
+                    from_option=self.conf_map.get("gather_from"),
+                    to_option=self.conf_map.get("gather_to"),
+                    since=self.conf_map.get("gather_since"),
+                    scope=self.conf_map.get("gather_scope"),
+                    grep=self.greps_key,
+                    store_dir=self.work_path,
+                )
+            elif self.conf_map["gather_target"] == 'oms':
+                all_node = self.context.oms_config
+                if self.conf_map["filter_nodes_list"]:
+                    # execute on specific nodes_list
+                    for node in all_node:
+                        if node not in self.conf_map["filter_nodes_list"]:
+                            self.stdio.warn("{0} is not in the nodes list".format(node.get("ip")))
+                            continue
+                        else:
+                            nodes_list.append(node)
+                    self.conf_map["filter_nodes_list"] = nodes_list
+                handler = GatherComponentLogHandler()
+                handler.init(
+                    self.context,
+                    target="oms",
+                    nodes=nodes_list,
+                    from_option=self.conf_map.get("gather_from"),
+                    to_option=self.conf_map.get("gather_to"),
+                    since=self.conf_map.get("gather_since"),
+                    scope=self.conf_map.get("gather_scope"),
+                    grep=self.greps_key,
+                    store_dir=self.work_path,
+                    oms_component_id=self.conf_map.get("gather_oms_component_id"),
+                )
 
-            if handle is None:
+            if handler is None:
                 self.stdio.error("rca gather handle the target cannot be empty!")
                 raise Exception("rca gather handle the target cannot be empty!")
             else:
-                handle.handle()
-            gather_result = handle.pack_dir_this_command
-            zip_files = os.listdir(gather_result)
+                handler.handle()
             result_log_files = []
-            for zip_file in zip_files:
-                if "zip" not in zip_file:
-                    continue
-
-                # open zip file
-                self.stdio.verbose("open zip file: {0}".format(os.path.join(gather_result, zip_file)))
-                with zipfile.ZipFile(os.path.join(gather_result, zip_file), 'r') as zip_ref:
-                    # Extract all files to the current directory
-                    zip_ref.extractall(gather_result)
-            for file_name in os.listdir(gather_result):
-                if "zip" not in file_name and "result_summary.txt" not in file_name:
-                    log_dir = os.path.join(gather_result, file_name)
-                    for log_file in os.listdir(log_dir):
-                        result_log_files.append(os.path.join(log_dir, log_file))
-                        self.stdio.verbose("result_log_files add {0}".format(os.path.join(log_dir, log_file)))
-
+            result_log_dir_data = handler.open_all_file()
+            for dir_name in result_log_dir_data:
+                result_log_files.extend(result_log_dir_data[dir_name])
             self.reset()
-
             return result_log_files
         except Exception as e:
             raise Exception("rca plugins Gather_log execute error: {0}".format(e))

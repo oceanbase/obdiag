@@ -46,7 +46,7 @@ class UpdateHandler:
             self.file_path = Util.get_option(self.options, 'file', default="")
             self.force = Util.get_option(self.options, 'force', default=False)
 
-    def execute(self):
+    def handle(self):
         try:
             file_path = self.file_path
             force = self.force

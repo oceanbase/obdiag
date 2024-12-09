@@ -43,3 +43,6 @@ class ObdiagResult:
 
     def get_code(self):
         return self.code
+
+    def is_success(self):
+        return self.code == self.SUCCESS_CODE

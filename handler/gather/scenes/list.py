@@ -22,7 +22,7 @@ from result_type import ObdiagResult
 from stdio import SafeStdio
 from common.tool import YamlUtils
 from handler.gather.scenes.register import hardcode_scene_list
-from common.tool import Util
+from common.tool import Util, DynamicLoading
 
 
 class GatherScenesListHandler(SafeStdio):
@@ -89,7 +89,7 @@ class GatherScenesListHandler(SafeStdio):
             "info_cn": scene.info_cn,
         }
 
-    def get_one_yaml_task(self, name):
+    def get_one_task(self, name):
         try:
             task_data = None
             current_path = self.yaml_tasks_base_path
@@ -101,6 +101,22 @@ class GatherScenesListHandler(SafeStdio):
                         if name == task_name:
                             task_data = YamlUtils.read_yaml_data(os.path.join(root, file))
                             task_data["name"] = task_name
+                            task_data["task_type"] = 'yaml'
+                    if file.endswith('.py'):
+                        folder_name = os.path.basename(root)
+                        task_name = "{}.{}".format(folder_name, file.split('.')[0])
+                        if name == task_name:
+                            DynamicLoading.add_lib_path(root)
+                            task_module = DynamicLoading.import_module(file[:-3], None)
+                            attr_name = name.split('.')[-1]
+                            if not hasattr(task_module, attr_name):
+                                self.stdio.error("{0} import_module failed".format(attr_name))
+                                return
+                            task_data = {}
+                            task_data["name"] = task_name
+                            task_data["module"] = getattr(task_module, attr_name)
+                            task_data["task_type"] = 'py'
+                        pass
             return task_data
         except Exception as e:
             self.stdio.error("get one yaml task failed, error: ", e)

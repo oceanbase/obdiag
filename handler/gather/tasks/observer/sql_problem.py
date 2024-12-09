@@ -15,18 +15,16 @@
 @file: sql_problem.py
 @desc:
 """
-
+from handler.gather.gather_component_log import GatherComponentLogHandler
 from stdio import SafeStdio
-from handler.gather.gather_log import GatherLogHandler
-from handler.gather.gather_obproxy_log import GatherObProxyLogHandler
 from handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from common.tool import StringUtils
 from common.ssh_client.ssh import SshClient
 from common.command import find_home_path_by_port
 
 
-class SQLProblemScene(SafeStdio):
-    def __init__(self, context, scene_name, report_path, task_variable_dict=None, env={}):
+class SQLProblem(SafeStdio):
+    def init(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:
@@ -76,9 +74,8 @@ class SQLProblemScene(SafeStdio):
                     self.task_nodes.append(node)
                     break
             self.stdio.verbose("gather observer log start")
-            handler = GatherLogHandler(self.context, self.report_path, is_scene=True)
-            self.context.set_variable('filter_nodes_list', self.task_nodes)
-            self.context.set_variable('gather_grep', self.trace_id)
+            handler = GatherComponentLogHandler()
+            handler.init(self.context, target="observer", grep=[self.trace_id], nodes=self.task_nodes, store_dir=self.report_path, is_scene=True)
             handler.handle()
             self.stdio.verbose("gather observer log end")
         except Exception as e:
@@ -88,15 +85,15 @@ class SQLProblemScene(SafeStdio):
     def __gather_obproxy_log(self):
         try:
             self.stdio.verbose("gather obproxy log start")
-            handler = GatherObProxyLogHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
+            handler = GatherComponentLogHandler()
             if self.scene_name:
                 if self.scene_name == "observer.sql_err" or self.scene_name == "observer.perf_sql":
-                    self.context.set_variable('gather_grep', self.trace_id)
+                    handler.init(self.context, target="obproxy", grep=[self.trace_id], store_dir=self.report_path, is_scene=True)
+                    self.stdio.verbose("gather obproxy log end")
+                    return handler.handle()
                 else:
                     self.stdio.warn("unsupported scene {0}".format(self.scene_name))
                     return
-                handler.handle()
-                self.stdio.verbose("gather obproxy log end")
             else:
                 self.stdio.warn("scene is None")
                 return
@@ -133,3 +130,6 @@ class SQLProblemScene(SafeStdio):
         else:
             self.stdio.error("option env not found, please run 'obdiag gather scene list' to check usage")
             return False
+
+
+sql_problem = SQLProblem()

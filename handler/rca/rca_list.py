@@ -46,7 +46,7 @@ class RcaScenesListHandler:
             return
         for scene_file in scenes_files:
             lib_path = self.work_path
-            module_name = os.path.basename(scene_file)[:-9]
+            module_name = os.path.basename(scene_file)[:-3]
             DynamicLoading.add_lib_path(lib_path)
             module = DynamicLoading.import_module(os.path.basename(scene_file)[:-3], None)
             if not hasattr(module, module_name):
@@ -74,6 +74,6 @@ class RcaScenesListHandler:
         for file_or_folder in os.listdir(self.work_path):
             full_path = os.path.join(self.work_path, file_or_folder)
             if os.path.isfile(full_path):
-                if full_path.endswith('_scene.py') and len(os.path.basename(full_path)) > 7:
+                if full_path.endswith('.py') and len(os.path.basename(full_path)) > 7:
                     files.append(full_path)
         return files
