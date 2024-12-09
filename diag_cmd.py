@@ -17,7 +17,6 @@
 
 from __future__ import absolute_import, division, print_function
 from common.tool import Util, StringUtils
-import traceback
 import os
 import sys
 import textwrap
