@@ -17,7 +17,6 @@
 
 from __future__ import absolute_import, division, print_function
 from common.tool import Util, StringUtils
-
 import os
 import sys
 import textwrap
@@ -291,6 +290,7 @@ class ObdiagOriginCommand(BaseCommand):
                 ret = self._do_command(obdiag)
                 exit_code = 0
             except Exception as e:
+                ROOT_IO.exception(e)
                 ROOT_IO.error('command failed. Please contact OceanBase community. e: {0}'.format(e))
                 ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact OceanBase community. e: {0}".format(e))
                 exit_code = 1
