@@ -10,6 +10,20 @@ mkdir -p "$BACKUP_DIR"
 # List of directories to be backed up
 DIRS=("display" "check" "gather" "rca")
 
+# Check if any of the directories contain files
+should_backup=false
+for dir in "${DIRS[@]}"; do
+    if [ -d "$SOURCE_DIR$dir" ] && [ "$(ls -A "$SOURCE_DIR$dir")" ]; then
+        should_backup=true
+        break
+    fi
+done
+
+if ! $should_backup; then
+    echo "None of the specified directories contain files. Skipping backup."
+    exit 0
+fi
+
 # Retrieve version information; if file does not exist or read fails, VERSION remains empty
 VERSION=""
 if [ -f "$SOURCE_DIR/version.yaml" ]; then
@@ -17,9 +31,15 @@ if [ -f "$SOURCE_DIR/version.yaml" ]; then
 fi
 
 # Define the name of the backup archive (use timestamp for uniqueness, and optionally add version)
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-TARFILE="$BACKUP_DIR/obdiag_backup_$TIMESTAMP"
-TARFILE+="${VERSION:+_v$VERSION}.tar.gz"
+TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+BASE_NAME="obdiag_backup${VERSION:+_v$VERSION}"
+TARFILE="$BACKUP_DIR/${BASE_NAME}_$TIMESTAMP.tar.gz"
+
+# Check if a file with the same name already exists in the BACKUP_DIR
+if find "$BACKUP_DIR" -maxdepth 1 -name "${BASE_NAME}_*.tar.gz" -print -quit | grep -q .; then
+	echo "A backup file with the same name already exists. Skipping backup creation."
+	exit 0
+fi
 
 # Temporary directory for staging backup files
 TEMP_BACKUP_DIR="$BACKUP_DIR/tmp_obdiag_backup_$TIMESTAMP"

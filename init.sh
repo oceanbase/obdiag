@@ -50,10 +50,11 @@ if [ -d "${OBDIAG_HOME}/check_package.yaml" ]; then
     echo "${OBDIAG_HOME}/*check_package.yaml and ${OBDIAG_HOME}/tasks  has been discarded. If you have made any changes to these files on your own, please transfer the relevant data to *check_package.yaml in ${OBDIAG_HOME}/check/"
 fi
 
+cd -
 output_file=${OBDIAG_HOME}/version.yaml
-version_line=$(obdiag --version 2>&1 | grep -oP 'OceanBase Diagnostic Tool: \K[\d.]+')
-if [ -n "$version" ]; then
-    content="obdiag_version: \"$version\""
+version_line=$(/usr/local/oceanbase-diagnostic-tool/obdiag --version 2>&1 | grep -oP 'OceanBase Diagnostic Tool: \K[\d.]+')
+if [ -n "$version_line" ]; then
+    content="obdiag_version: \"$version_line\""
 
     # Write or update the version information to the file
     echo "$content" > "$output_file"
@@ -64,4 +65,3 @@ else
 fi
 
 echo "Init obdiag finished"
-cd -
