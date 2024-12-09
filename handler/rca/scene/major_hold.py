@@ -115,22 +115,21 @@ class MajorHoldScene(RcaScene):
             tenant_record.add_record("tenant_id is {0}".format(err_tenant_id))
             # 1
             try:
+                tenant_record.add_record("step:1 get CDB_OB_MAJOR_COMPACTION data")
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID= "{0}" AND (IS_ERROR = "NO" OR IS_SUSPENDED = "NO");'.format(err_tenant_id))
                 OB_MAJOR_COMPACTION_data = cursor.fetchall()
                 if len(OB_MAJOR_COMPACTION_data) == 0:
                     tenant_record.add_record("on CDB_OB_MAJOR_COMPACTION where status='COMPACTING'; " "result:{0} , need not next step".format(str(OB_MAJOR_COMPACTION_data)))
-
                 else:
                     tenant_record.add_record("on CDB_OB_MAJOR_COMPACTION where status='COMPACTING';" "result:{0}".format(str(OB_MAJOR_COMPACTION_data)))
-
             except Exception as e:
                 tenant_record.add_record("#1 on CDB_OB_MAJOR_COMPACTION get data failed")
                 self.stdio.warn("MajorHoldScene execute exception: {0}".format(e))
                 pass
             # 2
             try:
+                tenant_record.add_record("step:2&3 get __all_virtual_compaction_diagnose_info and check the diagnose type")
                 compaction_diagnose_info = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE status="FAILED";').fetchall()
-
                 if len(compaction_diagnose_info) == 0:
                     tenant_record.add_record("on __all_virtual_compaction_diagnose_info no data status=FAILED")
                 else:
@@ -143,6 +142,7 @@ class MajorHoldScene(RcaScene):
                 pass
             # 4
             try:
+                tenant_record.add_record("step:4 get GV$OB_COMPACTION_PROGRESS whit tenant_id:{0}".format(err_tenant_id))
                 global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0].get("GLOBAL_BROADCAST_SCN")
                 tenant_record.add_record("global_broadcast_scn is {0}".format(global_broadcast_scn))
                 last_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select LAST_SCN from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0]
@@ -187,8 +187,8 @@ class MajorHoldScene(RcaScene):
 
             # 5
             try:
+                tenant_record.add_record("step:5 get OB_COMPACTION_SUGGESTIONS")
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_COMPACTION_SUGGESTIONS where tenant_id="{0}";'.format(err_tenant_id))
-                columns = [column[0] for column in cursor.description]
                 OB_COMPACTION_SUGGESTIONS_data = cursor.fetchall()
                 OB_COMPACTION_SUGGESTIONS_info = json.dumps(OB_COMPACTION_SUGGESTIONS_data, cls=DateTimeEncoder)
                 file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info".format(self.local_path, err_tenant_id)
@@ -200,7 +200,7 @@ class MajorHoldScene(RcaScene):
                 self.stdio.warn("MajorHoldScene execute 5 exception: {0}".format(e))
             # 6
             try:
-                self.stdio.verbose("MajorHoldScene execute 6 get dmesg by dmesg -T")
+                self.stdio.verbose("step:6 get dmesg by dmesg -T")
                 if not os.path.exists(self.local_path + "/dmesg"):
                     os.makedirs(self.local_path + "/dmesg_log")
                 # all node execute
