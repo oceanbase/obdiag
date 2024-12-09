@@ -52,6 +52,7 @@ rm -f obdiag.py oceanbase-diagnostic-tool.spec
 \cp -rf $SRC_DIR/handler/gather/plugins/redact/*.py $BUILD_DIR/SOURCES/gather/redact
 \cp -rf $SRC_DIR/init.sh $BUILD_DIR/SOURCES/init.sh
 \cp -rf $SRC_DIR/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
+\cp -rf $SRC_DIR/obdiag_backup.sh $BUILD_DIR/SOURCES/obdiag_backup.sh
 \cp -rf $SRC_DIR/conf $BUILD_DIR/SOURCES/conf
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
@@ -68,6 +69,7 @@ mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
 \cp -rf $BUILD_DIR/SOURCES/conf ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/init.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/init_obdiag_cmd.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
+\cp -rf $BUILD_DIR/SOURCES/obdiag_backup.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/check/* ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check
 mv ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/tasks/*.yaml ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/
 \cp -rf $BUILD_DIR/SOURCES/gather/tasks ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
@@ -87,6 +89,7 @@ find /usr/local/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
 ln -sf /usr/local/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /usr/local/oceanbase-diagnostic-tool/obdiag
 cp -rf /usr/local/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
+/usr/local/oceanbase-diagnostic-tool/obdiag_backup.sh
 /usr/local/oceanbase-diagnostic-tool/init.sh
 echo -e 'Please execute the following command to init obdiag:\n'
 echo -e '\033[32m source /usr/local/oceanbase-diagnostic-tool/init.sh \n \033[0m'
