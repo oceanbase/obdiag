@@ -134,6 +134,7 @@ class ObdiagHome(object):
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
             ocp_config=config.get_ocp_config,
+            oms_config=config.get_oms_config,
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
@@ -148,6 +149,7 @@ class ObdiagHome(object):
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
             ocp_config=config.get_ocp_config,
+            oms_config=config.get_oms_config,
             cmd=self.cmds,
             options=self.options,
             stdio=self.stdio,
@@ -516,7 +518,8 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            self.update_obcluster_nodes(config)
+            if config.get_ob_cluster_config.get("db_host") is not None and config.get_ob_cluster_config.get("servers") is not None:
+                self.update_obcluster_nodes(config)
             self.set_context('rca_run', 'rca_run', config)
             try:
                 handler = RCAHandler(self.context)

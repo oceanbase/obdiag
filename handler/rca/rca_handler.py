@@ -77,7 +77,7 @@ class RCAHandler:
 
         # build ob_connector
         try:
-            if self.ob_cluster is not None:
+            if self.ob_cluster.get("db_host") is not None:
                 ob_connector = OBConnector(
                     context=self.context,
                     ip=self.ob_cluster.get("db_host"),
@@ -292,7 +292,12 @@ class Result:
         self.save_path = self.context.get_variable("store_dir")
         self.rca_report_type = Util.get_option(self.context.options, 'report_type')
         self.scene = Util.get_option(self.context.options, "scene")
-        self.version = get_version_by_type(self.context, "observer")
+        self.version = "unknown"
+        try:
+            if self.context.get_variable("ob_cluster").get("db_host") is not None or len(self.context.cluster_config.get("servers")) > 0:
+                self.version = get_version_by_type(self.context, "observer")
+        except Exception as e:
+            self.stdio.warn("rca get obcluster version fail. if the scene need not it, skip it")
 
     def set_save_path(self, save_path):
         self.save_path = os.path.expanduser(save_path)

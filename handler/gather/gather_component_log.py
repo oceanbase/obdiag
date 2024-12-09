@@ -15,6 +15,7 @@
 @file: gather_component_log.py
 @desc:
 """
+import copy
 import datetime
 import os
 import tarfile
@@ -216,51 +217,52 @@ class GatherComponentLogHandler(BaseShellHandler):
         try:
             if not self.result.is_success():
                 return self.result
-
             # run on every node
             node_threads = []
             self.gather_tuples = []
             tasks = []
             self.stdio.start_loading("gather start")
-            semaphore = mp.Semaphore(self.thread_nums)
-            for node in self.nodes:
-                new_context = self.context
-                new_context.stdio = self.stdio.sub_io()
-                # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
-                if "ssh_client" in node or "ssher" in node:
-                    clear_node = node
-                    if "ssh_client" in node:
-                        del clear_node["ssh_client"]
-                    if "ssher" in node:
-                        del clear_node["ssher"]
-                    tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
-                else:
-                    tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
-            file_queue = []
-            result_list = mp.Queue()
-            for task in tasks:
-                semaphore.acquire()
-                file_thread = mp.Process(target=task.handle, args=(result_list,))
-                file_thread.start()
-                file_queue.append(file_thread)
-            for file_thread in file_queue:
-                file_thread.join()
-            for _ in range(result_list.qsize()):
-                self.gather_tuples.append(result_list.get())
-            self.stdio.verbose("gather_tuples: {0}".format(self.gather_tuples))
-            self.stdio.stop_loading("succeed")
-            # save result
-            summary_tuples = self.__get_overall_summary(self.gather_tuples)
-            self.stdio.print(summary_tuples)
-            with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
-                fileobj.write(summary_tuples.get_string())
-            self.stdio.stop_loading("succeed")
+            try:
+                semaphore = mp.Semaphore(self.thread_nums)
+                for node in self.nodes:
+                    new_context = self.context
+                    new_context.stdio = self.stdio.sub_io()
+                    # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
+                    if "ssh_client" in node or "ssher" in node:
+                        clear_node = copy.deepcopy(node)
+                        if "ssh_client" in node:
+                            del clear_node["ssh_client"]
+                        if "ssher" in node:
+                            del clear_node["ssher"]
+                        tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
+                    else:
+                        tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
+                file_queue = []
+                result_list = mp.Queue()
+                for task in tasks:
+                    semaphore.acquire()
+                    file_thread = mp.Process(target=task.handle, args=(result_list,))
+                    file_thread.start()
+                    file_queue.append(file_thread)
+                for file_thread in file_queue:
+                    file_thread.join()
+                for _ in range(result_list.qsize()):
+                    self.gather_tuples.append(result_list.get())
+                self.stdio.verbose("gather_tuples: {0}".format(self.gather_tuples))
+                summary_tuples = self.__get_overall_summary(self.gather_tuples)
+                self.stdio.print(summary_tuples)
+                with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
+                    fileobj.write(summary_tuples.get_string())
+            except Exception as e:
+                self.stdio.verbose("gather log error: {0}".format(e))
+            finally:
+                self.stdio.stop_loading("succeed")
 
             last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
             self.stdio.print(last_info)
-            try:
-                if self.redact and len(self.redact) > 0:
-                    self.stdio.start_loading("gather redact start")
+            if self.redact and len(self.redact) > 0:
+                self.stdio.start_loading("gather redact start")
+                try:
                     self.stdio.verbose("redact_option is {0}".format(self.redact))
                     redact_dir = "{0}_redact".format(self.store_dir)
                     self.redact_dir = redact_dir
@@ -270,12 +272,13 @@ class GatherComponentLogHandler(BaseShellHandler):
                     redact.redact_files(self.redact, all_files)
                     self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
                     self.__delete_all_files_in_tar()
-                    self.stdio.stop_loading("succeed")
                     return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": redact_dir, "redact_dir": self.redact_dir})
-            except Exception as e:
-                self.stdio.verbose(traceback.format_exc())
-                self.stdio.error("redact failed {0}".format(e))
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
+                except Exception as e:
+                    self.stdio.verbose(traceback.format_exc())
+                    self.stdio.error("redact failed {0}".format(e))
+                    return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="redact failed {0}".format(e))
+                finally:
+                    self.stdio.stop_loading("succeed")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.store_dir})
         except Exception as e:
             self.stdio.verbose(traceback.format_exc())
