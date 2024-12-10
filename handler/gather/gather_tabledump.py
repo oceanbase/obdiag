@@ -140,21 +140,6 @@ class GatherTableDumpHandler(SafeStdio):
                 return
             self.tenant_id = tenant_data.fetchall()[0].get("tenant_id")
 
-            database_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-                "SELECT con_id as tenant_id, object_id as database_id, object_name as database_name FROM  oceanbase.cdb_objects where OBJECT_TYPE = 'DATABASE' and con_id = '{0}' and object_name='{1}' ".format(self.tenant_id, self.database)
-            )
-            if database_data.rowcount == 0:
-                self.stdio.error("database is None")
-                return
-            self.database_id = database_data.fetchall()[0].get("database_id")
-            table_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-                "select /*+read_consistency(weak) */ t.table_id from oceanbase.__all_virtual_table t where t.tenant_id = '{0}' and t.database_id = '{1}' and table_name = '{2}' limit 1 ".format(self.tenant_id, self.database_id, self.table)
-            )
-            if table_data.rowcount == 0:
-                self.stdio.error("table is None")
-                return
-            self.table_id = table_data.fetchall()[0].get("table_id")
-
             ## 查询行数
             query_count = "select /*+read_consistency(weak) */ table_name , ifnull(num_rows,0) as num_rows from oceanbase.cdb_tables where con_id = '{0}' and owner = '{1}' and table_name = '{2}' order by num_rows desc limit 1".format(
                 self.tenant_id, self.database, self.table
@@ -167,8 +152,25 @@ class GatherTableDumpHandler(SafeStdio):
 
             self.__report(query_count, columns, result)
             ## 查询数据量
-            query_data = '''select /*+read_consistency(weak) */ t1.SVR_IP,t1.role,ifnull(t2.data_size,0) as total_data_size from (select SVR_IP,tenant_id, database_name, role, table_id, tablet_id from oceanbase.cdb_ob_table_locations) t1 left join (select tenant_id, tablet_id,data_size from oceanbase.cdb_ob_tablet_replicas) t2 on t1.tenant_id = t2.tenant_id and t1.tablet_id = t2.tablet_id where  t1.tenant_id = '{0}' and t1.table_id = '{1}' order by total_data_size desc limit 1'''.format(
-                self.tenant_id, self.table_id
+
+            query_data = '''select y.SVR_IP,y.DATABASE_NAME,
+                case when y.TABLE_TYPE = 'INDEX' then '' else y.TABLE_NAME end as TABLE_NAME,
+                y.TABLE_TYPE,
+                sum(y.DATA_SIZE) AS "DATA_SIZE(MB)",sum(y.REQUIRED_SIZE) AS "REQUIRED_SIZE(MB)"
+                from (
+                    select a.TENANT_ID, a.SVR_IP, a.TABLET_ID, b.table_id, b.DATABASE_NAME, b.TABLE_NAME, b.TABLE_TYPE, ROUND(a.data_size/1024/1024,2) AS "DATA_SIZE", ROUND(a.required_size/1024/1024,2) AS "REQUIRED_SIZE" 
+                        from oceanbase.CDB_OB_TABLET_REPLICAS a join oceanbase.cdb_ob_table_locations b on a.TABLET_ID=b.TABLET_ID and a.svr_ip=b.svr_ip and a.tenant_id=b.tenant_id 
+                where a.TENANT_ID={tenant_id} 
+                and b.DATABASE_NAME='{database}'
+                and (
+                b.TABLE_NAME='{table_name}'
+                or b.DATA_TABLE_ID in(select table_id from oceanbase.cdb_ob_table_locations where TENANT_ID={tenant_id} and TABLE_NAME='{table_name}')
+                )order by b.table_id
+                ) y
+                group by y.SVR_IP,y.DATABASE_NAME,y.TABLE_TYPE
+                order by y.SVR_IP,y.DATABASE_NAME asc,TABLE_NAME desc
+            '''.format(
+                tenant_id=self.tenant_id, database=self.database, table_name=self.table
             )
 
             columns, result = self.ob_connector.execute_sql_return_columns_and_data(query_data)
@@ -199,7 +201,16 @@ class GatherTableDumpHandler(SafeStdio):
                 self.stdio.error("table is None")
                 return
             self.table_id = table_data.fetchall()[0].get("table_id")
-            query_count = '''select /*+read_consistency(weak) */ m.svr_ip,m.role,m.data_size total_data_size, m.row_count as total_rows_count from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
+            query_count = '''select /*+read_consistency(weak) */ 
+                    m.zone, 
+                    m.svr_ip,
+                    t.database_name,
+                    t.table_name,
+                    m.role,
+                    ROUND(m.data_size / 1024 / 1024, 2) AS "DATA_SIZE(M)",
+                    ROUND(m.required_size / 1024 / 1024, 2) AS "REQUIRED_SIZE(M)"
+                    m.row_count as total_rows_count 
+                    from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
                             where m.table_id = t.table_id and m.tenant_id = '{0}' and m.table_id = '{1}' and t.table_name = '{2}' order by total_rows_count desc limit 1'''.format(
                 self.tenant_id, self.table_id, self.table
             )
