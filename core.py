@@ -176,7 +176,7 @@ class ObdiagHome(object):
         if (obcluster := config_data.get('obcluster')) and (servers := obcluster.get('servers')) and servers.get('nodes'):
             return
 
-        ob_version = get_observer_version_by_sql(ob_cluster, self.stdio)
+        ob_version = get_observer_version_by_sql(self.context, ob_cluster)
         obConnetcor = OBConnector(context=self.context, ip=ob_cluster["db_host"], port=ob_cluster["db_port"], username=ob_cluster["tenant_sys"]["user"], password=ob_cluster["tenant_sys"]["password"])
 
         sql = "select SVR_IP, SVR_PORT, ZONE, BUILD_VERSION from oceanbase.__all_server"
