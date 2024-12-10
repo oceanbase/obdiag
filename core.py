@@ -64,7 +64,6 @@ from handler.analyzer.analyze_queue import AnalyzeQueueHandler
 from common.tool import TimeUtils, Util
 from common.command import get_observer_version_by_sql
 from common.ob_connector import OBConnector
-from collections import OrderedDict
 
 
 class ObdiagHome(object):
@@ -173,7 +172,7 @@ class ObdiagHome(object):
         if not all(ob_cluster.values()) or not all(ob_cluster['tenant_sys'].values()):
             raise ValueError("Missing required configuration values in ob_cluster or tenant_sys")
 
-        if (obcluster := config_data.get('obcluster')) and (servers := obcluster.get('servers')) and servers.get('nodes'):
+        if config_data.get('obcluster') and config_data.get('obcluster').get('servers') and config_data.get('obcluster').get('servers').get('nodes'):
             return
 
         ob_version = get_observer_version_by_sql(self.context, ob_cluster)
@@ -548,7 +547,7 @@ class ObdiagHome(object):
             self.stdio.print("update start ...")
             self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
-            return handler.execute()
+            return handler.handle()
 
     def config(self, opt):
         config = self.config_manager

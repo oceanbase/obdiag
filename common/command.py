@@ -93,19 +93,6 @@ def delete_file_in_folder(ssh_client, file_path, stdio=None):
     ssh_client.exec_cmd(cmd)
 
 
-def is_empty_dir(ssh_client, dir, stdio=None):
-    """
-    determine whether it is an empty folder
-    :return: true or false
-    """
-    cmd = "ls -A {gather_path}|wc -w".format(gather_path=dir)
-    file_num = ssh_client.exec_cmd(cmd)
-    if int(file_num) == 0:
-        return True
-    else:
-        return False
-
-
 def get_file_start_time(ssh_client, file_name, dir, stdio=None):
     """
     get log file start time
@@ -364,15 +351,6 @@ def delete_file_force(ssh_client, file_name, stdio=None):
     :return:
     """
     cmd = "rm -rf {0}".format(file_name)
-    ssh_client.exec_cmd(cmd)
-
-
-def delete_empty_file(ssh_client, file_path, stdio=None):
-    """
-    delete empty file
-    :return:
-    """
-    cmd = "find  {file_path} -name '*' -type f -size 0c | xargs -n 1 rm -f".format(file_path=file_path)
     ssh_client.exec_cmd(cmd)
 
 

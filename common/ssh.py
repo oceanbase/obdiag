@@ -22,26 +22,17 @@ import getpass
 import os
 import tempfile
 import warnings
-import sys
 
-import paramiko
-import time
-import docker
 from glob import glob
 from paramiko import AuthenticationException, SFTPClient
 from paramiko.client import SSHClient, AutoAddPolicy
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
-from multiprocessing.queues import Empty
 from multiprocessing import Queue
 from multiprocessing.pool import ThreadPool
 from common.tool import COMMAND_ENV, DirectoryUtil, FileUtil, Timeout
-from common.obdiag_exception import OBDIAGSSHConnException
-from common.obdiag_exception import OBDIAGShellCmdException
-from common.tool import StringUtils
-from common.tool import TimeUtils
 from stdio import SafeStdio
 from err import EC_SSH_CONNECT
-from subprocess32 import Popen, PIPE
+from subprocess import Popen, PIPE
 
 warnings.filterwarnings("ignore")
 
@@ -761,44 +752,3 @@ class SshClient(SafeStdio):
                     directories.remove(dir_name)
                     skip_directories.append(dir_name)
                 dir_name = os.path.dirname(dir_name)
-
-    def file_downloader(self, local_dir, remote_dir, stdio=None):
-        try:
-            client = SshClient(config=self.config, stdio=None)
-            client._open_sftp(stdio=stdio)
-            client._remote_transporter = self.remote_transporter
-            while True:
-                remote_path = self.task_queue.get(block=False)
-                local_path = os.path.join(local_dir, os.path.relpath(remote_path, remote_dir))
-                if client.get_file(local_path, remote_path, stdio=stdio):
-                    self.result_queue.put(remote_path)
-                else:
-                    stdio.error('Fail to get %s' % remote_path)
-        except Empty:
-            return
-        except:
-            stdio.exception("")
-            stdio.exception('Failed to get %s' % remote_dir)
-
-    def file_uploader(self, local_dir, remote_dir, stdio=None):
-        try:
-            client = SshClient(config=self.config, stdio=None)
-            client._remote_transporter = self.remote_transporter
-            while True:
-                local_path, is_dir = self.task_queue.get(block=False)
-                remote_path = os.path.join(remote_dir, os.path.relpath(local_path, local_dir))
-                if is_dir:
-                    stat = oct(os.stat(local_path).st_mode)[-3:]
-                    cmd = '[ -d "{remote_path}" ] || (mkdir -p {remote_path}; chmod {stat} {remote_path})'.format(remote_path=remote_path, stat=stat)
-                    if client.execute_command(cmd):
-                        self.result_queue.put(remote_path)
-                else:
-                    if client.put_file(local_path, remote_path, stdio=stdio):
-                        self.result_queue.put(remote_path)
-                    else:
-                        stdio.error('Fail to get %s' % remote_path)
-        except Empty:
-            return
-        except:
-            stdio.exception("")
-            stdio.verbose('Failed to get %s' % remote_dir)

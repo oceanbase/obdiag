@@ -268,10 +268,6 @@ class RcaScene:
     def export_result(self):
         return self.Result.export()
 
-    def save_data(self, data, save_path):
-        with open(save_path, "w") as f:
-            f.write(str(data))
-
     def get_all_tenants_id(self):
         try:
             if self.ob_connector is None:
@@ -286,6 +282,7 @@ class Result:
 
     def __init__(self, context):
         # self.suggest = ""
+        self.record_file_name = ""
         self.records = []
         self.context = context
         self.stdio = context.stdio
@@ -297,6 +294,7 @@ class Result:
             if self.context.get_variable("ob_cluster").get("db_host") is not None or len(self.context.cluster_config.get("servers")) > 0:
                 self.version = get_version_by_type(self.context, "observer")
         except Exception as e:
+            self.stdio.verbose("rca get obcluster version fail. Maybe the scene need not it, skip it. Exception: {0}".format(e))
             self.stdio.warn("rca get obcluster version fail. if the scene need not it, skip it")
 
     def set_save_path(self, save_path):
@@ -345,8 +343,7 @@ class Result:
 
     def export_report_xml(self):
         with open(self.record_file_name, 'w', encoding='utf-8') as f:
-            allreport = {}
-            allreport["report"] = self.records_data()
+            allreport = {"report": self.records_data()}
             json_str = json.dumps(allreport)
             xml_str = xmltodict.unparse(json.loads(json_str))
             f.write(xml_str)

@@ -67,4 +67,4 @@ class SshHandler(SafeStdio):
                 f.write('\n\n' + '[' + self.node.get("ip") + '] shell > ' + command + '\n')
                 f.write(data + '\n')
         except Exception as e:
-            self.stdio.error("report sql result to file: {0} failed, error: ".format(self.report_file_path))
+            self.stdio.error("report sql result to file: {0} failed, error: {1}".format(self.report_file_path, e))

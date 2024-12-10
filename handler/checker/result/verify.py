@@ -17,7 +17,7 @@
 """
 import decimal
 import re
-import subprocess32 as subprocess
+import subprocess
 from handler.checker.check_exception import VerifyFalseException, VerifyFailException
 from handler.meta.check_meta import GlobalCheckMeta
 from common.tool import StringUtils

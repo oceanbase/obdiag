@@ -24,11 +24,9 @@ from stdio import SafeStdio
 from common.ob_connector import OBConnector
 from common.tool import StringUtils
 from common.command import get_observer_version
-from colorama import Fore, Style
 from common.tool import Util
 from common.tool import TimeUtils
 from tabulate import tabulate
-from colorama import Fore, Style
 
 
 class GatherTableDumpHandler(SafeStdio):
@@ -39,8 +37,8 @@ class GatherTableDumpHandler(SafeStdio):
         self.report = None
         self.report_path = None
         self.ob_cluster = {}
-        self.ob_connector = {}
-        self.tenant_connector = {}
+        self.ob_connector = None
+        self.tenant_connector = None
         self.database = None
         self.table = None
         self.result_list = []

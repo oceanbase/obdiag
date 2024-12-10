@@ -18,9 +18,6 @@
 import time
 
 from handler.checker.check_exception import StepExecuteFailException
-from common.ob_connector import OBConnector
-from common.tool import StringUtils
-from common.tool import Util
 
 
 class StepSleepHandler:

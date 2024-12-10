@@ -22,7 +22,7 @@ import datetime
 import tabulate
 from common.obdiag_exception import OBDIAGFormatException
 from common.constant import const
-from common.command import LocalClient, SshClient, is_empty_dir
+from common.command import SshClient, is_empty_dir
 from handler.base_shell_handler import BaseShellHandler
 from common.command import download_file, rm_rf_file, get_file_size, get_observer_version, tar_gz_dir
 from common.tool import TimeUtils

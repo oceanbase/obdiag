@@ -17,12 +17,13 @@
 """
 from common.ssh_client.ssh import SshClient
 from stdio import SafeStdio
-from handler.display.step.ssh import SshHandler
 from handler.display.step.sql import StepSQLHandler
 
 
 class Base(SafeStdio):
-    def __init__(self, context, step, node, cluster, task_variable_dict=None, env={}, node_number=1, db_connector=None):
+    def __init__(self, context, step, node, cluster, task_variable_dict=None, env=None, node_number=1, db_connector=None):
+        if env is None:
+            env = {}
         self.context = context
         self.stdio = context.stdio
         if task_variable_dict is None:

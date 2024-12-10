@@ -15,7 +15,7 @@
 @file: result.py
 @desc:
 """
-from handler.checker.check_exception import ResultFalseException, ResultFailException, VerifyFailException
+from handler.checker.check_exception import ResultFalseException, ResultFailException
 from handler.checker.result.verify import VerifyResult
 import re
 

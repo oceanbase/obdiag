@@ -21,7 +21,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import re
 import uuid
-import traceback
 
 __all__ = ("Moment", "Time", "Capacity", "CapacityWithB", "CapacityMB", "StringList", "Dict", "List", "StringOrKvList", "Double", "Boolean", "Integer", "String", "Path", "SafeString", "PathList", "SafeStringList", "DBUrl", "WebUrl", "OBUser")
 
