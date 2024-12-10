@@ -19,14 +19,12 @@ import os
 import time
 import sqlparse
 from tabulate import tabulate
-from colorama import Fore, Style
 from common.constant import const
 from common.tool import StringUtils, Util
 from common.tool import TimeUtils
 from common.tool import FileUtil
 from common.ob_connector import OBConnector
 from handler.analyzer.sql.rule_manager import SQLReviewRuleManager
-from handler.meta.sql_meta import GlobalSqlMeta
 from handler.meta.html_meta import GlobalHtmlMeta
 
 

@@ -22,7 +22,6 @@ from handler.checker.step.get_system_parameter import GetSystemParameterHandler
 from handler.checker.result.result import CheckResult
 from handler.checker.step.ssh import SshHandler
 from handler.checker.step.sql import StepSQLHandler
-import docker
 from common.ssh_client.ssh import SshClient
 
 

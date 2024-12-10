@@ -18,11 +18,14 @@
 from stdio import SafeStdio
 from common.scene import filter_by_version
 from handler.display.step.base import Base
-from common.tool import StringUtils
 
 
 class SceneBase(SafeStdio):
-    def __init__(self, context, scene, db_connector, report_dir=None, scene_variable_dict={}, env={}, mode="yaml", task_type="observer"):
+    def __init__(self, context, scene, db_connector, report_dir=None, scene_variable_dict=None, env=None, mode="yaml", task_type="observer"):
+        if env is None:
+            env = {}
+        if scene_variable_dict is None:
+            scene_variable_dict = {}
         self.context = context
         self.stdio = context.stdio
         self.scene_variable_dict = scene_variable_dict

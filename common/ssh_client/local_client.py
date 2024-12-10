@@ -17,7 +17,7 @@
 """
 
 from common.ssh_client.base import SsherClient
-import subprocess32 as subprocess
+import subprocess
 import shutil
 
 

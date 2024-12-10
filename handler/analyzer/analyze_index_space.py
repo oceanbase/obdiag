@@ -17,7 +17,6 @@
 """
 
 
-import sys
 from prettytable import PrettyTable
 from common.tool import StringUtils, Util
 from common.ob_connector import OBConnector

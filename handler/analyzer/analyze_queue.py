@@ -17,7 +17,6 @@
 """
 import datetime
 import os
-import re
 import csv
 from tabulate import tabulate
 from common.command import get_observer_version_by_sql
@@ -27,7 +26,7 @@ from common.constant import const
 from common.command import SshClient
 from common.ob_log_level import OBLogLevel
 from common.command import download_file, get_logfile_name_list, mkdir, delete_file
-from common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
+from common.tool import StringUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil

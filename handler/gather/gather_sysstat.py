@@ -21,7 +21,7 @@ import datetime
 
 import tabulate
 from common.constant import const
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from common.command import get_file_size, download_file, mkdir, zip_dir
 from handler.base_shell_handler import BaseShellHandler
 from common.tool import Util

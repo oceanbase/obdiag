@@ -217,7 +217,7 @@ class GatherObProxyLogHandler(BaseShellHandler):
                 return resp
             for log_name in log_list:
                 self.__pharse_log(ssh_client=ssh_client, log_name=log_name, home_path=remote_home_path, gather_path=gather_dir_full_path)
-            delete_empty_file(ssh_client, gather_dir_full_path, self.stdio)
+            delete_empty_file(ssh_client, gather_dir_full_path)
 
             is_empty = is_empty_dir(ssh_client, gather_dir_full_path, self.stdio)
             if is_empty:

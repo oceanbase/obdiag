@@ -17,7 +17,6 @@
 """
 import threading
 
-from common.ob_connector import OBConnector
 from handler.checker.check_exception import StepResultFailException, StepExecuteFailException, StepResultFalseException, TaskException
 from handler.checker.step.stepbase import StepBase
 from common.tool import StringUtils

@@ -15,10 +15,7 @@
 @file: sql.py
 @desc:
 """
-import os
 from stdio import SafeStdio
-from common.ob_connector import OBConnector
-from tabulate import tabulate
 from common.tool import StringUtils
 from prettytable import PrettyTable
 

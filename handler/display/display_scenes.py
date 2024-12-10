@@ -16,7 +16,6 @@
 @desc:
 """
 
-import os
 import re
 from result_type import ObdiagResult
 from stdio import SafeStdio
@@ -24,10 +23,8 @@ import datetime
 from handler.display.scenes.base import SceneBase
 from common.obdiag_exception import OBDIAGFormatException
 from handler.display.scenes.list import DisplayScenesListHandler
-from common.tool import DirectoryUtil
 from common.tool import StringUtils
 from common.scene import get_version_by_type
-from colorama import Fore, Style
 from common.tool import Util
 from common.tool import TimeUtils
 from common.ob_connector import OBConnector
@@ -129,7 +126,7 @@ class DisplaySceneHandler(SafeStdio):
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
             scene = {"name": task_name}
-            task = SceneBase(context=self.context, scene=scene, env=self.env, mode='code', task_type=task_name)
+            task = SceneBase(context=self.context, scene=scene, env=self.env, mode='code', task_type=task_name, db_connector=self.db_connector)
             self.stdio.verbose("{0} execute!".format(task_name))
             task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))

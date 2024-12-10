@@ -21,7 +21,6 @@ import sys
 import shutil
 import time
 from decimal import Decimal
-import pymysql as mysql
 import tabulate
 from prettytable import from_db_cursor
 from common.ob_connector import OBConnector

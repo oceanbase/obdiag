@@ -24,13 +24,12 @@ import tabulate
 
 from common.command import download_file, is_empty_dir, is_support_arch, get_observer_version, get_observer_pid, mkdir, zip_dir, get_file_size, delete_file_force, is_empty_file, upload_file
 from common.constant import const
-from common.command import LocalClient, SshClient
+from common.command import SshClient
 from handler.base_shell_handler import BaseShellHandler
 from common.tool import TimeUtils
 from common.tool import Util
 from common.tool import DirectoryUtil
 from common.tool import FileUtil
-from common.tool import NetUtils
 from common.tool import StringUtils
 from result_type import ObdiagResult
 

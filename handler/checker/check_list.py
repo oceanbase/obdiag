@@ -66,14 +66,14 @@ class CheckListHandler:
 
                             cases_map[package_data] = {
                                 "name": package_data,
-                                "command": "obdiag check --{0}={1}".format(package_target, package_data),
+                                "command": "obdiag check run --{0}={1}".format(package_target, package_data),
                                 "info_en": package_file_data[package_data].get("info_en") or "",
                                 "info_cn": package_file_data[package_data].get("info_cn") or "",
                             }
                             result_map[target]["commands"].append(
                                 {
                                     "name": package_data,
-                                    "command": "obdiag check --{0}={1}".format(package_target, package_data),
+                                    "command": "obdiag check run --{0}={1}".format(package_target, package_data),
                                     "info_en": package_file_data[package_data].get("info_en") or "",
                                     "info_cn": package_file_data[package_data].get("info_cn") or "",
                                 }
