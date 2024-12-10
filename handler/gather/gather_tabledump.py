@@ -126,7 +126,8 @@ class GatherTableDumpHandler(SafeStdio):
             columns, result = self.tenant_connector.execute_sql_return_columns_and_data(sql)
             if result is None or len(result) == 0:
                 self.stdio.verbose("excute sql: {0},  result is None".format(sql))
-            self.__report(sql, columns, result)
+            else:
+                self.__report_simple(sql, result[0][1])
             return True
         except Exception as e:
             self.stdio.error("show create table error {0}".format(e))
@@ -232,6 +233,14 @@ class GatherTableDumpHandler(SafeStdio):
             with open(self.file_name, 'a', encoding='utf-8') as f:
                 f.write('\n\n' + 'obclient > ' + sql + '\n')
                 f.write(formatted_table)
+        except Exception as e:
+            self.stdio.error("report sql result to file: {0} failed, error:{1} ".format(self.file_name, e))
+
+    def __report_simple(self, sql, data):
+        try:
+            with open(self.file_name, 'a', encoding='utf-8') as f:
+                f.write('\n\n' + 'obclient > ' + sql + '\n')
+                f.write(data)
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error:{1} ".format(self.file_name, e))
 
