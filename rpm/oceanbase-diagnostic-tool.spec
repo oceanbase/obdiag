@@ -49,8 +49,8 @@ cd $SRC_DIR
 \cp -rf $SRC_DIR/conf $BUILD_DIR/SOURCES/conf
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
-
-\cp -rf $SRC_DIR/dist/obdiag ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/obdiag
+find $SRC_DIR -name "obdiag"
+\cp -rf $SRC_DIR/src/dist/obdiag ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/obdiag
 \cp -rf $BUILD_DIR/SOURCES/site-packages ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/site-packages
 \cp -rf $BUILD_DIR/SOURCES/resources ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/resources
 \cp -rf $BUILD_DIR/SOURCES/dependencies/bin ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies
