@@ -17,7 +17,7 @@
 """
 
 import unittest
-from common.tool import ConfigOptionsParserUtil
+from src.common.tool import ConfigOptionsParserUtil
 
 
 class TestConfigParser(unittest.TestCase):

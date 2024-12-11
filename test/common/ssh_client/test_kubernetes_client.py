@@ -18,11 +18,10 @@
 
 import unittest
 import os
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 from kubernetes import config
-from kubernetes.stream import stream
-from context import HandlerContext
-from common.ssh_client.kubernetes_client import KubernetesClient
+from src.common.context import HandlerContext
+from src.common.ssh_client.kubernetes_client import KubernetesClient
 from kubernetes.client.api.core_v1_api import CoreV1Api
 from tempfile import NamedTemporaryFile
 from kubernetes.client import ApiClient

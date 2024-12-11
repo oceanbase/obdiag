@@ -26,42 +26,31 @@ VERSION="$RPM_PACKAGE_VERSION"
 cd $SRC_DIR
 pwd
 pip install -r requirements3.txt
-cp -f main.py obdiag.py
+cp -f src/main.py src/obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
 mkdir -p $BUILD_DIR/SOURCES/site-packages
 mkdir -p $BUILD_DIR/SOURCES/resources
-mkdir -p $BUILD_DIR/SOURCES/check/tasks
-mkdir -p $BUILD_DIR/SOURCES/gather/tasks
-mkdir -p $BUILD_DIR/SOURCES/display/tasks
-mkdir -p $BUILD_DIR/SOURCES/rca
-mkdir -p $BUILD_DIR/SOURCES/gather/redact
 mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool
+cd src
 pyinstaller --hidden-import=decimal -p $BUILD_DIR/SOURCES/site-packages -F obdiag.py
 rm -f obdiag.py oceanbase-diagnostic-tool.spec
 
+cd $SRC_DIR
 \cp -rf $SRC_DIR/example $BUILD_DIR/SOURCES/example
 \cp -rf $SRC_DIR/resources $BUILD_DIR/SOURCES/
 \cp -rf $SRC_DIR/dependencies/bin $BUILD_DIR/SOURCES/dependencies
-\cp -rf $SRC_DIR/handler/checker/tasks $BUILD_DIR/SOURCES/check
-\cp -rf $SRC_DIR/handler/gather/tasks $BUILD_DIR/SOURCES/gather
-\cp -rf $SRC_DIR/handler/rca/scene/* $BUILD_DIR/SOURCES/rca
-\cp -rf $SRC_DIR/handler/display/tasks $BUILD_DIR/SOURCES/display
-\cp -rf $SRC_DIR/handler/gather/plugins/redact/*.py $BUILD_DIR/SOURCES/gather/redact
-\cp -rf $SRC_DIR/init.sh $BUILD_DIR/SOURCES/init.sh
-\cp -rf $SRC_DIR/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
-\cp -rf $SRC_DIR/obdiag_backup.sh $BUILD_DIR/SOURCES/obdiag_backup.sh
+\cp -rf $SRC_DIR/plugins $BUILD_DIR/plugins
+\cp -rf $SRC_DIR/rpm/init.sh $BUILD_DIR/SOURCES/init.sh
+\cp -rf $SRC_DIR/rpm/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
+\cp -rf $SRC_DIR/rpm/obdiag_backup.sh $BUILD_DIR/SOURCES/obdiag_backup.sh
 \cp -rf $SRC_DIR/conf $BUILD_DIR/SOURCES/conf
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
-mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
-mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check
-mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/rca
-mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
-
-\cp -rf $SRC_DIR/dist/obdiag ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/obdiag
+find $SRC_DIR -name "obdiag"
+\cp -rf $SRC_DIR/src/dist/obdiag ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/obdiag
 \cp -rf $BUILD_DIR/SOURCES/site-packages ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/site-packages
 \cp -rf $BUILD_DIR/SOURCES/resources ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/resources
 \cp -rf $BUILD_DIR/SOURCES/dependencies/bin ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies
@@ -70,12 +59,7 @@ mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
 \cp -rf $BUILD_DIR/SOURCES/init.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/init_obdiag_cmd.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/obdiag_backup.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
-\cp -rf $BUILD_DIR/SOURCES/check/* ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check
-mv ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/tasks/*.yaml ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/check/
-\cp -rf $BUILD_DIR/SOURCES/gather/tasks ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
-\cp -rf $BUILD_DIR/SOURCES/rca/* ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/rca
-\cp -rf $BUILD_DIR/SOURCES/display/tasks ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/display
-\cp -rf $BUILD_DIR/SOURCES/gather/redact ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/gather
+\cp -rf $BUILD_DIR/plugins ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 
 
 %files
