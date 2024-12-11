@@ -17,6 +17,8 @@
 """
 import unittest
 from unittest.mock import Mock, patch
+import subprocess
+from src.common.command import LocalClient, delete_file_in_folder, rm_rf_file, upload_file, download_file
 
 
 class TestLocalClient(unittest.TestCase):
@@ -155,7 +157,7 @@ class TestLocalClient(unittest.TestCase):
         remote_path = "/remote/path/file.txt"
         self.ssh_client.get_name.return_value = "test_server"
 
-        result = upload_file(self.ssh_client, local_path, remote_path, self.stdio)
+        upload_file(self.ssh_client, local_path, remote_path, self.stdio)
 
         self.ssh_client.upload.assert_called_once_with(remote_path, local_path)
         self.stdio.verbose.assert_called_once_with("Please wait a moment, upload file to server test_server, local file path /local/path/file.txt, remote file path /remote/path/file.txt")

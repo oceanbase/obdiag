@@ -17,7 +17,7 @@
 """
 
 import unittest
-import subprocess32 as subprocess
+import subprocess
 from unittest.mock import patch, MagicMock
 from src.common.ssh_client.local_client import LocalClient
 from src.common.context import HandlerContext

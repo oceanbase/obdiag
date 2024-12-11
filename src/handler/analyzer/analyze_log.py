@@ -23,6 +23,7 @@ import uuid
 
 import tabulate
 
+from src.common.ssh_client.local_client import LocalClient
 from src.handler.base_shell_handler import BaseShellHandler
 from src.common.obdiag_exception import OBDIAGFormatException
 from src.common.constant import const
@@ -321,7 +322,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         :return:
         """
 
-        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
+        ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
