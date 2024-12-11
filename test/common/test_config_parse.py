@@ -17,7 +17,7 @@
 """
 
 import unittest
-from obdiag.common.tool import ConfigOptionsParserUtil
+from src.common.tool import ConfigOptionsParserUtil
 
 
 class TestConfigParser(unittest.TestCase):

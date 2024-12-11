@@ -16,9 +16,9 @@
 @desc:
 """
 import unittest
-from obdiag.handler.analyzer.sql.rules import IsNullRule
+from src.handler.analyzer.sql.rules import IsNullRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from obdiag.handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestIsNullRule(unittest.TestCase):

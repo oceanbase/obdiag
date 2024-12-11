@@ -17,7 +17,7 @@
 """
 import unittest
 from unittest import mock
-from obdiag.common import ConfigHelper
+from src.common import ConfigHelper
 
 
 class TestConfigHelper(unittest.TestCase):

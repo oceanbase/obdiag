@@ -19,9 +19,9 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from docker import DockerClient as DockerClientSDK
-from obdiag.common.ssh_client import DockerClient
-from obdiag.common.context import HandlerContext
-from obdiag.common.obdiag_exception import OBDIAGShellCmdException
+from src.common.ssh_client import DockerClient
+from src.common.context import HandlerContext
+from src.common.obdiag_exception import OBDIAGShellCmdException
 
 
 class TestDockerClient(unittest.TestCase):

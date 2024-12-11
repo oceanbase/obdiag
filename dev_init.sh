@@ -41,25 +41,9 @@ copy_file(){
     mkdir -p ${OBDIAG_HOME}/check
     mkdir -p ${OBDIAG_HOME}/gather
     mkdir -p ${OBDIAG_HOME}/display
-    if [ -d "${WORK_DIR}/handler/checker/tasks" ]; then
-        cp -rf ${WORK_DIR}/handler/checker/tasks  ${OBDIAG_HOME}/check/
-        cp -rf ${WORK_DIR}/handler/checker/tasks/obproxy_check_package.yaml  ${OBDIAG_HOME}/check/
-        cp -rf ${WORK_DIR}/handler/checker/tasks/observer_check_package.yaml  ${OBDIAG_HOME}/check/
-    fi
-    if [ -d "${WORK_DIR}/handler/gather/tasks" ]; then
-        cp -rf ${WORK_DIR}/handler/gather/tasks  ${OBDIAG_HOME}/gather/
-    fi
-
-    if [ -d "${WORK_DIR}/handler/display/tasks" ]; then
-        cp -rf ${WORK_DIR}/handler/display/tasks  ${OBDIAG_HOME}/display/
-    fi
-    
+    cp -rf ${WORK_DIR}/plugins/* ${OBDIAG_HOME}/
     if [ -d "${WORK_DIR}/example" ]; then
         cp -rf ${WORK_DIR}/example  ${OBDIAG_HOME}/
-    fi
-
-    if [ -d "${WORK_DIR}/handler/rca/scene" ]; then
-        cp -rf ${WORK_DIR}/handler/rca/scene  ${OBDIAG_HOME}/rca
     fi
 
 }
@@ -68,9 +52,9 @@ echo "File initialization completed"
 
 check_python_version
 
-source  ${WORK_DIR}/init_obdiag_cmd.sh
+source  ${WORK_DIR}/rpm/init_obdiag_cmd.sh
 
-echo "Creating or updating alias 'obdiag' to run 'python3 ${PROJECT_PATH}/main.py'"
-echo "alias obdiag='python3 ${PROJECT_PATH}/main.py'" >> ~/.bashrc
+echo "Creating or updating alias 'obdiag' to run 'python3 ${PROJECT_PATH}/src/main.py'"
+echo "alias obdiag='python3 ${PROJECT_PATH}/src/main.py'" >> ~/.bashrc
 source ~/.bashrc
 echo "Initialization completed successfully!"

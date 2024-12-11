@@ -17,7 +17,7 @@
 """
 import unittest
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from obdiag.handler.analyzer.sql.rules import SelectAllRule
+from src.handler.analyzer.sql.rules import SelectAllRule
 
 
 class TestSelectAllCase(unittest.TestCase):

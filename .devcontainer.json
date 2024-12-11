@@ -1,6 +1,6 @@
 {
   "name": "OBDIAG",
-  "dockerFile": "Dockerfile",
+  "dockerFile": "Dockerfile.dev",
   "postAttachCommand": "bash",
   "customizations": {
     "vscode": {

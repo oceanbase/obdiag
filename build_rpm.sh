@@ -9,4 +9,4 @@ cat ./rpm/oceanbase-diagnostic-tool.spec
 yum install rpm-build -y
 rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
 # 展示对应的包路径
-find / -name oceanbase-diagnostic-tool-*.rpm 
+find ~/ -name oceanbase-diagnostic-tool-*.rpm

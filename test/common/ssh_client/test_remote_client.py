@@ -19,9 +19,9 @@
 import unittest
 from io import StringIO
 from unittest.mock import patch, MagicMock
-from obdiag.common.ssh_client.remote_client import RemoteClient
+from src.common.ssh_client.remote_client import RemoteClient
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
-from obdiag.common.obdiag_exception import OBDIAGSSHConnException, OBDIAGShellCmdException
+from src.common.obdiag_exception import OBDIAGSSHConnException, OBDIAGShellCmdException
 
 
 class TestRemoteClient(unittest.TestCase):
