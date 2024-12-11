@@ -160,6 +160,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 pass
             elif isinstance(self.grep, str):
                 self.grep = self.grep.strip()
+                self.grep = [self.grep]
 
         # check since from_option and to_option
         from_timestamp = None
