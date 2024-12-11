@@ -24,10 +24,9 @@ DATE=`date`
 VERSION="$RPM_PACKAGE_VERSION"
 
 cd $SRC_DIR
-cd src
 pwd
 pip install -r requirements3.txt
-cp -f main.py obdiag.py
+cp -f src/main.py src/obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
 mkdir -p $BUILD_DIR/SOURCES/site-packages
@@ -35,6 +34,7 @@ mkdir -p $BUILD_DIR/SOURCES/resources
 mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool
+cd src
 pyinstaller --hidden-import=decimal -p $BUILD_DIR/SOURCES/site-packages -F obdiag.py
 rm -f obdiag.py oceanbase-diagnostic-tool.spec
 

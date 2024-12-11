@@ -20,6 +20,7 @@ import os
 import csv
 from tabulate import tabulate
 from src.common.command import get_observer_version_by_sql
+from src.common.ssh_client.local_client import LocalClient
 from src.handler.base_shell_handler import BaseShellHandler
 from src.common.obdiag_exception import OBDIAGFormatException, OBDIAGDBConnException
 from src.common.constant import const
@@ -31,9 +32,7 @@ from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
-from src import common as ssh_client_local_client
 from src.common.result_type import ObdiagResult
-
 from src.common.ob_connector import OBConnector
 import re
 
@@ -342,7 +341,7 @@ class AnalyzeQueueHandler(BaseShellHandler):
         :return:
         """
 
-        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
+        ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         grep_cmd = "grep -e 'dump tenant info(tenant={id:{tenant_id},' {log_name} >> {local_store_path} ".format(tenant_id=self.tenant_id, log_name=log_name, local_store_path=local_store_path)
         self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
