@@ -26,7 +26,7 @@ from src.common.obdiag_exception import OBDIAGShellCmdException
 
 class TestDockerClient(unittest.TestCase):
 
-    @patch('common.ssh_client.docker_client.docker.from_env')
+    @patch('src.common.ssh_client.docker_client.docker.from_env')
     def setUp(self, mock_docker_from_env):
         """
         Configures the mock Docker client and sets up test parameters in a testing environment.
@@ -68,7 +68,7 @@ class TestDockerClient(unittest.TestCase):
         # Use MagicMock to simulate the Docker client object to avoid actual Docker API calls.
         self.docker_client.client = MagicMock()
 
-    @patch('common.ssh_client.docker_client.docker.from_env')
+    @patch('src.common.ssh_client.docker_client.docker.from_env')
     def test_init_with_valid_node(self, mock_docker_from_env):
         """
         Test the __init__ method with a valid node response.
@@ -96,7 +96,7 @@ class TestDockerClient(unittest.TestCase):
         # Verify that the client attribute of the docker_client object is of type DockerClientSDK
         self.assertIsInstance(docker_client.client, DockerClientSDK)
 
-    @patch('common.ssh_client.docker_client.docker.from_env')
+    @patch('src.common.ssh_client.docker_client.docker.from_env')
     def test_init_without_container_name(self, mock_docker_from_env):
         """
         Test the initialization of DockerClient when no container name is provided.
@@ -127,7 +127,7 @@ class TestDockerClient(unittest.TestCase):
         # Verify that docker_client's client attribute is of type DockerClientSDK
         self.assertIsInstance(docker_client.client, DockerClientSDK)
 
-    @patch('common.ssh_client.docker_client.docker.from_env')
+    @patch('src.common.ssh_client.docker_client.docker.from_env')
     def test_init_with_invalid_context(self, mock_docker_from_env):
         """
         Test the __init__ method with an invalid context.
