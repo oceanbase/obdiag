@@ -16,9 +16,9 @@
 @desc:
 """
 import unittest
-from handler.analyzer.sql.rules.review.update_delete_without_where_or_true_condition import UpdateDeleteWithoutWhereOrTrueConditionRule
+from src.handler.analyzer.sql.rules.review.update_delete_without_where_or_true_condition import UpdateDeleteWithoutWhereOrTrueConditionRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestUpdateDeleteWithoutWhereConditionRule(unittest.TestCase):
