@@ -17,7 +17,6 @@
 """
 import unittest
 from unittest.mock import MagicMock, patch
-from common.scene import *
 
 
 class TestFilterByVersion(unittest.TestCase):

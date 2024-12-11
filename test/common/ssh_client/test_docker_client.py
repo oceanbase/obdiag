@@ -17,11 +17,11 @@
 """
 
 import unittest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 from docker import DockerClient as DockerClientSDK
-from common.ssh_client.docker_client import DockerClient
-from context import HandlerContext
-from common.obdiag_exception import OBDIAGShellCmdException
+from obdiag.common.ssh_client import DockerClient
+from obdiag.common.context import HandlerContext
+from obdiag.common.obdiag_exception import OBDIAGShellCmdException
 
 
 class TestDockerClient(unittest.TestCase):

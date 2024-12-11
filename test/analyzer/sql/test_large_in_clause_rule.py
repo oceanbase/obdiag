@@ -17,9 +17,9 @@
 """
 
 import unittest
-from handler.analyzer.sql.rules.review.large_in_clause import LargeInClauseAdjustedRule
+from obdiag.handler.analyzer.sql.rules.review.large_in_clause import LargeInClauseAdjustedRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from handler.analyzer.sql.rules.level import Level
+from obdiag.handler.analyzer.sql.rules.level import Level
 
 
 class TestLargeInClauseAdjustedRule(unittest.TestCase):
