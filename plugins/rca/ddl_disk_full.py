@@ -167,9 +167,7 @@ class DDlDiskFullScene(RcaScene):
                 #
                 new_estimated_size = []
                 for node_estimated_size in self.estimated_size:
-                    new_node_estimated_size = {}
-                    new_node_estimated_size["svr_ip"] = node_estimated_size["svr_ip"]
-                    new_node_estimated_size["svr_port"] = node_estimated_size["svr_port"]
+                    new_node_estimated_size = {"svr_ip": node_estimated_size["svr_ip"], "svr_port": node_estimated_size["svr_port"]}
                     estimiated_index_size = int(index_table_sum_of_data_length / main_table_sum_of_data_length * int(node_estimated_size["estimated_data_size"]))
                     self.record.add_record(
                         "estimated_index_size without magnification {0}B as {1} from: index_table_sum_of_data_length({2})/main_table_sum_of_data_length({3}) * estimated_data_size({4})".format(
