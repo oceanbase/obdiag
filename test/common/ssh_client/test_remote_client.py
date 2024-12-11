@@ -49,8 +49,8 @@ class TestRemoteClient(unittest.TestCase):
         self.remote_client = RemoteClient(self.context, self.node)
         self.remote_client._ssh_fd = mock_ssh_client_instance
 
-    @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
+    @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
     def test_init_with_key_file(self, mock_auto_add_policy, mock_ssh_client):
         """
         Test that the key file path is correctly expanded during initialization.
@@ -77,8 +77,8 @@ class TestRemoteClient(unittest.TestCase):
             # Verify auto_add_policy was called during the SSHClient initialization.
             mock_auto_add_policy.assert_called_once()
 
-    @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
+    @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
     def test_init_without_key_file(self, mock_auto_add_policy, mock_ssh_client):
         """
         Tests initialization without a key file.
@@ -107,8 +107,8 @@ class TestRemoteClient(unittest.TestCase):
         # Verify that auto add policy was called to handle connection policies.
         mock_auto_add_policy.assert_called_once()
 
-    @patch('common.ssh_client.remote_client.paramiko.SSHClient')
-    @patch('common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
+    @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
     def test_init_stores_expected_attributes(self, mock_auto_add_policy, mock_ssh_client):
         """
         Test that initialization stores the expected attributes.
@@ -325,7 +325,7 @@ class TestRemoteClient(unittest.TestCase):
         self.assertIn(expected_output, mock_stdout.getvalue())
         self.assertIn('\r\n', mock_stdout.getvalue())
 
-    @patch('common.ssh_client.remote_client.paramiko')
+    @patch('src.common.ssh_client.remote_client.paramiko')
     def test_upload(self, mock_paramiko):
         """
         Set up the SSH transport object and SFTP client object.

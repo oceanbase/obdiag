@@ -100,21 +100,21 @@ class TestFilterByVersion(unittest.TestCase):
         result = filter_by_version(scene, cluster, self.stdio)
         self.assertEqual(result, 0)
 
-    @patch('common.scene.get_observer_version')
+    @patch('src.common.scene.get_observer_version')
     def test_get_observer_version(self, mock_get_observer_version):
         mock_get_observer_version.return_value = "1.0.0"
         result = get_version_by_type(self.context, "observer")
         self.assertEqual(result, "1.0.0")
         mock_get_observer_version.assert_called_once_with(self.context)
 
-    @patch('common.scene.get_observer_version')
+    @patch('src.common.scene.get_observer_version')
     def test_get_other_version(self, mock_get_observer_version):
         mock_get_observer_version.return_value = "2.0.0"
         result = get_version_by_type(self.context, "other")
         self.assertEqual(result, "2.0.0")
         mock_get_observer_version.assert_called_once_with(self.context)
 
-    @patch('common.scene.get_observer_version')
+    @patch('src.common.scene.get_observer_version')
     def test_get_observer_version_fail(self, mock_get_observer_version):
         mock_get_observer_version.side_effect = Exception("Observer error")
         with self.assertRaises(Exception) as context:
@@ -122,7 +122,7 @@ class TestFilterByVersion(unittest.TestCase):
         self.assertIn("can't get observer version", str(context.exception))
         self.context.stdio.warn.assert_called_once()
 
-    @patch('common.scene.get_obproxy_version')
+    @patch('src.common.scene.get_obproxy_version')
     def test_get_obproxy_version(self, mock_get_obproxy_version):
         mock_get_obproxy_version.return_value = "3.0.0"
         result = get_version_by_type(self.context, "obproxy")
@@ -134,7 +134,7 @@ class TestFilterByVersion(unittest.TestCase):
             get_version_by_type(self.context, "unsupported")
         self.assertIn("No support to get the version", str(context.exception))
 
-    @patch('common.scene.get_observer_version')
+    @patch('src.common.scene.get_observer_version')
     def test_general_exception_handling(self, mock_get_observer_version):
         mock_get_observer_version.side_effect = Exception("Unexpected error")
         with self.assertRaises(Exception) as context:
