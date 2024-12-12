@@ -24,9 +24,9 @@ import re
 import json
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
-from core import ObdiagHome
-from result_type import ObdiagResult
-from stdio import IO
+from src.common.core import ObdiagHome
+from src.common.result_type import ObdiagResult
+from src.common.stdio import IO
 from src.common.version import get_obdiag_version
 from src.telemetry.telemetry import telemetry
 from src.common.version import OBDIAG_VERSION

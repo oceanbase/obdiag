@@ -28,9 +28,9 @@ from src.handler.gather.gather_component_log import GatherComponentLogHandler
 from src.handler.rca.rca_handler import RCAHandler
 from src.handler.rca.rca_list import RcaScenesListHandler
 from src.common.ssh import SshClient, SshConfig
-from context import HandlerContextNamespace, HandlerContext
-from config import ConfigManager, InnerConfigManager
-from err import CheckStatus, SUG_SSH_FAILED
+from src.common.context import HandlerContextNamespace, HandlerContext
+from src.common.config import ConfigManager, InnerConfigManager
+from src.common.err import CheckStatus, SUG_SSH_FAILED
 from src.handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from src.handler.analyzer.analyze_log import AnalyzeLogHandler
 from src.handler.analyzer.analyze_sql import AnalyzeSQLHandler
@@ -55,12 +55,11 @@ from src.handler.gather.gather_variables import GatherVariablesHandler
 from src.handler.display.display_scenes import DisplaySceneHandler
 from src.handler.display.scenes.list import DisplayScenesListHandler
 from src.handler.update.update import UpdateHandler
-from result_type import ObdiagResult
+from src.common.result_type import ObdiagResult
 from src.telemetry.telemetry import telemetry
 from colorama import Fore, Style
 from src.common.config_helper import ConfigHelper
 from src.handler.analyzer.analyze_queue import AnalyzeQueueHandler
-
 from src.common.tool import TimeUtils, Util
 from src.common.command import get_observer_version_by_sql
 from src.common.ob_connector import OBConnector

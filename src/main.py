@@ -16,8 +16,8 @@
 """
 
 import sys
-from common.diag_cmd import MainCommand
-from common.stdio import IO
+from src.common.diag_cmd import MainCommand
+from src.common.stdio import IO
 
 ROOT_IO = IO(1)
 

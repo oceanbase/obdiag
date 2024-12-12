@@ -89,8 +89,7 @@ class CheckReport:
     def export_report_xml(self):
         allMap = self.report_tobeMap()
         with open(self.report_path + ".xml", 'w', encoding='utf-8') as f:
-            allreport = {}
-            allreport["report"] = allMap
+            allreport = {"report": allMap}
             json_str = json.dumps(allreport)
             xml_str = xmltodict.unparse(json.loads(json_str))
             f.write(xml_str)

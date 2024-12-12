@@ -18,7 +18,7 @@
 from __future__ import absolute_import, division, print_function
 import os
 from src.common.tool import ConfigOptionsParserUtil, DirectoryUtil
-from stdio import SafeStdio
+from src.common.stdio import SafeStdio
 import oyaml as yaml
 import pathlib
 import sys
@@ -287,15 +287,14 @@ class ConfigManager(Manager):
             'servers': oms_nodes,
         }
 
-    @property
     def get_node_config(self, type, node_ip, config_item):
+        nodes = []
         if type == 'ob_cluster':
-            nodes = self.get_ob_cluster_config()['servers']
+            nodes = self.get_ob_cluster_config['servers']
         elif type == 'ob_proxy':
-            nodes = self.get_obproxy_config()['servers']
+            nodes = self.get_obproxy_config['servers']
         else:
             self.stdio.exception(f"Unsupported cluster type: {type}")
-
         for node in nodes:
             if node['ip'] == node_ip:
                 return node.get(config_item)
