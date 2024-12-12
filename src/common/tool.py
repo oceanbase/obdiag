@@ -1242,14 +1242,14 @@ class StringUtils(object):
     @staticmethod
     def extract_parameters(query_template):
         # 使用正则表达式查找占位符
-        pattern = re.compile(r'\{(\w+)\}')
+        pattern = re.compile(r'#\{(\w+)\}')
         parameters = pattern.findall(query_template)
         return parameters
 
     @staticmethod
     def replace_parameters(query_template, params):
         # 使用正则表达式查找占位符
-        pattern = re.compile(r'\{(\w+)\}')
+        pattern = re.compile(r'#\{(\w+)\}')
 
         # 定义替换函数
         def replacer(match):

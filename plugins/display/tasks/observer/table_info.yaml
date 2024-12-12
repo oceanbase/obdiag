@@ -5,10 +5,10 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ table_schema, table_name, table_type, engine, row_format, table_rows, avg_row_length,  table_collation from information_schema.tables where table_name = '{table_name}' and table_schema = '{database_name}';"
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ table_schema, table_name, table_type, engine, row_format, table_rows, avg_row_length,  table_collation from information_schema.tables where table_name = '#{table_name}' and table_schema = '#{database_name}';"
         global: true
       - type: sql
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, dotl.table_name, dotl.ls_id, dotl.zone, dotl.svr_ip, dotl.svr_port, dotl.role, dotl.replica_type from oceanbase.dba_ob_table_locations dotl where dotl.table_name = '{table_name}' and dotl.database_name = '{database_name}';"
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, dotl.table_name, dotl.ls_id, dotl.zone, dotl.svr_ip, dotl.svr_port, dotl.role, dotl.replica_type from oceanbase.dba_ob_table_locations dotl where dotl.table_name = '#{table_name}' and dotl.database_name = '#{database_name}';"
         global: true
       - type: sql
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name, 
@@ -25,8 +25,8 @@ task:
               and dotl.svr_port = dotr.svr_port 
               and dotl.ls_id = dotr.ls_id 
               and dotl.role = 'leader' 
-              and dotl.table_name = '{table_name}'
-              and dotl.database_name = '{database_name}'
+              and dotl.table_name = '#{table_name}'
+              and dotl.database_name = '#{database_name}'
               group by dotl.table_name
               union all
               select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name,
@@ -48,8 +48,8 @@ task:
               and dotl.tablet_id = dotr.tablet_id 
               and dotl.role = 'leader'
               and dotl.table_type = 'INDEX' 
-              and dotl2.table_name = '{table_name}'
-              and dotl.database_name = '{database_name}'
+              and dotl2.table_name = '#{table_name}'
+              and dotl.database_name = '#{database_name}'
               group by dotl.index_name
               union all
               select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dotl.database_name,
@@ -71,7 +71,7 @@ task:
               and dotl.tablet_id = dotr.tablet_id 
               and dotl.role = 'leader'
               and dotl.table_type = 'LOB AUX TABLE' 
-              and dotl2.table_name = '{table_name}'
-              and dotl.database_name = '{database_name}'
+              and dotl2.table_name = '#{table_name}'
+              and dotl.database_name = '#{database_name}'
               group by dotl.table_name;"
         global: true

@@ -5,26 +5,26 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ tenant_name, tenant_type, primary_zone, locality, tenant_role from oceanbase.dba_ob_tenants where tenant_name = '{tenant_name}' and tenant_type in ('SYS','USER');"
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ tenant_name, tenant_type, primary_zone, locality, tenant_role from oceanbase.dba_ob_tenants where tenant_name = '#{tenant_name}' and tenant_type in ('SYS','USER');"
         global: true
       - type: sql  
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dot.tenant_name, dou.zone, dou.svr_ip observer, cotl.replica_type, dou.max_cpu cpu, concat(round(dou.memory_size/1024/1024/1024,0), 'G') memory_size, concat(round(dou.log_disk_size/1024/1024/1024,0), 'G') log_disk_size, concat(round(sum(cotr.data_size)/1024/1024/1024, 2), 'G') data_size, concat(round(sum(cotr.required_size)/1024/1024/1024, 2), 'G') required_size, dot.unit_num from oceanbase.dba_ob_tenants dot, oceanbase.dba_ob_units dou, oceanbase.cdb_ob_table_locations cotl, oceanbase.cdb_ob_tablet_replicas cotr where tenant_name = '{tenant_name}' and dot.tenant_id = dou.tenant_id and dot.tenant_id = cotl.tenant_id and dou.svr_ip = cotl.svr_ip and cotl.tenant_id = cotr.tenant_id and cotl.svr_ip = cotr.svr_ip and cotl.ls_id = cotr.ls_id and cotl.tablet_id = cotr.tablet_id group by dot.tenant_id, cotl.svr_ip order by dot.tenant_id, zone, cotl.svr_ip;"
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ dot.tenant_name, dou.zone, dou.svr_ip observer, cotl.replica_type, dou.max_cpu cpu, concat(round(dou.memory_size/1024/1024/1024,0), 'G') memory_size, concat(round(dou.log_disk_size/1024/1024/1024,0), 'G') log_disk_size, concat(round(sum(cotr.data_size)/1024/1024/1024, 2), 'G') data_size, concat(round(sum(cotr.required_size)/1024/1024/1024, 2), 'G') required_size, dot.unit_num from oceanbase.dba_ob_tenants dot, oceanbase.dba_ob_units dou, oceanbase.cdb_ob_table_locations cotl, oceanbase.cdb_ob_tablet_replicas cotr where tenant_name = '#{tenant_name}' and dot.tenant_id = dou.tenant_id and dot.tenant_id = cotl.tenant_id and dou.svr_ip = cotl.svr_ip and cotl.tenant_id = cotr.tenant_id and cotl.svr_ip = cotr.svr_ip and cotl.ls_id = cotr.ls_id and cotl.tablet_id = cotr.tablet_id group by dot.tenant_id, cotl.svr_ip order by dot.tenant_id, zone, cotl.svr_ip;"
         global: true
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
-        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenant_name\" stat_name, tenant_name value  from oceanbase.__all_tenant where tenant_name='{tenant_name}' 
+        sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenant_name\" stat_name, tenant_name value  from oceanbase.__all_tenant where tenant_name='#{tenant_name}' 
         union all 
-        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenant_id\" stat_name, tenant_id value  from oceanbase.__all_tenant where tenant_name='{tenant_name}'
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"tenant_id\" stat_name, tenant_id value  from oceanbase.__all_tenant where tenant_name='#{tenant_name}'
         union all
-        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"primary_zone\" stat_name, primary_zone value  from oceanbase.__all_tenant where tenant_name='{tenant_name}'
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"primary_zone\" stat_name, primary_zone value  from oceanbase.__all_tenant where tenant_name='#{tenant_name}'
         union all
-        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"locality\" stat_name, locality value  from oceanbase.__all_tenant where tenant_name='{tenant_name}'
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"locality\" stat_name, locality value  from oceanbase.__all_tenant where tenant_name='#{tenant_name}'
         union all
-        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"status\" stat_name, status value  from oceanbase.__all_tenant where tenant_name='{tenant_name}'
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"status\" stat_name, status value  from oceanbase.__all_tenant where tenant_name='#{tenant_name}'
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"unit_count\" stat_name, a.unit_count as value 
-        from  oceanbase.__all_resource_pool a ,oceanbase.__all_tenant b where a.tenant_id=b.tenant_id and b.tenant_name='{tenant_name}'
+        from  oceanbase.__all_resource_pool a ,oceanbase.__all_tenant b where a.tenant_id=b.tenant_id and b.tenant_name='#{tenant_name}'
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"ip_list\" stat_name,    
         GROUP_CONCAT(DISTINCT b.svr_ip)  value 
@@ -34,55 +34,55 @@ task:
         oceanbase.__all_unit b ON a.resource_pool_id = b.resource_pool_id  
         JOIN   
         oceanbase.__all_tenant c ON a.tenant_id =  c.tenant_id 
-        WHERE   c.tenant_name='{tenant_name}'        
+        WHERE   c.tenant_name='#{tenant_name}'        
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"min_cpu\" stat_name,min_cpu value  
-        from  oceanbase.gv$unit where tenant_name='{tenant_name}' group by unit_config_id        
+        from  oceanbase.gv$unit where tenant_name='#{tenant_name}' group by unit_config_id        
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"max_cpu\" stat_name,max_cpu value  
-        from  oceanbase.gv$unit where tenant_name='{tenant_name}' group by unit_config_id        
+        from  oceanbase.gv$unit where tenant_name='#{tenant_name}' group by unit_config_id        
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"min_memory\" stat_name,concat(TRUNCATE(min_memory/1024/1024/1024,0),'G') as value  
-        from  oceanbase.gv$unit where tenant_name='{tenant_name}' group by unit_config_id        
+        from  oceanbase.gv$unit where tenant_name='#{tenant_name}' group by unit_config_id        
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"max_memory\" stat_name,concat(TRUNCATE(max_memory/1024/1024/1024,0),'G') as value  
-        from  oceanbase.gv$unit where tenant_name='{tenant_name}' group by unit_config_id       
+        from  oceanbase.gv$unit where tenant_name='#{tenant_name}' group by unit_config_id       
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_use_total\" stat_name,round(SUM(a.value)/100, 2) as value
         from  oceanbase.gv$sysstat  a, oceanbase.__all_tenant b 
-        where name = 'cpu usage' and a.con_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where name = 'cpu usage' and a.con_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         GROUP by b.tenant_id, b.tenant_name        
         union all 
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_use_avage\" stat_name,round(SUM(s.value)/100/3/s.unit_count, 2) as value
         from  (select a.*,b.unit_count  from oceanbase.gv$sysstat a,oceanbase.__all_resource_pool b where a.CON_ID=b.tenant_id and a.STAT_ID ='140006' and a.CON_ID>1000) s, oceanbase.__all_tenant b 
-        where s.con_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where s.con_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         GROUP by b.tenant_id, b.tenant_name       
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_use_per\" stat_name,concat(round(100*(sum(case when STAT_ID='140006' then s.VALUE else 0 end)/sum(case when STAT_ID='140005' then s.VALUE else 0 end)),2),'%') as value 
         from  oceanbase.gv$sysstat s left join oceanbase.__all_tenant t on s.CON_ID=t.tenant_id
-        where s.STAT_ID in(140005,140006) and s.CON_ID>1000 and  tenant_name='{tenant_name}'
+        where s.STAT_ID in(140005,140006) and s.CON_ID>1000 and  tenant_name='#{tenant_name}'
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_use_total\" stat_name,concat(round(SUM(a.value)/1024/1024/1024, 2),'G') as value
         from  oceanbase.gv$sysstat  a, oceanbase.__all_tenant b 
-        where name = 'memory usage' and a.con_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where name = 'memory usage' and a.con_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         GROUP by b.tenant_id, b.tenant_name    
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_use_avg\" stat_name,concat(round(SUM(s.value)/1024/1024/1024/3/s.unit_count, 2),'G') as value
         from  (select a.*,b.unit_count  from oceanbase.gv$sysstat a,oceanbase.__all_resource_pool b where a.CON_ID=b.tenant_id and a.STAT_ID ='140003' and a.CON_ID>1000) s, oceanbase.__all_tenant b 
-        where s.con_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where s.con_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         GROUP by b.tenant_id, b.tenant_name 
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_use_per\" stat_name,concat(round(100*(sum(case when STAT_ID='140003' then s.VALUE else 0 end)/sum(case when STAT_ID='140002' then s.VALUE else 0 end)),2),'%') as value 
         from  oceanbase.gv$sysstat s left join oceanbase.__all_tenant t on s.CON_ID=t.tenant_id
-        where s.STAT_ID in(140003,140002) and s.CON_ID>1000 and  tenant_name='{tenant_name}'
+        where s.STAT_ID in(140003,140002) and s.CON_ID>1000 and  tenant_name='#{tenant_name}'
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"disk_use_total\" stat_name,concat(ROUND(SUM(a.required_size)/1024/1024/1024, 2),'G') as value
         from oceanbase.gv$partition a, oceanbase.__all_tenant b
-        where a.tenant_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where a.tenant_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         group by a.tenant_id , b.tenant_name
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"disk_use_avg\" stat_name,concat(ROUND(SUM(a.required_size)/1024/1024/1024/count(distinct a.svr_ip), 2),'G') as value
         from oceanbase.gv$partition a, oceanbase.__all_tenant b
-        where a.tenant_id = b.tenant_id and b.tenant_name ='{tenant_name}'
+        where a.tenant_id = b.tenant_id and b.tenant_name ='#{tenant_name}'
         group by a.tenant_id , b.tenant_name"
         global: true

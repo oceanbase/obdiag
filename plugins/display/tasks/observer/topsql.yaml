@@ -6,45 +6,45 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        tittle: Top SQL time consumption in the last {mtime} minutes
+        tittle: Top SQL time consumption in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,SQL_ID,substr(query_sql, 1, 20) as query_sql,count(1),avg(ELAPSED_TIME),avg(EXECUTE_TIME),avg(QUEUE_TIME),avg(AFFECTED_ROWS),avg(GET_PLAN_TIME)
           from oceanbase.gv$ob_sql_audit
-          where time_to_usec(now(6))-request_time <{mtime}*60*1000000
-          and tenant_name='{tenant_name}'
+          where time_to_usec(now(6))-request_time <#{mtime}*60*1000000
+          and tenant_name='#{tenant_name}'
           group by SQL_ID order by avg(ELAPSED_TIME)*count(1) desc limit 20;"
         global: true
       - type: sql
-        tittle: Top-N SQL queries ranked by request count in the last {mtime} minutes
+        tittle: Top-N SQL queries ranked by request count in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,SQL_ID, substr(query_sql, 1, 20) as query_sql,count(*) as QPS, avg(t1.elapsed_time) RT
           from oceanbase.gv$ob_sql_audit t1
-          where   tenant_name='{tenant_name}' and IS_EXECUTOR_RPC = 0
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          where   tenant_name='#{tenant_name}' and IS_EXECUTOR_RPC = 0
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           group by t1.sql_id order by QPS desc limit 20;"
         global: true
       - type: sql
-        tittle: The SQL that consumes the most CPU among all SQLs in the last {mtime} minutes
+        tittle: The SQL that consumes the most CPU among all SQLs in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,sql_id, substr(query_sql, 1, 20) as query_sql,
           sum(elapsed_time - queue_time) as cpu_time, count(*) cnt,
           avg(get_plan_time), avg(execute_time)
           from oceanbase.gv$ob_sql_audit
-          where  tenant_name ='{tenant_name}'
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          where  tenant_name ='#{tenant_name}'
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           group by sql_id order by cpu_time desc   limit 20;"
         global: true
       - type: sql
-        tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past {mtime} minutes
+        tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type
           from oceanbase.gv$ob_sql_audit
-          where tenant_name ='{tenant_name}'
+          where tenant_name ='#{tenant_name}'
           and IS_EXECUTOR_RPC = 0
           and is_inner_sql = 0
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           group by plan_type limit 20;"
         global: true
@@ -53,8 +53,8 @@ task:
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name, SQL_ID, substr(query_sql, 1, 20) as query_sql, elapsed_time
           from oceanbase.gv$ob_sql_audit
-          where table_scan = 1 and tenant_name = '{tenant_name}'
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          where table_scan = 1 and tenant_name = '#{tenant_name}'
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           and is_inner_sql = 0
           order by  elapsed_time desc limit 20;"
@@ -62,48 +62,48 @@ task:
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
-        tittle: Top SQL time consumption in the last {mtime} minutes
+        tittle: Top SQL time consumption in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,SQL_ID,substr(query_sql, 1, 20) as query_sql,count(1),avg(ELAPSED_TIME),avg(EXECUTE_TIME),avg(QUEUE_TIME),avg(AFFECTED_ROWS),avg(GET_PLAN_TIME)
           from oceanbase.gv$sql_audit
-          where time_to_usec(now(6))-request_time <{mtime}*60*1000000
-          and tenant_name='{tenant_name}'
+          where time_to_usec(now(6))-request_time <#{mtime}*60*1000000
+          and tenant_name='#{tenant_name}'
           and is_inner_sql = 0
           group by SQL_ID order by avg(ELAPSED_TIME)*count(1) desc limit 20 ;"
         global: true
       - type: sql
-        tittle: Top-N SQL queries ranked by request count in the last {mtime} minutes
+        tittle: Top-N SQL queries ranked by request count in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name, SQL_ID,substr(query_sql, 1, 20) as query_sql, count(*) as QPS, avg(t1.elapsed_time) RT
           from oceanbase.gv$sql_audit t1
-          where  tenant_name='{tenant_name}'
+          where  tenant_name='#{tenant_name}'
           and IS_EXECUTOR_RPC = 0
           and is_inner_sql = 0
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           group by t1.sql_id order by QPS desc limit 20;"
         global: true
       - type: sql
-        tittle: The SQL that consumes the most CPU among all SQLs in the last {mtime} minutes
+        tittle: The SQL that consumes the most CPU among all SQLs in the last #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name,sql_id, substr(query_sql, 1, 20) as query_sql,
           sum(elapsed_time - queue_time) as cpu_time, count(*) cnt,
           avg(get_plan_time), avg(execute_time)
           from oceanbase.gv$sql_audit
-          where  tenant_name='{tenant_name}'
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          where  tenant_name='#{tenant_name}'
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           and is_inner_sql = 0
           group by sql_id order by cpu_time desc  limit 20;"
         global: true
       - type: sql
-        tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past {mtime} minutes
+        tittle: Check whether there have been a large number of unreasonable remote execution requests for SQL executions in the past #{mtime} minutes
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ count(*), plan_type
           from oceanbase.gv$sql_audit
-          where tenant_name='{tenant_name}'
+          where tenant_name='#{tenant_name}'
           and IS_EXECUTOR_RPC = 0
-          and request_time > (time_to_usec(now()) - {mtime}*60*1000000)
+          and request_time > (time_to_usec(now()) - #{mtime}*60*1000000)
           and request_time < time_to_usec(now())
           group by plan_type limit 20;"
         global: true
@@ -112,8 +112,8 @@ task:
         sql:
           "select /*+read_consistency(weak),query_timeout(100000000)*/ tenant_name, SQL_ID, substr(query_sql, 1, 20) as query_sql
           from oceanbase.gv$sql_audit
-          where table_scan = 1 and tenant_name = '{tenant_name}'
-          and request_time > (time_to_usec(now()) - {mtime}*60*10000)
+          where table_scan = 1 and tenant_name = '#{tenant_name}'
+          and request_time > (time_to_usec(now()) - #{mtime}*60*10000)
           and request_time < time_to_usec(now())
           and is_inner_sql = 0
           order by  elapsed_time desc limit 20;"

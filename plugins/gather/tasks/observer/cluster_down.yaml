@@ -11,7 +11,7 @@ task:
         ssh: "cat /proc/sys/kernel/core_pattern"
         global: false
       - type: ssh
-        ssh: "ls -lhrt ${observer_data_dir}"
+        ssh: "ls -lhrt #{observer_data_dir}"
         global: false
       - type: ssh
         ssh: "df -h"

@@ -16,7 +16,6 @@
 @desc:
 """
 import os
-import re
 from src.common.stdio import SafeStdio
 from src.common.ob_connector import OBConnector
 from tabulate import tabulate
@@ -65,23 +64,6 @@ class StepSQLHandler(SafeStdio):
             self.report(sql, columns, data)
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
-
-    @staticmethod
-    def extract_parameters(query_template):
-        pattern = re.compile(r'\$\{(\w+)\}')
-        parameters = pattern.findall(query_template)
-        return parameters
-
-    @staticmethod
-    def replace_parameters(query_template, params):
-        pattern = re.compile(r'\$\{(\w+)\}')
-
-        def replacer(match):
-            key = match.group(1)
-            return str(params.get(key, match.group(0)))
-
-        query = pattern.sub(replacer, query_template)
-        return query
 
     def update_step_variable_dict(self):
         return self.task_variable_dict

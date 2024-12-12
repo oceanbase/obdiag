@@ -40,7 +40,7 @@ task:
             ORDER BY
               tenant_id,
               event_group) a, oceanbase.__all_tenant b 
-              where a.tenant_id=b.tenant_id and b.tenant_name='{tenant_name}';"
+              where a.tenant_id=b.tenant_id and b.tenant_name='#{tenant_name}';"
         global: true
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
@@ -80,5 +80,5 @@ task:
             ORDER BY
               tenant_id,
               event_group) a, oceanbase.__all_tenant b 
-              where a.tenant_id=b.tenant_id and b.tenant_name='{tenant_name}';"
+              where a.tenant_id=b.tenant_id and b.tenant_name='#{tenant_name}';"
         global: true
