@@ -129,9 +129,7 @@ class AnalyzeIndexSpaceHandler(object):
             # estimate the final space size
             estimated_index_data = []
             for node_table_estimated_size in self.estimated_table_data:
-                node_estimated_index_data = {}
-                node_estimated_index_data["svr_ip"] = node_table_estimated_size["svr_ip"]
-                node_estimated_index_data["svr_port"] = node_table_estimated_size["svr_port"]
+                node_estimated_index_data = {"svr_ip": node_table_estimated_size["svr_ip"], "svr_port": node_table_estimated_size["svr_port"]}
                 estimiated_index_size = int(self.index_table_sum_of_data_length / self.main_table_sum_of_data_length * int(node_table_estimated_size["estimated_table_size"]))
                 if self.ob_version == "4.2.3.0" or StringUtils.compare_versions_greater(self.ob_version, "4.2.3.0"):
                     self.stdio.verbose("magnification is 1.5")
