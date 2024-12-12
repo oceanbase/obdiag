@@ -55,12 +55,11 @@ from src.handler.gather.gather_variables import GatherVariablesHandler
 from src.handler.display.display_scenes import DisplaySceneHandler
 from src.handler.display.scenes.list import DisplayScenesListHandler
 from src.handler.update.update import UpdateHandler
-from result_type import ObdiagResult
+from src.common.result_type import ObdiagResult
 from src.telemetry.telemetry import telemetry
 from colorama import Fore, Style
 from src.common.config_helper import ConfigHelper
 from src.handler.analyzer.analyze_queue import AnalyzeQueueHandler
-
 from src.common.tool import TimeUtils, Util
 from src.common.command import get_observer_version_by_sql
 from src.common.ob_connector import OBConnector
