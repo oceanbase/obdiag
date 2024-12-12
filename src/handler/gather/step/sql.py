@@ -65,7 +65,6 @@ class StepSQLHandler(SafeStdio):
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
 
-
     def update_step_variable_dict(self):
         return self.task_variable_dict
 
