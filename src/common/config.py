@@ -29,7 +29,7 @@ if getattr(sys, 'frozen', False):
     absPath = os.path.dirname(os.path.abspath(sys.executable))
 else:
     absPath = os.path.dirname(os.path.abspath(__file__))
-INNER_CONFIG_FILE = os.path.join(absPath, "conf/inner_config.yml")
+INNER_CONFIG_FILE = os.path.join(absPath, "../../conf/inner_config.yml")
 
 DEFAULT_CONFIG_DATA = '''
 obcluster:
