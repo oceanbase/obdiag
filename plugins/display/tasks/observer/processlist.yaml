@@ -1,0 +1,15 @@
+info_en: "[processlist]"
+info_cn: "[查看processlist]"
+command: obdiag display scene run --scene=observer.processlist --env tenant_name=test
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "select * from oceanbase.gv$ob_processlist where tenant='#{tenant_name}';"
+        global: true
+  - version: "[3.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_processlist where tenant='#{tenant_name}';"
+        global: true
+

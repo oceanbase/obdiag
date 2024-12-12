@@ -1,0 +1,73 @@
+info_en: "[slowsql]"
+info_cn: "[查看慢sql]"
+command: obdiag display scene run --scene=observer.slowsql --env tenant_name=test --env mtime=10
+
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "SELECT
+              /*+READ_CONSISTENCY(WEAK), QUERY_TIMEOUT(100000000)*/
+              tenant_id,
+              tenant_name,
+              user_name,
+              db_name,
+              svr_ip,
+              plan_id,
+              plan_type,
+              affected_rows,
+              return_rows,
+              elapsed_time,
+              execute_time,
+              sql_id,
+              usec_to_time(request_time),
+              substr(
+                replace(query_sql, '\n', ' '),
+                1,
+                100
+              )
+            FROM
+              oceanbase.gv$ob_sql_audit
+            WHERE
+              tenant_name='#{tenant_name}'
+              AND 1 = 1
+              AND request_time > (time_to_usec(now()) - #{mtime} * 60 * 1000000)
+              AND is_inner_sql = 0
+            ORDER BY
+              elapsed_time DESC
+            LIMIT 10;"
+        global: true
+  - version: "[3.0.0.0, 4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "SELECT
+              /*+READ_CONSISTENCY(WEAK), QUERY_TIMEOUT(100000000)*/
+              tenant_id,
+              tenant_name,
+              user_name,
+              db_name,
+              svr_ip,
+              plan_id,
+              plan_type,
+              affected_rows,
+              return_rows,
+              elapsed_time,
+              execute_time,
+              sql_id,
+              usec_to_time(request_time),
+              substr(
+                replace(query_sql, '\n', ' '),
+                1,
+                100
+              )
+            FROM
+              oceanbase.gv$sql_audit
+            WHERE
+              tenant_name='#{tenant_name}'
+              AND 1 = 1
+              AND request_time > (time_to_usec(now()) - #{mtime} * 60 * 1000000)
+              AND is_inner_sql = 0
+            ORDER BY
+              elapsed_time DESC
+            LIMIT 10;"
+        global: true

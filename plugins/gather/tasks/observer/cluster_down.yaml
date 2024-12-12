@@ -1,0 +1,24 @@
+info_en: "[cluster down]"
+info_cn: "[集群无法连接]"
+command: obdiag gather scene run --scene=observer.cluster_down
+task:
+  - version: "[2.0.0.0, *]"
+    steps:
+      - type: ssh
+        ssh: "ps -ef | grep observer"
+        global: false
+      - type: ssh
+        ssh: "cat /proc/sys/kernel/core_pattern"
+        global: false
+      - type: ssh
+        ssh: "ls -lhrt #{observer_data_dir}"
+        global: false
+      - type: ssh
+        ssh: "df -h"
+        global: false
+      - type: log
+        grep: ""
+        global: false
+      - type: sysstat
+        global: false
+        sysstat: ""

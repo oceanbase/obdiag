@@ -16,9 +16,9 @@
 @desc:
 """
 import unittest
-from handler.analyzer.sql.rules.review.multi_table_join import MultiTableJoinRule
+from src.handler.analyzer.sql.rules.review.multi_table_join import MultiTableJoinRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestMultiTableJoinRule(unittest.TestCase):

@@ -16,7 +16,7 @@
 @desc:
 """
 import unittest
-from handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestLevelEnum(unittest.TestCase):
