@@ -37,7 +37,7 @@ class CheckListHandler:
             result_map = {}
             for file in files:
                 if "check_package" in file:
-                    cases_map = {"all": {"name": "all", "command": "obdiag check", "info_en": "default check all task without filter", "info_cn": "默认执行除filter组里的所有巡检项"}}
+                    cases_map = {"all": {"name": "all", "command": "obdiag check run", "info_en": "default check all task without filter", "info_cn": "默认执行除filter组里的所有巡检项"}}
                     # Obtain which files match and corresponding header files
                     # Using string segmentation methods
                     parts = file.split('_')
