@@ -50,7 +50,7 @@ task:
         sql: "select svr_ip, log_archive_status, count(*) from oceanbase.__all_virtual_pg_backup_log_archive_status group by svr_ip, log_archive_status;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
         global: true
       - type: sql
         sql: "select b.* from oceanbase.__all_virtual_pg_backup_log_archive_status a,oceanbase.__all_virtual_pg_log_archive_stat b where a.table_id=b.table_id and a.partition_id=b.partition_id  order by log_archive_cur_ts limit 100;"
@@ -103,22 +103,22 @@ task:
         sql: "show parameters like '%ha_low_thread_score%';"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_PARAMETER where tenant_id = ${tenant_id}"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_PARAMETER where tenant_id = #{tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_JOBS where tenant_id = ${tenant_id};"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_JOBS where tenant_id = #{tenant_id};"
         global: true
       - type: sql
         sql: "SELECT * FROM oceanbase.DBA_OB_ROOTSERVICE_EVENT_HISTORY WHERE module='backup_data' AND event ='start_backup_data';"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_TASKS where tenant_id = ${tenant_id};"
+        sql: "SELECT * FROM oceanbase.CDB_OB_BACKUP_TASKS where tenant_id = #{tenant_id};"
         global: true
       - type: sql
-        sql: "SELECT * FROM oceanbase.__all_virtual_backup_schedule_task where tenant_id = ${tenant_id}"
+        sql: "SELECT * FROM oceanbase.__all_virtual_backup_schedule_task where tenant_id = #{tenant_id}"
         global: true
       - type: sql
-        sql: "SELECT * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY where STATUS = 'FAILED' and tenant_id = ${tenant_id};"
+        sql: "SELECT * from oceanbase.CDB_OB_BACKUP_JOB_HISTORY where STATUS = 'FAILED' and tenant_id = #{tenant_id};"
         global: true
       - type: log
         global: false

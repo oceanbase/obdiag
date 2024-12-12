@@ -83,10 +83,10 @@ task:
         sql: "select * from oceanbase.__all_virtual_partition_migration_status;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_job where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_job where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
         global: true
       - type: sql
         sql: "select svr_ip,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;"

@@ -5,11 +5,11 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "select * from oceanbase.gv$ob_processlist where tenant='{tenant_name}';"
+        sql: "select * from oceanbase.gv$ob_processlist where tenant='#{tenant_name}';"
         global: true
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
-        sql: "select * from oceanbase.__all_virtual_processlist where tenant='{tenant_name}';"
+        sql: "select * from oceanbase.__all_virtual_processlist where tenant='#{tenant_name}';"
         global: true
 

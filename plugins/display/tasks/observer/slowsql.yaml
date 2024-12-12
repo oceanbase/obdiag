@@ -29,9 +29,9 @@ task:
             FROM
               oceanbase.gv$ob_sql_audit
             WHERE
-              tenant_name='{tenant_name}'
+              tenant_name='#{tenant_name}'
               AND 1 = 1
-              AND request_time > (time_to_usec(now()) - {mtime} * 60 * 1000000)
+              AND request_time > (time_to_usec(now()) - #{mtime} * 60 * 1000000)
               AND is_inner_sql = 0
             ORDER BY
               elapsed_time DESC
@@ -63,9 +63,9 @@ task:
             FROM
               oceanbase.gv$sql_audit
             WHERE
-              tenant_name='{tenant_name}'
+              tenant_name='#{tenant_name}'
               AND 1 = 1
-              AND request_time > (time_to_usec(now()) - {mtime} * 60 * 1000000)
+              AND request_time > (time_to_usec(now()) - #{mtime} * 60 * 1000000)
               AND is_inner_sql = 0
             ORDER BY
               elapsed_time DESC

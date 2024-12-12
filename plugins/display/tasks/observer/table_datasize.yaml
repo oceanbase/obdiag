@@ -10,11 +10,11 @@ task:
           SUM(CASE WHEN b.nested_offset = 0 THEN IFNULL(b.data_block_count + b.index_block_count + b.linked_block_count, 0) * 2 * 1024 * 1024  ELSE IFNULL(b.size, 0) END ) AS data_size_in_B
           FROM oceanbase.CDB_OB_TABLE_LOCATIONS a INNER JOIN oceanbase.__all_virtual_table_mgr b ON a.svr_ip = b.svr_ip AND a.svr_port = b.svr_port AND a.tenant_id = b.tenant_id AND a.LS_ID = b.LS_ID AND a.TABLET_ID = b.TABLET_ID
           inner join oceanbase.__all_tenant c on a.tenant_id=c.tenant_id
-          WHERE a.role = 'LEADER' AND  c.tenant_id = {tenant_id}
+          WHERE a.role = 'LEADER' AND  c.tenant_id = #{tenant_id}
           AND b.table_type >= 10 AND b.size > 0
           AND a.TABLE_NAME NOT REGEXP '^__'
-          and a.database_name='{database_name}'
-          and a.TABLE_NAME='{table_name}'  GROUP BY a.TABLE_ID;"
+          and a.database_name='#{database_name}'
+          and a.TABLE_NAME='#{table_name}'  GROUP BY a.TABLE_ID;"
         global: true
 
   - version: "[3.0.0.0, 4.0.0.0]"
@@ -33,7 +33,7 @@ task:
           inner join
           oceanbase.gv$database b
           on a.database_id=b.database_id
-          where b.tenant_id={tenant_id} and b.database_name='{database_name}' and a.table_name='{table_name}') b
+          where b.tenant_id=#{tenant_id} and b.database_name='#{database_name}' and a.table_name='#{table_name}') b
           ON
           a.table_id = b.table_id
           WHERE

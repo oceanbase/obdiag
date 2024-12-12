@@ -38,7 +38,7 @@ task:
         ssh: "cat /proc/sys/kernel/core_pattern"
         global: false
       - type: ssh
-        ssh: "ls -lhrt ${observer_data_dir}"
+        ssh: "ls -lhrt #{observer_data_dir}"
         global: false
       - type: log
         grep: ""
@@ -85,7 +85,7 @@ task:
         ssh: "cat /proc/sys/kernel/core_pattern"
         global: false
       - type: ssh
-        ssh: "ls -lhrt ${observer_data_dir}"
+        ssh: "ls -lhrt #{observer_data_dir}"
         global: false
       - type: log
         grep: ""

@@ -6,10 +6,10 @@ task:
   - version: "[4.0.0.0, *]"
     steps:
       - type: sql
-        sql: "SELECT a.* FROM oceanbase.GV$OB_PLAN_CACHE_PLAN_STAT a left join oceanbase.__all_tenant b on a.tenant_id=b.tenant_id  where b.tenant_name='{tenant_name}' and a.sql_id = '{sqlid}';"
+        sql: "SELECT a.* FROM oceanbase.GV$OB_PLAN_CACHE_PLAN_STAT a left join oceanbase.__all_tenant b on a.tenant_id=b.tenant_id  where b.tenant_name='#{tenant_name}' and a.sql_id = '#{sqlid}';"
         global: true
   - version: "[3.0.0.0, 4.0.0.0]"
     steps:
       - type: sql
-        sql: "SELECT a.* FROM oceanbase.GV$plan_cache_plan_stat a left join oceanbase.__all_tenant b on a.tenant_id=b.tenant_id  where b.tenant_name='{tenant_name}' and a.sql_id = '{sqlid}';"
+        sql: "SELECT a.* FROM oceanbase.GV$plan_cache_plan_stat a left join oceanbase.__all_tenant b on a.tenant_id=b.tenant_id  where b.tenant_name='#{tenant_name}' and a.sql_id = '#{sqlid}';"
         global: true 

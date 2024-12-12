@@ -56,10 +56,10 @@ task:
         sql: "select count(*) from oceanbase.__all_virtual_replica_task where cmd_type in ('ADD_REPLICA', 'MIGRATE_REPLICA', 'TYPE_TRANSFORM'); "
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_virtual_election_event_history where gmt_create > ${from_time} and gmt_create < ${to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_virtual_election_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
         global: true
       - type: sql
         sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1) ;"
