@@ -168,8 +168,8 @@ class ObdiagHome(object):
 
         ob_cluster = {"db_host": cluster_config.get("db_host"), "db_port": cluster_config.get("db_port"), "tenant_sys": {"user": cluster_config.get("tenant_sys", {}).get("user"), "password": cluster_config.get("tenant_sys", {}).get("password")}}
 
-        if not all(ob_cluster.values()) or not all(ob_cluster['tenant_sys'].values()):
-            raise ValueError("Missing required configuration values in ob_cluster or tenant_sys")
+        if not ob_cluster["db_host"] or not ob_cluster["db_port"] or not ob_cluster["tenant_sys"]["user"]:
+            raise ValueError("Missing required configuration values in ob_cluster or tenant_sys (excluding password)")
 
         if config_data.get('obcluster') and config_data.get('obcluster').get('servers') and config_data.get('obcluster').get('servers').get('nodes'):
             return
