@@ -6,7 +6,7 @@ on:
       - master
   push:
     branches:
-      - '*'
+      - master
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -58,19 +58,7 @@ jobs:
 
   convert-to-deb:
     needs: build-rpm
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - distro: debian-11
-            image: debian:11
-            artifact_name: obdiag-deb-package-debian11
-          - distro: ubuntu-22.04
-            image: ubuntu:22.04
-            artifact_name: obdiag-deb-package-ubuntu2204
-
-    container:
-      image: ${{ matrix.image }}
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
@@ -82,24 +70,19 @@ jobs:
           name: obdiag-rpm-packages
           path: .
 
-      - name: Update and Install Dependencies
+      - name: Install Alien
         run: |
-          apt-get update && apt-get install -y \
-            alien \
-            dpkg-dev \
-            rpm2cpio \
-            cpio \
-            fakeroot
+          sudo apt-get update
+          sudo apt-get install -y alien
 
       - name: Convert RPM to DEB
         run: |
-          ls -lh oceanbase-diagnostic-tool-*.rpm
           sudo alien -k --scripts oceanbase-diagnostic-tool-*.rpm
-          ls -lh ./oceanbase-diagnostic-tool_*.deb
+          pwd
 
       - name: Upload DEB Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.artifact_name }}
+          name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
           retention-days: 3
