@@ -46,7 +46,7 @@ cd $SRC_DIR
 \cp -rf $SRC_DIR/rpm/init.sh $BUILD_DIR/SOURCES/init.sh
 \cp -rf $SRC_DIR/rpm/init_obdiag_cmd.sh $BUILD_DIR/SOURCES/init_obdiag_cmd.sh
 \cp -rf $SRC_DIR/rpm/obdiag_backup.sh $BUILD_DIR/SOURCES/obdiag_backup.sh
-\cp -rf $SRC_DIR/conf $BUILD_DIR/SOURCES/conf
+\cp -rf $SRC_DIR/conf/* $BUILD_DIR/SOURCES/conf/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/lib/
 mkdir -p ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies/bin
 find $SRC_DIR -name "obdiag"
@@ -55,7 +55,7 @@ find $SRC_DIR -name "obdiag"
 \cp -rf $BUILD_DIR/SOURCES/resources ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/resources
 \cp -rf $BUILD_DIR/SOURCES/dependencies/bin ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/dependencies
 \cp -rf $BUILD_DIR/SOURCES/example ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
-\cp -rf $BUILD_DIR/SOURCES/conf ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
+\cp -rf $BUILD_DIR/SOURCES/conf ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/conf
 \cp -rf $BUILD_DIR/SOURCES/init.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/init_obdiag_cmd.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/obdiag_backup.sh ${RPM_BUILD_ROOT}/usr/local/oceanbase-diagnostic-tool/
