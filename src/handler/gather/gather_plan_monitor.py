@@ -54,6 +54,7 @@ class GatherPlanMonitorHandler(object):
         self.sql_audit_name = "gv$sql_audit"
         self.plan_explain_name = "gv$plan_cache_plan_explain"
         self.is_scene = is_scene
+        self.ob_version = "4.2.5.0"
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -165,6 +166,8 @@ class GatherPlanMonitorHandler(object):
                 # 输出plan cache的信息
                 self.stdio.verbose("[sql plan monitor report task] report plan cache")
                 self.report_plan_cache(plan_explain_sql)
+                # dbms_xplan.display_cursor
+                self.report_display_cursor_obversion4(sql)
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql, tenant_name)
@@ -216,7 +219,7 @@ class GatherPlanMonitorHandler(object):
         if getattr(sys, 'frozen', False):
             absPath = os.path.dirname(sys.executable)
         else:
-            absPath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            absPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         cs_resources_path = os.path.join(absPath, "resources")
         self.stdio.verbose("[cs resource path] : {0}".format(cs_resources_path))
         target_resources_path = os.path.join(pack_dir_this_command, "resources")
@@ -667,6 +670,7 @@ class GatherPlanMonitorHandler(object):
 
             if matched_version:
                 version = matched_version.group(2)
+                self.ob_version = version
                 major_version = int(version.split('.')[0])
 
                 self.sql_audit_name = "gv$ob_sql_audit" if major_version >= 4 else "gv$sql_audit"
@@ -996,5 +1000,27 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("DB Time display requires the OB version to be greater than 4.0. Your version: {0} does not meet this requirement.".format(self.ob_major_version))
         except Exception as e:
             self.stdio.exception("DB Time display> %s" % sql_plan_monitor_db_time)
+            self.stdio.exception(repr(e))
+            pass
+
+    def __is_select_statement(self, sql):
+        stripped_sql = sql.strip().upper()
+        return stripped_sql.startswith('SELECT')
+
+    def report_display_cursor_obversion4(self, display_cursor_sql):
+        if not self.__is_select_statement(display_cursor_sql):
+            return
+        try:
+            if not StringUtils.compare_versions_lower(self.ob_version, "4.2.5.0"):
+                plan_result = self.db_connector.execute_display_cursor(display_cursor_sql)
+                self.stdio.verbose("execute SQL: %s", display_cursor_sql)
+                step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');".format(display_cursor_sql)
+                self.report_pre(step)
+                self.report_pre(plan_result)
+                self.stdio.verbose("display_cursor report complete")
+            else:
+                self.stdio.verbose("display_cursor report requires the OB version to be greater than 4.2.5.0 Your version: {0} does not meet this requirement.".format(self.ob_major_version))
+        except Exception as e:
+            self.stdio.exception("display_cursor report> %s" % display_cursor_sql)
             self.stdio.exception(repr(e))
             pass
