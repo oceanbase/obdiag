@@ -163,6 +163,7 @@ class OBConnector(object):
 
             cursor.execute("select dbms_xplan.display_cursor(0, 'all')")
             plan_result = from_db_cursor(cursor)
+            plan_result.align = 'l'
             cursor.close()
             return plan_result
         except Exception as e:
