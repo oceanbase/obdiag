@@ -70,6 +70,7 @@ DEFAULT_INNER_CONFIG = {
             'file_number_limit': 20,
             'file_size_limit': '2G',
             'dis_rsa_algorithms': 0,
+            'strict_host_key_checking': 0,
         },
         'logger': {
             'log_dir': '~/.obdiag/log',
