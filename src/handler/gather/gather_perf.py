@@ -179,7 +179,7 @@ class GatherPerfHandler(BaseShellHandler):
             self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
 
     def __perf_checker(self, ssh_client):
-        cmd = "command -v perf1"
+        cmd = "command -v perf"
         result = ssh_client.exec_cmd(cmd)
 
         if result:
