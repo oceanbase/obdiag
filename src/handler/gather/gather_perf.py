@@ -142,13 +142,14 @@ class GatherPerfHandler(BaseShellHandler):
                 resp["error"] = "can't find observer"
                 return resp
             for pid_observer in pid_observer_list:
-                if self.scope == "sample":
-                    self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
-                elif self.scope == "flame":
-                    self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
-                else:
-                    self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
-                    self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
+                if self.__perf_checker(ssh_client):
+                    if self.scope == "sample":
+                        self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
+                    elif self.scope == "flame":
+                        self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
+                    else:
+                        self.__gather_perf_sample(ssh_client, remote_dir_full_path, pid_observer)
+                        self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
                 self.__gather_top(ssh_client, remote_dir_full_path, pid_observer)
 
             zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
@@ -176,6 +177,17 @@ class GatherPerfHandler(BaseShellHandler):
             self.stdio.stop_loading('gather perf sample')
         except:
             self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
+
+    def __perf_checker(self, ssh_client):
+        cmd = "command -v perf"
+        result = ssh_client.exec_cmd(cmd)
+
+        if result:
+            self.stdio.verbose("perf is installed at [{0}] on server [{1}]".format(result, ssh_client.get_name()))
+            return True
+        else:
+            self.stdio.error("perf is not installed on server [{0}]. gather perf information will be skipped. Please install perf manually. ".format(ssh_client.get_name()))
+            return False
 
     def __gather_perf_flame(self, ssh_client, gather_path, pid_observer):
         try:
