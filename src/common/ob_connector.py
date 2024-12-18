@@ -151,6 +151,26 @@ class OBConnector(object):
         cursor.close()
         return ret
 
+    def execute_display_cursor(self, business_sql):
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            cursor.execute(business_sql)
+
+            cursor.execute("select dbms_xplan.display_cursor(0, 'all')")
+            plan_result = from_db_cursor(cursor)
+            plan_result.align = 'l'
+            cursor.close()
+            return plan_result
+        except Exception as e:
+            raise Exception("execute display cursor error: {0}".format(e))
+        finally:
+            cursor.close()
+
     def callproc(self, procname, args=()):
         if self.conn is None:
             self._connect_db()
