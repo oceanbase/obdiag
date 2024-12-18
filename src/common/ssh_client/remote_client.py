@@ -58,23 +58,30 @@ class RemoteClient(SsherClient):
         remote_client_disable_rsa_algorithms = bool(self.context.inner_config.get("obdiag").get("basic").get("dis_rsa_algorithms"))
         if remote_client_disable_rsa_algorithms:
             self._disabled_rsa_algorithms = DISABLED_ALGORITHMS
+        remote_client_missing_host_key_policy = bool(self.context.inner_config.get("obdiag").get("basic").get("strict_host_key_checking"))
         self.ssh_type = "remote"
         if len(self.key_file) > 0:
             try:
                 self._ssh_fd = paramiko.SSHClient()
+                if remote_client_missing_host_key_policy:
+                    self._ssh_fd.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
+                else:
+                    self._ssh_fd.load_system_host_keys()
                 self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-                self._ssh_fd.load_system_host_keys()
                 self._ssh_fd.connect(hostname=self.host_ip, username=self.username, key_filename=self.key_file, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
             except AuthenticationException:
                 self.password = input("Authentication failed, Input {0}@{1} password:\n".format(self.username, self.host_ip))
                 self.need_password = True
                 self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
             except Exception as e:
-                raise OBDIAGSSHConnException("ssh {0}@{1}: failed, exception:{2}".format(self.host_ip, self.ssh_port, e))
+                raise OBDIAGSSHConnException("ssh {0} port {1} failed, exception:{2}".format(self.host_ip, self.ssh_port, e))
         else:
             self._ssh_fd = paramiko.SSHClient()
+            if remote_client_missing_host_key_policy:
+                self._ssh_fd.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
+            else:
+                self._ssh_fd.load_system_host_keys()
             self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-            self._ssh_fd.load_system_host_keys()
             self.need_password = True
             self._ssh_fd.connect(hostname=self.host_ip, username=self.username, password=self.password, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
 

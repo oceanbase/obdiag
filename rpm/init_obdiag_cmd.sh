@@ -10,6 +10,9 @@ _obdiag_completion() {
             ;;
         2)
             case "${COMP_WORDS[1]}" in
+                check)
+                    type_list="run list"
+                    ;;
                 gather)
                     if [ "$COMP_CWORD" -eq 2 ]; then
                         type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump parameter variable"
