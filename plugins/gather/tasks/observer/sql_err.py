@@ -12,7 +12,7 @@
 
 """
 @time: 2024/01/17
-@file: sql_problem.py
+@file: sql_err.py
 @desc:
 """
 from src.handler.gather.gather_component_log import GatherComponentLogHandler
@@ -23,7 +23,7 @@ from src.common.ssh_client.ssh import SshClient
 from src.common.command import find_home_path_by_port
 
 
-class SQLProblem(SafeStdio):
+class SQLErr(SafeStdio):
     def init(self, context, scene_name, report_path, task_variable_dict=None, env={}):
         self.context = context
         self.stdio = context.stdio
@@ -35,7 +35,7 @@ class SQLProblem(SafeStdio):
         self.obproxy_nodes = self.context.obproxy_config['servers']
         self.cluster = self.context.cluster_config
         self.report_path = report_path
-        self.env = env
+        self.env = self.context.get_variable("env") or {}
         self.is_ssh = True
         self.scene_name = scene_name
         self.db_conn = {}
@@ -132,4 +132,4 @@ class SQLProblem(SafeStdio):
             return False
 
 
-sql_problem = SQLProblem()
+sql_err = SQLErr()

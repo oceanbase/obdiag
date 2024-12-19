@@ -293,7 +293,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         :return: a string indicating the overall summary
         """
         summary_tb = PrettyTable()
-        summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        summary_tb.title = "Gather {0} Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.stdio.verbose("node_summary_tuple: {0}".format(node_summary_tuple))
         summary_tb.field_names = ["Node", "Status", "Size", "info"]
         try:
