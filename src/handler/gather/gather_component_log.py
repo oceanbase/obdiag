@@ -81,6 +81,8 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.to_option = self.to_option.strip()
             self.since_option = kwargs.get('since', None)
             self.scope = kwargs.get('scope', None)
+            if isinstance(self.scope, bool):
+                self.scope = "all"
             self.grep = kwargs.get('grep', None)
             self.store_dir = kwargs.get('store_dir', None)
             self.temp_dir = kwargs.get('temp_dir', None)
