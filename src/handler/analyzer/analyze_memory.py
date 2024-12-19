@@ -23,13 +23,13 @@ import datetime
 import tabulate
 import threading
 import uuid
-from src import common as ssh_client_local_client
 from src.common.command import get_observer_version_by_sql
 from src.common.tool import DirectoryUtil, TimeUtils, Util, NetUtils, FileUtil
 from src.common.obdiag_exception import OBDIAGFormatException
 from src.common.constant import const
 from src.common.command import download_file, get_logfile_name_list, mkdir, delete_file
 from src.common.command import SshClient
+from src.common.ssh_client.local_client import LocalClient
 from src.common.result_type import ObdiagResult
 
 
@@ -537,7 +537,7 @@ class AnalyzeMemoryHandler(object):
         :return:
         """
 
-        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
+        ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
@@ -547,7 +547,7 @@ class AnalyzeMemoryHandler(object):
             download_file(ssh_client, log_name, local_store_path, self.stdio)
 
     def __parse_memory_label(self, file_full_path):
-        ssh_client = ssh_client_local_client.LocalClient(context=self.context, node={"ssh_type": "local"})
+        ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         if self.version >= '4.3':
             grep_cmd = 'grep -n "memory_dump.*statistics" ' + file_full_path
         elif self.version >= '4.0' and self.version < '4.3':
