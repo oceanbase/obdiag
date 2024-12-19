@@ -20,7 +20,7 @@ mkdir -p ${OBDIAG_HOME}/log
 mkdir -p ${OBDIAG_HOME}/display
 
 # Clean rca old *scene.py files
-find "$SOURCE_DIR/rca" -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} \;
+find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} \;
 
 cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
 
