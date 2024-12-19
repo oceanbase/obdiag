@@ -61,7 +61,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         self.since_option = None
         self.scope = None
         self.grep = None
-        self.encrypt = None
         self.store_dir = None
         self.temp_dir = None
         self.redact = None
@@ -83,7 +82,6 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.since_option = kwargs.get('since', None)
             self.scope = kwargs.get('scope', None)
             self.grep = kwargs.get('grep', None)
-            self.encrypt = kwargs.get('encrypt', None)
             self.store_dir = kwargs.get('store_dir', None)
             self.temp_dir = kwargs.get('temp_dir', None)
             self.redact = kwargs.get('redact', None)
@@ -99,7 +97,6 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT,
                 "scope": self.scope,
                 "grep": self.grep,
-                "encrypt": self.encrypt,
                 "store_dir": self.store_dir,
                 "from_time": self.from_time_str,
                 "to_time": self.to_time_str,
@@ -126,7 +123,8 @@ class GatherComponentLogHandler(BaseShellHandler):
 
         # check store_dir
         if not os.path.exists(self.store_dir):
-            raise Exception("store_dir: {0} is not exist".format(self.store_dir))
+            self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(self.store_dir)))
+            os.makedirs(os.path.abspath(self.store_dir))
         if self.is_scene is False:
             target_dir = os.path.join("obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
             self.store_dir = os.path.join(self.store_dir or "./", target_dir)
