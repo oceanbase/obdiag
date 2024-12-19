@@ -62,9 +62,39 @@ initialize_environment() {
         fi
     }
 
-    copy_file
-    echo "File initialization completed"
+    backup_obdiag_folders() {
+        local backup_dir="${OBDIAG_HOME}/dev_backup"
+        mkdir -p "$backup_dir"
+        local datestamp=$(date +%Y%m%d_%H%M%S)
+        local tar_file="$backup_dir/obdiag_backup_$datestamp.tar.gz"
+        tar -czf "$tar_file" -C "${OBDIAG_HOME}" check display gather rca 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "Backup completed: $tar_file"
+        else
+            echo "No folders found to back up or backup failed."
+        fi
+    }
 
+    remove_existing_folders() {
+        for folder in check display gather rca; do
+            if [ -d "${OBDIAG_HOME}/$folder" ]; then
+                echo "Removing existing ${OBDIAG_HOME}/$folder"
+                rm -rf "${OBDIAG_HOME}/$folder"
+            fi
+        done
+    }
+
+    if [ -z "${OBDIAG_HOME}" ]; then
+        OBDIAG_HOME="${HOME}/.obdiag"
+    fi
+
+    mkdir -p "${OBDIAG_HOME}"
+
+    backup_obdiag_folders
+
+    remove_existing_folders
+
+    copy_file
     check_python_version
     install_requirements
 
