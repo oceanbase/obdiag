@@ -256,7 +256,6 @@ class GatherComponentLogHandler(BaseShellHandler):
                     fileobj.write(summary_tuples.get_string())
             except Exception as e:
                 self.stdio.exception(e)
-
                 self.stdio.verbose("gather log error: {0}".format(e))
             finally:
                 self.stdio.stop_loading("succeed")
