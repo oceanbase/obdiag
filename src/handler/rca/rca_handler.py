@@ -291,9 +291,11 @@ class Result:
         self.scene = Util.get_option(self.context.options, "scene")
         self.version = "unknown"
         try:
-            if self.context.get_variable("ob_cluster").get("db_host") is not None or len(self.context.cluster_config.get("servers")) > 0:
+            ob_cluster = self.context.get_variable("ob_cluster")
+            if ob_cluster is not None and ob_cluster.get("db_host") is not None and len(self.context.cluster_config.get("servers")) > 0:
                 self.version = get_version_by_type(self.context, "observer")
         except Exception as e:
+            self.stdio.exception(e)
             self.stdio.verbose("rca get obcluster version fail. Maybe the scene need not it, skip it. Exception: {0}".format(e))
             self.stdio.warn("rca get obcluster version fail. if the scene need not it, skip it")
 

@@ -230,11 +230,11 @@ class GatherComponentLogHandler(BaseShellHandler):
                     new_context.stdio = self.stdio.sub_io()
                     # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
                     if "ssh_client" in node or "ssher" in node:
-                        clear_node = copy.deepcopy(node)
-                        if "ssh_client" in node:
-                            del clear_node["ssh_client"]
-                        if "ssher" in node:
-                            del clear_node["ssher"]
+                        clear_node = {}
+                        for node_param in node:
+                            if node_param == "ssh_client" or node_param == "ssher":
+                                continue
+                            clear_node[node_param] = node[node_param]
                         tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
                     else:
                         tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
@@ -255,6 +255,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
                     fileobj.write(summary_tuples.get_string())
             except Exception as e:
+                self.stdio.exception(e)
                 self.stdio.verbose("gather log error: {0}".format(e))
             finally:
                 self.stdio.stop_loading("succeed")
