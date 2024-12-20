@@ -256,12 +256,17 @@ class GatherComponentLogHandler(BaseShellHandler):
                     fileobj.write(summary_tuples.get_string())
             except Exception as e:
                 self.stdio.exception(e)
+
                 self.stdio.verbose("gather log error: {0}".format(e))
             finally:
                 self.stdio.stop_loading("succeed")
 
-            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
-            self.stdio.print(last_info)
+            if os.path.exists(os.path.join(self.store_dir, "result_summary.txt")):
+                last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
+                self.stdio.print(last_info)
+            else:
+                self.stdio.print("No log file is gathered, please check the gather log config")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log failed,please check the gather log config or check obdiag log")
             if self.redact and len(self.redact) > 0:
                 self.stdio.start_loading("gather redact start")
                 try:
