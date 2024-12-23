@@ -38,7 +38,14 @@ class GatherComponentLogHandler(BaseShellHandler):
     # log_scope_list
     log_scope_list = {
         "observer": {"observer": {"key": "*observer*"}, "rootservice": {"key": "*rootservice*"}, "election": {"key": "*election*"}},
-        "obproxy": {"obproxy": {"key": "*obproxy*"}, "obproxy_digest": {"key": "*obproxy_digest*"}, "obproxy_stat": {"key": "*obproxy_stat*"}, "obproxy_slow": {"key": "*obproxy_slow*"}, "obproxy_limit": {"key": "*obproxy_limit*"}},
+        "obproxy": {
+            "obproxy": {"key": "*obproxy*"},
+            "obproxy_diagnosis": {"key": "*obproxy_diagnosis*"},
+            "obproxy_digest": {"key": "*obproxy_digest*"},
+            "obproxy_stat": {"key": "*obproxy_stat*"},
+            "obproxy_slow": {"key": "*obproxy_slow*"},
+            "obproxy_limit": {"key": "*obproxy_limit*"},
+        },
         "oms": {"connector": {"key": "*connector.*"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
     }
 
@@ -81,6 +88,8 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.to_option = self.to_option.strip()
             self.since_option = kwargs.get('since', None)
             self.scope = kwargs.get('scope', None)
+            if isinstance(self.scope, bool):
+                self.scope = "all"
             self.grep = kwargs.get('grep', None)
             self.store_dir = kwargs.get('store_dir', None)
             self.temp_dir = kwargs.get('temp_dir', None)
@@ -152,6 +161,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.scope = self.scope.strip()
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
+            self.scope = {self.scope: self.log_scope_list[self.target][self.scope]}
         # check grep
         if self.grep:
             if isinstance(self.grep, list):
@@ -228,11 +238,11 @@ class GatherComponentLogHandler(BaseShellHandler):
                     new_context.stdio = self.stdio.sub_io()
                     # use Process must delete ssh_client, and GatherLogOnNode will rebuild it.
                     if "ssh_client" in node or "ssher" in node:
-                        clear_node = copy.deepcopy(node)
-                        if "ssh_client" in node:
-                            del clear_node["ssh_client"]
-                        if "ssher" in node:
-                            del clear_node["ssher"]
+                        clear_node = {}
+                        for node_param in node:
+                            if node_param == "ssh_client" or node_param == "ssher":
+                                continue
+                            clear_node[node_param] = node[node_param]
                         tasks.append(GatherLogOnNode(new_context, clear_node, self.gather_log_conf_dict, semaphore))
                     else:
                         tasks.append(GatherLogOnNode(new_context, node, self.gather_log_conf_dict, semaphore))
@@ -253,12 +263,17 @@ class GatherComponentLogHandler(BaseShellHandler):
                 with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
                     fileobj.write(summary_tuples.get_string())
             except Exception as e:
+                self.stdio.exception(e)
                 self.stdio.verbose("gather log error: {0}".format(e))
             finally:
                 self.stdio.stop_loading("succeed")
 
-            last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
-            self.stdio.print(last_info)
+            if os.path.exists(os.path.join(self.store_dir, "result_summary.txt")):
+                last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(self.store_dir, "result_summary.txt"))
+                self.stdio.print(last_info)
+            else:
+                self.stdio.warn("No log file is gathered, please check the gather log config")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log failed,please check the gather log config or check obdiag log")
             if self.redact and len(self.redact) > 0:
                 self.stdio.start_loading("gather redact start")
                 try:
@@ -291,7 +306,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         :return: a string indicating the overall summary
         """
         summary_tb = PrettyTable()
-        summary_tb.title = "{0} Gather Ob Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        summary_tb.title = "Gather {0} Log Summary on {1}".format(self.target, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.stdio.verbose("node_summary_tuple: {0}".format(node_summary_tuple))
         summary_tb.field_names = ["Node", "Status", "Size", "info"]
         try:

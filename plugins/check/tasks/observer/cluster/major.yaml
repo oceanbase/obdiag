@@ -20,7 +20,7 @@ FROM (
         set_value: major_hold_nu
         verify_type: equal
         verify: 0
-        err_msg: 'major have hold'
+        err_msg: 'major have hold. please check it. And you can execute "obdiag rca run --scene=major_hold" to check it.'
 
 
 

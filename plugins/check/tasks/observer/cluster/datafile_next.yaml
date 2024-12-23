@@ -1,0 +1,14 @@
+info: "Check node'parameter 'datafile_maxsize'. When the datafile_maxsize is set and is greater than datafile_size, check if datafile_next is 0. If this value is 0, then the data file will not grow. issue #573"
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_next' and svr_ip = '#{remote_ip}' and svr_port = '#{remote_port}';"
+      result:
+        set_value: datafile_next
+        report_type: warning
+        verify_type: min
+        verify: 0
+        err_msg: "node: #{remote_ip} datafile_next is 0, the data file will not grow. More info: https://github.com/oceanbase/obdiag/issues/573"
+
+
