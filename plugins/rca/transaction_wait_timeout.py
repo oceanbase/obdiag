@@ -110,9 +110,7 @@ class TransactionWaitTimeoutScene(RcaScene):
                     work_path_data_trans_id = self.work_path + "/data_trans_id_{0}".format(self.data_trans_id_value)
                     self.gather_log.grep("{0}".format(self.data_trans_id_value))
                     self.gather_log.execute(save_path=work_path_data_trans_id)
-                    self.record.add_suggest(
-                        "the reason is transaction not ending (trans_id:{0}). You can get more info by 'obdiag rca run --scene=transaction_not_ending --env tx_id=0' or found {0} in the result.".format(self.data_trans_id_value)
-                    )
+                    self.record.add_suggest("the reason is transaction not ending (trans_id:{0}). You can get more info by 'obdiag rca run --scene=transaction_not_ending --env tx_id=0' or found {0} in the result.".format(self.data_trans_id_value))
             elif self.error_msg_type == "Lock wait timeout exceeded":
                 # gather log about "mvcc_write conflict"
                 work_path_mvcc_write_conflict = self.work_path + "/mvcc_write_conflict"
