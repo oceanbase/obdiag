@@ -15,7 +15,6 @@
 @file: gather_component_log.py
 @desc:
 """
-import copy
 import datetime
 import os
 import tarfile

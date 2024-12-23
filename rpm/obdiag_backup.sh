@@ -69,6 +69,9 @@ fi
 rm -rf "$TEMP_BACKUP_DIR"
 echo "Temporary files removed."
 
+# Clean rca old *scene.py files
+find ${SOURCE_DIR}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} \;
+
 # Cleanup phase: Remove backups older than one year or delete the oldest backups if more than 12 exist
 ONE_YEAR_AGO="+365"  # find command uses days, so +365 means older than one year
 
