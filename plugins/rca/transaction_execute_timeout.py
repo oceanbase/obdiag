@@ -51,7 +51,7 @@ class TransactionExecuteTimeoutScene(RcaScene):
             os.makedirs(self.work_path)
         self.err_type = self.input_parameters.get('err_type')
         if self.err_type is None or len(self.err_type.strip()) == 0:
-            raise RCAInitException("err_type is None. Please check the --input_parameters.")
+            raise RCAInitException("err_type is None. Please check the --env.")
         self.err_type = self.err_type.strip().lower()
         if self.err_type not in ["statement is timeout", "transaction is timeout"]:
             raise RCAInitException("err_type is {0}. It should be statement is timeout or transaction is timeout.".format(self.err_type))
@@ -82,18 +82,18 @@ class TransactionExecuteTimeoutScene(RcaScene):
         if type(self.tenant_id) in [int, str]:
             self.tenant_id = int(self.tenant_id)
         if self.tenant_id is None or self.tenant_id == 0:
-            raise RCAInitException("tenant_id is None. 'statement_is_timeout_scene' need it. Please check the --input_parameters.")
+            raise RCAInitException("tenant_id is None. 'statement_is_timeout_scene' need it. Please check the --env.")
         self.record.add_record("tenant_id is {0}".format(self.tenant_id))
         ob_query_timeout_cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.CDB_OB_SYS_VARIABLES where tenant_id='{0}' and NAME = \"ob_query_timeout\";".format(self.tenant_id))
         ob_query_timeout_data = ob_query_timeout_cursor.fetchall()
         if len(ob_query_timeout_data) == 0:
-            raise RCAInitException("ob_query_timeout is None. Please check the tenant_id of --input_parameters .")
+            raise RCAInitException("ob_query_timeout is None. Please check the tenant_id of --env .")
         ob_query_timeout = ob_query_timeout_data[0].get("VALUE")
         self.record.add_record("ob_query_timeout is {0}".format(ob_query_timeout))
         # get trace_id
         trace_id = self.input_parameters.get('trace_id')
         if trace_id is None or len(trace_id.strip()) == 0:
-            raise RCAInitException("trace_id is None. 'statement_is_timeout_scene' need it. Please check the --input_parameters='{\"trace_id\":\"xxxxxxxxxx\"}'.")
+            raise RCAInitException("trace_id is None. 'statement_is_timeout_scene' need it. Please check the --env trace_id=xxxxxxxxxx}'.")
         self.record.add_record("trace_id is {0}".format(trace_id))
         # gather log about trace_id and "cur_query_start_time"
         self.gather_log.grep("{0}".format(trace_id))

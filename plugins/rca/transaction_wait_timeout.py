@@ -54,7 +54,7 @@ class TransactionWaitTimeoutScene(RcaScene):
             os.makedirs(self.work_path)
         self.error_msg = self.input_parameters.get("error_msg")
         if not self.error_msg:
-            raise RCANotNeedExecuteException('error_msg is empty. Please input error_msg by add --input_parameters="{"err_msg":"xxx"}"')
+            raise RCANotNeedExecuteException('error_msg is empty. Please input error_msg by add --env err_msg=xxx')
         if "Shared lock conflict" in self.error_msg:
             self.record.add_record("err_msg type is Shared lock conflict.")
             self.error_msg_type = "Shared lock conflict"
@@ -111,7 +111,7 @@ class TransactionWaitTimeoutScene(RcaScene):
                     self.gather_log.grep("{0}".format(self.data_trans_id_value))
                     self.gather_log.execute(save_path=work_path_data_trans_id)
                     self.record.add_suggest(
-                        "the reason is transaction not ending (trans_id:{0}). You can get more info by 'obdiag rca run --scene=transaction_not_ending --input_parameters=\"{tx_id={0}}\"' or found {0} in the result.".format(self.data_trans_id_value)
+                        "the reason is transaction not ending (trans_id:{0}). You can get more info by 'obdiag rca run --scene=transaction_not_ending --env tx_id=0' or found {0} in the result.".format(self.data_trans_id_value)
                     )
             elif self.error_msg_type == "Lock wait timeout exceeded":
                 # gather log about "mvcc_write conflict"
