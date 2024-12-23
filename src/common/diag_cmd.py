@@ -1056,7 +1056,6 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')
         self.parser.add_option('--scene', type='string', help="rca scene name. The argument is required.")
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./obdiag_rca/')
-        self.parser.add_option('--input_parameters', action='callback', type='string', callback=self._env_scene, help='input parameters of scene')
         self.parser.add_option('--env', action='callback', type='string', callback=self._env_scene, help='env of scene')
         self.parser.add_option('--report_type', type='string', help='The type of the rca report, support "table", "json", "xml", "yaml", "html". default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
@@ -1120,7 +1119,6 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        Util.set_option(self.opts, 'input_parameters', self.scene_input_param_map)
         Util.set_option(self.opts, 'env', self.scene_input_param_map)
         return obdiag.rca_run(self.opts)
 

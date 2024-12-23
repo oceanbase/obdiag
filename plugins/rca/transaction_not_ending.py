@@ -66,7 +66,7 @@ class TransactionNotEndingScene(RcaScene):
                 self.record.add_record("transaction_data is {0}".format(transaction_datas))
                 pass
             if self.phase is None:
-                raise RCANotNeedExecuteException("phase is None. Please check --input_parameters")
+                raise RCANotNeedExecuteException("phase is None. Please check --env")
             else:
                 if self.phase.strip().upper() == "UNSUBMITTED":
                     self.execute_unsubmitted_phase()
@@ -75,7 +75,7 @@ class TransactionNotEndingScene(RcaScene):
                 elif self.phase.strip().upper() == "REPLAY":
                     self.execute_replay_phase()
                 else:
-                    raise RCANotNeedExecuteException("phase is {0}, not support. Just support 'UNSUBMITTED', 'COMMIT', 'REPLAY'. Please check --input_parameters".format(self.phase))
+                    raise RCANotNeedExecuteException("phase is {0}, not support. Just support 'UNSUBMITTED', 'COMMIT', 'REPLAY'. Please check --env".format(self.phase))
 
         except Exception as e:
             raise RCAExecuteException("TransactionNotEndingScene execute error: {0}".format(e))
@@ -86,7 +86,7 @@ class TransactionNotEndingScene(RcaScene):
     def execute_unsubmitted_phase(self):
         tx_id = self.input_parameters.get("tx_id")
         if tx_id is None:
-            raise RCANotNeedExecuteException("tx_id is None. Please check --input_parameters")
+            raise RCANotNeedExecuteException("tx_id is None. Please check --env")
         # found the
         transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where state='ACTION' and tx_id={0};".format(tx_id)).fetchall()
         if len(transaction_data) > 0:
@@ -99,7 +99,7 @@ class TransactionNotEndingScene(RcaScene):
     def execute_commit_phase(self):
         tx_id = self.input_parameters.get("tx_id")
         if tx_id is None:
-            raise RCANotNeedExecuteException("tx_id is None. Please check --input_parameters")
+            raise RCANotNeedExecuteException("tx_id is None. Please check --env")
         transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS where state<>'ACTION'  and tx_id={0};".format(tx_id)).fetchall()
         if len(transaction_data) > 0:
             self.record.add_record("the data in GV$OB_TRANSACTION_PARTICIPANTS by tx_id: {0}".format(transaction_data))

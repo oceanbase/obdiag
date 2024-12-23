@@ -38,7 +38,14 @@ class GatherComponentLogHandler(BaseShellHandler):
     # log_scope_list
     log_scope_list = {
         "observer": {"observer": {"key": "*observer*"}, "rootservice": {"key": "*rootservice*"}, "election": {"key": "*election*"}},
-        "obproxy": {"obproxy": {"key": "*obproxy*"}, "obproxy_digest": {"key": "*obproxy_digest*"}, "obproxy_stat": {"key": "*obproxy_stat*"}, "obproxy_slow": {"key": "*obproxy_slow*"}, "obproxy_limit": {"key": "*obproxy_limit*"}},
+        "obproxy": {
+            "obproxy": {"key": "*obproxy*"},
+            "obproxy_diagnosis": {"key": "*obproxy_diagnosis*"},
+            "obproxy_digest": {"key": "*obproxy_digest*"},
+            "obproxy_stat": {"key": "*obproxy_stat*"},
+            "obproxy_slow": {"key": "*obproxy_slow*"},
+            "obproxy_limit": {"key": "*obproxy_limit*"},
+        },
         "oms": {"connector": {"key": "*connector.*"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
     }
 
@@ -154,6 +161,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.scope = self.scope.strip()
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
+            self.scope = {self.scope: self.log_scope_list[self.target][self.scope]}
         # check grep
         if self.grep:
             if isinstance(self.grep, list):
