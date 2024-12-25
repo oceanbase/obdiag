@@ -1,8 +1,21 @@
 #!/bin/bash
 
+CURRENT_USER_ID=$(id -u)
+CURRENT_USER_NAME=$(logname 2>/dev/null || echo "$SUDO_USER" | awk -F'[^a-zA-Z0-9_]' '{print $1}')
+
+if [ "$CURRENT_USER_ID" -eq 0 ]; then
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    else
+        USER_HOME=/root
+    fi
+else
+    USER_HOME="$HOME"
+fi
+
 # Define source directory and target backup directory
-SOURCE_DIR=~/.obdiag/
-BACKUP_DIR=~/.obdiag/backup/
+SOURCE_DIR="$USER_HOME/.obdiag/"
+BACKUP_DIR="$USER_HOME/.obdiag/backup/"
 
 # Ensure the backup directory exists, create it if it does not
 mkdir -p "$BACKUP_DIR"
