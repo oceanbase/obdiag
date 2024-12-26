@@ -24,7 +24,7 @@ WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
 if [ ${OBDIAG_HOME} ]; then
     OBDIAG_HOME=${OBDIAG_HOME}
 else
-    OBDIAG_HOME="${HOME}/.obdiag"
+    OBDIAG_HOME="${USER_HOME}/.obdiag"
 fi
 
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
@@ -47,7 +47,7 @@ fi
 source  ${WORK_DIR}/init_obdiag_cmd.sh
 
 cd -
-output_file=${USER_HOME}/version.yaml
+output_file=${OBDIAG_HOME}/version.yaml
 version_line=$(/usr/local/oceanbase-diagnostic-tool/obdiag --version 2>&1 | grep -oP 'OceanBase Diagnostic Tool: \K[\d.]+')
 if [ -n "$version_line" ]; then
     content="obdiag_version: \"$version_line\""
