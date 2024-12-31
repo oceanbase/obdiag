@@ -100,7 +100,7 @@ task:
         sql: "SELECT CASE WHEN tenant_name IS NULL THEN TENANT_ID ELSE tenant_name END tenant_name, host,ctx_name, mod_name, hold, used, count FROM ( SELECT tenant_name,tenant_id,HOST,ctx_name,mod_name,hold,used,COUNT, ROW_NUMBER () OVER ( PARTITION BY tenant_name, HOST ORDER BY hold desc) rnum FROM   (SELECT  b.tenant_name, a.tenant_id, concat(a.svr_ip, ':', a.svr_port) HOST,  a.ctx_name, a.mod_name,  round(a.hold / 1024 / 1024 / 1024) hold, round(a.used / 1024 / 1024 / 1024) used, a.COUNT FROM  oceanbase.__all_virtual_memory_info a  LEFT JOIN oceanbase.__all_tenant b ON a.TENANT_ID = b.TENANT_ID  WHERE a.hold > 1024 * 1024 * 1024 ));"
         global: true
       - type: ssh # 可看到租户的规格、线程、队列及请求统计等信息，且这条日志每个租户每 30s 打印一次
-        ssh: "grep 'dump tenant info.tenant=' #{observer_data_dir}/log/observer.log | sed 's/,/,/g'"
+        ssh: "cat #{observer_data_dir}/log/observer.log | grep 'dump tenant info.tenant=' | sed 's/,/,/g'"
         global: false
       - type: log
         grep: ""

@@ -24,8 +24,6 @@ BFlow Secret Scan Ignore List              #
   https://github.com/oceanbase/obdiag/issues/*
 **/README.md
   http://xxx.xxx.xxx.xxx:xxxx
-**/init.sh
-  https://mirrors.aliyun.com/oceanbase/OceanBase.repo
 **/dependencies/bin/obstack_x86_64_7
   http://llvm.org/):
 **/resources/web/bootstrap.min.js
@@ -34,7 +32,7 @@ BFlow Secret Scan Ignore List              #
   https://github.com/twbs/bootstrap/blob/main/LICENSE)
   https://popper.js.org/)
   https://popper.js.org/)
-**/common/constant.py
+**/src/common/constant.py
   openwebapi-pre.oceanbase.com*
   openwebapi.oceanbase.com*
   openwebapi-pre.oceanbase.com*
