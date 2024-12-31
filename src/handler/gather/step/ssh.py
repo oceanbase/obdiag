@@ -44,7 +44,7 @@ class SshHandler(SafeStdio):
             if "ssh" not in self.step:
                 self.stdio.error("SshHandler execute ssh is not set")
                 return
-            ssh_cmd = StringUtils.build_str_on_expr_by_dict_2(self.step["ssh"], self.task_variable_dict)
+            ssh_cmd = StringUtils.build_str_on_expr_by_dict(self.step["ssh"], self.task_variable_dict)
             self.stdio.verbose("step SshHandler execute :{0} ".format(ssh_cmd))
             ssh_report_value = self.ssh_client.exec_cmd(ssh_cmd)
             if ssh_report_value is None:
