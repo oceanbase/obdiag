@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+CURRENT_USER_ID=$(id -u)
+CURRENT_USER_NAME=$(logname 2>/dev/null || echo "$SUDO_USER" | awk -F'[^a-zA-Z0-9_]' '{print $1}')
+
+if [ "$CURRENT_USER_ID" -eq 0 ]; then
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    else
+        USER_HOME=/root
+    fi
+else
+    USER_HOME="$HOME"
+fi
+
 if [[ $# == 1 && $1 == "-f" ]]; then
     FORCE_DEPLOY="1"
 else
@@ -11,7 +24,7 @@ WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
 if [ ${OBDIAG_HOME} ]; then
     OBDIAG_HOME=${OBDIAG_HOME}
 else
-    OBDIAG_HOME="${HOME}/.obdiag"
+    OBDIAG_HOME="${USER_HOME}/.obdiag"
 fi
 
 mkdir -p ${OBDIAG_HOME} && cd ${OBDIAG_HOME}
