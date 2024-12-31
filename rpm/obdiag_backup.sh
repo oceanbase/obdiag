@@ -48,30 +48,31 @@ TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 BASE_NAME="obdiag_backup${VERSION:+_v$VERSION}"
 TARFILE="$BACKUP_DIR/${BASE_NAME}_$TIMESTAMP.tar.gz"
 
-# Check if a file with the same name already exists in the BACKUP_DIR
+# Check if a file with the same base name already exists in the BACKUP_DIR
 if find "$BACKUP_DIR" -maxdepth 1 -name "${BASE_NAME}_*.tar.gz" -print -quit | grep -q .; then
-	echo "A backup file with the same name already exists. Skipping backup creation."
-	exit 0
+    echo "A backup file with the same base name already exists. Skipping backup creation."
+    exit 0
 fi
 
-# Temporary directory for staging backup files
+# Temporary directory for staging backup files, including top-level directory
 TEMP_BACKUP_DIR="$BACKUP_DIR/tmp_obdiag_backup_$TIMESTAMP"
-mkdir -p "$TEMP_BACKUP_DIR"
+TOP_LEVEL_DIR="$TEMP_BACKUP_DIR/obdiag_backup${VERSION:+_v$VERSION}_$TIMESTAMP"  # Top-level directory inside the tarball
+mkdir -p "$TOP_LEVEL_DIR"
 
 # Iterate over each directory to be backed up
 for dir in "${DIRS[@]}"; do
     # Check if the source directory exists
     if [ -d "$SOURCE_DIR$dir" ]; then
-        # Copy the directory into the temporary backup directory
-        cp -rp "$SOURCE_DIR$dir" "$TEMP_BACKUP_DIR/"
-        echo "Copied $dir to temporary backup directory."
+        # Copy the directory into the top-level directory within the temporary backup directory
+        cp -rp "$SOURCE_DIR$dir" "$TOP_LEVEL_DIR/"
+        echo "Copied $dir to temporary backup directory under ${BASE_NAME}_$TIMESTAMP."
     else
         echo "Source directory $SOURCE_DIR$dir does not exist. Skipping."
     fi
 done
 
-# Create a tar.gz archive
-if tar -czf "$TARFILE" -C "$TEMP_BACKUP_DIR" .; then
+# Create a tar.gz archive with the top-level directory included
+if tar -czf "$TARFILE" -C "$TEMP_BACKUP_DIR" "obdiag_backup${VERSION:+_v$VERSION}_$TIMESTAMP"; then
     echo "Backup archive created successfully at $TARFILE"
 else
     echo "Failed to create backup archive."
@@ -85,19 +86,53 @@ echo "Temporary files removed."
 # Cleanup phase: Remove backups older than one year or delete the oldest backups if more than 12 exist
 ONE_YEAR_AGO="+365"  # find command uses days, so +365 means older than one year
 
-# Remove backups older than one year
-find "$BACKUP_DIR" -maxdepth 1 -name "obdiag_backup_*.tar.gz" -type f -mtime $ONE_YEAR_AGO -exec rm -f {} \;
-echo "Removed old backup files older than one year."
+# Function to remove a single oldest backup file and print the action
+remove_oldest_backup() {
+    BACKUP_FILE=$(find "$BACKUP_DIR" -maxdepth 1 -name "obdiag_backup_*.tar.gz" -type f -printf '%T+ %p\n' | sort | head -n 1 | cut -d ' ' -f2-)
+    if [ -n "$BACKUP_FILE" ]; then
+        echo "Attempting to remove oldest backup file: $BACKUP_FILE"
+        if rm -f "$BACKUP_FILE"; then
+            echo "Successfully removed oldest backup file: $BACKUP_FILE"
+            return 0
+        else
+            echo "Failed to remove oldest backup file: $BACKUP_FILE"
+            return 1
+        fi
+    else
+        echo "No backup files found."
+        return 1
+    fi
+}
 
-# If there are more than 12 backups, remove the excess oldest ones
-BACKUP_FILES=($(find "$BACKUP_DIR" -maxdepth 1 -name "obdiag_backup_*.tar.gz" -type f -printf '%T@ %p\n' | sort -n))
-NUM_BACKUPS=${#BACKUP_FILES[@]}
+# Function to check if there are backups older than one year
+has_old_backups() {
+    if find "$BACKUP_DIR" -maxdepth 1 -name "obdiag_backup_*.tar.gz" -type f -mtime $ONE_YEAR_AGO | grep -q .; then
+        echo "Found old backup files."
+        return 0
+    else
+        echo "No old backup files found."
+        return 1
+    fi
+}
 
-if [ $NUM_BACKUPS -gt 12 ]; then
-    COUNT_TO_DELETE=$((NUM_BACKUPS - 12))
-    for ((i = 0; i < COUNT_TO_DELETE; i++)); do
-        FILE_PATH=${BACKUP_FILES[i]#* }
-        rm -f "$FILE_PATH"
-        echo "Removed excess backup file: $FILE_PATH"
-    done
-fi
+# Function to check if there are more than 12 backups
+has_too_many_backups() {
+    COUNT=$(find "$BACKUP_DIR" -maxdepth 1 -name "obdiag_backup_*.tar.gz" -type f | wc -l)
+    if [ $COUNT -gt 12 ]; then
+        echo "More than 12 backup files found: $COUNT"
+        return 0
+    else
+        echo "Backup count within limit: $COUNT"
+        return 1
+    fi
+}
+
+# Cleanup loop: Remove only one file at a time until neither condition is met
+echo "Starting cleanup process..."
+while has_old_backups || has_too_many_backups; do
+    if ! remove_oldest_backup; then
+        echo "Cleanup process stopped due to failure in removing oldest backup."
+        break  # Stop if no more files to remove or removal failed
+    fi
+done
+echo "Cleanup process completed."

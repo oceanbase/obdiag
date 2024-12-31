@@ -645,13 +645,16 @@ class AnalyzeMemoryHandler(object):
                             if '[MEMORY]' in line or 'MemDump' in line or 'ob_tenant_ctx_allocator' in line:
                                 if '[MEMORY] tenant:' in line:
                                     tenant_id = line.split('tenant:')[1].split(',')[0].strip()
-                                    hold_bytes = line.split('hold:')[1].split('rpc_')[0].strip()
-                                    rpc_hold_bytes = line.split('rpc_hold:')[1].split('cache_hold')[0].strip()
+                                    if 'rpc_' in line:
+                                        hold_bytes = line.split('hold:')[1].split('rpc_')[0].strip()
+                                        rpc_hold_bytes = line.split('rpc_hold:')[1].split('cache_hold')[0].strip()
+                                        tenant_dict['rpc_hold'] = self.__convert_string_bytes_2_int_bytes(rpc_hold_bytes)
+                                    else:
+                                        hold_bytes = line.split('hold:')[1].split('cache_')[0].strip()
                                     cache_hold_bytes = line.split('cache_hold:')[1].split('cache_used')[0].strip()
                                     cache_used_bytes = line.split('cache_used:')[1].split('cache_item_count')[0].strip()
                                     cache_item_count = line.split('cache_item_count:')[1].strip()
                                     tenant_dict['hold'] = self.__convert_string_bytes_2_int_bytes(hold_bytes)
-                                    tenant_dict['rpc_hold'] = self.__convert_string_bytes_2_int_bytes(rpc_hold_bytes)
                                     tenant_dict['cache_hold'] = self.__convert_string_bytes_2_int_bytes(cache_hold_bytes)
                                     tenant_dict['cache_used'] = self.__convert_string_bytes_2_int_bytes(cache_used_bytes)
                                     tenant_dict['cache_item_count'] = self.__convert_string_bytes_2_int_bytes(cache_item_count)

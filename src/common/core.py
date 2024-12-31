@@ -316,7 +316,7 @@ class ObdiagHome(object):
                     since=Util.get_option(options, 'since'),
                     grep=Util.get_option(options, 'grep'),
                     store_dir=Util.get_option(options, 'store_dir'),
-                    temp_dir=Util.get_option(options, 'temp_dir'),
+                    temp_dir="/tmp",
                     redact=Util.get_option(options, 'redact'),
                 )
                 return handler_obproxy.handle()
@@ -360,7 +360,7 @@ class ObdiagHome(object):
                 scope=Util.get_option(options, 'scope'),
                 grep=Util.get_option(options, 'grep'),
                 store_dir=Util.get_option(options, 'store_dir'),
-                temp_dir=Util.get_option(options, 'temp_dir'),
+                temp_dir="/tmp",
                 redact=Util.get_option(options, 'redact'),
             )
             return handler.handle()

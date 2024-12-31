@@ -92,7 +92,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.scope = "all"
             self.grep = kwargs.get('grep', None)
             self.store_dir = kwargs.get('store_dir', None)
-            self.temp_dir = kwargs.get('temp_dir', None)
+            self.temp_dir = kwargs.get('temp_dir', const.GATHER_LOG_TEMPORARY_DIR_DEFAULT)
             self.redact = kwargs.get('redact', None)
             self.nodes = kwargs.get('nodes', None)
             self.is_scene = kwargs.get('is_scene', False)
@@ -103,7 +103,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             # build config dict for gather log on node
             self.gather_log_conf_dict = {
                 "target": self.target,
-                "tmp_dir": const.GATHER_LOG_TEMPORARY_DIR_DEFAULT,
+                "tmp_dir": self.temp_dir,
                 "scope": self.scope,
                 "grep": self.grep,
                 "store_dir": self.store_dir,
@@ -399,7 +399,12 @@ class GatherLogOnNode:
         self.ssh_client.exec_cmd("mkdir -p {0}".format(self.tmp_dir))
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-        tmp_dir = "{4}_log_{0}_{1}_{2}_{3}".format(self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6], self.target)
+
+        tmp_dir = "{0}_log_{1}_{2}_{3}_{4}".format(self.target, self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6])
+        if self.target == "observer" and self.ssh_client.get_name() == "local":
+            pid = self.__get_observer_pid(self.node)
+            if pid:
+                tmp_dir = "{0}_pid_{1}".format(tmp_dir, pid)
         tmp_log_dir = os.path.join(self.tmp_dir, tmp_dir)
         # mkdir tmp_log_dir
         self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
@@ -583,3 +588,14 @@ class GatherLogOnNode:
         else:
             self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
         return log_name_list
+
+    def __get_observer_pid(self, node):
+        pid_file_path = os.path.join(node.get("home_path"), 'run', 'observer.pid')
+        try:
+            with open(pid_file_path, 'r') as file:
+                first_line = file.readline().strip()
+                return first_line
+        except FileNotFoundError:
+            self.stdio.exception(f"Error: The file {pid_file_path} does not exist.")
+        except Exception as e:
+            self.stdio.exception(f"An error occurred: {e}")

@@ -142,7 +142,7 @@ class GatherObstack2Handler(BaseShellHandler):
             if getattr(sys, 'frozen', False):
                 absPath = os.path.dirname(sys.executable)
             else:
-                absPath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                absPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH)
             upload_file(ssh_client, obstack2_local_stored_full_path, const.OBSTACK2_DEFAULT_INSTALL_PATH, self.context.stdio)
             self.stdio.verbose("Installation of obstack2 is completed and gather begins ...")
