@@ -83,7 +83,7 @@ class DisconnectionScene(RcaScene):
             if parses_number >= self.max_parses_number:
                 break
             self.stdio.verbose("read the log file: {0}".format(name))
-            with open(name, 'r') as f:
+            with open(name, 'r', errors='ignore') as f:
                 log_list = f.read().strip().split('\n')
                 for line in log_list:
                     try:
@@ -153,7 +153,7 @@ class DisconnectionLog:
                 for log_name in logs_name:
                     if observer_trace_id != "Y0-0000000000000000-0-0":
                         break
-                    with open(log_name, 'r') as f:
+                    with open(log_name, 'r', errors='ignore') as f:
                         log_list = f.read().strip().split('\n')
                         for line in log_list:
                             if "session_id:" in line and "trace_id:" in line:
