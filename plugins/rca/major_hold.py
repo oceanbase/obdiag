@@ -62,7 +62,7 @@ class MajorHoldScene(RcaScene):
                     CDB_OB_MAJOR_COMPACTION_err_tenant_ids.append(str(data.get('TENANT_ID')))
                 self.record.add_record("CDB_OB_MAJOR_COMPACTION have IS_ERROR='YES',the tenant_ids are {0}".format(err_tenant_ids))
                 err_tenant_ids.extend(CDB_OB_MAJOR_COMPACTION_err_tenant_ids)
-
+            self.record.add_record("check on CDB_OB_MAJOR_COMPACTION IS_ERROR is 'YES'.\n sql:{0}".format(sql), result=err_tenant_ids)
         except Exception as e:
             self.stdio.warn("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
             raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
@@ -206,9 +206,9 @@ class MajorHoldScene(RcaScene):
                 # all node execute
                 for observer_node in self.observer_nodes:
                     ssh_client = observer_node["ssher"]
-                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(observer_node.get_name()))
-                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), self.local_path + "/dmesg_log")
-                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), self.local_path + "/dmesg_log"))
+                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(ssh_client.get_name()))
+                    ssh_client.download("/tmp/dmesg_{0}.log".format(ssh_client.get_name()), self.local_path + "/dmesg_log")
+                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(ssh_client.get_name(), self.local_path + "/dmesg_log"))
             except Exception as e:
                 self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
