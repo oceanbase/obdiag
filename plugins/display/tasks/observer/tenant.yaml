@@ -1,0 +1,9 @@
+info_en: "[tenant]"
+info_cn: "[tenant信息]"
+command: obdiag display scene run --scene=observer.tenant
+task:
+  - version: "[*,*]"
+    steps:
+      - type: sql
+        sql: "select   tenant_id,tenant_name,zone_list,primary_zone,status from  oceanbase.__all_tenant;"
+        global: true
