@@ -52,6 +52,7 @@ class MajorHoldScene(RcaScene):
         err_tenant_ids = []
         self.record.add_record("check major task is error or not")
         try:
+            sql = 'select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";'
             COMPACTING_data = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";').fetchall()
             if len(COMPACTING_data) == 0:
                 self.record.add_record("CDB_OB_MAJOR_COMPACTION is not exist IS_ERROR='YES'")
@@ -62,7 +63,7 @@ class MajorHoldScene(RcaScene):
                     CDB_OB_MAJOR_COMPACTION_err_tenant_ids.append(str(data.get('TENANT_ID')))
                 self.record.add_record("CDB_OB_MAJOR_COMPACTION have IS_ERROR='YES',the tenant_ids are {0}".format(err_tenant_ids))
                 err_tenant_ids.extend(CDB_OB_MAJOR_COMPACTION_err_tenant_ids)
-            self.record.add_record("check on CDB_OB_MAJOR_COMPACTION IS_ERROR is 'YES'.\n sql:{0}".format(sql), result=err_tenant_ids)
+            self.record.add_record("check on CDB_OB_MAJOR_COMPACTION IS_ERROR is 'YES'.\n sql:{0}".format(sql))
         except Exception as e:
             self.stdio.warn("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
             raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
@@ -108,7 +109,7 @@ class MajorHoldScene(RcaScene):
 
         # execute record need more
         for err_tenant_id in err_tenant_ids:
-            tenant_record = RCA_ResultRecord()
+            tenant_record = RCA_ResultRecord(stdio=self.stdio)
             first_record_records = self.record.records.copy()
             tenant_record.records.extend(first_record_records)
             self.stdio.verbose("tenant_id is {0}".format(err_tenant_id))
