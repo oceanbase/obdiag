@@ -109,7 +109,7 @@ class MajorHoldScene(RcaScene):
 
         # execute record need more
         for err_tenant_id in err_tenant_ids:
-            tenant_record = RCA_ResultRecord(stdio=self.stdio)
+            tenant_record = RCA_ResultRecord()
             first_record_records = self.record.records.copy()
             tenant_record.records.extend(first_record_records)
             self.stdio.verbose("tenant_id is {0}".format(err_tenant_id))
@@ -207,9 +207,9 @@ class MajorHoldScene(RcaScene):
                 # all node execute
                 for observer_node in self.observer_nodes:
                     ssh_client = observer_node["ssher"]
-                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(ssh_client.get_name()))
-                    ssh_client.download("/tmp/dmesg_{0}.log".format(ssh_client.get_name()), self.local_path + "/dmesg_log")
-                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(ssh_client.get_name(), self.local_path + "/dmesg_log"))
+                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(observer_node.get_name()))
+                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), self.local_path + "/dmesg_log")
+                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), self.local_path + "/dmesg_log"))
             except Exception as e:
                 self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
