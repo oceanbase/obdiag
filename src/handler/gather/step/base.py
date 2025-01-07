@@ -16,6 +16,7 @@
 @desc:
 """
 from src.common.ssh_client.ssh import SshClient
+from src.common.tool import Util
 from src.handler.gather.gather_component_log import GatherComponentLogHandler
 from src.common.stdio import SafeStdio
 from src.handler.gather.step.ssh import SshHandler
@@ -39,6 +40,7 @@ class Base(SafeStdio):
         self.report_path = report_path
         self.env = env
         self.node_number = node_number
+        self.options = self.context.options
 
     def execute(self):
         self.stdio.verbose("step: {0}".format(self.step))
@@ -69,7 +71,17 @@ class Base(SafeStdio):
                 elif self.step["type"] == "log" and (skip_type != "ssh"):
                     if self.node.get("host_type") and self.node.get("host_type") == "OBSERVER":
                         handler = GatherComponentLogHandler()
-                        handler.init(self.context, target="observer", grep=self.step.get("grep"), nodes=[self.node], store_dir=self.report_path, is_scene=True)
+                        handler.init(
+                            self.context,
+                            target="observer",
+                            grep=self.step.get("grep"),
+                            nodes=[self.node],
+                            store_dir=self.report_path,
+                            from_option=Util.get_option(self.options, 'from'),
+                            to_option=Util.get_option(self.options, 'to'),
+                            since=Util.get_option(self.options, 'since'),
+                            is_scene=True,
+                        )
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBSERVER, skipping gather log".format(self.node.get("host_type")))
@@ -78,7 +90,17 @@ class Base(SafeStdio):
                         self.context.set_variable('filter_nodes_list', [self.node])
                         self.context.set_variable('gather_grep', self.step.get("grep"))
                         handler = GatherComponentLogHandler()
-                        handler.init(self.context, target="obproxy", grep=self.step.get("grep"), nodes=[self.node], store_dir=self.report_path, is_scene=True)
+                        handler.init(
+                            self.context,
+                            target="obproxy",
+                            grep=self.step.get("grep"),
+                            nodes=[self.node],
+                            store_dir=self.report_path,
+                            from_option=Util.get_option(self.options, 'from'),
+                            to_option=Util.get_option(self.options, 'to'),
+                            since=Util.get_option(self.options, 'since'),
+                            is_scene=True,
+                        )
                         handler.handle()
                     else:
                         self.stdio.verbose("node host_type is {0} not OBPROXY, skipping gather log".format(self.node.get("host_type")))
