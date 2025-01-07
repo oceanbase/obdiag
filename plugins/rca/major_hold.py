@@ -53,7 +53,7 @@ class MajorHoldScene(RcaScene):
         self.record.add_record("check major task is error or not")
         try:
             sql = 'select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";'
-            COMPACTING_data = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";').fetchall()
+            COMPACTING_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             if len(COMPACTING_data) == 0:
                 self.record.add_record("CDB_OB_MAJOR_COMPACTION is not exist IS_ERROR='YES'")
             else:
