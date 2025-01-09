@@ -37,11 +37,13 @@ find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} + 
 
 cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
 
-
-ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
-if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
-    echo "need update obdiag alias"
-    echo "alias obdiag='obdiag'" >> ~/.bashrc
+bashrc_file=~/.bashrc
+if [ -e "$bashrc_file" ]; then
+  ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
+  if [[ "${ALIAS_OBDIAG_EXIST}" != "" ]]; then
+      echo "need update obdiag alias"
+      echo "alias obdiag='obdiag'" >> ~/.bashrc
+  fi
 fi
 
 source  ${WORK_DIR}/init_obdiag_cmd.sh
