@@ -14,6 +14,13 @@ task:
           verify: '[ -d "$core_path" ]'
           err_msg: 'core_path: #{core_path}  is not exist. Please create it.'
       - type: ssh
+        ssh: 'ls #{core_path}| grep "^core" | wc -l'
+        result:
+          set_value: core_file_number
+          verify_type: equal
+          verify: 0
+          err_msg: 'The core file exists.'
+      - type: ssh
         ssh: "df \"#{core_path}\" | awk 'NR==2 {print $4}'"
         result:
           set_value: core_path_free_space
