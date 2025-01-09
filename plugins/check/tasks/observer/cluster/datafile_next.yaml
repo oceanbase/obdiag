@@ -3,7 +3,15 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_next' and svr_ip = '#{remote_ip}' and svr_port = '#{remote_port}';"
+      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_maxsize' and svr_ip = '#{remote_ip}' ;"
+      result:
+        set_value: datafile_maxsize
+        report_type: execution
+        verify_type: equal
+        verify: 0
+        err_msg: "[not warning] node: #{remote_ip} datafile_maxsize is not 0, need check datafile_next."
+    - type: sql
+      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_next' and svr_ip = '#{remote_ip}' ;"
       result:
         set_value: datafile_next
         report_type: warning
