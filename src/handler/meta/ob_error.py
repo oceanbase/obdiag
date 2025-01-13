@@ -989,4 +989,5 @@ OB_RET_DICT = {
     "-30007": ["OB_ERR_CBY_CONNECT_BY_ROOT_ILLEGAL_USED", "CONNECT BY ROOT operator is not supported in the START WITH or in the CONNECT BY condition", "Internal Error", "Contact OceanBase Support"],
     "-30929": ["OB_ERR_CBY_OREDER_SIBLINGS_BY_NOT_ALLOWED", "ORDER SIBLINGS BY clause not allowed here", "Internal Error", "Contact OceanBase Support"],
     "-30930": ["OB_ERR_CBY_NOCYCLE_REQUIRED", "NOCYCLE keyword is required with CONNECT_BY_ISCYCLE pseudo column", "Internal Error", "Contact OceanBase Support"],
+    "CRASH_ERROR": ["CRASH ERROR", "CRASH ERROR!!!", "Internal Error", "Contact OceanBase Support"],
 }
