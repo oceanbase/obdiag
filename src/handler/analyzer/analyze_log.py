@@ -167,7 +167,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             nodes_threads.append(node_threads)
         for node_thread in nodes_threads:
             node_thread.join()
-        title, field_names, summary_list, summary_details_list = self.__get_overall_summary(self, analyze_tuples, self.directly_analyze_files)
+        title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
         analyze_info_nodes = []
         for summary in summary_list:
             analyze_info_node = {}
@@ -448,7 +448,6 @@ class AnalyzeLogHandler(BaseShellHandler):
                 return OBLogLevel().get_log_level(level.rstrip())
         return 0
 
-    @staticmethod
     def __get_overall_summary(self, node_summary_tuples, is_files=False):
         """
         generate overall summary from all node summary tuples
