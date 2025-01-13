@@ -75,7 +75,7 @@ class MajorHoldScene(RcaScene):
             else:
                 need_tag = True
                 __all_virtual_compaction_diagnose_info_err_tenant_ids = []
-                for data in COMPACTING_data:
+                for data in diagnose_data:
                     __all_virtual_compaction_diagnose_info_err_tenant_ids.append(str(data.get("tenant_id")))
                 self.record.add_record("__all_virtual_compaction_diagnose_info have status='FAILED',the tenant is {0}".format(__all_virtual_compaction_diagnose_info_err_tenant_ids))
                 err_tenant_ids.extend(__all_virtual_compaction_diagnose_info_err_tenant_ids)
@@ -208,8 +208,9 @@ class MajorHoldScene(RcaScene):
                 for observer_node in self.observer_nodes:
                     ssh_client = observer_node["ssher"]
                     ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(observer_node.get_name()))
-                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), self.local_path + "/dmesg_log")
-                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), self.local_path + "/dmesg_log"))
+                    local_file_path = os.path.join(os.path.join(self.local_path, "dmesg_log"), "dmesg_{0}.log".format(observer_node.get_name()))
+                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), local_file_path)
+                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), local_file_path))
             except Exception as e:
                 self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
@@ -249,8 +250,9 @@ class MajorHoldScene(RcaScene):
             log_name = "/tmp/rca_major_hold_schedule_medium_failed_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
             tenant_record.add_record("diagnose_info type is 'schedule medium failed'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
             ssh_client.exec_cmd('grep "schedule_medium_failed" {1}/log/observer.log* |grep -P  "\[\d+\]" -m 1 -o >{0}'.format(log_name, node.get("home_path")))
-            ssh_client.download(log_name, local_path=self.local_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
+            local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+            ssh_client.download(log_name, local_file_path)
+            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
             ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             return
         elif "error_no=" in diagnose_info and "error_trace=" in diagnose_info:
@@ -293,8 +295,9 @@ class MajorHoldScene(RcaScene):
 
                 log_name = "/tmp/rca_error_no_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
                 ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* >{2}'.format(err_trace, node.get("home_path"), log_name))
-                ssh_client.download(log_name, local_path=self.local_path)
-                tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
+                local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+                ssh_client.download(log_name, local_file_path)
+                tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
                 ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             node = None
             ssh_client = None
@@ -306,8 +309,9 @@ class MajorHoldScene(RcaScene):
                 raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
             tenant_record.add_record("diagnose_info type is 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
             ssh_client.exec_cmd('cat observer.log* |grep "{1}" > /tmp/{0}'.format(log_name, err_trace))
-            ssh_client.download(log_name, local_path=self.local_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
+            local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+            ssh_client.download(log_name, local_file_path)
+            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
             ssh_client.exec_cmd("rm -rf {0}".format(log_name))
             return
         elif "weak read ts is not ready" in diagnose_info:
@@ -380,8 +384,9 @@ class MajorHoldScene(RcaScene):
             tenant_record.add_record("diagnose_info type is 'major not schedule for long time'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
             thread_id = ssh_client.exec_cmd('cat {0}/log/observer.log* |grep "MediumLoo" -m 1 |grep -P  "\[\d+\]" -m 1 -o | grep -oP "\d+"'.format(node["home_path"], tenant_id)).strip()
             ssh_client.exec_cmd('cat {0}/log/observer.log | grep "{1}" -m 100> {2}'.format(node["home_path"], thread_id, log_name))
-            ssh_client.download(log_name, local_path=self.local_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
+            local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+            ssh_client.download(log_name, local_file_path)
+            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
             ssh_client.exec_cmd("rm -rf {0}".format(log_name))
 
         else:
