@@ -1,6 +1,6 @@
-info_en: "[tenant]"
-info_cn: "[tenant信息]"
-command: obdiag display scene run --scene=observer.tenant
+info_en: "[all_tenant]"
+info_cn: "[所有tenant基本信息]"
+command: obdiag display scene run --scene=observer.all_tenant
 task:
   - version: "[*,*]"
     steps:
