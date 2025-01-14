@@ -1,0 +1,25 @@
+info_en: "[splan]"
+info_cn: "[执行记录信息]"
+command: obdiag display scene run --scene=observer.splan  --env sqlid=test
+task:
+  - version: "[*,4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "select database_name,svr_ip,plan_id,a.TENANT_ID,type,sql_id,substr(first_load_time,1,19) first_load_time,
+substr(last_active_time,1,19) last_active_time,avg_exe_usec/1000 'avg_exe_usec(ms)',executions,elapsed_time/1000/1000 'elapsed_time(s)',
+round(slowest_exe_usec/1000/1000,2) 'slowest_time(s)',substr(slowest_exe_time,1,19) slowest_exe_time,slow_count,ps_stmt_id,
+rows_processed/executions rows,outline_id 
+from oceanbase.gv$plan_cache_plan_stat a,oceanbase.__all_virtual_database d 
+where sql_id='#{sqlid}' and d.database_id=db_id and d.tenant_id=a.tenant_id;"
+        global: true
+
+  - version: "[4.0.0.0,*]"
+    steps:
+      - type: sql
+        sql: "select database_name,svr_ip,plan_id,a.TENANT_ID,type,sql_id,substr(first_load_time,1,19) first_load_time,
+substr(last_active_time,1,19) last_active_time,avg_exe_usec/1000 'avg_exe_usec(ms)',executions,elapsed_time/1000/1000 'elapsed_time(s)',
+round(slowest_exe_usec/1000/1000,2) 'slowest_time(s)',substr(slowest_exe_time,1,19) slowest_exe_time,slow_count,ps_stmt_id,
+rows_processed/executions rows,outline_id 
+from oceanbase.gv$ob_plan_cache_plan_stat a,oceanbase.__all_virtual_database d 
+where sql_id='#{sqlid}' and d.database_id=db_id and d.tenant_id=a.tenant_id;"
+        global: true       

@@ -1,0 +1,18 @@
+info_en: "[cpu]"
+info_cn: "[tenant的cpu信息]"
+command: obdiag display scene run --scene=observer.cpu
+task:
+  - version: "[*,*]"
+    steps:
+      - type: sql
+        sql: " select NOW() 'chenck_time', t.tenant_name,t.tenant_id,ca.svr_ip,
+                 round(sum(case when STAT_ID='140006' then ca.VALUE else 0 end)/100,2) 'cpu_usage',
+                 round(sum(case when STAT_ID='140005' then ca.VALUE else 0 end)/100,2) 'cpu_max' ,
+                 round(100*(sum(case when STAT_ID='140006' then ca.VALUE else 0 end)/sum(case when STAT_ID='140005' then ca.VALUE else 0 end)),2) 'cpu_percent'
+                from 
+               (select s.CON_ID, s.svr_ip,s.STAT_ID, sum(s.VALUE) VALUE
+               from oceanbase.gv$sysstat s where s.STAT_ID in(140005,140006)
+               group by s.CON_ID, s.svr_ip,s.STAT_ID, s.NAME) ca,oceanbase.__all_tenant t
+               where t.tenant_id=ca.CON_ID
+               group by t.tenant_name,ca.svr_ip;"
+        global: true
