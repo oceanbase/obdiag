@@ -1,0 +1,63 @@
+info_en: "[query table/index uses storage method]"
+info_cn: "[查看表/索引是行存/列存/行列冗余的存储方式]"
+command: obdiag display scene run --scene=observer.storage_method --env tenant_name=test --env database_name=test
+task:
+  - version: "[4.3.0.0, *]"
+    steps:
+      - type: sql
+        sql: " SELECT
+          tenant_name,
+          database_name,
+          table_name,
+          table_id,
+          data_table_id,
+          table_type,
+          storage_type,
+          main_table_name
+          FROM (
+          select
+          t1.tenant_name,
+          t2.database_name,
+          case
+          when t2.table_type = 'user table' then t2.table_name
+          when t2.table_type = 'index' then t2.index_name
+          end as table_name,
+          t2.table_id,
+          t2.data_table_id,
+          t2.table_type,
+          case
+          when t2.table_type = 'user table' then
+          case
+          when sum(case when cg.column_group_type = 3 then 1 else 0 end) > 0
+          and sum(case when cg.column_group_type = 1 then 1 else 0 end) = 0 then 'column storage table'
+          when sum(case when cg.column_group_type = 3 then 1 else 0 end) > 0
+          and sum(case when cg.column_group_type = 1 then 1 else 0 end) > 0 then 'row-column storage table'
+          else 'row storage table'
+          end
+          when t2.table_type = 'index' then
+          case
+          when sum(case when cg.column_group_type = 3 then 1 else 0 end) > 0
+          and sum(case when cg.column_group_type = 1 then 1 else 0 end) = 0 then 'column storage index'
+          when sum(case when cg.column_group_type = 3 then 1 else 0 end) > 0
+          and sum(case when cg.column_group_type = 1 then 1 else 0 end) > 0 then 'row-column storage index'
+          else 'row storage index'
+          end
+          end as storage_type,
+          coalesce(t3.table_name, null) as main_table_name
+          from
+          oceanbase.__all_virtual_column_group cg
+          join
+          oceanbase.dba_ob_tenants t1 on cg.tenant_id = t1.tenant_id
+          join
+          oceanbase.cdb_ob_table_locations t2 on cg.tenant_id = t2.tenant_id and cg.table_id = t2.table_id
+          left join
+          oceanbase.cdb_ob_table_locations t3 on t2.data_table_id = t3.table_id
+          where
+          t1.tenant_name = '#{tenant_name}'
+          and t2.database_name = '#{database_name}'
+          and t2.table_type in ('user table', 'index')
+          group by
+          t1.tenant_name, t2.database_name, t2.table_name, t2.table_id, t2.data_table_id, t2.table_type, main_table_name
+          )
+          ORDER BY tenant_name, database_name, table_name;"
+        global: true

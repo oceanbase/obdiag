@@ -1,0 +1,14 @@
+info_en: "[aplan]"
+info_cn: "[实际执行计划信息]"
+command: obdiag display scene run --scene=observer.aplan  --env svr_ip=test --env tenant_id=test --env plan_id=test
+task:
+  - version: "[*,*]"
+    steps:
+      - type: sql
+        sql: "select plan_id, operator, name, rows, cost
+  from oceanbase.__all_virtual_plan_cache_plan_explain
+ where svr_ip = '#{svr_ip}'
+   and svr_port = 2882
+   and tenant_id = '#{tenant_id}'
+   and plan_id = '#{plan_id}'"
+        global: true       

@@ -1,0 +1,9 @@
+info_en: "[inner_table]"
+info_cn: "[内部表信息模糊匹配]"
+command: obdiag display scene run --scene=observer.inner_table --env tablename=test
+task:
+  - version: "[*,*]"
+    steps:
+      - type: sql
+        sql: "SELECT distinct table_name FROM oceanbase.__all_virtual_table t1 JOIN oceanbase.__all_virtual_database t2 ON t2.database_id = t1.database_id JOIN oceanbase.__all_tenant t3 ON t3.tenant_id = t1.tenant_id WHERE tenant_name = 'sys' AND database_name = 'oceanbase' AND (table_name LIKE '__all%' OR table_name LIKE '__tenant%' OR table_name LIKE 'gv%' OR table_name LIKE 'v%' OR table_name LIKE 'dba%' OR table_name LIKE 'cdb%') and table_name like '%#{tablename}%' ORDER BY ORA_DECODE(SUBSTR(table_name, 1, 1), 'v', 3, 'g', 4, ORA_DECODE(SUBSTR(table_name, 3, 1), 'a', 2, 1)), table_name;"
+        global: true

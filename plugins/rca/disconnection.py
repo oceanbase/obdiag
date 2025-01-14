@@ -12,7 +12,7 @@
 
 """
 @time: 2024/03/11
-@file: disconnection_scene.py
+@file: disconnection.py
 @desc:
 """
 import re
@@ -68,9 +68,20 @@ class DisconnectionScene(RcaScene):
         self.gather_log.set_parameters("nodes_list", [node])
         self.gather_log.set_parameters("target", "obproxy")
         self.gather_log.set_parameters("scope", "obproxy_diagnosis")
+        # get log time
+        log_time_tag = None
         if self.input_parameters.get("since") is not None:
             since = self.input_parameters.get("since")
             self.gather_log.set_parameters("since", since)
+            log_time_tag = "since: {0}".format(since)
+        if self.input_parameters.get("from") is not None and self.input_parameters.get("to") is not None:
+            from_time = self.input_parameters.get("from")
+            to_time = self.input_parameters.get("to")
+            self.gather_log.set_parameters("from", from_time)
+            self.gather_log.set_parameters("to", to_time)
+            log_time_tag = "from {0}, to {1}".format(from_time, to_time)
+        if log_time_tag is not None:
+            self.record.add_record("on node: {1} get log_time:{0}".format(log_time_tag, node.get("ip")))
         self.work_path = self.store_dir
         logs_name = self.gather_log.execute()
         if len(logs_name) == 0:
@@ -83,7 +94,7 @@ class DisconnectionScene(RcaScene):
             if parses_number >= self.max_parses_number:
                 break
             self.stdio.verbose("read the log file: {0}".format(name))
-            with open(name, 'r') as f:
+            with open(name, 'r', errors='ignore') as f:
                 log_list = f.read().strip().split('\n')
                 for line in log_list:
                     try:
@@ -153,7 +164,7 @@ class DisconnectionLog:
                 for log_name in logs_name:
                     if observer_trace_id != "Y0-0000000000000000-0-0":
                         break
-                    with open(log_name, 'r') as f:
+                    with open(log_name, 'r', errors='ignore') as f:
                         log_list = f.read().strip().split('\n')
                         for line in log_list:
                             if "session_id:" in line and "trace_id:" in line:
