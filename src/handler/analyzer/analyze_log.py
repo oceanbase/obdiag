@@ -359,6 +359,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         :return: error_dict
         """
         error_dict = {}
+        self.crash_error = ""
         self.stdio.verbose("start parse log {0}".format(file_full_path))
         with open(file_full_path, 'r', encoding='utf8', errors='ignore') as file:
             line_num = 0
@@ -366,6 +367,27 @@ class AnalyzeLogHandler(BaseShellHandler):
                 line_num = line_num + 1
                 line = line.strip()
                 if line:
+                    ##新增CRASH ERROR日志过滤
+                    if line.find("CRASH ERROR") != -1:
+                        ret_code = "CRASH_ERROR"
+                        line_time = ""
+                        trace_id = ""
+                        ## 提取tname
+                        tname_pattern = r"tname=([^,]+)"
+                        tname_match = re.search(tname_pattern, line)
+                        if tname_match:
+                            error = tname_match.group(1)
+                            if error != self.crash_error and self.crash_error != '':
+                                self.crash_error = "{0},{1}".format(self.crash_error, error)
+                            else:
+                                self.crash_error = "{0}{1}".format("crash thread:", error)
+                            self.stdio.print("crash_error:{0}".format(self.crash_error))
+                        if error_dict.get(ret_code) is None:
+                            error_dict[ret_code] = {"file_name": file_full_path, "count": 1, "first_found_time": line_time, "last_found_time": line_time, "trace_id_list": {trace_id} if len(trace_id) > 0 else {}}
+                        else:
+                            count = error_dict[ret_code]["count"] + 1
+                            error_dict[ret_code] = {"file_name": file_full_path, "count": count, "first_found_time": line_time, "last_found_time": line_time, "trace_id_list": trace_id}
+                        continue
                     line_time = self.__get_time_from_ob_log_line(line)
                     if len(line_time) == 0:
                         continue
@@ -426,8 +448,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                 return OBLogLevel().get_log_level(level.rstrip())
         return 0
 
-    @staticmethod
-    def __get_overall_summary(node_summary_tuples, is_files=False):
+    def __get_overall_summary(self, node_summary_tuples, is_files=False):
         """
         generate overall summary from all node summary tuples
         :param node_summary_tuple
@@ -450,10 +471,16 @@ class AnalyzeLogHandler(BaseShellHandler):
             for log_result in node_results:
                 for ret_key, ret_value in log_result.items():
                     if ret_key is not None:
+                        self.stdio.print("ret_key:{0}".format(ret_key))
                         error_code_info = OB_RET_DICT.get(ret_key, "")
+                        message = ""
+                        if ret_key == "CRASH_ERROR":
+                            message = self.crash_error
+                        else:
+                            message = error_code_info[1]
                         if len(error_code_info) > 3:
                             is_empty = False
-                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_value["first_found_time"], ret_key, error_code_info[1], ret_value["count"]])
+                            t.append([node, "Error:" + tup[2] if is_err else "Completed", ret_value["file_name"], ret_value["first_found_time"], ret_key, message, ret_value["count"]])
                             t_details.append(
                                 [
                                     node,
@@ -461,7 +488,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                                     ret_value["file_name"],
                                     ret_value["first_found_time"],
                                     ret_key,
-                                    error_code_info[1],
+                                    message,
                                     ret_value["count"],
                                     ret_value["last_found_time"],
                                     error_code_info[2],
