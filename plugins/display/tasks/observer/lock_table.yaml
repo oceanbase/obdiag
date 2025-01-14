@@ -1,6 +1,6 @@
-info_en: "[locktab]"
+info_en: "[lock table]"
 info_cn: "[某张表上持有锁的信息]"
-command: obdiag display scene run --scene=observer.locktab --env tablename=test
+command: obdiag display scene run --scene=observer.lock_table --env tablename=test
 task:
   - version: "[*,4.0.0]"
     steps:

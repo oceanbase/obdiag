@@ -1,6 +1,6 @@
-info_en: "[obtab]"
-info_cn: "[ob内部表信息]"
-command: obdiag display scene run --scene=observer.obtab --env tablename=test
+info_en: "[inner_table]"
+info_cn: "[内部表信息模糊匹配]"
+command: obdiag display scene run --scene=observer.inner_table --env tablename=test
 task:
   - version: "[*,*]"
     steps:

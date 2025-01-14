@@ -2,13 +2,13 @@ info_en: "[server info]"
 info_cn: "[server 信息展示]"
 command: obdiag display scene run --scene=observer.server_info
 task:
-  - version: "[4.0.0.0, *]"
+  - version: "[*,*]"
     steps:
       - type: sql
-        sql: "SELECT /*+READ_CONSISTENCY(WEAK), QUERY_TIMEOUT(100000000)*/ zone, svr_ip, with_rootserver rs, case when start_service_time = 0 then NULL else CAST(usec_to_time(start_service_time) AS DATETIME) end start_service_time, case when stop_time = 0 then NULL else CAST(usec_to_time(stop_time) AS DATETIME) end stop_time, case when last_offline_time = 0 then NULL else CAST(usec_to_time(last_offline_time) AS DATETIME) end last_offline_time, status, SUBSTR(build_version, 1, INSTR(build_version, '-') - 1) build_version FROM oceanbase.__all_server order by zone, svr_ip;"
-        global: true
-  - version: "[3.0.0.0, 4.0.0.0]"
-    steps:
-      - type: sql
-        sql: "SELECT /*+READ_CONSISTENCY(WEAK), QUERY_TIMEOUT(100000000)*/ zone, svr_ip, with_rootserver rs, case when start_service_time = 0 then NULL else CAST(usec_to_time(start_service_time) AS DATETIME) end start_service_time, case when stop_time = 0 then NULL else CAST(usec_to_time(stop_time) AS DATETIME) end stop_time, case when last_offline_time = 0 then NULL else CAST(usec_to_time(last_offline_time) AS DATETIME) end last_offline_time, status, SUBSTR(build_version, 1, INSTR(build_version, '-') - 1) build_version FROM oceanbase.__all_server order by zone, svr_ip;"
+        sql: "select  b.info cluster_name,a.svr_ip,a.with_rootserver rs,a.zone,
+ora_decode(a.start_service_time,0,null,date_format(usec_to_time(a.start_service_time),'%Y-%m-%d %h:%i:%s')) start_service_time,
+ora_decode(a.last_offline_time,0,null,date_format(usec_to_time(a.last_offline_time),'%Y-%m-%d %h:%i:%s'))  last_offline_time,
+ora_decode(a.stop_time,0,null,date_format(usec_to_time(a.stop_time),'%Y-%m-%d %h:%i:%s')) stop_time,
+a.status,SUBSTR(a.build_version, 1, INSTR(build_version, '-') - 1) build_version  
+from  oceanbase.__All_server a ,oceanbase.__all_zone b where  b.name='cluster' order by a.zone,a.svr_ip; "
         global: true
