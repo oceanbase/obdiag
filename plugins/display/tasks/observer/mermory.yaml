@@ -1,0 +1,49 @@
+info_en: "[mermory]"
+info_cn: "[所有租户的 mermory 信息]"
+command: obdiag display scene run --scene=observer.mermory
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+      - type: sql
+        sql: " select NOW() 'chenck_time',b.tenant_id,b.tenant_name, a.SVR_IP , 
+  round(sum(case when a.STAT_ID='140003' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_usage/G',
+  round(sum(case when a.STAT_ID='140002' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_max/G' ,round(100*(sum(case when STAT_ID='140003' then a.VALUE else 0 end)/sum(case when STAT_ID='140002' then a.VALUE else 0 end)),2) 'mem_percent'
+  from   oceanbase.gv$sysstat a inner join oceanbase.__all_tenant b on a.con_id = b.tenant_id where a.stat_id IN (140003,140002) and (a.con_id > 1000 or a.con_id = 1) and a.class < 1000
+  group by  b.tenant_id,b.tenant_name, a.SVR_IP order by b.tenant_name,a.SVR_IP ;   "
+        global: true
+      - type: sql
+        sql: " SELECT tenant_id, svr_ip
+ , round(ACTIVE_SPAN / 1024 / 1024/1024,2) AS active_gb
+ , round(freeze_trigger / 1024 / 1024/1024,2) AS freeze_trg_gb
+ , round(ACTIVE_SPAN / freeze_trigger*100,2) AS freeze_percent
+ , FREEZE_CNT  
+ , round(MEMSTORE_USED /1024 / 1024/1024, 2) AS memstore_usage
+ , round(MEMSTORE_LIMIT / 1024 / 1024/1024, 2) AS memstore_total
+ ,round(MEMSTORE_USED / MEMSTORE_LIMIT*100,2)   as  memstore_percent
+FROM oceanbase.gv$ob_memstore
+where tenant_id>1000  or tenant_id= 1
+ORDER BY tenant_id, svr_ip desc;  "
+        global: true
+        
+  - version: "[*,4.0.0.0]"
+    steps:
+      - type: sql
+        sql: " select NOW() 'chenck_time',b.tenant_id,b.tenant_name, a.SVR_IP , 
+  round(sum(case when a.STAT_ID='140003' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_usage/G',
+  round(sum(case when a.STAT_ID='140002' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_max/G' ,round(100*(sum(case when STAT_ID='140003' then a.VALUE else 0 end)/sum(case when STAT_ID='140002' then a.VALUE else 0 end)),2) 'mem_percent'
+  from   oceanbase.gv$sysstat a inner join oceanbase.__all_tenant b on a.con_id = b.tenant_id where a.stat_id IN (140003,140002) and (a.con_id > 1000 or a.con_id = 1) and a.class < 1000
+  group by  b.tenant_id,b.tenant_name, a.SVR_IP order by b.tenant_name,a.SVR_IP ;    "
+        global: true 
+      - type: sql
+        sql: " SELECT tenant_id, ip
+ , round(active / 1024 / 1024) AS active_mb
+ , round(total / 1024 / 1024) AS total_mb
+ , round(freeze_trigger / 1024 / 1024) AS freeze_trg_mb
+ , round(mem_limit / 1024 / 1024) AS mem_limit_mb
+ , freeze_cnt, round(active / freeze_trigger, 2) AS freeze_pct
+ , round(total / mem_limit, 2) AS mem_usage
+FROM oceanbase.gv$memstore
+where tenant_id>1000 or tenant_id= 1
+ORDER BY tenant_id, mem_usage desc;  "
+        global: true 
+ 

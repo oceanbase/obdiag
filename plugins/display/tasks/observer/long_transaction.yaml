@@ -1,6 +1,6 @@
 info_en: "[long_transaction]"
-info_cn: "[ob集群的长事务信息]"
-command: obdiag display scene run --scene=observer.long_transaction --env wait_time= waittime(s)
+info_cn: "[集群的长事务信息]"
+command: obdiag display scene run --scene=observer.long_transaction --env wait_time=waittime(s)
 task:
   - version: "[*,4.0.0]"
     steps:

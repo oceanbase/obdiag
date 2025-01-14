@@ -1,5 +1,5 @@
 info_en: "[rs]"
-info_cn: "[查看rootservice信息]"
+info_cn: "[查看 rootservice 信息]"
 command: obdiag display scene run --scene=observer.rs
 task:
   - version: "[4.0.0.0, *]"
