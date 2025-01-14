@@ -1,0 +1,48 @@
+info_en: "[tabndv]"
+info_cn: "[查询表ndv信息]"
+command: obdiag display scene run --scene=observer.tabndv --env user_name=test --env table_name=test
+task:
+  - version: "[*,4.0.0.0]"
+    steps:
+      - type: sql
+        sql: "select   t.database_name,
+               t.table_name,
+               c.column_name,
+               (case c.data_type 
+               when 22 then 'VARCHAR2' when 17 then 'DATE' when 15 then 'NUMBER' when 38 then 'TIMESTAMP' when 30 then 'CLOB/BLOB' when 23 then 'CHAR' when 42 then 'FLOAT' when 39 then 'RAW' when 44 then 'NCHAR' when 43 then 'NVARCHAR2' else c.data_type end) AS COLUMN_TYPE,
+               SUM(s.num_distinct) as NDV,
+               sum(s.num_null) as num_null
+              from oceanbase.gv$table t
+              inner join  oceanbase.__all_virtual_column  c on t.table_id = c.table_id
+              inner join oceanbase.__all_virtual_column_statistic s on t.table_id  = s.table_id and c.column_id = s.column_id
+              where t.table_name = upper('#{table_name}')
+              and t.database_name = upper('#{user_name}')
+              group by  t.database_name, t.table_name, c.column_name,c.data_type;"
+        global: true
+      - type: sql
+        sql: "select a.svr_ip,
+                   c.database_name,
+                   tb.table_name,b.part_id,
+                   b.part_name,b.part_high_bound part_high_value,b.part_func_type,b.subpart_id,b.subpart_name,b.subpart_high_bound subpart_high_value,b.subpart_func_type,
+                   a.row_count
+              from oceanbase.__all_virtual_table      tb join
+                   oceanbase.__all_virtual_partition_table a  on a.table_id = tb.table_id join
+                   oceanbase.__all_virtual_database   c  on c.database_id = tb.database_id left join
+                   oceanbase.__all_virtual_partition_item       b  on a.partition_id = b.partition_id and a.table_id = b.table_id 
+             where    tb.table_name = upper('#{table_name}')
+              and c.database_name = upper('#{user_name}') and a.role=1 order by 4,8;"
+        global: true        
+
+  - version: "[4.0.0.0,*]"
+    steps:
+      - type: sql
+        sql: "select   
+              s.OWNER,s.TABLE_NAME,s.COLUMN_NAME,s.NUM_DISTINCT as ndv,s.NUM_NULLS,s.LAST_ANALYZED,(case c.data_type 
+               when 22 then 'VARCHAR2' when 17 then 'DATE' when 15 then 'NUMBER' when 38 then 'TIMESTAMP' when 30 then 'CLOB/BLOB' when 23 then 'CHAR' when 42 then 'FLOAT' when 39 then 'RAW' when 44 then 'NCHAR' when 43 then 'NVARCHAR2' else c.data_type end) AS COLUMN_TYPE
+              from  oceanbase.CDB_TAB_COL_STATISTICS s  
+              inner join  oceanbase.__all_database d on  s.OWNER=d.database_name
+              inner join oceanbase.__all_virtual_table t on  s.TABLE_NAME=t.TABLE_NAME and s.CON_ID=t.tenant_id and d.database_id=t.database_id
+              inner join oceanbase.__all_virtual_column c  on t.table_id = c.table_id and c.COLUMN_NAME=s.COLUMN_NAME
+              where s.table_name = upper('{#table_name}')
+              and s.OWNER=upper('#{user_name}');"
+        global: true  

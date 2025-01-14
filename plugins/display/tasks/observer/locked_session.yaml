@@ -1,0 +1,20 @@
+info_en: "[locked_session]"
+info_cn: "[库里被阻塞会话的信息]"
+command: obdiag display scene run --scene=observer.locked_session 
+task:
+  - version: "[*,4.0.0]"
+    steps:
+      - type: sql
+        sql: "select distinct a.svr_ip,c.table_id table_actual_id,c.table_name,a.session_id,a.block_session_id,a.lock_mode,a.type
+from  oceanbase.__all_virtual_lock_wait_stat a 
+left join  oceanbase.__all_virtual_table c on a.table_id=c.table_id order by c.table_name;"
+        global: true
+  - version: "[4.0.0,*]"
+    steps:
+      - type: sql
+        sql: "select distinct a.tenant_id,a.svr_ip,c.table_id table_actual_id,c.table_name,a.tablet_id,a.session_id,a.block_session_id,a.trans_id,
+a.holder_trans_id,a.lock_mode,a.type
+from   oceanbase.__all_virtual_lock_wait_stat a 
+left join  oceanbase.__all_virtual_tablet_to_ls b on b.tablet_id=a.tablet_id and a.tenant_id=b.tenant_id and a.ls_id=b.ls_id
+left join  oceanbase.__all_virtual_table c on b.table_id=c.table_id order by c.table_name,a.tenant_id;"
+        global: true
