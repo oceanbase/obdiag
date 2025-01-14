@@ -1,6 +1,6 @@
-info_en: "[locked]"
+info_en: "[locked_session]"
 info_cn: "[库里被阻塞会话的信息]"
-command: obdiag display scene run --scene=observer.locked 
+command: obdiag display scene run --scene=observer.locked_session 
 task:
   - version: "[*,4.0.0]"
     steps:
