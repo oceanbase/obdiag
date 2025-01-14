@@ -9,7 +9,7 @@ task:
         from oceanbase.__all_virtual_column a		  
         inner join oceanbase.__all_virtual_table e on a.table_id=e.table_id and e.table_type=5  and  a.tenant_id=e.tenant_id
         inner join   oceanbase.__all_virtual_table a2  on  e.data_table_id=a2.table_id and  a2.table_name=upper('#{table_name}') And a2.tenant_id=e.tenant_id
-        inner join oceanbase.__all_tenant t1 on t1.tenant_id=a2.tenant_id and t1.tenant_id>1000
+        inner join oceanbase.__all_tenant t1 on t1.tenant_id=a2.tenant_id
         inner join  oceanbase.__all_virtual_database d         on   d.database_id=a2.database_id  and  d.database_name=upper('#{database_name}')  and  e.database_id=d.database_id   
          group by   t1.tenant_name,a.table_id,d.database_name,a2.table_name,d.database_name,e.table_name;  "
         global: true
