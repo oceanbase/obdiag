@@ -471,11 +471,12 @@ class AnalyzeLogHandler(BaseShellHandler):
             for log_result in node_results:
                 for ret_key, ret_value in log_result.items():
                     if ret_key is not None:
-                        self.stdio.print("ret_key:{0}".format(ret_key))
                         error_code_info = OB_RET_DICT.get(ret_key, "")
                         message = ""
                         if ret_key == "CRASH_ERROR":
                             message = self.crash_error
+                        elif len(error_code_info) < 2:
+                            continue
                         else:
                             message = error_code_info[1]
                         if len(error_code_info) > 3:
