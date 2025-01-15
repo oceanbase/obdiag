@@ -475,7 +475,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                         message = ""
                         if ret_key == "CRASH_ERROR":
                             message = self.crash_error
-                        elif len(error_code_info) < 2:
+                        elif error_code_info == "":
                             continue
                         else:
                             message = error_code_info[1]
