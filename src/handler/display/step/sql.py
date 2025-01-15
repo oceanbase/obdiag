@@ -60,6 +60,8 @@ class StepSQLHandler(SafeStdio):
             table = PrettyTable(columns)
             for row in data:
                 table.add_row(row)
+            for column in columns:
+                table.align[column] = 'l'
             title = self.step.get("tittle")
             if title is not None:
                 title = StringUtils.replace_parameters(title, self.env)
