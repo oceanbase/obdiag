@@ -22,7 +22,7 @@ task:
         #report_type: warning
         err_msg: "network_speed is #{network_speed} , less than #{network_speed}"
     - type: ssh
-      ssh: "cat /sys/class/net/#{network_speed}/speed "
+      ssh: "cat /sys/class/net/#{network_name}/speed "
       result:
         set_value: network_speed
         verify_type: min
