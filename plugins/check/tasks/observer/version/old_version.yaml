@@ -8,7 +8,7 @@ task:
         verify: '[[ ! "#{observer_version}" == *"3.1."* ]] || [[ ! "#{observer_version}" == *"CE"* ]]'
         err_msg: 'Starting from June 30, 2024, OceanBase Database Community Edition V3.1.x will no longer receive any bug fixes or version updates.Please upgrade as soon as possible'
     - type: ssh
-      ssh: "echo \"#{observer_version}\" | grep -oP '(?<=\()[^ ]+ \K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'"
+      ssh: "echo \"#{observer_version}\""
       result:
         set_value: observer_version
         verify: '[[ ! "${observer_version}" == "4.0"* ]] && [[ ! "${observer_version}" == "4.1"* ]] && [[ ! "${observer_version}" == "4.2.2"* ]] && [[ ! "${observer_version}" == "4.3.0"* ]] && [[ ! "${observer_version}" == "4.3.1"* ]]'

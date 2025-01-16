@@ -522,7 +522,7 @@ class GatherLogOnNode:
                 self.stdio.warn("gather_log_on_node {0} find logs scope is null".format(self.ssh_client.get_ip(), logs_scope))
                 return []
             self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-            find_cmd = "cd {0} &&find . {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
+            find_cmd = "find {0} {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
