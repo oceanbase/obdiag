@@ -43,6 +43,6 @@ task:
           inner join  oceanbase.__all_database d on  s.OWNER=d.database_name
           inner join oceanbase.__all_virtual_table t on  s.TABLE_NAME=t.TABLE_NAME and s.CON_ID=t.tenant_id and d.database_id=t.database_id
           inner join oceanbase.__all_virtual_column c  on t.table_id = c.table_id and c.COLUMN_NAME=s.COLUMN_NAME
-          where s.table_name = upper('{#table_name}')
+          where s.table_name = upper('#{table_name}')
           and s.OWNER=upper('#{database_name}');"
         global: true
