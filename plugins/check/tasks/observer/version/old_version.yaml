@@ -1,6 +1,6 @@
 info: 'Check observer version . Some versions of observers are not recommended'
 task:
-  - version: "[3.0.0,3.9.0)"
+  - version: "[3.0.0,3.9.0]"
     steps:
     - type: ssh
       ssh: 'export LD_LIBRARY_PATH=#{remote_home_path}/lib && #{remote_home_path}/bin/observer --version 2>&1  | grep "(OceanBase"'
