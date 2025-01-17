@@ -121,7 +121,7 @@ class VerifyResult(object):
                 self.stdio.warn("{0} is {1} and the type is {2}, not int or float or decimal ! set it to 0.".format(self.now_step_set_value_name, self.env_dict[self.now_step_set_value_name], type(self.env_dict[self.now_step_set_value_name])))
                 the_num = 0
             range_str = self.expr
-            return int(self.env_dict[self.now_step_set_value_name]) == int(range_str)
+            return int(the_num) == int(range_str)
         except Exception as e:
             self.stdio.error("_verify_equal error: {0} -> {1}".format(str(self.expr), e))
             raise VerifyFailException(e)
