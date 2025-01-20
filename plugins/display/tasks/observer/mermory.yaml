@@ -25,7 +25,7 @@ where tenant_id>1000  or tenant_id= 1
 ORDER BY tenant_id, svr_ip desc;  "
         global: true
         
-  - version: "[*,4.0.0.0]"
+  - version: "[*,3.9.9.9]"
     steps:
       - type: sql
         sql: " select NOW() 'chenck_time',b.tenant_id,b.tenant_name, a.SVR_IP , 

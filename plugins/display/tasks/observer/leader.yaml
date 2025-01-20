@@ -2,7 +2,7 @@ info_en: "[leader]"
 info_cn: "[ob集群的leader信息]"
 command: obdiag display scene run --scene=observer.leader --env level=('all' or tenant_id or table_name)
 task:
-  - version: "[*,4.0.0]"
+  - version: "[*,3.9.9.9]"
     steps:
       - type: sql
         sql: "select a.tenant_id, b.tenant_name, a.svr_ip, a.role, count(1) part_count from oceanbase.__all_virtual_meta_table a, oceanbase.__all_tenant b
