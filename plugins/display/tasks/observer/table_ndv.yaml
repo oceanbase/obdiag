@@ -1,6 +1,6 @@
-info_en: "[tabndv]"
+info_en: "[table_ndv]"
 info_cn: "[查询表 ndv 信息]"
-command: obdiag display scene run --scene=observer.tabndv --env user_name=test --env table_name=test
+command: obdiag display scene run --scene=observer.table_ndv --env database_name=test --env table_name=test
 task:
   - version: "[*,4.0.0.0]"
     steps:
@@ -16,7 +16,7 @@ task:
           inner join  oceanbase.__all_virtual_column  c on t.table_id = c.table_id
           inner join oceanbase.__all_virtual_column_statistic s on t.table_id  = s.table_id and c.column_id = s.column_id
           where t.table_name = upper('#{table_name}')
-          and t.database_name = upper('#{user_name}')
+          and t.database_name = upper('#{database_name}')
           group by  t.database_name, t.table_name, c.column_name,c.data_type;"
         global: true
       - type: sql
@@ -30,7 +30,7 @@ task:
           oceanbase.__all_virtual_database   c  on c.database_id = tb.database_id left join
           oceanbase.__all_virtual_partition_item       b  on a.partition_id = b.partition_id and a.table_id = b.table_id
           where    tb.table_name = upper('#{table_name}')
-          and c.database_name = upper('#{user_name}') and a.role=1 order by 4,8;"
+          and c.database_name = upper('#{database_name}') and a.role=1 order by 4,8;"
         global: true
 
   - version: "[4.0.0.0,*]"
@@ -43,6 +43,6 @@ task:
           inner join  oceanbase.__all_database d on  s.OWNER=d.database_name
           inner join oceanbase.__all_virtual_table t on  s.TABLE_NAME=t.TABLE_NAME and s.CON_ID=t.tenant_id and d.database_id=t.database_id
           inner join oceanbase.__all_virtual_column c  on t.table_id = c.table_id and c.COLUMN_NAME=s.COLUMN_NAME
-          where s.table_name = upper('{#table_name}')
-          and s.OWNER=upper('#{user_name}');"
+          where s.table_name = upper('#{table_name}')
+          and s.OWNER=upper('#{database_name}');"
         global: true

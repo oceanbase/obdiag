@@ -3,20 +3,8 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_maxsize' and svr_ip = '#{remote_ip}' ;"
+      sql: "SELECT GROUP_CONCAT(DISTINCT p1.SVR_IP) FROM      oceanbase.GV$OB_PARAMETERS p1 JOIN      oceanbase.GV$OB_PARAMETERS p2 ON p1.SVR_IP = p2.SVR_IP JOIN      oceanbase.GV$OB_PARAMETERS p3 ON p1.SVR_IP = p3.SVR_IP WHERE      p1.NAME = 'datafile_maxsize' AND p1.VALUE <> '0'     AND p2.NAME = 'datafile_size' AND CAST(p1.VALUE AS DECIMAL) > CAST(p2.VALUE AS DECIMAL)     AND p3.NAME = 'datafile_next' AND p3.VALUE = '0';"
       result:
-        set_value: datafile_maxsize
-        report_type: execution
-        verify_type: equal
-        verify: 0
-        err_msg: "[not warning] node: #{remote_ip} datafile_maxsize is not 0, need check datafile_next."
-    - type: sql
-      sql: "select value from oceanbase.gv$ob_parameters where name = 'datafile_next' and svr_ip = '#{remote_ip}' ;"
-      result:
-        set_value: datafile_next
-        report_type: warning
-        verify_type: min
-        verify: 0
-        err_msg: "node: #{remote_ip} datafile_next is 0, the data file will not grow. More info: https://github.com/oceanbase/obdiag/issues/573"
-
-
+        set_value: ip_list
+        verify: '[ -z "${ip_list}" ]'
+        err_msg: "node: #{ip_list} datafile_next is 0, the data file will not grow. More info: https://github.com/oceanbase/obdiag/issues/573"

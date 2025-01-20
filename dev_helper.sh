@@ -4,6 +4,7 @@ PROJECT_PATH=$(cd "$(dirname "$0")"; pwd)
 WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
 
 build_rpm() {
+    clean_old_rpm_data
     export RELEASE=`date +%Y%m%d%H%M`
     sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
 python3 get-pip.py\n\
@@ -11,9 +12,19 @@ pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     cat ./rpm/oceanbase-diagnostic-tool.spec
     yum install rpm-build -y
     rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
-    find ~/ -name oceanbase-diagnostic-tool-*.rpm
+    find ~/rpmbuild -name oceanbase-diagnostic-tool-*.rpm
 }
 
+clean_old_rpm_data() {
+    rm -rf ./rpmbuild
+    rm -rf ./build
+    rm -rf ./dist
+    rm -rf ./src/obdiag.py
+    rm -rf ./BUILDROOT
+    rm -rf ./get-pip.py
+    rm -rf ./obdiag.spec
+    echo "Clean old rpm data success"
+}
 
 clean_files() {
     rm -rf ./obdiag_gather_pack_* ./obdiag_analyze_pack_* ./obdiag_analyze_flt_result* ./obdiag_check_report
@@ -101,7 +112,8 @@ initialize_environment() {
     source  ${WORK_DIR}/rpm/init_obdiag_cmd.sh
 
     echo "Creating or updating alias 'obdiag' to run 'python3 ${PROJECT_PATH}/src/main.py'"
-    echo "alias obdiag='PYTHONPATH=\$PYTHONPATH:${PROJECT_PATH} python3 ${PROJECT_PATH}/src/main.py'" >> ~/.bashrc
+    echo "export PYTHONPATH=\$PYTHONPATH:${PROJECT_PATH}" >> ~/.bashrc
+    echo "alias obdiag='python3 ${PROJECT_PATH}/src/main.py'" >> ~/.bashrc
     source ~/.bashrc
     echo "Initialization completed successfully!"
 }
