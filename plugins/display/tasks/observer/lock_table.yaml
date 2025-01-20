@@ -2,13 +2,6 @@ info_en: "[lock table]"
 info_cn: "[某张表上持有锁的信息]"
 command: obdiag display scene run --scene=observer.lock_table --env tablename=test
 task:
-  - version: "[*,3.9.9.9]"
-    steps:
-      - type: sql
-        sql: "select * from  (select a.tenant_id,a.svr_ip,a.table_id,c.table_name,a.session_id,substring_index(substring_index(a.trans_id,',',1),':',-1) hash,a.ctx_create_time,a.expired_time,timestampdiff(second,date_format(a.ctx_create_time,'%Y-%m-%d %T'),now())  wait_time_s
-from oceanbase.__all_virtual_trans_lock_stat a 
-left join oceanbase.__all_virtual_table c on a.table_id=c.table_id ) t where t.table_name = '#{tablename}';"
-        global: true
   - version: "[4.0.0.0,*]"
     steps:
       - type: sql
@@ -16,4 +9,11 @@ left join oceanbase.__all_virtual_table c on a.table_id=c.table_id ) t where t.t
 from oceanbase.__all_virtual_trans_lock_stat a 
 left join oceanbase.__all_virtual_tablet_to_ls b on b.tablet_id=a.tablet_id
 left join oceanbase.__all_virtual_table c on b.table_id=c.table_id) t where t.table_name = '#{tablename}';"
+        global: true
+  - version: "[*,3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "select * from  (select a.tenant_id,a.svr_ip,a.table_id,c.table_name,a.session_id,substring_index(substring_index(a.trans_id,',',1),':',-1) hash,a.ctx_create_time,a.expired_time,timestampdiff(second,date_format(a.ctx_create_time,'%Y-%m-%d %T'),now())  wait_time_s
+from oceanbase.__all_virtual_trans_lock_stat a 
+left join oceanbase.__all_virtual_table c on a.table_id=c.table_id ) t where t.table_name = '#{tablename}';"
         global: true

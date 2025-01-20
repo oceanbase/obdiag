@@ -2,7 +2,7 @@ info_en: "[cluster info]"
 info_cn: "[集群信息展示]"
 command: obdiag display scene run --scene=observer.cluster_info
 task:
-  - version: "[4.0.0.0, 4.1.9.9]"
+  - version: "[4.2.0.0, *]"
     steps:
       - type: sql
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"cluster_name\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('cluster')
@@ -22,6 +22,8 @@ task:
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"config_url\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('obconfig_url')
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_limit\" stat_name, concat(round(sum(memory_limit/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
+        union all 
+        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_allocated\" stat_name, concat(round(sum(data_disk_allocated/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_total\" stat_name, sum(cpu_capacity) value from oceanbase.gv$ob_servers
         union all
@@ -51,7 +53,7 @@ task:
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_in_use_per\" stat_name, concat(round(sum(data_disk_in_use/1024/1024/1024)/sum(data_disk_capacity/1024/1024/1024), 2)*100, '%') value from oceanbase.gv$ob_servers;"
         global: true
-  - version: "[4.2.0.0, *]"
+  - version: "[4.0.0.0, 4.1.9.9]"
     steps:
       - type: sql
         sql: "select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"cluster_name\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('cluster')
@@ -71,8 +73,6 @@ task:
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ distinct \"config_url\" stat_name, value from oceanbase.v$ob_parameters where scope = 'CLUSTER' and name in ('obconfig_url')
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"memory_limit\" stat_name, concat(round(sum(memory_limit/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
-        union all 
-        select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"data_disk_allocated\" stat_name, concat(round(sum(data_disk_allocated/1024/1024/1024), 2), 'G') value from oceanbase.gv$ob_servers
         union all
         select /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ \"cpu_total\" stat_name, sum(cpu_capacity) value from oceanbase.gv$ob_servers
         union all
