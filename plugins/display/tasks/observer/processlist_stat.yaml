@@ -2,7 +2,15 @@ info_en: "[processlist_stat]"
 info_cn: "[processlist 实时会话信息汇总]"
 command: obdiag display scene run --scene=observer.processlist_stat
 task:
-  - version: "[*,3.0.0.0]"
+  - version: "[3.0.0.0,*]"
+    steps:
+      - type: sql
+        sql: "select tenant,user,svr_ip,ifnull(sql_id,''),avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,sql_id order by count(*) desc limit 10; "
+        global: true 
+      - type: sql
+        sql: "select tenant,user,svr_ip,substr(info,1,40) as  q_sql,avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,substr(info,1,40) order by count(*) desc limit 10; "
+        global: true 
+  - version: "[*,2.9.9.9]"
     steps:
       - type: sql
         sql: " select a.db,a.tenant,a.user,b.svr_ip,ifnull(b.sql_id,''),avg(b.time),max(b.time),count(*),a.id,a.master_sessid from oceanbase.__all_virtual_processlist a 
@@ -15,11 +23,3 @@ task:
 where tenant in (select b.tenant_name from  __all_tenant b where b.tenant_id>1000) 
 and state<>'SLEEP' group by user,svr_ip,substr(info,1,40) order by count(*) desc limit 10; "
         global: true        
-  - version: "[3.0.0.0,*]"
-    steps:
-      - type: sql
-        sql: "select tenant,user,svr_ip,ifnull(sql_id,''),avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,sql_id order by count(*) desc limit 10; "
-        global: true 
-      - type: sql
-        sql: "select tenant,user,svr_ip,substr(info,1,40) as  q_sql,avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,substr(info,1,40) order by count(*) desc limit 10; "
-        global: true 

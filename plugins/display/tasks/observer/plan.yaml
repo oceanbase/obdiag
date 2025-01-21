@@ -8,39 +8,6 @@ task:
       - type: sql
         sql: "SELECT
           d.database_name,
-          svr_ip,
-          plan_id,
-          a.TENANT_ID,
-          type,
-          sql_id,
-          substr(first_load_time,1,19) AS first_load_time,
-          substr(last_active_time,1,19) AS last_active_time,
-          avg_exe_usec/1000 AS 'avg_exe_usec(ms)',
-          executions,
-          elapsed_time/1000/1000 AS 'elapsed_time(s)',
-          round(slowest_exe_usec/1000/1000,2) AS 'slowest_time(s)',
-          substr(slowest_exe_time,1,19) AS slowest_exe_time,
-          slow_count,
-          ps_stmt_id,
-          rows_processed/executions AS rows,
-          outline_id,
-          b.tenant_name
-          FROM
-          oceanbase.gv$plan_cache_plan_stat a
-          LEFT JOIN
-          oceanbase.__all_virtual_database d ON d.database_id = a.db_id AND d.tenant_id = a.tenant_id
-          LEFT JOIN
-          oceanbase.__all_tenant b ON a.tenant_id = b.tenant_id
-          WHERE
-          a.sql_id = '#{sqlid}'
-          AND
-          b.tenant_name = '#{tenant_name}';"
-        global: true
-  - version: "[3.0.0.0, 4.0.0.0]"
-    steps:
-      - type: sql
-        sql: "SELECT
-          d.database_name,
           a.svr_ip,
           a.plan_id,
           a.TENANT_ID,
@@ -60,6 +27,39 @@ task:
           b.tenant_name
           FROM
           oceanbase.gv$ob_plan_cache_plan_stat a
+          LEFT JOIN
+          oceanbase.__all_virtual_database d ON d.database_id = a.db_id AND d.tenant_id = a.tenant_id
+          LEFT JOIN
+          oceanbase.__all_tenant b ON a.tenant_id = b.tenant_id
+          WHERE
+          a.sql_id = '#{sqlid}'
+          AND
+          b.tenant_name = '#{tenant_name}';"
+        global: true
+  - version: "[3.0.0.0, 3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "SELECT
+          d.database_name,
+          svr_ip,
+          plan_id,
+          a.TENANT_ID,
+          type,
+          sql_id,
+          substr(first_load_time,1,19) AS first_load_time,
+          substr(last_active_time,1,19) AS last_active_time,
+          avg_exe_usec/1000 AS 'avg_exe_usec(ms)',
+          executions,
+          elapsed_time/1000/1000 AS 'elapsed_time(s)',
+          round(slowest_exe_usec/1000/1000,2) AS 'slowest_time(s)',
+          substr(slowest_exe_time,1,19) AS slowest_exe_time,
+          slow_count,
+          ps_stmt_id,
+          rows_processed/executions AS rows,
+          outline_id,
+          b.tenant_name
+          FROM
+          oceanbase.gv$plan_cache_plan_stat a
           LEFT JOIN
           oceanbase.__all_virtual_database d ON d.database_id = a.db_id AND d.tenant_id = a.tenant_id
           LEFT JOIN

@@ -2,19 +2,19 @@ info_en: "[long_transaction]"
 info_cn: "[集群的长事务信息]"
 command: obdiag display scene run --scene=observer.long_transaction --env wait_time=waittime(s)
 task:
-  - version: "[*,4.0.0]"
-    steps:
-      - type: sql
-        sql: "select t.table_name,t.table_id,a.svr_ip,a.session_id,timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now())  wait_time,a.trans_type,a.trans_id,case when b.trans_id is not null and part_trans_action > 2 then 'XA_hang' when b.trans_id is  null and part_trans_action > 2 then 'nomarl_hang' when b.trans_id is not null then 'normal_XA_trans' when b.trans_id is null then 'normal_long_trans' end as 'trans_type_info'  from  oceanbase.__all_virtual_trans_stat  a left join  oceanbase.gv$table t on  substr(a.`partition`,6,16)=t.table_id left join oceanbase.__all_virtual_global_transaction b on a.tenant_id = b.tenant_id and a.trans_id = b.trans_id  where 
- timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now()) > #{wait_time} and a.is_exiting<>1 
-order by a.ctx_create_time  limit 50;"
-        global: true
-  - version: "[4.0.0,*]"
+  - version: "[4.0.0.0,*]"
     steps:
       - type: sql
         sql: "select a.svr_ip,a.session_id,a.ctx_create_time,now(),timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now())  wait_time,a.trans_type,a.trans_id,case when b.trans_id is not null 
 and part_trans_action > 2 then 'XA_hang' when b.trans_id is  null and part_trans_action > 2 then 'nomarl_hang' 
 when b.trans_id is not null then 'normal_XA_trans' when b.trans_id is null then 'normal_long_trans' end as 'trans_type_info',a.participants  from  oceanbase.__all_virtual_trans_stat  a  left join oceanbase.__all_virtual_global_transaction b on a.tenant_id = b.tenant_id and a.trans_id = b.trans_id  where 
   timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now()) > #{wait_time}  and a.is_exiting<>1 
+order by a.ctx_create_time  limit 50;"
+        global: true
+  - version: "[*,3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "select t.table_name,t.table_id,a.svr_ip,a.session_id,timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now())  wait_time,a.trans_type,a.trans_id,case when b.trans_id is not null and part_trans_action > 2 then 'XA_hang' when b.trans_id is  null and part_trans_action > 2 then 'nomarl_hang' when b.trans_id is not null then 'normal_XA_trans' when b.trans_id is null then 'normal_long_trans' end as 'trans_type_info'  from  oceanbase.__all_virtual_trans_stat  a left join  oceanbase.gv$table t on  substr(a.`partition`,6,16)=t.table_id left join oceanbase.__all_virtual_global_transaction b on a.tenant_id = b.tenant_id and a.trans_id = b.trans_id  where 
+ timestampdiff(second,date_format(ctx_create_time,'%Y-%m-%d %T'),now()) > #{wait_time} and a.is_exiting<>1 
 order by a.ctx_create_time  limit 50;"
         global: true
