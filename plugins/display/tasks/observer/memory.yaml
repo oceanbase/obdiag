@@ -1,6 +1,6 @@
-info_en: "[mermory]"
-info_cn: "[所有租户的 mermory 信息]"
-command: obdiag display scene run --scene=observer.mermory
+info_en: "[memory]"
+info_cn: "[所有租户的 memory 信息]"
+command: obdiag display scene run --scene=observer.memory
 task:
   - version: "[4.0.0.0,*]"
     steps:
