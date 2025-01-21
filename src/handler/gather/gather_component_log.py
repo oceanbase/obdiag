@@ -470,8 +470,8 @@ class GatherLogOnNode:
             self.stdio.error("gather_log_on_node {0} failed: {1}".format(self.ssh_client.get_ip(), str(e)))
             self.gather_tuple["info"] = str(e)
         finally:
-            self.stdio.verbose("clear tmp_log_dir: {0}".format(tmp_log_dir))
-            self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
+            self.stdio.verbose("clear tmp_log_dir: {0}".format(self.tmp_dir))
+            self.ssh_client.exec_cmd("rm -rf {0}".format(self.tmp_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
             self.stdio.verbose("gather_log_on_node {0} gather_tuple: {1}".format(self.ssh_client.get_ip(), self.gather_tuple))
             self.stdio.verbose("gather_log_on_node {0} done".format(self.ssh_client.get_ip()))
