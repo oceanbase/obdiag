@@ -155,6 +155,8 @@ class GatherOsInfoHandler(BaseShellHandler):
                 self.stdio.verbose("local file path {0}...".format(local_file_path))
                 download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
+                ssh_client.exec_cmd("rm -rf {0}".format(remote_file_full_path))
+                self.stdio.verbose("download success. On node {0} delete file: {1}".format(ssh_client.get_ip(), remote_file_full_path))
             else:
                 resp["error"] = "File too large"
             # delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path)
