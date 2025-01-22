@@ -86,7 +86,7 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |2.5.0|2024.09| 2024.10.18 |<ul><li> Cluster Diagnosis Information Display </li><li> Queue Analysis </li><li>Support desensitization of collected observer logs according to specified rules</li></ul>|
 |2.6.0|2024.10| 2024.11.28 |<ul><li> The new feature added is `obdiag analyze memory` </li><li> obdiag display Phase 2 iteration </li></ul>|
 |3.0.0|2024.12| 2024.12.31 |<ul><li> Code plugin transformation </li><li> Support OMS problem diagnosis </li></ul>|
-|3.1.0|2025.01| - |<ul><li> obdiag display Phase 2 iteration </li></ul>|
+|3.1.0|2025.01| 2025.01.22 |<ul><li> obdiag display Phase 3 iteration </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI for obdiag </li></ul>|
 
 # Support
