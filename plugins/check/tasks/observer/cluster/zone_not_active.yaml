@@ -1,0 +1,14 @@
+info: 'Check whether there is any zone not in the ACTIVE state.'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select GROUP_CONCAT(DISTINCT ZONE) from oceanbase.dba_ob_zones where STATUS<>"ACTIVE";'
+      result:
+        set_value: not_ACTIVE
+        verify: '[ -z "${not_ACTIVE}" ]'
+        err_msg: 'There is #{not_ACTIVE} not_ACTIVE zone, please check as soon as possible.'
+
+
+
+
