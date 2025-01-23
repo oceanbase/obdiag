@@ -148,10 +148,10 @@ class GatherObstack2Handler(BaseShellHandler):
             if node_arch == "aarch64":
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_AARCH64)
             elif node_arch == "x86_64":
-                obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_x86_64)
+                obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_X86_64)
             else:
                 self.stdio.warn("node:{1} arch {0} not support gather obstack. obdiag will try use x86 obstack".format(node_arch, ssh_client.get_name()))
-                obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_x86_64)
+                obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_X86_64)
 
             upload_file(ssh_client, obstack2_local_stored_full_path, const.OBSTACK2_DEFAULT_INSTALL_PATH, self.context.stdio)
             self.stdio.verbose("Installation of obstack2 is completed and gather begins ...")
