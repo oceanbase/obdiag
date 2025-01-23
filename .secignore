@@ -37,3 +37,5 @@ BFlow Secret Scan Ignore List              #
   openwebapi.oceanbase.com*
   openwebapi-pre.oceanbase.com*
   https://obbusiness-private.oss-cn-shanghai.aliyuncs.com*
+**/dev_helper.sh
+  https://obbusiness-private.oss-cn-shanghai.aliyuncs.com*
