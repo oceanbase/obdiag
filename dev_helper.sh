@@ -5,6 +5,7 @@ WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
 
 build_rpm() {
     clean_old_rpm_data
+    download_obstack
     export RELEASE=`date +%Y%m%d%H%M`
     sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
 python3 get-pip.py\n\
@@ -14,6 +15,37 @@ pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
     find ~/rpmbuild -name oceanbase-diagnostic-tool-*.rpm
 }
+
+download_obstack() {
+  echo "check obstack"
+  mkdir -p ./dependencies/bin
+  # download obstack
+  if [ -f ./dependencies/bin/obstack_aarch64 ]; then
+    echo "obstack_aarch64 exist, skip download"
+    return
+  else
+    echo "downland aarch64 obstack."
+    obutils_aarch64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.aarch64.rpm"
+    wget ${obutils_aarch64_url} -O ./obutils.rpm
+    rpm2cpio obutils.rpm | cpio -idv
+    cp -f ./usr/bin/obstack ./dependencies/bin/obstack_aarch64
+    rm -rf ./usr
+    rm -rf obutils.rpm
+  fi
+  if [ -f ./dependencies/bin/obstack_x86_64 ]; then
+    echo "obstack_x86_64 exist, skip download"
+    return
+  else
+    echo "downland x64 obstack."
+    obutils_x64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.x86_64.rpm"
+    wget ${obutils_x64_url} -O ./obutils.rpm
+    rpm2cpio obutils.rpm | cpio -idv
+    cp -f ./usr/bin/obstack ./dependencies/bin/obstack_x86_64
+    rm -rf ./usr
+    rm -rf obutils.rpm
+  fi
+}
+
 
 clean_old_rpm_data() {
     rm -rf ./rpmbuild
@@ -108,6 +140,7 @@ initialize_environment() {
     copy_file
     check_python_version
     install_requirements
+    download_obstack
 
     source  ${WORK_DIR}/rpm/init_obdiag_cmd.sh
 
@@ -124,6 +157,7 @@ show_help() {
     echo "  clean  - Clean result files"
     echo "  init   - Initialize dev environment"
     echo "  format - Format code with black"
+    echo "  download_obstack - Download obstack"
 }
 
 format_code() {
@@ -149,6 +183,9 @@ case "$1" in
         ;;
     format)
         format_code
+        ;;
+    download_obstack)
+        download_obstack
         ;;
     *)
         show_help
