@@ -42,8 +42,9 @@ const.OBPROXY_LOG_DIR_DEFAULT = "/root/obproxy/log"
 
 const.GATHER_LOG_TEMPORARY_DIR_DEFAULT = "/tmp"
 
-const.OBSTACK2_DEFAULT_INSTALL_PATH = '/tmp/obstack_x86_64_7'
-const.OBSTACK2_LOCAL_STORED_PATH = "./dependencies/bin/obstack_x86_64_7"
+const.OBSTACK2_DEFAULT_INSTALL_PATH = '/tmp/obstack'
+const.OBSTACK2_LOCAL_STORED_PATH_AARCH64 = "./dependencies/bin/obstack_aarch64"
+const.OBSTACK2_LOCAL_STORED_PATH_X86_64 = "./dependencies/bin/obstack_x86_64"
 
 # 限制收集任务的并发线程数量 10
 const.GATHER_THREADS_LIMIT = 10
