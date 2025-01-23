@@ -1,0 +1,45 @@
+info: 'Check ls id is not_enough_replica'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "
+WITH LeaderInfo AS (
+    SELECT 
+        tenant_id, 
+        ls_id, 
+        paxos_replica_num
+    FROM 
+        oceanbase.__all_virtual_log_stat
+    WHERE 
+        role = 'LEADER'
+),
+RowCounts AS (
+    SELECT 
+        tenant_id, 
+        ls_id, 
+        COUNT(*) as row_count
+    FROM 
+        oceanbase.__all_virtual_log_stat
+    GROUP BY 
+        tenant_id, 
+        ls_id
+)
+SELECT 
+	GROUP_CONCAT(DISTINCT L.tenant_id)
+FROM 
+    LeaderInfo L
+JOIN 
+    RowCounts R
+ON 
+    L.tenant_id = R.tenant_id AND L.ls_id = R.ls_id
+WHERE 
+    R.row_count < L.paxos_replica_num;"
+      result:
+        set_value: not_enough_replica
+        verify: '[ -z "${not_enough_replica}" ]'
+        err_msg: 'There is not_enough_replica tenant_id: #{not_enough_replica} not_enough_replica, please check as soon as possible.'
+
+
+
+

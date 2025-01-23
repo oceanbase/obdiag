@@ -20,6 +20,7 @@ from src.handler.checker.check_exception import StepResultFailException, StepExe
 from src.handler.checker.step.data_size import DataSizeHandler
 from src.handler.checker.step.get_system_parameter import GetSystemParameterHandler
 from src.handler.checker.result.result import CheckResult
+from src.handler.checker.step.local_ssh import StepLocalHandler
 from src.handler.checker.step.ssh import SshHandler
 from src.handler.checker.step.sql import StepSQLHandler
 from src.common.ssh_client.ssh import SshClient
@@ -58,6 +59,8 @@ class StepBase(object):
                 handler = StepSQLHandler(self.context, self.step, task_variable_dict=self.task_variable_dict)
             elif self.step["type"] == "data_size":
                 handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict)
+            elif self.step["type"] == "local_ssh":
+                handler = StepLocalHandler(self.context, self.step, self.cluster, self.task_variable_dict)
             else:
                 raise StepExecuteFailException("the type not support: {0}".format(self.step["type"]))
             self.stdio.verbose("task execute and result")
