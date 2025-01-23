@@ -1,0 +1,12 @@
+info: 'Check cluster tenant ls leader.'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(DISTINCT TENANT_ID) 
+FROM oceanbase.GV$OB_LOG_STAT
+HAVING COUNT(CASE WHEN ROLE = 'LEADER' THEN 1 END) = 0;"
+      result:
+        set_value: no_leader_tenant_id
+        verify: '[ -z "${no_leader_tenant_id}" ]'
+        err_msg: 'there is no leader tenant, please check the cluster. tenant_id: #{no_leader_tenant_id}. You can use "obdiag rca run --scene=log_error" to get more information.'
