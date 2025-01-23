@@ -144,7 +144,7 @@ class GatherObstack2Handler(BaseShellHandler):
             else:
                 absPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             # check node is x86_64 or aarch64
-            node_arch = ssh_client.exec_cmd("uname -m")
+            node_arch = ssh_client.exec_cmd("arch")
             if node_arch == "aarch64":
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_AARCH64)
             elif node_arch == "x86_64":

@@ -208,7 +208,7 @@ def is_support_arch(ssh_client):
     Determine if it is a supported operating system
     :return:
     """
-    support_arch_list = ["i386", "i486", "i586", "alpha", "x86_64"]
+    support_arch_list = ["i386", "i486", "i586", "alpha", "x86_64", "aarch64"]
     cmd = "arch"
     try:
         arch_info = ssh_client.exec_cmd(cmd)
