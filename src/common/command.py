@@ -246,6 +246,7 @@ def get_observer_version(context):
     return observer_version
 
 
+# Please prioritize using get_observer_version
 def get_observer_version_by_ssh(ssh_client, ob_install_dir, stdio):
     """
     get observer version
@@ -310,8 +311,7 @@ def get_obproxy_version(context):
 
 
 # Only applicable to the community version
-
-
+# Please prioritize using get_observer_version
 def get_observer_version_by_sql(context, ob_cluster):
     context.stdio.verbose("start get_observer_version_by_sql . input: {0}:{1}".format(ob_cluster.get("db_host"), ob_cluster.get("db_port")))
     try:
