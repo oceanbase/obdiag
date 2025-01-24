@@ -92,9 +92,8 @@ class RemoteClient(SsherClient):
                 # check sudo without password
                 self.stdio.verbose("use remote_client_sudo")
                 stdin, stdout, stderr = self._ssh_fd.exec_command("sudo -n true")
-                if stderr:
-                    if len(stderr.read().decode('utf-8').strip()) > 0:
-                        raise Exception(stderr.read().decode('utf-8'))
+                if stderr or stdout.channel.recv_exit_status() > 0:
+                    raise Exception("the node {0} does not have sudo permission without password".format(self.get_name()))
                 cmd = "sudo {0}".format(cmd)
                 cmd = cmd.replace("&&", "&& sudo ")
             self.stdio.verbose('Execute Shell command on server {0}:{1}'.format(self.host_ip, cmd))

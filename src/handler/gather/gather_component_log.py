@@ -454,6 +454,7 @@ class GatherLogOnNode:
                 return
             else:
                 self.stdio.verbose("gather_log_on_node {0} download log to local store_dir: {1}".format(self.ssh_client.get_ip(), self.store_dir))
+                self.ssh_client.exec_cmd("chomd -R a+rx {0}".format(self.tmp_dir))
                 self.ssh_client.download(tar_file, os.path.join(self.store_dir, os.path.basename("{0}".format(tar_file))))
                 self.stdio.verbose("download success. gather_log_on_node {0} delete tar file: {1}".format(self.ssh_client.get_ip(), tar_file))
                 self.ssh_client.exec_cmd("rm -rf {0}".format(tar_file))
