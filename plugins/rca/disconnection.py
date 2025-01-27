@@ -141,7 +141,7 @@ class DisconnectionLog:
                 get_request_buffer_length_data = self.ob_connector.execute_sql_return_columns_and_data(get_request_buffer_length_sql).fetchall()
                 request_buffer_length = get_request_buffer_length_data[0]["value"]
                 self.record.add_record("get request_buffer_length:{0}".format(request_buffer_length))
-                self.record.add_suggest("request_buffer_length is too less , please update it ")
+                self.record.add_suggest("request_buffer_length is too less , please update it. more_info: https://github.com/oceanbase/obdiag/issues/575 ")
                 return
             except Exception as e:
                 self.stdio.error("get ob_connector error, please check the config yaml cluster use obproxy node:{0}".format(e))
