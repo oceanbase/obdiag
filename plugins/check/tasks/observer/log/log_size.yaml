@@ -12,7 +12,7 @@ task:
     result:
       set_value: disk_free_space_KB
   - type: ssh
-    ssh: "find #{home_path}/log -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print $1 * 256 * 1024}' "
+    ssh: "find #{home_path}/log -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print (100-$1) * 256 * 1024}' "
     result:
       set_value: log_dir_need_space
       verify: '[ $disk_free_space_KB -gt $log_dir_need_space ]'
