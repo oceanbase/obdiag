@@ -17,7 +17,7 @@ task:
       report_type: warning
       err_msg: "ocp ob.logcleaner.ob_log.disk.threshold  is less 80%"
   - type: ssh
-    ssh: "df #{home_path}/log | awk 'NR==2{print $4*0.8}'"
+    ssh: "df #{home_path}/log | awk 'NR==2{print $4*#{ob_logcleaner_file_nu}/100}'"
     result:
       set_value: disk_free_space_KB
   - type: ssh
