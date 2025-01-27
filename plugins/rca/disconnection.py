@@ -129,10 +129,26 @@ class DisconnectionLog:
         if log is None or len(log.strip()) == 0:
             self.stdio.verbose("log is None or len(log.strip()) == 0")
             raise Exception("log is None or len(log.strip()) == 0")
-
+        self.ob_connector = context.get_variable("ob_connector", default=None)
         self.timeout_event = ""
+        self.log = log
+        # for 6279
+        if "multi stmt is not supported to be executed on txn temporary node" in log:
+            self.record.add_record("find 'DisconnectionAllSuggest' in log:{0}".format(log))
+            get_request_buffer_length_sql = "show proxyconfig like '%request_buffer_length%'"
+            self.record.add_record("check 'request_buffer_length' in obproxy by sql: show proxyconfig like '%request_buffer_length%'")
+            try:
+                get_request_buffer_length_data = self.ob_connector.execute_sql_return_columns_and_data(get_request_buffer_length_sql).fetchall()
+                request_buffer_length = get_request_buffer_length_data[0]["value"]
+                self.record.add_record("get request_buffer_length:{0}".format(request_buffer_length))
+                self.record.add_suggest("request_buffer_length is too less , please update it. more_info: https://github.com/oceanbase/obdiag/issues/575 ")
+                return
+            except Exception as e:
+                self.stdio.error("get ob_connector error, please check the config yaml cluster use obproxy node:{0}".format(e))
+                self.record.add_suggest("can't check the 'request_buffer_length' in cluster. please check the config yaml cluster use obproxy node")
+                return
+        # for trace_type log
         try:
-            self.log = log
             pattern = re.compile(r'trace_type="(.*?)".*' r'cs_id:(\d+).*' r'server_session_id:(\d+).*' r'error_code:([-0-9]+).*' r'error_msg:"(.*?)"')
             # Search log entries
             matches = pattern.search(log)
@@ -333,6 +349,33 @@ def get_disconnectionSuggest(context, trace_type, error_code, error_msg, record)
             raise Exception("the disconnection error_code :{0} ,not support.".format(error_code))
     else:
         raise Exception("the disconnection trace_type :{0} ,not support.".format(trace_type))
+
+
+# xB->B
+def convert_to_bytes(size_str):
+    units = {
+        'B': 1,
+        'KB': 1024,
+        'MB': 1024**2,
+        'GB': 1024**3,
+        'TB': 1024**4,
+        'PB': 1024**5,
+        'EB': 1024**6,
+        'ZB': 1024**7,
+        'YB': 1024**8,
+    }
+
+    size_str = size_str.strip()
+
+    for unit in units:
+        if size_str.endswith(unit):
+            try:
+                value = int(size_str[: -len(unit)])
+                return value * units[unit]
+            except ValueError:
+                continue
+
+    raise ValueError(f"Invalid size format: {size_str}")
 
 
 disconnection = DisconnectionScene()
