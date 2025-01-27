@@ -147,10 +147,8 @@ class DisconnectionLog:
                 self.stdio.error("get ob_connector error, please check the config yaml cluster use obproxy node:{0}".format(e))
                 self.record.add_suggest("can't check the 'request_buffer_length' in cluster. please check the config yaml cluster use obproxy node")
                 return
-        # for 6279
         # for trace_type log
         try:
-
             pattern = re.compile(r'trace_type="(.*?)".*' r'cs_id:(\d+).*' r'server_session_id:(\d+).*' r'error_code:([-0-9]+).*' r'error_msg:"(.*?)"')
             # Search log entries
             matches = pattern.search(log)
