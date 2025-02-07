@@ -1,0 +1,38 @@
+info: 'Check cluster info about network_drop'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="#{remote_ip}" ;'
+      result:
+        set_value: network_name
+    # network error
+    - type: ssh
+      ssh: "ip -s link show #{network_name} | awk '/RX:/ {getline; print $3}'"
+      result:
+        set_value: rx_error
+        verify_type: equal
+        verify: 0
+        err_msg: 'network: #{network_name}  RX error is not 0, please check by ip -s link show #{network_name} '
+    - type: ssh
+      ssh: "ip -s link show #{network_name} | awk '/TX:/ {getline; print $3}'"
+      result:
+        set_value: tx_error
+        verify_type: equal
+        verify: 0
+        err_msg: 'network: #{network_name}  TX error is not 0, please check by ip -s link show #{network_name} '
+    # network drop
+    - type: ssh
+      ssh: "ip -s link show #{network_name} | awk '/RX:/ {getline; print $4}'"
+      result:
+        set_value: rx_drop
+        verify_type: equal
+        verify: 0
+        err_msg: 'network: #{network_name}  RX drop is not 0, please check by ip -s link show #{network_name} '
+    - type: ssh
+      ssh: "ip -s link show #{network_name} | awk '/TX:/ {getline; print $4}'"
+      result:
+        set_value: tx_drop
+        verify_type: equal
+        verify: 0
+        err_msg: 'network: #{network_name}  TX drop is not 0, please check by ip -s link show #{network_name} '
