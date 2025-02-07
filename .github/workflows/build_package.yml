@@ -74,7 +74,7 @@ jobs:
           pwd
 
       - name: Upload DEB Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
