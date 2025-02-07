@@ -47,7 +47,6 @@ jobs:
           path: |
             /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
-          debug: true
 
   convert-to-deb:
     needs: build-rpm
