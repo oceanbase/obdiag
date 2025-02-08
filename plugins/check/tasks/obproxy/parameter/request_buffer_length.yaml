@@ -1,0 +1,10 @@
+info: 'Check obproxy '
+task:
+  - version: "[4.2.0.0,*]"
+    steps:
+    - type: sql
+      sql: ''
+      result:
+        set_value: failed_scheduler_tenant_id
+        verify: '[ -z "${failed_scheduler_tenant_id}" ]'
+        err_msg: "The collection of statistical information related to tenants has issues.. Please check the tenant_ids: #{failed_scheduler_tenant_id}"

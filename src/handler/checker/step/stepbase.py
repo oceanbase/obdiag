@@ -18,6 +18,7 @@
 
 from src.handler.checker.check_exception import StepResultFailException, StepExecuteFailException, ResultFalseException, ResultFailException, StepResultFalseException
 from src.handler.checker.step.data_size import DataSizeHandler
+from src.handler.checker.step.get_obproxy_parameter import GetObproxyParameterHandler
 from src.handler.checker.step.get_system_parameter import GetSystemParameterHandler
 from src.handler.checker.result.result import CheckResult
 from src.handler.checker.step.local_ssh import StepLocalHandler
@@ -61,6 +62,8 @@ class StepBase(object):
                 handler = DataSizeHandler(self.context, self.step, self.cluster, self.task_variable_dict)
             elif self.step["type"] == "local_ssh":
                 handler = StepLocalHandler(self.context, self.step, self.cluster, self.task_variable_dict)
+            elif self.step["type"] == "get_obproxy_parameter":
+                handler = GetObproxyParameterHandler(self.context, self.step, task_variable_dict=self.task_variable_dict)
             else:
                 raise StepExecuteFailException("the type not support: {0}".format(self.step["type"]))
             self.stdio.verbose("task execute and result")
