@@ -1,10 +1,10 @@
-info: 'Check obproxy '
+info: 'Check obproxy request_buffer_length'
 task:
-  - version: "[4.2.0.0,*]"
+  - version: "[4.0.0,*]"
     steps:
-    - type: sql
-      sql: ''
+    - type: get_obproxy_parameter
+      parameter: 'request_buffer_length'
       result:
-        set_value: failed_scheduler_tenant_id
-        verify: '[ -z "${failed_scheduler_tenant_id}" ]'
-        err_msg: "The collection of statistical information related to tenants has issues.. Please check the tenant_ids: #{failed_scheduler_tenant_id}"
+        set_value: request_buffer_length
+        verify: '[[ $request_buffer_length == "4KB" ]]'
+        err_msg: "obproxy's  parameter request_buffer_length is #{request_buffer_length}, not 4KB"

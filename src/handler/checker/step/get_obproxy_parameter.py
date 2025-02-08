@@ -51,16 +51,20 @@ class GetObproxyParameterHandler:
         self.step = step
 
     def execute(self):
+        # check the ob_connector is based on the obproxy
         try:
-            # check the ob_connector is based on the obproxy
-
+            self.ob_connector.execute_sql("show proxyconfig")
+            self.enable_fast_dump = True
+        except Exception as e:
+            raise StepExecuteFailException("ob_connector is not based on the obproxy. Please check the OBCLUSTER conf, the db_host, db_port must belong to obproxy. Exception : {0} .".format(e))
+        try:
             if "parameter" not in self.step:
                 raise StepExecuteFailException("GetObproxyParameterHandler parameter is not set")
             parameter = StringUtils.build_str_on_expr_by_dict(self.step["parameter"], self.task_variable_dict)
 
             sql = "show proxyconfig like '{0}';".format(parameter)
             self.stdio.verbose("GetObproxyParameterHandler execute: {0}".format(sql))
-            data = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+            data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             self.stdio.verbose("parameter result:{0}".format(data))
             if data is None or len(data) == 0:
                 data = ""
