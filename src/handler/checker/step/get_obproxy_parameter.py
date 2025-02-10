@@ -17,7 +17,6 @@
 """
 
 from src.handler.checker.check_exception import StepExecuteFailException
-from src.handler.checker.check_report import TaskReport
 from src.common.tool import Util, StringUtils
 
 
@@ -40,21 +39,12 @@ class GetObproxyParameterHandler:
             self.stdio.error("GetObproxyParameterHandler init fail. Please check the OBCLUSTER conf. Exception : {0} .".format(e))
             raise Exception("GetObproxyParameterHandler init fail. Please check the OBCLUSTER conf. Exception : {0} .".format(e))
         self.task_variable_dict = task_variable_dict
-        self.enable_dump_db = False
-        self.trace_id = None
-        self.STAT_NAME = {}
-        self.report_file_path = ""
-        self.enable_fast_dump = False
-        self.ob_major_version = None
-        self.sql_audit_name = "gv$sql_audit"
-        self.plan_explain_name = "gv$plan_cache_plan_explain"
         self.step = step
 
     def execute(self):
         # check the ob_connector is based on the obproxy
         try:
             self.ob_connector.execute_sql("show proxyconfig")
-            self.enable_fast_dump = True
         except Exception as e:
             raise StepExecuteFailException("ob_connector is not based on the obproxy. Please check the OBCLUSTER conf, the db_host, db_port must belong to obproxy. Exception : {0} .".format(e))
         try:
