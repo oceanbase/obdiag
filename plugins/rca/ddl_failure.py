@@ -65,15 +65,15 @@ class DDLFailureScene(RcaScene):
         try:
             self.tenant_id = int(self.tenant_id)
         except Exception as e:
-            raise RCAInitException("tenant_id is not a valid number, please check the input parameters")
+            raise RCAInitException("tenant_id is not a valid number, please check the env")
         try:
             self.table_id = int(self.table_id)
         except Exception as e:
-            raise RCAInitException("table_id is not a valid number, please check the input parameters")
+            raise RCAInitException("table_id is not a valid number, please check the env")
         try:
             self.tablet_id = int(self.tablet_id)
         except Exception as e:
-            raise RCAInitException("tablet_id is not a valid number, please check the input parameters")
+            raise RCAInitException("tablet_id is not a valid number, please check the env")
 
         # get table_id from tablet_id if tablet_id is not given
         if self.table_id is None or self.table_id <= 0:
