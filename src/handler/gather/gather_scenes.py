@@ -120,12 +120,12 @@ class GatherSceneHandler(SafeStdio):
         try:
             self.stdio.verbose("execute tasks is {0}".format(task_name))
             task = task_data["module"]
-            task.init(self.context, task_name, self.report_path)
+            task.init(self.context, task_name, self.report_path, self.variables, self.env)
             self.stdio.verbose("{0} execute!".format(task_name))
             task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))
         except Exception as e:
-            self.stdio.error("__execute_code_task_one Exception : {0}".format(e))
+            self.stdio.exception("__execute_code_task_one Exception : {0}".format(e))
 
     def __init_task_names(self):
         if self.scene:
