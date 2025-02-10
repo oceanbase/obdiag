@@ -89,7 +89,7 @@ class TransactionOtherErrorScene(RcaScene):
                 return
             EASY_SLOW_nu = 0
             for log_name in logs_name:
-                log_content = open(os.path.join(work_path_EASY_SLOW, log_name), "r").readlines()
+                log_content = open(log_name, "r").readlines()
                 EASY_SLOW_nu += len(log_content)
                 if EASY_SLOW_nu >= 1000:
                     self.record.add_record("EASY SLOW log number over 1000".format(EASY_SLOW_nu))
