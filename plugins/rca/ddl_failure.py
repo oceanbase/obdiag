@@ -25,6 +25,8 @@ from src.common.tool import StringUtils
 class DDLFailureScene(RcaScene):
     def __init__(self):
         super().__init__()
+        self.tablet_id = None
+        self.tenant_id = None
         self.work_path = None
         self.index_table_id = None
         self.estimated_size = None
@@ -54,12 +56,25 @@ class DDLFailureScene(RcaScene):
         self.work_path = context.get_variable('store_dir')
         if not os.path.exists(self.work_path):
             os.makedirs(self.work_path)
-        result = RCA_ResultRecord()
+        result = RCA_ResultRecord(stdio=self.stdio)
         # get target info from input parameters
         self.tenant_id = self.input_parameters.get("tenant_id")
         self.table_id = self.input_parameters.get("table_id")
         self.tablet_id = self.input_parameters.get("tablet_id")
         result.add_record("input parameters: tenant_id: {0}, table_id: {1}, tablet_id: {2}".format(self.tenant_id, self.table_id, self.tablet_id))
+        try:
+            self.tenant_id = int(self.tenant_id)
+        except Exception as e:
+            raise RCAInitException("tenant_id is not a valid number, please check the input parameters")
+        try:
+            self.table_id = int(self.table_id)
+        except Exception as e:
+            raise RCAInitException("table_id is not a valid number, please check the input parameters")
+        try:
+            self.tablet_id = int(self.tablet_id)
+        except Exception as e:
+            raise RCAInitException("tablet_id is not a valid number, please check the input parameters")
+
         # get table_id from tablet_id if tablet_id is not given
         if self.table_id is None or self.table_id <= 0:
             if self.tablet_id is None or self.tablet_id <= 0:
