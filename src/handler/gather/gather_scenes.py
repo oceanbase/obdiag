@@ -18,7 +18,6 @@
 
 import os
 import re
-import traceback
 from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
 import datetime
