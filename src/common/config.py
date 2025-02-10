@@ -35,7 +35,7 @@ if os.path.exists(inner_config_release_path):
     INNER_CONFIG_PATH = inner_config_release_path
 else:
     INNER_CONFIG_PATH = inner_config_dev_path
-INNER_CONFIG_FILE = INNER_CONFIG_PATH + "inner_config.yml"
+INNER_CONFIG_FILE = os.path.join(INNER_CONFIG_PATH, "inner_config.yml")
 
 DEFAULT_CONFIG_DATA = '''
 obcluster:
