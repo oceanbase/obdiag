@@ -29,12 +29,13 @@ if getattr(sys, 'frozen', False):
     absPath = os.path.dirname(os.path.abspath(sys.executable))
 else:
     absPath = os.path.dirname(os.path.abspath(__file__))
-inner_config_release_path = os.path.join(absPath, "conf/inner_config.yml")
-inner_config_dev_path = os.path.join(absPath, "../../conf/inner_config.yml")
+inner_config_release_path = os.path.join(absPath, "conf/")
+inner_config_dev_path = os.path.join(absPath, "../../conf/")
 if os.path.exists(inner_config_release_path):
-    INNER_CONFIG_FILE = inner_config_release_path
+    INNER_CONFIG_PATH = inner_config_release_path
 else:
-    INNER_CONFIG_FILE = inner_config_dev_path
+    INNER_CONFIG_PATH = inner_config_dev_path
+INNER_CONFIG_FILE = os.path.join(INNER_CONFIG_PATH, "inner_config.yml")
 
 DEFAULT_CONFIG_DATA = '''
 obcluster:
@@ -121,20 +122,20 @@ class Manager(SafeStdio):
 
     def load_config(self):
         try:
-            with open(self.path, 'r') as file:
+            with open(INNER_CONFIG_FILE, 'r') as file:
                 return yaml.safe_load(file)
         except FileNotFoundError:
-            self.stdio.exception(f"Configuration file '{self.path}' not found.")
+            self.stdio.exception(f"Configuration file '{INNER_CONFIG_FILE}' not found.")
         except yaml.YAMLError as exc:
             self.stdio.exception(f"Error parsing YAML file: {exc}")
 
     def load_config_with_defaults(self, defaults_dict):
         default_config = defaultdict(lambda: None, defaults_dict)
         try:
-            with open(self.path, 'r') as stream:
+            with open(INNER_CONFIG_FILE, 'r') as stream:
                 loaded_config = yaml.safe_load(stream)
         except FileNotFoundError:
-            self.stdio.exception(f"Configuration file '{self.path}' not found.")
+            self.stdio.exception(f"Configuration file '{INNER_CONFIG_FILE}' not found.")
             return default_config
         except yaml.YAMLError as exc:
             self.stdio.exception(f"Error parsing YAML file: {exc}")
@@ -312,7 +313,7 @@ class InnerConfigManager(Manager):
     def __init__(self, stdio=None, inner_config_change_map=None):
         if inner_config_change_map is None:
             inner_config_change_map = {}
-        inner_config_abs_path = os.path.abspath(INNER_CONFIG_FILE)
+        inner_config_abs_path = os.path.abspath(INNER_CONFIG_PATH)
         super().__init__(inner_config_abs_path, stdio=stdio)
         self.config = self.load_config_with_defaults(DEFAULT_INNER_CONFIG)
         if inner_config_change_map != {}:
