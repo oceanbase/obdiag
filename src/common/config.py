@@ -24,14 +24,14 @@ import pathlib
 import sys
 from collections import defaultdict
 
+
 if getattr(sys, 'frozen', False):
     absPath = os.path.dirname(os.path.abspath(sys.executable))
 else:
     absPath = os.path.dirname(os.path.abspath(__file__))
 inner_config_release_path = os.path.join(absPath, "conf/")
 inner_config_dev_path = os.path.join(absPath, "../../conf/")
-# check if the inner_config.yml exists
-if os.path.exists(os.path.join(inner_config_release_path, "inner_config.yml")):
+if os.path.exists(inner_config_release_path):
     INNER_CONFIG_PATH = inner_config_release_path
 else:
     INNER_CONFIG_PATH = inner_config_dev_path
@@ -106,6 +106,7 @@ DEFAULT_INNER_CONFIG = {
 
 
 class Manager(SafeStdio):
+
     RELATIVE_PATH = ''
 
     def __init__(self, home_path, stdio=None):
