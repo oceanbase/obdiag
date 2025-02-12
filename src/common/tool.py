@@ -351,8 +351,6 @@ class DirectoryUtil(object):
     def mkdir(path, mode=0o755, stdio=None):
         stdio and getattr(stdio, 'verbose', print)('mkdir %s' % path)
         try:
-            if os.path.exists(path):
-                return True
             os.makedirs(path, mode=mode)
             return True
         except OSError as e:
