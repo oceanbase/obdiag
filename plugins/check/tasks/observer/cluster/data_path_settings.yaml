@@ -3,7 +3,7 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: ssh
-      ssh: 'find #{remote_data_dir} -name "sstable"'
+      ssh: 'find #{remote_data_dir}/ -name "sstable"'
       result:
         set_value: data_dir_path
         verify: '[ -n "${data_dir_path}" ]'

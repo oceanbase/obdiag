@@ -6,6 +6,14 @@ task:
       sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="#{remote_ip}" ;'
       result:
         set_value: network_name
+    # for k8s
+    - type: ssh
+      ssh: "ethtool #{network_name} 2>/dev/null| grep Speed"
+      result:
+        set_value: network_speed
+        verify: '[[ ! -z  "$network_speed" ]]'
+        #report_type: warning
+        err_msg: "network_speed is null , can not get real speed"
     - type: ssh
       ssh: "ethtool #{network_name} 2>/dev/null| grep Speed"
       result:

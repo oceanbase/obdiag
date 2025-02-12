@@ -10,7 +10,7 @@ task:
         verify: '[ -n "${log_dir_path}" ]'
         err_msg: "log_dir_path is null . Please check your nodes.redo_dir need absolute Path"
     - type: ssh
-      ssh: "find #{log_dir_path} -type f -name '*[^0-9]*'  ! -name  '*.tmp' ! -name '*.flashback' ! -name 'meta'"
+      ssh: "find #{log_dir_path}/ -type f -name '*[^0-9]*'  ! -name  '*.tmp' ! -name '*.flashback' ! -name 'meta'"
       result:
         set_value: files
         verify: '[ -z "${files}" ]'

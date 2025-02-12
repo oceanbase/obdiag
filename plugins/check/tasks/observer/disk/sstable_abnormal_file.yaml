@@ -4,13 +4,13 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: ssh
-      ssh: 'find #{remote_data_dir} -name "sstable"'
+      ssh: 'find #{remote_data_dir}/ -name "sstable"'
       result:
         set_value: sstable_dir_path
         verify: '[ -n "${sstable_dir_path}" ]'
         err_msg: "sstable_dir_path is null . Please check your nodes.data_dir need absolute Path"
     - type: ssh
-      ssh: "find #{sstable_dir_path} -type f ! -name block_file"
+      ssh: "find #{sstable_dir_path}/ -type f ! -name block_file"
       result:
         set_value: files
         verify: '[ -z "${files}" ]'
