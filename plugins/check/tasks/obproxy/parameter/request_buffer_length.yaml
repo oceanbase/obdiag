@@ -1,0 +1,10 @@
+info: 'Check obproxy request_buffer_length'
+task:
+  - version: "[4.0.0,*]"
+    steps:
+    - type: get_obproxy_parameter
+      parameter: 'request_buffer_length'
+      result:
+        set_value: request_buffer_length
+        verify: '[[ $request_buffer_length == "4KB" ]]'
+        err_msg: "obproxy's  parameter request_buffer_length is #{request_buffer_length}, not 4KB"
