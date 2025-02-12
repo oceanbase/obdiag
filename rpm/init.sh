@@ -50,7 +50,7 @@ source  ${WORK_DIR}/init_obdiag_cmd.sh
 
 cd -
 output_file=${OBDIAG_HOME}/version.yaml
-version_line=$(/usr/local/oceanbase-diagnostic-tool/obdiag --version 2>&1 | grep -oP 'OceanBase Diagnostic Tool: \K[\d.]+')
+version_line=$(/opt/oceanbase-diagnostic-tool/obdiag --version 2>&1 | grep -oP 'OceanBase Diagnostic Tool: \K[\d.]+')
 if [ -n "$version_line" ]; then
     content="obdiag_version: \"$version_line\""
 
