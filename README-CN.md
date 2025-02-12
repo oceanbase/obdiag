@@ -37,7 +37,7 @@ OceanBase Diagnostic Tool (obdiag) 是一款专门为OceanBase打造的敏捷诊
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://mirrors.aliyun.com/oceanbase/OceanBase.repo
 sudo yum install -y oceanbase-diagnostic-tool
-sh /usr/local/oceanbase-diagnostic-tool/init.sh
+sh /opt/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## 方式二：源码安装
