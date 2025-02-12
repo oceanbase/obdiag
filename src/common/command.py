@@ -167,7 +167,7 @@ def delete_empty_file(ssh_client, dir):
     delete empty folder
     :return:
     """
-    cmd = "find  {dir} -name '*' -type f -size 0c | xargs -n 1 rm -f".format(dir=dir)
+    cmd = "find  {dir}/ -name '*' -type f -size 0c | xargs -n 1 rm -f".format(dir=dir)
     ssh_client.exec_cmd(cmd)
 
 

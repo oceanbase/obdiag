@@ -589,11 +589,11 @@ class SshClient(SafeStdio):
 
     def _client_put_dir(self, local_dir, remote_dir, stdio=None):
         has_failed = False
-        ret = LocalClient.execute_command('find -L %s -type f' % local_dir)
+        ret = LocalClient.execute_command('find -L %s/ -type f' % local_dir)
         if not ret:
             has_failed = True
         all_files = ret.stdout.strip().split('\n') if ret.stdout else []
-        ret = LocalClient.execute_command('find %s -type d' % local_dir)
+        ret = LocalClient.execute_command('find %s/ -type d' % local_dir)
         if not ret:
             has_failed = True
         all_dirs = ret.stdout.strip().split('\n') if ret.stdout else []
@@ -706,12 +706,12 @@ class SshClient(SafeStdio):
         has_failed = False
         if DirectoryUtil.mkdir(local_dir, stdio=stdio):
             try:
-                ret = self.execute_command('find %s -type f' % remote_dir)
+                ret = self.execute_command('find %s/ -type f' % remote_dir)
                 if not ret:
                     stdio.verbose(ret.stderr)
                     has_failed = True
                 all_files = ret.stdout.strip().split('\n') if ret.stdout else []
-                ret = self.execute_command('find %s -type d' % remote_dir)
+                ret = self.execute_command('find %s/ -type d' % remote_dir)
                 if not ret:
                     has_failed = True
                 all_dirs = ret.stdout.strip().split('\n') if ret.stdout else []

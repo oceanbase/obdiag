@@ -2,19 +2,19 @@ info: 'To detect dependent software, refer to: https://www.oceanbase.com/docs/en
 task:
   - steps:
     - type: ssh
-      ssh: 'systemctl is-active --quiet firewalld  && echo "Running" || echo "Not Running"'
+      ssh: 'ps aux | grep firewalld | grep -v grep'
       result:
         set_value: firewalld_switch
         report_type: warning
-        verify: '[ "Not Running" == "${firewalld_switch}" ]'
-        err_msg: 'firewalld is #{firewalld_switch} ,It is recommended to disable firewalld or add allow rules for each service in the OceanBase cluster to avoid firewall interception.'
+        verify: '[ -z "${firewalld_switch}" ]'
+        err_msg: 'firewalld is running ,It is recommended to disable firewalld or add allow rules for each service in the OceanBase cluster to avoid firewall interception.'
     - type: ssh
-      ssh: 'systemctl is-active --quiet crond  && echo "Running" || echo "Not Running"'
+      ssh: 'ps aux | grep crond | grep -v grep'
       result:
         set_value: crond_switch
         report_type: warning
-        verify: '[ "Running" == "${crond_switch}" ]'
-        err_msg: 'crond is #{crond_switch}.It is recommended to enable it, mainly for setting up scheduled tasks and providing related operation and maintenance capabilities.'
+        verify: '[ ! -z "${crond_switch}" ]'
+        err_msg: 'crond is not running.It is recommended to enable it, mainly for setting up scheduled tasks and providing related operation and maintenance capabilities.'
     - type: ssh
       ssh: 'cat /sys/kernel/mm/transparent_hugepage/enabled |grep "[never]"'
       result:
