@@ -37,7 +37,7 @@ You can install obdiag by using these methods:
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://mirrors.aliyun.com/oceanbase/OceanBase.repo
 sudo yum install -y oceanbase-diagnostic-tool
-sh /usr/local/oceanbase-diagnostic-tool/init.sh
+sh /opt/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## Method 2: Install obdiag by using the source code
