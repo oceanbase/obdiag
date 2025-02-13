@@ -21,7 +21,7 @@ import datetime
 
 import tabulate
 
-from src.common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force
+from src.common.command import get_observer_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force, is_empty_dir, is_empty_file
 from src.common.command import SshClient
 from src.common.constant import const
 from src.handler.base_shell_handler import BaseShellHandler
@@ -174,6 +174,7 @@ class GatherPerfHandler(BaseShellHandler):
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
+            self.is_ready(ssh_client, os.path.join(gather_path, 'sample.viz'))
             self.stdio.stop_loading('gather perf sample')
         except:
             self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
@@ -199,6 +200,7 @@ class GatherPerfHandler(BaseShellHandler):
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
+            self.is_ready(ssh_client, os.path.join(gather_path, 'flame.viz'))
             self.stdio.stop_loading('gather perf flame')
         except:
             self.stdio.error("generate perf data on server [{0}] failed".format(ssh_client.get_name()))
@@ -210,6 +212,17 @@ class GatherPerfHandler(BaseShellHandler):
             ssh_client.exec_cmd(cmd)
         except:
             self.stdio.error("gather top on server failed [{0}]".format(ssh_client.get_name()))
+
+    @Util.retry(3, 5)
+    def is_ready(self, ssh_client, remote_path):
+        try:
+            self.stdio.verbose("check whether the file {remote_path} is empty".format(remote_path=remote_path))
+            is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
+            if is_empty_file_res:
+                self.stdio.warn("The server {host_ip} directory {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
+                raise
+        except Exception as e:
+            raise e
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
