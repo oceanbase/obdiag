@@ -219,9 +219,7 @@ class GatherPerfHandler(BaseShellHandler):
             self.stdio.verbose("check whether the file {remote_path} is empty".format(remote_path=remote_path))
             is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
             if is_empty_file_res:
-                self.stdio.warn(
-                    "The server {host_ip} directory {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path)
-                )
+                self.stdio.warn("The server {host_ip} directory {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
                 raise
         except Exception as e:
             raise e
