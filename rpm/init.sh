@@ -35,7 +35,7 @@ mkdir -p ${OBDIAG_HOME}/display
 # Clean rca old *scene.py files
 find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} + 2>/dev/null
 
-cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
+\cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
 
 bashrc_file=~/.bashrc
 if [ -e "$bashrc_file" ]; then
