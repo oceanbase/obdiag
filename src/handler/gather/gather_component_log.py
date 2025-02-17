@@ -22,6 +22,7 @@ import threading
 import traceback
 import uuid
 import shutil
+import subprocess
 
 from prettytable import PrettyTable
 from src.common.command import get_file_start_time, get_file_size, is_empty_dir
@@ -595,12 +596,28 @@ class GatherLogOnNode:
         return log_name_list
 
     def __get_observer_pid(self, node):
-        pid_file_path = os.path.join(node.get("home_path"), 'run', 'observer.pid')
+        home_path = node.get("home_path")
+        pid_file_path = os.path.join(home_path, 'run', 'observer.pid')
         try:
             with open(pid_file_path, 'r') as file:
                 first_line = file.readline().strip()
                 return first_line
         except FileNotFoundError:
-            self.stdio.exception(f"Error: The file {pid_file_path} does not exist.")
+            self.stdio.warning(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
         except Exception as e:
             self.stdio.exception(f"An error occurred: {e}")
+
+        try:
+            result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE)
+            processes = result.stdout.decode().splitlines()
+            observer_processes = [p for p in processes if f"{home_path}/bin/observer" in p and 'grep' not in p]
+
+            if observer_processes:
+                pid = observer_processes[0].split()[1]
+                return pid
+            else:
+                self.stdio.warning("No observer process found at the specified path.")
+                return None
+        except Exception as e:
+            self.stdio.exception(f"An error occurred while trying to find the observer process: {e}")
+            return None
