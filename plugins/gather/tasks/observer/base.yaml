@@ -64,5 +64,5 @@ task:
         sql: "show parameters"
         global: true
       - type: sql
-        sql: "show variables"
+        sql: "select * from oceanbase.__all_virtual_sys_variable"
         global: true
