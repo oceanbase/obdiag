@@ -99,15 +99,23 @@ class GatherPerfHandler(BaseShellHandler):
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
+        exec_tag = False
         if self.is_ssh:
             for node in self.nodes:
+                if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
+                    self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
+                    continue
                 handle_from_node(node)
+                exec_tag = True
         else:
             local_ip = NetUtils.get_inner_ip(self.stdio)
             node = self.nodes[0]
             node["ip"] = local_ip
             for node in self.nodes:
                 handle_from_node(node)
+        if not exec_tag:
+            self.stdio.verbose("No node to gather from, skip")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
