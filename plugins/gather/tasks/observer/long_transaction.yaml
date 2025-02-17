@@ -73,10 +73,10 @@ task:
         sql: "show parameters like '%syslog_io_bandwidth_limit%';"
         global: true
       - type: sql
-        sql: "SHOW VARIABLES LIKE 'ob_trx_idle_timeout';"
+        sql: "select * from oceanbase.__all_virtual_sys_variable where name like  'ob_trx_idle_timeout';"
         global: true
       - type: sql
-        sql: "SHOW VARIABLES LIKE 'ob_trx_timeout';"
+        sql: "select * from oceanbase.__all_virtual_sys_variable where name like  'ob_trx_timeout';"
         global: true
       - type: sql
         sql: "select * from oceanbase.gv$ob_transaction_participants limit 100"
