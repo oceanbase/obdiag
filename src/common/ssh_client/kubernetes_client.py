@@ -118,7 +118,7 @@ class KubernetesClient(SsherClient):
             command = ["tar", "xvf", "-", "-C", dest_dir]
             ws_client = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False)
 
-            # send tar_data to pod 
+            # send tar_data to pod
             chunk_size = 4096
             for i in range(0, len(tar_data), chunk_size):
                 chunk = tar_data[i : i + chunk_size]
