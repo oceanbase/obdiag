@@ -1,22 +1,24 @@
 
 info: "check obcluster max_syslog_file_count is 0 or over 100"
 task:
-  - type: sql
-    sql: "select * FROM oceanbase.GV$OB_PARAMETERS where name=\"max_syslog_file_count\" and SVR_IP=#{svr_ip};"
-    result:
-      set_value: ob_max_syslog_file_count
-      verify: '[ $ob_max_syslog_file_count -eq 0 ] || [ $ob_max_syslog_file_count -ge 100 ]'
-      err_msg: "node: #{svr_ip} max_syslog_file_count is not 0 or over 100, obcluster max_syslog_file_count: #{ob_max_syslog_file_count}"
-  - type: ssh
-    ssh: "df #{home_path}/log | awk 'NR==2{print $4*0.8}'"
-    result:
-      set_value: disk_free_space_KB
-  - type: ssh
-    ssh: "find #{home_path}/log/ -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print (100-$1) * 256 * 1024}' "
-    result:
-      set_value: log_dir_need_space
-      verify: '[ $disk_free_space_KB -gt $log_dir_need_space ]'
-      err_msg: "disk_free_space_KB < log_dir_need_space. disk_free_space_KB:#{disk_free_space_KB}KB, log_dir_need_space:#{log_dir_need_space}KB"
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "select * FROM oceanbase.GV$OB_PARAMETERS where name=\"max_syslog_file_count\" and SVR_IP=#{svr_ip};"
+      result:
+        set_value: ob_max_syslog_file_count
+        verify: '[ $ob_max_syslog_file_count -eq 0 ] || [ $ob_max_syslog_file_count -ge 100 ]'
+        err_msg: "node: #{svr_ip} max_syslog_file_count is not 0 or over 100, obcluster max_syslog_file_count: #{ob_max_syslog_file_count}"
+    - type: ssh
+      ssh: "df #{home_path}/log | awk 'NR==2{print $4*0.8}'"
+      result:
+        set_value: disk_free_space_KB
+    - type: ssh
+      ssh: "find #{home_path}/log/ -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print (100-$1) * 256 * 1024}' "
+      result:
+        set_value: log_dir_need_space
+        verify: '[ $disk_free_space_KB -gt $log_dir_need_space ]'
+        err_msg: "disk_free_space_KB < log_dir_need_space. disk_free_space_KB:#{disk_free_space_KB}KB, log_dir_need_space:#{log_dir_need_space}KB"
 
 
 
