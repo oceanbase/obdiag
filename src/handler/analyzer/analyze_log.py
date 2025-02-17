@@ -397,6 +397,8 @@ class AnalyzeLogHandler(BaseShellHandler):
                     ret_code = self.__get_observer_ret_code(line)
                     if len(ret_code) > 1:
                         trace_id = self.__get_trace_id(line)
+                        if trace_id is None:
+                            continue
                         if error_dict.get(ret_code) is None:
                             error_dict[ret_code] = {"file_name": file_full_path, "count": 1, "first_found_time": line_time, "last_found_time": line_time, "trace_id_list": {trace_id} if len(trace_id) > 0 else {}}
                         else:

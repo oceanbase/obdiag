@@ -1,31 +1,33 @@
 
 info: "check log_dir free space is over the size of 100 file"
 task:
-  - type: ssh
-    ssh: "echo \"/home/admin/ocp_agent/conf/config_properties/ob_logcleaner.yaml\" "
-    result:
-      set_value: ob_logcleaner_file_path
-      verify: '[ ! -e "${ob_logcleaner_file_path}" ]'
-      report_type: execution
-      err_msg: "[not warning] ob_logcleaner.yaml is exist . This node is not deployed by ocp."
-  - type: ssh
-    ssh: "echo \"/home/admin/ocp_agent/conf/config_properties/ob_logcleaner.yaml\" |grep \"ob.logcleaner.ob_log.disk.threshold\"  -A1 | grep -oE '[0-9]+'"
-    result:
-      set_value: ob_logcleaner_file_nu
-      verify: 79
-      verify_type: min
-      report_type: warning
-      err_msg: "ocp ob.logcleaner.ob_log.disk.threshold  is less 80%"
-  - type: ssh
-    ssh: "df #{home_path}/log/ | awk 'NR==2{print $4*#{ob_logcleaner_file_nu}/100}'"
-    result:
-      set_value: disk_free_space_KB
-  - type: ssh
-    ssh: "find #{home_path}/log/ -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print (100-$1) * 256 * 1024}' "
-    result:
-      set_value: log_dir_need_space
-      verify: '[ $disk_free_space_KB -gt $log_dir_need_space ]'
-      err_msg: "disk_free_space_KB < log_dir_need_space. disk_free_space_KB:#{disk_free_space_KB}KB, log_dir_need_space:#{log_dir_need_space}KB"
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: ssh
+      ssh: "echo \"/home/admin/ocp_agent/conf/config_properties/ob_logcleaner.yaml\" "
+      result:
+        set_value: ob_logcleaner_file_path
+        verify: '[ ! -e "${ob_logcleaner_file_path}" ]'
+        report_type: execution
+        err_msg: "[not warning] ob_logcleaner.yaml is exist . This node is not deployed by ocp."
+    - type: ssh
+      ssh: "echo \"/home/admin/ocp_agent/conf/config_properties/ob_logcleaner.yaml\" |grep \"ob.logcleaner.ob_log.disk.threshold\"  -A1 | grep -oE '[0-9]+'"
+      result:
+        set_value: ob_logcleaner_file_nu
+        verify: 79
+        verify_type: min
+        report_type: warning
+        err_msg: "ocp ob.logcleaner.ob_log.disk.threshold  is less 80%"
+    - type: ssh
+      ssh: "df #{home_path}/log/ | awk 'NR==2{print $4*#{ob_logcleaner_file_nu}/100}'"
+      result:
+        set_value: disk_free_space_KB
+    - type: ssh
+      ssh: "find #{home_path}/log/ -type f -name \"*.log*\" | wc -l | xargs -I {} echo {} | awk '{print (100-$1) * 256 * 1024}' "
+      result:
+        set_value: log_dir_need_space
+        verify: '[ $disk_free_space_KB -gt $log_dir_need_space ]'
+        err_msg: "disk_free_space_KB < log_dir_need_space. disk_free_space_KB:#{disk_free_space_KB}KB, log_dir_need_space:#{log_dir_need_space}KB"
 
 
 

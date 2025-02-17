@@ -15,10 +15,16 @@
 @file: kubernetes_client.py
 @desc:
 """
-
+import os
+import select
+import tarfile
+import tempfile
+from tempfile import TemporaryFile
 from src.common.ssh_client.base import SsherClient
 from kubernetes import client, config
 from kubernetes.stream import stream
+from kubernetes.stream.ws_client import STDERR_CHANNEL, STDOUT_CHANNEL
+from websocket import ABNF
 
 
 class KubernetesClient(SsherClient):
@@ -49,57 +55,98 @@ class KubernetesClient(SsherClient):
                 return "KubernetesClient can't get the resp by {0}".format(cmd)
             return resp
         except Exception as e:
-            return f"KubernetesClient can't get the resp by {cmd}: {str(e)}"
+            self.stdio.error("KubernetesClient can't get the resp by {0}: {1}".format(cmd, e))
+            raise e
 
     def download(self, remote_path, local_path):
         return self.__download_file_from_pod(self.namespace, self.pod_name, self.container_name, remote_path, local_path)
 
     def __download_file_from_pod(self, namespace, pod_name, container_name, file_path, local_path):
-        exec_command = ['tar', 'cf', '-', '-C', '/', file_path]
-        resp = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=container_name, _preload_content=False)
-        with open(local_path, 'wb') as file:
-            while resp.is_open():
-                resp.update(timeout=1)
-                if resp.peek_stdout():
-                    out = resp.read_stdout()
-                    file.write(out.encode('utf-8'))
-                if resp.peek_stderr():
-                    err = resp.read_stderr()
-                    self.stdio.error("ERROR: ", err)
-                    break
-            resp.close()
+        dir = os.path.dirname(file_path)
+        bname = os.path.basename(file_path)
+        exec_command = ['/bin/sh', '-c', f'cd {dir}; tar cf - {bname}']
+
+        with TemporaryFile() as tar_buffer:
+            exec_stream = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False)
+            # Copy file to stream
+            try:
+                reader = WSFileManager(exec_stream)
+                while True:
+                    out, err, closed = reader.read_bytes()
+                    if out:
+                        tar_buffer.write(out)
+                    elif err:
+                        self.stdio.error("Error copying file {0}".format(err.decode("utf-8", "replace")))
+                    if closed:
+                        break
+                exec_stream.close()
+                tar_buffer.flush()
+                tar_buffer.seek(0)
+                with tarfile.open(fileobj=tar_buffer, mode='r:') as tar:
+                    member = tar.getmember(bname)
+                    local_path = os.path.dirname(local_path)
+                    tar.extract(member, path=local_path)
+                return True
+            except Exception as e:
+                raise e
 
     def upload(self, remote_path, local_path):
         return self.__upload_file_to_pod(self.namespace, self.pod_name, self.container_name, local_path, remote_path)
 
     def __upload_file_to_pod(self, namespace, pod_name, container_name, local_path, remote_path):
-        config.load_kube_config()
-        v1 = client.CoreV1Api()
-        exec_command = ['tar', 'xvf', '-', '-C', '/', remote_path]
-        with open(local_path, 'rb') as file:
-            resp = stream(v1.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, container=container_name, _preload_content=False)
-            # Support data flow for tar command
-            commands = []
-            commands.append(file.read())
-            while resp.is_open():
-                resp.update(timeout=1)
-                if resp.peek_stdout():
-                    self.stdio.verbose("STDOUT: %s" % resp.read_stdout())
-                if resp.peek_stderr():
-                    self.stdio.error("STDERR: %s" % resp.read_stderr())
-                if commands:
-                    c = commands.pop(0)
-                    resp.write_stdin(c)
-                else:
-                    break
-            resp.close()
+        self.stdio.verbose("upload file to pod")
+        self.stdio.verbose("local_path: {0}".format(local_path))
+        remote_path_file_name = os.path.basename(remote_path)
+        remote_path = "{0}/".format(os.path.dirname(remote_path))
+        self.stdio.verbose("remote_path: {0}".format(remote_path))
+        src_path = local_path
+        dest_dir = remote_path
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_tar:
+            with tarfile.open(fileobj=temp_tar, mode='w') as tar:
+                arcname = os.path.basename(src_path)
+                tar.add(src_path, arcname=arcname)
+            temp_tar_path = temp_tar.name
+        self.stdio.verbose(temp_tar_path)
+
+        try:
+            # read tar_data from file
+            with open(temp_tar_path, 'rb') as f:
+                tar_data = f.read()
+
+            # execute tar command in pod
+            command = ["tar", "xvf", "-", "-C", dest_dir]
+            ws_client = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False)
+
+            # send tar_data to pod
+            chunk_size = 4096
+            for i in range(0, len(tar_data), chunk_size):
+                chunk = tar_data[i : i + chunk_size]
+                ws_client.write_stdin(chunk)
+
+            # 关闭输入流并等待完成
+            # ws_client.write_stdin(None)  # 发送EOF
+            while ws_client.is_open():
+                ws_client.update(timeout=1)
+
+            # 获取错误输出
+            stderr = ws_client.read_channel(2)  # STDERR_CHANNEL=2
+            if stderr:
+                raise RuntimeError(f"Pod执行错误: {stderr.decode('utf-8')}")
+            ws_client.close()
+        finally:
+            os.remove(temp_tar_path)
+
+        if remote_path_file_name != os.path.basename(local_path):
+            self.stdio.verbose("move")
+            self.exec_cmd("mv {0}/{1} {0}/{2}".format(remote_path, os.path.basename(local_path), remote_path_file_name))
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         return self.__ssh_invoke_shell_switch_user(new_user, cmd, time_out)
 
     def __ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
         command = ['/bin/sh', '-c', cmd]
-        # 构建执行tar命令串，该命令串在切换用户后执行
+        # exec comm
         exec_command = ['su', '-u', new_user, "&"] + command
         resp = stream(self.client.connect_get_namespaced_pod_exec, self.pod_name, self.namespace, command=exec_command, stderr=True, stdin=False, stdout=True, tty=False, container=self.container_name)
         parts = resp.split('\n', maxsplit=1)
@@ -115,3 +162,47 @@ class KubernetesClient(SsherClient):
         if self.node.get("ip") is None:
             raise Exception("kubernetes need set the ip of observer")
         return self.node.get("ip")
+
+
+class WSFileManager:
+    """
+    WS wrapper to manage read and write bytes in K8s WSClient
+    """
+
+    def __init__(self, ws_client):
+        """
+
+        :param wsclient: Kubernetes WSClient
+        """
+        self.ws_client = ws_client
+
+    def read_bytes(self, timeout=0):
+        """
+        Read slice of bytes from stream
+
+        :param timeout: read timeout
+        :return: stdout, stderr and closed stream flag
+        """
+        stdout_bytes = None
+        stderr_bytes = None
+
+        if self.ws_client.is_open():
+            if not self.ws_client.sock.connected:
+                self.ws_client._connected = False
+            else:
+                r, _, _ = select.select((self.ws_client.sock.sock,), (), (), timeout)
+                if r:
+                    op_code, frame = self.ws_client.sock.recv_data_frame(True)
+                    if op_code == ABNF.OPCODE_CLOSE:
+                        self.ws_client._connected = False
+                    elif op_code == ABNF.OPCODE_BINARY or op_code == ABNF.OPCODE_TEXT:
+                        data = frame.data
+                        if len(data) > 1:
+                            channel = data[0]
+                            data = data[1:]
+                            if data:
+                                if channel == STDOUT_CHANNEL:
+                                    stdout_bytes = data
+                                elif channel == STDERR_CHANNEL:
+                                    stderr_bytes = data
+        return stdout_bytes, stderr_bytes, not self.ws_client._connected
