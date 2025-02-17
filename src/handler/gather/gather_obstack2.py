@@ -96,17 +96,8 @@ class GatherObstack2Handler(BaseShellHandler):
                 file_size = os.path.getsize(resp["gather_pack_path"])
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
-        exec_tag = False
         for node in self.nodes:
-            if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
-                self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
-                continue
             handle_from_node(node)
-            exec_tag = True
-        if not exec_tag:
-            self.stdio.verbose("No node to gather from, skip")
-            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
-
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
         # Persist the summary results to a file
@@ -145,6 +136,11 @@ class GatherObstack2Handler(BaseShellHandler):
             resp["gather_pack_path"] = "{0}".format(local_stored_path)
             return resp
         is_need_install_obstack = self.__is_obstack_exists(ssh_client)
+        if is_need_install_obstack and (node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes"):
+            self.stdio.verbose("This node {0} is a docker or kubernetes node. obstack2 can not be installed on it".format(node.get("ip")))
+            resp["error"] = "This node {0} is a docker or kubernetes node. obstack2 can not be installed on it".format(node.get("ip"))
+            resp["gather_pack_path"] = "{0}".format(local_stored_path)
+            return resp
         if is_need_install_obstack:
             self.stdio.verbose("There is no obstack2 on the host {0}. It needs to be installed. " "Please wait a moment ...".format(remote_ip))
             if getattr(sys, 'frozen', False):
