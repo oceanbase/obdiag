@@ -606,12 +606,12 @@ class GatherLogOnNode:
             self.stdio.warning(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
         except Exception as e:
             self.stdio.exception(f"An error occurred: {e}")
-        
+
         try:
             result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE)
             processes = result.stdout.decode().splitlines()
             observer_processes = [p for p in processes if f"{home_path}/bin/observer" in p and 'grep' not in p]
-            
+
             if observer_processes:
                 pid = observer_processes[0].split()[1]
                 return pid

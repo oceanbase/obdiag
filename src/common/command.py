@@ -335,7 +335,7 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
     :return:
     """
     pid_file_path = "{ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
-    
+
     try:
         cmd = "cat {}".format(pid_file_path)
         pids = ssh_client.exec_cmd(cmd)
@@ -350,7 +350,7 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
         cmd = "ps -ef | grep '{}/bin/observer' | grep -v grep".format(ob_install_dir)
         result = ssh_client.exec_cmd(cmd)
         processes = result.splitlines()
-        
+
         if processes:
             pid_list = [process.split()[1] for process in processes]
             stdio.verbose(f"Get observer pid using ps, run cmd = [{cmd}], result:{pid_list}")
