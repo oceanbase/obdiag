@@ -334,15 +334,33 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
     get observer pid
     :return:
     """
+    pid_file_path = "{ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
+    
     try:
-        cmd = "cat {ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
+        cmd = "cat {}".format(pid_file_path)
         pids = ssh_client.exec_cmd(cmd)
         pid_list = pids.split()
-        stdio.verbose("get observer pid, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
-    except:
-        stdio.verbose("get observer pid failed")
+        stdio.verbose("Get observer pid from file, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
+        if pid_list:
+            return pid_list
+    except Exception as e:
+        stdio.exception(f"Failed to read observer pid file {pid_file_path}, error: {e}")
+
+    try:
+        cmd = "ps -ef | grep '{}/bin/observer' | grep -v grep".format(ob_install_dir)
+        result = ssh_client.exec_cmd(cmd)
+        processes = result.splitlines()
+        
+        if processes:
+            pid_list = [process.split()[1] for process in processes]
+            stdio.verbose(f"Get observer pid using ps, run cmd = [{cmd}], result:{pid_list}")
+            return pid_list
+        else:
+            stdio.verbose("No observer process found at the specified path.")
+            return []
+    except Exception as e:
+        stdio.exception(f"Failed to execute ps command to find observer pid, error: {e}")
         return []
-    return pid_list
 
 
 def delete_file_force(ssh_client, file_name, stdio=None):
