@@ -103,7 +103,7 @@ class DDlDiskFullScene(RcaScene):
         if len(table_id_data) == 0:
             raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         elif len(table_id_data) > 1:
-            self.stdio.error("table name is {0}, tenant is {1}, database id is {2}. but find more than one table id. Please add --env database_name=.".format(table_name, tenant_name, self.database_id)+"{database_name}")
+            self.stdio.error("table name is {0}, tenant is {1}, database id is {2}. but find more than one table id. Please add --env database_name=.".format(table_name, tenant_name, self.database_id) + "{database_name}")
             return
         self.table_id = table_id_data[0][0]
         self.verbose("table_id is{0}".format(self.table_id))
