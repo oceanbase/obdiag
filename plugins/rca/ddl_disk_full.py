@@ -66,8 +66,8 @@ class DDlDiskFullScene(RcaScene):
         action_type = self.input_parameters.get("action_type")
         index_name = self.input_parameters.get("index_name")
         database_name = self.input_parameters.get("database_name")
-        if table_name is None or table_name == "" or tenant_name is None or tenant_name == "" or database_name is None or database_name == "":
-            raise RCAInitException("table_name or tenant_name or database_name is None. Please check the input parameters.")
+        if table_name is None or table_name == "" or tenant_name is None or tenant_name == "":
+            raise RCAInitException("table_name or tenant_name is None. Please check the input parameters.")
         if action_type is not None:
             if action_type == "add_index":
                 self.action_type = action_type
@@ -88,18 +88,23 @@ class DDlDiskFullScene(RcaScene):
         self.verbose("tenant_id is {0}".format(self.tenant_id))
         if self.tenant_id is None:
             raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
-
-        database_id_data = self.ob_connector.execute_sql("select database_id from oceanbase.__all_database where database_name = '{0}';".format(database_name))
-        if len(database_id_data) == 0:
-            raise RCAInitException("can not find database id by database name: {0}. Please check the table name.".format(database_name))
-        self.database_id = database_id_data[0][0]
-        self.verbose("database_id is{0}".format(self.database_id))
-        if self.database_id is None:
-            raise RCAInitException("can not find database id by tenant name: {0}. Please check the database name.".format(database_name))
-
-        table_id_data = self.ob_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}' and database_id='{2}';".format(table_name, self.tenant_id, self.database_id))
+        if database_name is not None and database_name != "":
+            database_id_data = self.ob_connector.execute_sql("select database_id from oceanbase.__all_database where database_name = '{0}';".format(database_name))
+            if len(database_id_data) == 0:
+                raise RCAInitException("can not find database id by database name: {0}. Please check the table name.".format(database_name))
+            self.database_id = database_id_data[0][0]
+            self.verbose("database_id is{0}".format(self.database_id))
+            if self.database_id is None:
+                raise RCAInitException("can not find database id by tenant name: {0}. Please check the database name.".format(database_name))
+            find_table_id_sql = "select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}' and database_id='{2}';".format(table_name, self.tenant_id, self.database_id)
+        else:
+            find_table_id_sql = "select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}';".format(table_name, self.tenant_id)
+        table_id_data = self.ob_connector.execute_sql(find_table_id_sql)
         if len(table_id_data) == 0:
             raise RCAInitException("can not find table id by table name: {0}. Please check the table name.".format(table_name))
+        elif len(table_id_data) > 1:
+            self.stdio.error("table name is {0}, tenant is {1}, database id is {2}. but find more than one table id. Please add --env database_name=.".format(table_name, tenant_name, self.database_id)+"{database_name}")
+            return
         self.table_id = table_id_data[0][0]
         self.verbose("table_id is{0}".format(self.table_id))
         if self.table_id is None:
