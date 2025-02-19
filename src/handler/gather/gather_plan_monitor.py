@@ -31,6 +31,7 @@ from src.common.tool import DirectoryUtil
 from src.common.tool import StringUtils
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
+from src.common.tool import SQLTableExtractor
 from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.common.result_type import ObdiagResult
 
@@ -279,20 +280,19 @@ class GatherPlanMonitorHandler(object):
     def report_schema(self, sql, tenant_name):
         try:
             schemas = ""
-            valid_words = []
+            parse_tables = []
             if self.enable_dump_db:
-                words = [w.strip(',') for w in ("%s" % sql).split() if not ("[" in w or "=" in w or "|" in w or "(" in w or "--" in w or "]" in w or ")" in w or "*" in w or "/" in w or "%" in w or "'" in w or "-" in w or w.isdigit())]
-                for t in words:
-                    t = t.replace('`', '')
-                    if t in valid_words:
-                        continue
-                    valid_words.append(t)
-                for t in valid_words:
+                parser = SQLTableExtractor()
+                parse_tables = parser.parse(sql)
+                for t in parse_tables:
+                    db_name, table_name = t
                     try:
-                        data = self.db_connector.execute_sql("show create table %s" % t)
                         self.context.set_variable('gather_tenant_name', tenant_name)
-                        self.context.set_variable('gather_database', self.db_conn.get("database"))
-                        self.context.set_variable('gather_table', t)
+                        if db_name:
+                            self.context.set_variable('gather_database', db_name)
+                        else:
+                            self.context.set_variable('gather_database', self.db_conn.get("database"))
+                        self.context.set_variable('gather_table', table_name)
                         self.context.set_variable('gather_user', self.db_conn.get("user"))
                         self.context.set_variable('gather_password', self.db_conn.get("password"))
                         self.context.set_variable('store_dir', self.local_stored_path)
