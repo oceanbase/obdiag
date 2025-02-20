@@ -133,7 +133,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        remote_dir_name = "sysstat_{0}_{1}".format(remote_ip, now_time)
+        remote_dir_name = "sysstat_{0}_{1}".format(remote_ip.replace(":", "_"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         ssh_client = None
