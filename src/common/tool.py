@@ -1673,3 +1673,26 @@ class SQLUtil(object):
 
     def get_db_id(self, database_alias, user_id):
         return database_alias + '-' + user_id
+
+
+class SQLTableExtractor:
+
+    def __init__(self):
+        self.pattern_db_table = re.compile(r'\b(?:FROM|JOIN|INTO|UPDATE)\s+([^\s.,;]+)(?:\.([^\s.,;]+))?', re.IGNORECASE)
+
+    def parse(self, sql):
+        """
+        Parse SQL statements and return a list containing tuples of (database name, table name).
+        If no database name is specified, the database name will be None.
+        :param sql: The SQL statement to be parsed
+        :return: A list of tuples containing (database name, table name)
+        """
+        matches = self.pattern_db_table.findall(sql)
+        results = []
+        for match in matches:
+            db_name, table_name = match
+            if not table_name:
+                table_name = db_name
+                db_name = None
+            results.append((db_name, table_name))
+        return results
