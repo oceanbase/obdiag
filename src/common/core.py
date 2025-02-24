@@ -288,38 +288,54 @@ class ObdiagHome(object):
                 handler = GatherPlanMonitorHandler(self.context)
                 return handler.handle()
             elif function_type == 'gather_all':
-                handler_sysstat = GatherOsInfoHandler(self.context)
-                handler_sysstat.handle()
-                handler_stack = GatherObstack2Handler(self.context)
-                handler_stack.handle()
-                handler_perf = GatherPerfHandler(self.context)
-                handler_perf.handle()
-                handler_observer_log = GatherComponentLogHandler()
-                handler_observer_log.init(
-                    self.context,
-                    target="observer",
-                    from_option=Util.get_option(options, 'from'),
-                    to_option=Util.get_option(options, 'to'),
-                    since=Util.get_option(options, 'since'),
-                    grep=Util.get_option(options, 'grep'),
-                    store_dir=Util.get_option(options, 'store_dir'),
-                    temp_dir=Util.get_option(options, 'temp_dir'),
-                    redact=Util.get_option(options, 'redact'),
-                )
-                handler_observer_log.handle()
-                handler_obproxy = GatherComponentLogHandler()
-                handler_obproxy.init(
-                    self.context,
-                    target="obproxy",
-                    from_option=Util.get_option(options, 'from'),
-                    to_option=Util.get_option(options, 'to'),
-                    since=Util.get_option(options, 'since'),
-                    grep=Util.get_option(options, 'grep'),
-                    store_dir=Util.get_option(options, 'store_dir'),
-                    temp_dir="/tmp",
-                    redact=Util.get_option(options, 'redact'),
-                )
-                return handler_obproxy.handle()
+                try:
+                    handler_sysstat = GatherOsInfoHandler(self.context)
+                    handler_sysstat.handle()
+                except Exception as e:
+                    self.stdio.error("gather_sysstat failed: %s", str(e))
+                try:
+                    handler_stack = GatherObstack2Handler(self.context)
+                    handler_stack.handle()
+                except Exception as e:
+                    self.stdio.error("gather_obstack failed: %s", str(e))
+                try:
+                    handler_perf = GatherPerfHandler(self.context)
+                    handler_perf.handle()
+                except Exception as e:
+                    self.stdio.error("gather_perf failed: %s", str(e))
+                try:
+                    handler_observer_log = GatherComponentLogHandler()
+                    handler_observer_log.init(
+                        self.context,
+                        target="observer",
+                        from_option=Util.get_option(options, 'from'),
+                        to_option=Util.get_option(options, 'to'),
+                        since=Util.get_option(options, 'since'),
+                        grep=Util.get_option(options, 'grep'),
+                        store_dir=Util.get_option(options, 'store_dir'),
+                        temp_dir=Util.get_option(options, 'temp_dir'),
+                        redact=Util.get_option(options, 'redact'),
+                    )
+                    handler_observer_log.handle()
+                except Exception as e:
+                    self.stdio.error("gather_observer_log failed: %s", str(e))
+                try:
+                    handler_obproxy = GatherComponentLogHandler()
+                    handler_obproxy.init(
+                        self.context,
+                        target="obproxy",
+                        from_option=Util.get_option(options, 'from'),
+                        to_option=Util.get_option(options, 'to'),
+                        since=Util.get_option(options, 'since'),
+                        grep=Util.get_option(options, 'grep'),
+                        store_dir=Util.get_option(options, 'store_dir'),
+                        temp_dir="/tmp",
+                        redact=Util.get_option(options, 'redact'),
+                    )
+                    return handler_obproxy.handle()
+                except Exception as e:
+                    self.stdio.error("gather_obproxy failed: %s", str(e))
+
             elif function_type == 'gather_sysstat':
                 handler = GatherOsInfoHandler(self.context)
                 return handler.handle()

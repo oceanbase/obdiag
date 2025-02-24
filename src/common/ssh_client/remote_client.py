@@ -16,7 +16,6 @@
 @desc:
 """
 
-
 import os
 import re
 import sys
@@ -101,6 +100,7 @@ class RemoteClient(SsherClient):
             err_text = stderr.read()
             if len(err_text):
                 output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8'))
+
                 return output_str
             # support Kerberos
             output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8'))
@@ -114,6 +114,39 @@ class RemoteClient(SsherClient):
                 output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stdout))
                 return output_str
             return ""
+        except SSHException as e:
+            raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
+
+    # add stderr
+    def exec_cmd_v2(self, cmd):
+        stdin, stdout, stderr = None, None, None
+        try:
+            if self.remote_client_sudo:
+                # check sudo without password
+                self.stdio.verbose("use remote_client_sudo")
+                stdin, stdout, stderr = self._ssh_fd.exec_command("sudo -n true")
+                if stderr or stdout.channel.recv_exit_status() > 0:
+                    raise Exception("the node {0} does not have sudo permission without password".format(self.get_name()))
+                cmd = "sudo {0}".format(cmd)
+                cmd = cmd.replace("&&", "&& sudo ")
+            self.stdio.verbose('Execute Shell command on server {0}:{1}'.format(self.host_ip, cmd))
+            stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
+            err_text = stderr.read()
+            if len(err_text):
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8'))
+                return "", output_str
+            # support Kerberos
+            output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8'))
+            return output_str, ""
+        except UnicodeDecodeError as e:
+            self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
+            stderr_output_str = ""
+            stdout_output_str = ""
+            if stderr:
+                stderr_output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stderr))
+            if stdout:
+                stdout_output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', str(stdout))
+            return stdout_output_str, stderr_output_str
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
 

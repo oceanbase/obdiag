@@ -405,7 +405,7 @@ class GatherLogOnNode:
         from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
 
-        tmp_dir = "{0}_log_{1}_{2}_{3}_{4}".format(self.target, self.ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6])
+        tmp_dir = "{0}_log_{1}_{2}_{3}_{4}".format(self.target, self.ssh_client.get_name().replace(":", "_"), from_datetime_timestamp, to_datetime_timestamp, str(uuid.uuid4())[:6])
         if self.target == "observer" and self.ssh_client.get_name() == "local":
             pid = self.__get_observer_pid(self.node)
             if pid:
@@ -440,7 +440,7 @@ class GatherLogOnNode:
             tar_file = os.path.join(self.tmp_dir, "{0}.tar.gz".format(tmp_log_dir))
             tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_dir)
             self.stdio.verbose("gather_log_on_node {0} tar_cmd: {1}".format(self.ssh_client.get_ip(), tar_cmd))
-            self.ssh_client.exec_cmd(tar_cmd)
+            self.stdio.verbose("gather_log_on_node {0} tar request:{1}".format(self.ssh_client.get_ip(), self.ssh_client.exec_cmd(tar_cmd)))
 
             # download log to local store_dir
             tar_file_size = int(get_file_size(self.ssh_client, tar_file))

@@ -22,12 +22,11 @@ import datetime
 import tabulate
 from src.common.constant import const
 from src.common.command import SshClient
-from src.common.command import get_file_size, download_file, mkdir, zip_dir
+from src.common.command import get_file_size, download_file, mkdir
 from src.handler.base_shell_handler import BaseShellHandler
 from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
-from src.common.tool import NetUtils
 from src.common.tool import TimeUtils
 from src.common.result_type import ObdiagResult
 
@@ -37,7 +36,6 @@ class GatherOsInfoHandler(BaseShellHandler):
         super(GatherOsInfoHandler, self).__init__()
         self.context = context
         self.stdio = context.stdio
-        self.is_ssh = True
         self.local_stored_path = gather_pack_dir
         self.remote_stored_path = None
         self.is_scene = is_scene
@@ -102,20 +100,13 @@ class GatherOsInfoHandler(BaseShellHandler):
             gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
 
         exec_tag = False
-        if self.is_ssh:
-            for node in self.nodes:
-                if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
-                    self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
-                    continue
-                handle_from_node(node)
-                exec_tag = True
+        for node in self.nodes:
+            if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
+                self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
+                continue
+            handle_from_node(node)
+            exec_tag = True
 
-        else:
-            local_ip = NetUtils.get_inner_ip()
-            node = self.nodes[0]
-            node["ip"] = local_ip
-            for node in self.nodes:
-                handle_from_node(node)
         if not exec_tag:
             self.stdio.verbose("No node to gather from, skip")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
@@ -128,12 +119,12 @@ class GatherOsInfoHandler(BaseShellHandler):
 
     def __handle_from_node(self, node, local_stored_path):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
-        remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip()
+        remote_ip = node.get("ip")
         remote_user = node.get("ssh_username")
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_stored_path, stdio=self.stdio)
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        remote_dir_name = "sysstat_{0}_{1}".format(remote_ip, now_time)
+        remote_dir_name = "sysstat_{0}_{1}".format(remote_ip.replace(":", "_"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
         ssh_failed = False
         ssh_client = None
@@ -156,11 +147,14 @@ class GatherOsInfoHandler(BaseShellHandler):
                 self.__gather_io_info(ssh_client, remote_dir_full_path)
                 self.__gather_traffic_info(ssh_client, remote_dir_full_path)
                 self.__gather_tcp_udp_info(ssh_client, remote_dir_full_path)
-            zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-            remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
+            tar_cmd = "cd /tmp && tar -czf {0}.tar.gz {0}/*".format(remote_dir_name)
+            self.stdio.verbose("tar the pack by {0}".format(tar_cmd))
+            tar_request = ssh_client.exec_cmd("cd /tmp && tar -czf {0}.tar.gz {0}/*".format(remote_dir_name))
+            self.stdio.verbose("tar_request: {0}".format(tar_request))
+            remote_file_full_path = os.path.join("/tmp/{0}.tar.gz".format(remote_dir_name))
             file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
             if int(file_size) < self.file_size_limit:
-                local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+                local_file_path = "{0}/{1}".format(local_stored_path, os.path.basename(remote_file_full_path))
                 self.stdio.verbose("local file path {0}...".format(local_file_path))
                 download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
@@ -168,8 +162,7 @@ class GatherOsInfoHandler(BaseShellHandler):
                 self.stdio.verbose("download success. On node {0} delete file: {1}".format(ssh_client.get_ip(), remote_file_full_path))
             else:
                 resp["error"] = "File too large"
-            # delete_file_force(self.is_ssh, ssh_helper, remote_file_full_path)
-            resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+            resp["gather_pack_path"] = "{0}/{1}".format(local_stored_path, os.path.basename(remote_file_full_path))
         return resp
 
     def __gather_dmesg_current_info(self, ssh_client, gather_path):

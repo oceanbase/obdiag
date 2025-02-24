@@ -265,13 +265,13 @@ class checkOBConnectorPool:
                 self.connections.put(conn)
             self.stdio.verbose("obConnectorPool init success!")
         except Exception as e:
-            self.stdio.error("obConnectorPool init fail! err:".format(e))
+            self.stdio.error("obConnectorPool init fail! err: {0}".format(e))
 
     def get_connection(self):
         try:
             return self.connections.get()
         except Exception as e:
-            self.stdio.error("get connection fail! err:".format(e))
+            self.stdio.error("get connection fail! err:{0}".format(e))
             return None
 
     def release_connection(self, conn):

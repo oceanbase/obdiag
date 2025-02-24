@@ -1355,8 +1355,12 @@ class StringUtils(object):
 
     @staticmethod
     def split_ip(ip_str, stdio=None):
-        pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        pattern = r'((?:[0-9]{1,3}\.){3}[0-9]{1,3}|(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})'
         result = re.findall(pattern, ip_str)
+        if not result:
+            pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+            result = re.findall(pattern, ip_str)
+            return result
         return result
 
     @staticmethod
