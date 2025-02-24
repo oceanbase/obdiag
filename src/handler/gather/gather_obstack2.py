@@ -22,7 +22,7 @@ import datetime
 
 import tabulate
 
-from src.common.command import download_file, is_empty_dir, is_support_arch, get_observer_version, get_observer_pid, mkdir, zip_dir, get_file_size, delete_file_force, is_empty_file, upload_file
+from src.common.command import download_file, is_empty_dir, is_support_arch, get_observer_version, get_observer_pid, mkdir, get_file_size, delete_file_force, is_empty_file, upload_file
 from src.common.constant import const
 from src.common.command import SshClient
 from src.handler.base_shell_handler import BaseShellHandler
@@ -183,20 +183,20 @@ class GatherObstack2Handler(BaseShellHandler):
         if is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio):
             resp["error"] = "gather failed, folder is empty"
             return resp
-        zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-        remote_zip_file_path = "{0}.zip".format(remote_dir_full_path)
-
-        file_size = get_file_size(ssh_client, remote_zip_file_path, self.stdio)
-        remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
-
+        tar_cmd = "cd /tmp && tar -czf {0}.tar.gz {0}/*".format(remote_dir_name)
+        tar_cmd_request = ssh_client.exec_cmd(tar_cmd)
+        self.stdio.verbose("tar request is {0}".format(tar_cmd_request))
+        remote_tar_file_path = "{0}.tar.gz".format(remote_dir_full_path)
+        file_size = get_file_size(ssh_client, remote_tar_file_path, self.stdio)
+        remote_tar_full_path = os.path.join("/tmp", remote_tar_file_path)
         if int(file_size) < self.file_size_limit:
-            local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-            download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
+            local_file_path = "{0}/{1}".format(local_stored_path, remote_tar_file_path)
+            download_file(ssh_client, remote_tar_full_path, local_file_path, self.stdio)
             resp["error"] = ""
         else:
             resp["error"] = "File too large"
-        delete_file_force(ssh_client, remote_file_full_path, self.stdio)
-        resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+        delete_file_force(ssh_client, remote_tar_full_path, self.stdio)
+        resp["gather_pack_path"] = "{0}/{1}".format(local_stored_path, remote_tar_file_path)
         return resp
 
     @Util.retry(10, 5)
