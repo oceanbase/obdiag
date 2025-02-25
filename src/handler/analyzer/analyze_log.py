@@ -35,7 +35,6 @@ from src.common.tool import Util, NetUtils
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
-from src import common as ssh_client_local_client
 from src.common.result_type import ObdiagResult
 
 
@@ -206,7 +205,7 @@ class AnalyzeLogHandler(BaseShellHandler):
             ssh_client = SshClient(self.context, node)
             self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
             DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
-            local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name())
+            local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name().replace(":", "_"))
             DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
         except Exception as e:
             resp["skip"] = True

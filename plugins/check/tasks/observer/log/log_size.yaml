@@ -10,7 +10,7 @@ task:
         verify: '[ $ob_max_syslog_file_count -eq 0 ] || [ $ob_max_syslog_file_count -ge 100 ]'
         err_msg: "node: #{remote_ip} max_syslog_file_count is not 0 or over 100, obcluster max_syslog_file_count: #{ob_max_syslog_file_count}"
     - type: ssh
-      ssh: "df #{remote_home_path}/log | awk 'NR==2{print $4*0.8}'"
+      ssh: "df #{remote_home_path}/log | awk 'NR==2{print int($4*0.8)}'"
       result:
         set_value: disk_free_space_KB
     - type: ssh
