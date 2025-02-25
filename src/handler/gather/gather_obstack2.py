@@ -190,13 +190,13 @@ class GatherObstack2Handler(BaseShellHandler):
         file_size = get_file_size(ssh_client, remote_tar_file_path, self.stdio)
         remote_tar_full_path = os.path.join("/tmp", remote_tar_file_path)
         if int(file_size) < self.file_size_limit:
-            local_file_path = "{0}/{1}".format(local_stored_path, remote_tar_file_path)
+            local_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
             download_file(ssh_client, remote_tar_full_path, local_file_path, self.stdio)
             resp["error"] = ""
         else:
             resp["error"] = "File too large"
         delete_file_force(ssh_client, remote_tar_full_path, self.stdio)
-        resp["gather_pack_path"] = "{0}/{1}".format(local_stored_path, remote_tar_file_path)
+        resp["gather_pack_path"] = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
         return resp
 
     @Util.retry(10, 5)
