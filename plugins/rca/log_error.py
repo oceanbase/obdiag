@@ -60,7 +60,7 @@ class LogErrorScene(RcaScene):
                 raise RCAExecuteException("can not find any tenant id")
             self.all_tenant_election_leader_info = {}
             for tenant_id_data in tenant_ids:
-                record = RCA_ResultRecord()
+                record = RCA_ResultRecord(self.stdio)
                 try:
                     tenant_id_data = tenant_id_data[0]
 
@@ -153,7 +153,7 @@ class LogErrorScene(RcaScene):
             raise RCAExecuteException("execute_421 execute error: {0}".format(e))
 
     def execute_421_no_leader_by_tenant_id(self, tenant_id, diagnose_data):
-        record = RCA_ResultRecord()
+        record = RCA_ResultRecord(self.stdio)
         try:
             self.stdio.verbose("start execute_421_no_leader_by_tenant_id")
             record.add_record("tenant_id: {0}.".format(tenant_id))

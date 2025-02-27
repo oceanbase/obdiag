@@ -93,7 +93,7 @@ class IndexDDLErrorScene(RcaScene):
 
     def execute(self):
         try:
-            record = RCA_ResultRecord()
+            record = RCA_ResultRecord(self.stdio)
             record.add_record("tenant_id is {0}".format(self.tenant_id))
             record.add_record("database_id is {0}".format(self.database_id))
             record.add_record("table_id is {0}".format(self.table_id))
