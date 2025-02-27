@@ -1,6 +1,6 @@
 obcluster:
   db_host: 127.0.0.1
-  db_port: 2881 # 2881
+  db_port: 2881 # default 2881, if the obcluster use obproxy ,please set db_port to obproxy mysql_port
   ob_cluster_name: obtest
   tenant_sys:
     user: root@sys

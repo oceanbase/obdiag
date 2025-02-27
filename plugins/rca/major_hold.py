@@ -207,10 +207,10 @@ class MajorHoldScene(RcaScene):
                 # all node execute
                 for observer_node in self.observer_nodes:
                     ssh_client = observer_node["ssher"]
-                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(observer_node.get_name()))
-                    local_file_path = os.path.join(os.path.join(self.local_path, "dmesg_log"), "dmesg_{0}.log".format(observer_node.get_name()))
-                    ssh_client.download("/tmp/dmesg_{0}.log".format(observer_node.get_name()), local_file_path)
-                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(observer_node.get_name(), local_file_path))
+                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(ssh_client.get_name()))
+                    local_file_path = os.path.join(os.path.join(self.local_path, "dmesg_log"), "dmesg_{0}.log".format(ssh_client.get_name()))
+                    ssh_client.download("/tmp/dmesg_{0}.log".format(ssh_client.get_name()), local_file_path)
+                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(ssh_client.get_name(), local_file_path))
             except Exception as e:
                 self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
             tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))

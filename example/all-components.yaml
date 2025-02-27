@@ -6,7 +6,7 @@ ocp:
 obcluster:
   ob_cluster_name: test
   db_host: 192.168.1.1
-  db_port: 2881 # default 2881
+  db_port: 2881 # default 2881, if the obcluster use obproxy ,please set db_port to obproxy mysql_port
   tenant_sys:
     user: root@sys # default root@sys
     password: ""
