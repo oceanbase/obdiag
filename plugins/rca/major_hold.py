@@ -109,7 +109,7 @@ class MajorHoldScene(RcaScene):
 
         # execute record need more
         for err_tenant_id in err_tenant_ids:
-            tenant_record = RCA_ResultRecord()
+            tenant_record = RCA_ResultRecord(self.stdio)
             first_record_records = self.record.records.copy()
             tenant_record.records.extend(first_record_records)
             self.stdio.verbose("tenant_id is {0}".format(err_tenant_id))

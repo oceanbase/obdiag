@@ -104,7 +104,7 @@ class DDLFailureScene(RcaScene):
         self.Result.records.append(result)
 
     def execute(self):
-        result = RCA_ResultRecord()
+        result = RCA_ResultRecord(self.stdio)
         try:
             sql = "select * from oceanbase.__all_virtual_ddl_error_message where tenant_id={0} and object_id={1} and target_object_id=-1 order by gmt_create desc limit 1".format(self.tenant_id, self.table_id)
             sql_result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()

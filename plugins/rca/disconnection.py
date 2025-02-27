@@ -98,7 +98,7 @@ class DisconnectionScene(RcaScene):
                 log_list = f.read().strip().split('\n')
                 for line in log_list:
                     try:
-                        record = RCA_ResultRecord()
+                        record = RCA_ResultRecord(self.stdio)
                         record.add_record("node:{1} obproxy_diagnosis_log:{0}".format(line, node.get("ip")))
                         log_check = DisconnectionLog(self.context, line, record)
                         suggest = log_check.execute()

@@ -54,7 +54,7 @@ class LockConflictScene(RcaScene):
         self.stdio.verbose("[lock_conflict] {0}".format(info))
 
     def __execute_4_2(self):
-        first_record = RCA_ResultRecord()
+        first_record = RCA_ResultRecord(self.stdio)
         # get trans_id
         locks_sql = 'select * from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" '
         if self.tenant_id is not None:
@@ -71,7 +71,7 @@ class LockConflictScene(RcaScene):
         # first_record.add_record("by select * from oceanbase.GV$OB_LOCKS where BLOCK=1; the len is {0}".format(len(data)))
         first_record.add_record("by locks_sql; the len is {0}".format(len(data)))
         for OB_LOCKS_data in data:
-            trans_record = RCA_ResultRecord()
+            trans_record = RCA_ResultRecord(self.stdio)
             first_record_records = first_record.records.copy()
             trans_record.records.extend(first_record_records)
             self.Result.records.append(trans_record)
@@ -143,7 +143,7 @@ class LockConflictScene(RcaScene):
         return
 
     def __execute_old(self):
-        first_record = RCA_ResultRecord()
+        first_record = RCA_ResultRecord(self.stdio)
         cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_lock_wait_stat order by try_lock_times limit 50;")
         virtual_lock_wait_stat_datas = cursor.fetchall()
         if len(virtual_lock_wait_stat_datas) == 0:
@@ -155,7 +155,7 @@ class LockConflictScene(RcaScene):
 
         for trans_lock_data in virtual_lock_wait_stat_datas:
             trans_id = trans_lock_data["block_session_id"]
-            trans_record = RCA_ResultRecord()
+            trans_record = RCA_ResultRecord(self.stdio)
             first_record_records = first_record.records.copy()
             trans_record.records.extend(first_record_records)
             self.Result.records.append(trans_record)
