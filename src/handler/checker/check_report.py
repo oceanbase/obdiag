@@ -168,6 +168,8 @@ class CheckReport:
             telemetry.push_check_info(self.report_target, {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases": list(set(warningMap))})
 
             fp = open(self.report_path + ".table", 'a+', encoding='utf-8')
+            fp.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
+            fp.write("report time: {0}\n\n".format(self.report_time))
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)
