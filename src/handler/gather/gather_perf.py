@@ -68,6 +68,22 @@ class GatherPerfHandler(BaseShellHandler):
 
     def init_option(self):
         options = self.context.options
+        count_option = Util.get_option(options, 'count')
+        if self.context.get_variable("gather_perf_sample_count", None):
+            count_option = self.context.get_variable("gather_perf_sample_count")
+        if isinstance(count_option, str):
+            try:
+                count_option = int(count_option)
+            except ValueError:
+                try:
+                    count_option = float(count_option)
+                except ValueError:
+                    count_option = None
+        if isinstance(count_option, (int, float)) and count_option >= 1000000:
+            count_option = count_option
+        else:
+            count_option = 100000000
+        self.count_option = count_option
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option and store_dir_option != './':
             if not os.path.exists(os.path.abspath(store_dir_option)):
@@ -160,23 +176,26 @@ class GatherPerfHandler(BaseShellHandler):
                         self.__gather_perf_flame(ssh_client, remote_dir_full_path, pid_observer)
                 self.__gather_top(ssh_client, remote_dir_full_path, pid_observer)
 
-            zip_dir(ssh_client, "/tmp", remote_dir_name, self.stdio)
-            remote_file_full_path = "{0}.zip".format(remote_dir_full_path)
-            file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
+            tar_cmd = "cd /tmp && tar -czf {0}.tar.gz {0}/*".format(remote_dir_name)
+            tar_cmd_request = ssh_client.exec_cmd(tar_cmd)
+            self.stdio.verbose("tar request is {0}".format(tar_cmd_request))
+            remote_tar_file_path = "{0}.tar.gz".format(remote_dir_full_path)
+            file_size = get_file_size(ssh_client, remote_tar_file_path, self.stdio)
+            remote_tar_full_path = os.path.join("/tmp", remote_tar_file_path)
             if int(file_size) < self.file_size_limit:
-                local_file_path = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
-                download_file(ssh_client, remote_file_full_path, local_file_path, self.stdio)
+                local_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
+                download_file(ssh_client, remote_tar_full_path, local_file_path, self.stdio)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
-            delete_file_force(ssh_client, remote_file_full_path, self.stdio)
-            resp["gather_pack_path"] = "{0}/{1}.zip".format(local_stored_path, remote_dir_name)
+            delete_file_force(ssh_client, remote_tar_full_path, self.stdio)
+            resp["gather_pack_path"] = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
         return resp
 
     def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
             self.stdio.start_loading('gather perf sample')
-            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c 100000000 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
+            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c {count_option} -p {pid} -g -- sleep 20".format(gather_path=gather_path, count_option=self.count_option, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
             ssh_client.exec_cmd(cmd)
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)

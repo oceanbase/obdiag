@@ -33,7 +33,7 @@ class CPUHigh(SafeStdio):
         else:
             self.task_variable_dict = task_variable_dict
         self.report_path = report_path
-        self.env = env
+        self.env = self.context.get_variable("env") or {}
         self.is_ssh = True
         self.nodes = self.context.cluster_config['servers']
         self.cluster = self.context.cluster_config
@@ -53,6 +53,9 @@ class CPUHigh(SafeStdio):
 
     def __gather_perf(self):
         self.stdio.print("gather perf start")
+        perf_sample_count = self.env.get("perf_count")
+        if perf_sample_count:
+            self.context.set_variable('gather_perf_sample_count', perf_sample_count)
         perf = GatherPerfHandler(self.context, self.report_path, is_scene=True)
         perf.handle()
         self.stdio.print("gather perf end")
