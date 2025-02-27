@@ -195,7 +195,7 @@ class GatherPerfHandler(BaseShellHandler):
     def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
             self.stdio.start_loading('gather perf sample')
-            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c {count_option} -p {pid} -g -- sleep 20".format(gather_path=gather_path, count_option = self.count_option, pid=pid_observer)
+            cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c {count_option} -p {pid} -g -- sleep 20".format(gather_path=gather_path, count_option=self.count_option, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
             ssh_client.exec_cmd(cmd)
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
