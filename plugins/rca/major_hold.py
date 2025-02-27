@@ -146,7 +146,7 @@ class MajorHoldScene(RcaScene):
                 tenant_record.add_record("step:4 get GV$OB_COMPACTION_PROGRESS whit tenant_id:{0}".format(err_tenant_id))
                 global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0].get("GLOBAL_BROADCAST_SCN")
                 tenant_record.add_record("global_broadcast_scn is {0}".format(global_broadcast_scn))
-                last_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select LAST_SCN from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0]
+                last_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select LAST_SCN from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0]["LAST_SCN"]
                 tenant_record.add_record("last_scn is {0}".format(last_scn))
                 sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(err_tenant_id, global_broadcast_scn)
                 OB_COMPACTION_PROGRESS_data_global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
