@@ -548,6 +548,7 @@ class ObdiagGatherPerfCommand(ObdiagOriginCommand):
 
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--scope', type='string', help="perf type constrains, choices=[sample, flame, pstack, all]", default='all')
+        self.parser.add_option('--count', type='int', help="perf event period to sample >= 1000000", default='100000000')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
