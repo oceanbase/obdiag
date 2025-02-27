@@ -62,4 +62,6 @@ else
     echo "failed to retrieve obdiag version information."
 fi
 
+chown -R ${CURRENT_USER_NAME}: ${OBDIAG_HOME}
+
 echo "Init obdiag finished"
