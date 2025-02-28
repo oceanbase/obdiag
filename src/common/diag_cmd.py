@@ -272,6 +272,7 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.track_limit += 1
             ROOT_IO.verbose('cmd: %s' % self.prev_cmd)
             ROOT_IO.verbose('opts: %s' % self.opts)
+            ROOT_IO.print('obdiag version: {}'.format(OBDIAG_VERSION))
             custom_config_env_list = Util.get_option(self.opts, 'config')
             config_path = os.path.expanduser('~/.obdiag/config.yml')
             if custom_config_env_list is None:
