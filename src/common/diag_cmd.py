@@ -16,7 +16,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-from src.common.tool import Util, StringUtils
+from src.common.tool import Util, StringUtils, check_new_obdiag_version
 import os
 import sys
 import textwrap
@@ -316,6 +316,9 @@ class ObdiagOriginCommand(BaseCommand):
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
                 ROOT_IO.print('If you want to view detailed obdiag logs, please run: {0} display-trace {1}'.format(obdiag_bin, self.trace_id))
             telemetry.put_data()
+            # check obdiag new version
+            if not ROOT_IO.silent:
+                check_new_obdiag_version(ROOT_IO)
             if ROOT_IO.silent:
                 if ret.get_code() == ObdiagResult.SUCCESS_CODE:
                     return True

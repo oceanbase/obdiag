@@ -19,6 +19,7 @@ from __future__ import absolute_import, division, print_function
 import io
 import bz2
 import random
+import ssl
 import sys
 import stat
 import gzip
@@ -27,7 +28,7 @@ import signal
 import re
 import hashlib
 import uuid
-
+from src.common.constant import const
 import tabulate
 import socket
 import requests
@@ -51,10 +52,10 @@ from colorama import Fore, Style
 from ruamel.yaml import YAML
 from src.common.err import EC_SQL_EXECUTE_FAILED
 from src.common.stdio import SafeStdio
+from src.common.version import OBDIAG_VERSION
 
 _open = open
 encoding_open = open
-
 
 __all__ = ("Timeout", "DynamicLoading", "ConfigUtil", "DirectoryUtil", "FileUtil", "YamlLoader", "COMMAND_ENV", "TimeUtils", "NetUtils", "StringUtils", "YamlUtils", "Util")
 
@@ -87,7 +88,6 @@ timeout = Timeout
 
 
 class DynamicLoading(object):
-
     class Module(object):
 
         def __init__(self, module):
@@ -383,7 +383,6 @@ class DirectoryUtil(object):
 
 
 class FileUtil(object):
-
     COPY_BUFSIZE = 1024 * 1024 if _WINDOWS else 64 * 1024
 
     @staticmethod
@@ -1696,3 +1695,38 @@ class SQLTableExtractor:
                 db_name = None
             results.append((db_name, table_name))
         return results
+
+
+def check_new_obdiag_version(stdio):
+    ssl._create_default_https_context = ssl._create_unverified_context
+    try:
+        work_tag = NetUtils.network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
+        if not work_tag:
+            return
+        response = requests.post(
+            'https://cn-wan-api.oceanbase.com/wanApi/forum/download/v1/getAllDownloadCenterData',
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json; charset=utf-8',
+                'Referer': 'https://www.oceanbase.com/',
+            },
+            data=json.dumps({'type': 'community'}),
+        )
+        response.raise_for_status()
+        json_data = response.json()
+        productList = (
+            json_data.get("data", {})
+            .get('productCategoryList', [])[3]
+            .get(
+                "productList",
+            )
+        )
+        for product in productList:
+            if "obdiag" in product.get("description", ""):
+                latest_version = product.get("recommendVersionVO", {}).get("version", None)
+                if not latest_version:
+                    if StringUtils.compare_versions_greater(latest_version, OBDIAG_VERSION):
+                        stdio.print('obdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
+    except Exception as e:
+        stdio.verbose(f"Error: {e}")
+        return None
