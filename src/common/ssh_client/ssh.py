@@ -105,7 +105,7 @@ class SshClient(SafeStdio):
         return self.exec_cmd(cmd)
 
     def get_name(self):
-        return self.client.get_name().replace(":", "_").replece(".", "_")
+        return self.client.get_name().replace(":", "_").replace(".", "_")
 
     def get_ip(self):
         return self.client.get_ip()
