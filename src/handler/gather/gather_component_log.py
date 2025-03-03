@@ -17,6 +17,7 @@
 """
 import datetime
 import os
+import re
 import tarfile
 import threading
 import traceback
@@ -47,6 +48,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             "obproxy_limit": {"key": "*obproxy_limit*"},
         },
         "oms": {"connector": {"key": "*connector.*"}, "error": {"key": "error"}, "trace.log": {"key": "trace.log"}, "metrics": {"key": "metrics*"}},
+        "oms_cdc": {"libobcdc": {"key": "*libobcdc.log*"}, "removed_log_files": {"key": "removed_log_files"}, "store": {"key": "store.log"}},
     }
 
     def __init__(self, *args, **kwargs):
@@ -158,7 +160,10 @@ class GatherComponentLogHandler(BaseShellHandler):
         if self.scope is None or self.scope == "" or self.scope == "all":
             self.scope = self.log_scope_list[self.target]
         else:
-            self.scope = self.scope.strip()
+            if isinstance(self.scope, str):
+                self.scope = self.scope.strip()
+            else:
+                raise Exception("scope option can only be string")
             if self.scope not in self.log_scope_list[self.target]:
                 raise Exception("scope option can only be {0},the {1} just support {2}".format(self.scope, self.target, self.log_scope_list))
             self.scope = {self.scope: self.log_scope_list[self.target][self.scope]}
@@ -382,6 +387,17 @@ class GatherLogOnNode:
             if node.get("run_path") is None:
                 raise Exception("gather log on oms, but run_path is None. please check your config")
             self.log_path = os.path.join(node.get("run_path"), self.oms_component_id, "logs")
+        elif self.target == "oms_cdc":
+            if self.oms_component_id is None:
+                raise Exception("gather log on oms_cdc, but oms_component_id is None. please check your config")
+            obcdc_id = None
+            match = re.search(r"\d+\.\d+\.\d+\.\d+-(\d+)", self.oms_component_id)
+            if match:
+                number = match.group(1)
+                obcdc_id = number
+            else:
+                self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
+            self.log_path = os.path.join(node.get("store_path"), obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
 
@@ -551,6 +567,18 @@ class GatherLogOnNode:
                     log_name_list.append(file_name)
                     continue
             return log_name_list
+        elif self.target == "oms_cdc":
+            self.stdio.warn("oms_cdc not support get log file name list, retrun all 'libobcdc.log*' log file name list")
+            log_name_list = []
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "libobcdc.log" in file_name:
+                    log_name_list.append(file_name)
+                    continue
+            return log_name_list
+
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
         log_name_list = []
         last_file_dict = {"prefix_file_name": "", "file_name": "", "file_end_time": ""}
