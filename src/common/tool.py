@@ -16,6 +16,8 @@
 """
 
 from __future__ import absolute_import, division, print_function
+
+import http
 import io
 import bz2
 import random
@@ -1703,17 +1705,17 @@ def check_new_obdiag_version(stdio):
         work_tag = NetUtils.network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
         if not work_tag:
             return
-        response = requests.post(
-            'https://cn-wan-api.oceanbase.com/wanApi/forum/download/v1/getAllDownloadCenterData',
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json; charset=utf-8',
-                'Referer': 'https://www.oceanbase.com/',
-            },
-            data=json.dumps({'type': 'community'}),
-        )
-        response.raise_for_status()
-        json_data = response.json()
+        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=5)
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Referer': 'https://www.oceanbase.com/',
+        }
+        payload = json.dumps({"type": "community"})
+        conn.request("POST", "/wanApi/forum/download/v1/getAllDownloadCenterData", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        json_data = json.loads(data)
         productList = (
             json_data.get("data", {})
             .get('productCategoryList', [])[3]
