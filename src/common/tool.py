@@ -1702,7 +1702,7 @@ class SQLTableExtractor:
 def check_new_obdiag_version(stdio):
     ssl._create_default_https_context = ssl._create_unverified_context
     try:
-        work_tag = NetUtils.network_connectivity("https://" + const.TELEMETRY_URL + const.TELEMETRY_PATH)
+        work_tag = NetUtils.network_connectivity("https://" + "cn-wan-api.oceanbase.com" + "/wanApi/forum/download/v1/getAllDownloadCenterData")
         if not work_tag:
             return
         conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=5)
