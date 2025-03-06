@@ -453,7 +453,7 @@ class GatherLogOnNode:
                 self.gather_tuple["info"] = "tmp_log_dir({0}) no log found".format(tmp_log_dir)
                 return
 
-            tar_file = os.path.join(self.tmp_dir, "{0}.tar.gz".format(tmp_log_dir))
+            tar_file = "{0}.tar.gz".format(tmp_log_dir)
             tar_cmd = "cd {0} && tar -czf {1}.tar.gz {1}/*".format(self.tmp_dir, tmp_dir)
             self.stdio.verbose("gather_log_on_node {0} tar_cmd: {1}".format(self.ssh_client.get_ip(), tar_cmd))
             self.stdio.verbose("gather_log_on_node {0} tar request:{1}".format(self.ssh_client.get_ip(), self.ssh_client.exec_cmd(tar_cmd)))
