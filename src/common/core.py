@@ -125,6 +125,9 @@ class ObdiagHome(object):
         for func in ['start_loading', 'stop_loading', 'print', 'confirm', 'verbose', 'warn', 'exception', 'error', 'critical', 'print_list', 'read']:
             self._stdio_func[func] = getattr(self.stdio, func, _print)
 
+    def set_context_stdio(self):
+        self.context = HandlerContext(stdio=self.stdio)
+
     def set_context(self, handler_name, namespace, config):
         self.context = HandlerContext(
             handler_name=handler_name,
@@ -247,8 +250,9 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
-            self.set_context(function_type, 'gather', config)
+            self.set_context_stdio()
             self.update_obcluster_nodes(config)
+            self.set_context(function_type, 'gather', config)
             options = self.context.options
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('gather_timestamp', timestamp)
@@ -393,8 +397,9 @@ class ObdiagHome(object):
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
             self.stdio.print("{0} start ...".format(function_type))
-            self.set_context(function_type, 'display', config)
+            self.set_context_stdio()
             self.update_obcluster_nodes(config)
+            self.set_context(function_type, 'display', config)
             timestamp = TimeUtils.get_current_us_timestamp()
             self.context.set_variable('display_timestamp', timestamp)
             if function_type == 'display_scenes_run':
@@ -417,8 +422,9 @@ class ObdiagHome(object):
         else:
             self.stdio.print("{0} start ...".format(function_type))
             if function_type == 'analyze_log':
-                self.set_context(function_type, 'analyze', config)
+                self.set_context_stdio()
                 self.update_obcluster_nodes(config)
+                self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_log_offline':
@@ -430,8 +436,9 @@ class ObdiagHome(object):
                 handler = AnalyzeQueueHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_flt_trace':
-                self.set_context(function_type, 'analyze', config)
+                self.set_context_stdio()
                 self.update_obcluster_nodes(config)
+                self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeFltTraceHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_parameter_default':
@@ -464,8 +471,9 @@ class ObdiagHome(object):
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_memory':
-                self.set_context(function_type, 'analyze', config)
+                self.set_context_stdio()
                 self.update_obcluster_nodes(config)
+                self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
             else:
@@ -480,8 +488,9 @@ class ObdiagHome(object):
         else:
             try:
                 self.stdio.print("check start ...")
-                self.set_context('check', 'check', config)
+                self.set_context_stdio()
                 self.update_obcluster_nodes(config)
+                self.set_context('check', 'check', config)
                 obproxy_check_handler = None
                 observer_check_handler = None
                 result_data = {}
