@@ -1397,6 +1397,8 @@ class StringUtils(object):
         if isinstance(masked_data, dict):
             for key, value in masked_data.items():
                 if 'password' in key.lower():
+                    if not isinstance(value, str):
+                        value = str(value)
                     masked_data[key] = '*' * (len(value) if value else 1)
                 elif isinstance(value, (dict, list)):
                     masked_data[key] = StringUtils.mask_passwords(value)
