@@ -48,8 +48,10 @@ class StepBase(object):
                 self.stdio.verbose("execute ssh_type is docker")
                 ssh_client = SshClient(self.context, self.node)
                 self.task_variable_dict["remote_ip"] = ssh_client.get_ip()
-            for node in self.node:
-                self.task_variable_dict["remote_{0}".format(node)] = self.node[node]
+            for node_info_key in self.node:
+                if "password" in node_info_key:
+                    continue
+                self.task_variable_dict["remote_{0}".format(node_info_key)] = self.node[node_info_key]
             if "type" not in self.step:
                 raise StepExecuteFailException("Missing field :type")
             if self.step["type"] == "get_system_parameter":
