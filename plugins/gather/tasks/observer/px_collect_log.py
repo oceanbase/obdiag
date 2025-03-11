@@ -149,13 +149,13 @@ class PXCollectLog(object):
         return origin_ip_port2
 
     def analyze_traceid(self, trace_id):
-        if len(trace_id) < 50:
+        if (len(trace_id) < 50) and (len(trace_id) > 0):
             if trace_id[0] == 'Y':
                 return self.parse_trace_id(trace_id)
             else:
-                return self.parse_trace_id2(trace_id)
+                raise Exception("trace_id {0} does not meet the requirements, the format should be Yxxxx".format(trace_id))
         else:
-            raise Exception("Trace_id({0}) error!".format(trace_id))
+            raise Exception("trace_id({0}) error!".format(trace_id))
 
     def __parse_env(self):
         try:
