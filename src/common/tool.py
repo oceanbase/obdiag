@@ -1155,7 +1155,7 @@ class StringUtils(object):
             # 如果'-p'后面没有跟具体值，则设为''
             db_info['password'] = password if password else ''
             # 去除密码部分，避免后续解析出错
-            cli_conn_str = cli_conn_str[:password_match.start()] + cli_conn_str[password_match.end():].strip()
+            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :].strip()
 
         # 模式匹配短选项
         short_opt_pattern = re.compile(r'-([hPuD])(\S*)')
@@ -1169,7 +1169,8 @@ class StringUtils(object):
                 try:
                     db_info['port'] = int(value)
                 except ValueError:
-                    if stdio: print("Invalid port number.")
+                    if stdio:
+                        print("Invalid port number.")
                     return False
             elif opt == 'D':
                 db_info['database'] = value
