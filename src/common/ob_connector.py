@@ -167,7 +167,7 @@ class OBConnector(object):
             cursor.close()
             return plan_result
         except Exception as e:
-            raise Exception("execute display cursor error: {0}".format(e))
+            pass
         finally:
             cursor.close()
 
