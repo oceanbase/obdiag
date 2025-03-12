@@ -1013,11 +1013,14 @@ class GatherPlanMonitorHandler(object):
         try:
             if not StringUtils.compare_versions_lower(self.ob_version, "4.2.5.0"):
                 plan_result = self.db_connector.execute_display_cursor(display_cursor_sql)
-                self.stdio.verbose("execute SQL: %s", display_cursor_sql)
-                step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');".format(display_cursor_sql)
-                self.report_pre(step)
-                self.report_pre(plan_result)
-                self.stdio.verbose("display_cursor report complete")
+                if plan_result:
+                    self.stdio.verbose("execute SQL: %s", display_cursor_sql)
+                    step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');".format(display_cursor_sql)
+                    self.report_pre(step)
+                    self.report_pre(plan_result)
+                    self.stdio.verbose("display_cursor report complete")
+                else:
+                    self.stdio.warn("the result of display_cursor is None")
             else:
                 self.stdio.verbose("display_cursor report requires the OB version to be greater than 4.2.5.0 Your version: {0} does not meet this requirement.".format(self.ob_major_version))
         except Exception as e:
