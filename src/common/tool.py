@@ -1148,54 +1148,51 @@ class StringUtils(object):
     def parse_mysql_conn(cli_conn_str, stdio=None):
         db_info = {}
         # 处理密码选项，注意区分短选项和长选项的密码
-        password_pattern = re.compile(r'(-p\s*|--password=)([^ ]*)')
+        password_pattern = re.compile(r'(-p|--password=)([^ ]*)')
         password_match = password_pattern.search(cli_conn_str)
         if password_match:
             password = password_match.group(2)
-            db_info['password'] = password
+            # 如果'-p'后面没有跟具体值，则设为''
+            db_info['password'] = password if password else ''
             # 去除密码部分，避免后续解析出错
-            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :]
+            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :].strip()
 
         # 模式匹配短选项
-        short_opt_pattern = re.compile(r'-(\w)\s*(\S*)')
-        matches = short_opt_pattern.finditer(cli_conn_str)
-        for match in matches:
-            opt = match.group(1)
-            value = match.group(2)
+        short_opt_pattern = re.compile(r'-([hPuD])(\S*)')
+        for match in short_opt_pattern.finditer(cli_conn_str):
+            opt, value = match.groups()
             if opt == 'h':
                 db_info['host'] = value
             elif opt == 'u':
                 db_info['user'] = value
             elif opt == 'P':
-                db_info['port'] = int(value)
+                try:
+                    db_info['port'] = int(value)
+                except ValueError:
+                    if stdio:
+                        print("Invalid port number.")
+                    return False
             elif opt == 'D':
                 db_info['database'] = value
 
-        # 模式匹配长选项
+        # 长选项处理
         long_opt_pattern = re.compile(r'--(\w+)=([^ ]+)')
-        long_matches = long_opt_pattern.finditer(cli_conn_str)
-        for match in long_matches:
-            opt = match.group(1)
-            value = match.group(2)
-            if opt == 'host':
-                db_info['host'] = value
-            elif opt == 'user':
-                db_info['user'] = value
-            elif opt == 'port':
-                db_info['port'] = int(value)
-            elif opt in ['dbname', 'database']:
-                db_info['database'] = value
+        for match in long_opt_pattern.finditer(cli_conn_str):
+            opt, value = match.groups()
+            if opt in ['host', 'user', 'port', 'dbname', 'database']:
+                db_info[opt if opt != 'dbname' else 'database'] = value
 
-        # 如果存在命令行最后的参数，且不是一个选项，则认为是数据库名
-        last_param = cli_conn_str.split()[-1]
-        if last_param[0] != '-' and 'database' not in db_info:
-            db_info['database'] = last_param
+        # 最后一个参数处理，如果未指定数据库名且最后的参数不是选项，则认为是数据库名
+        parts = cli_conn_str.split()
+        if parts and parts[-1][0] != '-' and 'database' not in db_info:
+            db_info['database'] = parts[-1]
+
         return db_info
 
     @staticmethod
     def validate_db_info(db_info, stdio=None):
         required_keys = {'database', 'host', 'user', 'port'}
-        if not required_keys.issubset(db_info.keys()) or any(not value for value in db_info.values()):
+        if not required_keys.issubset(db_info.keys()):
             return False
         if not isinstance(db_info['port'], int):
             return False

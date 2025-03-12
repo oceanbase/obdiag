@@ -61,7 +61,7 @@ class GatherTableDumpHandler(SafeStdio):
             self.database = Util.get_option(options, 'database')
             self.table = Util.get_option(options, 'table')
             user = Util.get_option(options, 'user')
-            password = Util.get_option(options, 'password')
+            password = Util.get_option(options, 'password') or ""
             store_dir_option = Util.get_option(options, 'store_dir')
             if store_dir_option is not None and store_dir_option != './':
                 if not os.path.exists(os.path.abspath(store_dir_option)):

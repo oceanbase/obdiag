@@ -93,7 +93,7 @@ class GatherPlanMonitorHandler(object):
         return self.tenant_mode_detected()
 
     def __init_db_connector(self):
-        self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100)
+        self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password") or "", database=self.db_conn.get("database"), timeout=100)
 
     def handle(self):
         if not self.init_config():
