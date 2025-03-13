@@ -6,6 +6,8 @@ task:
       sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="#{remote_ip}" ;'
       result:
         set_value: network_name
+        verify: '[[  $network_name == "lo" ]]'
+        err_msg: "check network_name is lo , can not get real speed"
     # for k8s
     - type: ssh
       ssh: "ethtool #{network_name} 2>/dev/null| grep Speed"
@@ -28,15 +30,15 @@ task:
         verify_type: min
         verify: 999
         #report_type: warning
-        err_msg: "network_speed is #{network_speed} , less than #{network_speed}"
+        err_msg: "network_speed is #{network_speed} , less than 1000"
     - type: ssh
-      ssh: "cat /sys/class/net/#{network_name}/speed "
+      ssh: "ethtool #{network_name} 2>/dev/null | grep Speed | grep -o '[0-9]*'"
       result:
         set_value: network_speed
         verify_type: min
-        verify: 999
-        #report_type: warning
-        err_msg: "network_speed is #{network_speed} , less than #{network_speed}"
+        verify: 9999
+        report_type: warning
+        err_msg: "network_speed is #{network_speed} , less than 10000, Unpredictable anomalies are prone to occur in backup scenarios, it is recommended to upgrade to 10Gbps"
 
         
         
