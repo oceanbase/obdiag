@@ -1727,7 +1727,7 @@ def check_new_obdiag_version(stdio):
                 latest_version = product.get("recommendVersionVO", {}).get("version", None)
                 if latest_version:
                     if StringUtils.compare_versions_greater(latest_version, OBDIAG_VERSION):
-                        stdio.print('obdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
+                        stdio.print('\nobdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
     except Exception as e:
         stdio.verbose(f"Error: {e}")
         return None
