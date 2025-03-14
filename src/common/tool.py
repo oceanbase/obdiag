@@ -1704,7 +1704,7 @@ def check_new_obdiag_version(stdio):
         work_tag = NetUtils.network_connectivity("https://" + "cn-wan-api.oceanbase.com" + "/wanApi/forum/download/v1/getAllDownloadCenterData")
         if not work_tag:
             return
-        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=5)
+        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=1)
         headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json; charset=utf-8',
@@ -1725,9 +1725,9 @@ def check_new_obdiag_version(stdio):
         for product in productList:
             if "obdiag" in product.get("description", ""):
                 latest_version = product.get("recommendVersionVO", {}).get("version", None)
-                if not latest_version:
+                if latest_version:
                     if StringUtils.compare_versions_greater(latest_version, OBDIAG_VERSION):
-                        stdio.print('obdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
+                        stdio.print('\nobdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
     except Exception as e:
         stdio.verbose(f"Error: {e}")
         return None
