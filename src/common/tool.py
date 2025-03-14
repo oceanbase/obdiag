@@ -1704,7 +1704,7 @@ def check_new_obdiag_version(stdio):
         work_tag = NetUtils.network_connectivity("https://" + "cn-wan-api.oceanbase.com" + "/wanApi/forum/download/v1/getAllDownloadCenterData")
         if not work_tag:
             return
-        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=0.5)
+        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=1)
         headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json; charset=utf-8',
