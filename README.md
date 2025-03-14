@@ -87,6 +87,8 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |2.6.0|2024.10| 2024.11.28 |<ul><li> The new feature added is `obdiag analyze memory` </li><li> obdiag display Phase 2 iteration </li></ul>|
 |3.0.0|2024.12| 2024.12.31 |<ul><li> Code plugin transformation </li><li> Support OMS problem diagnosis </li></ul>|
 |3.1.0|2025.01| 2025.01.22 |<ul><li> obdiag display Phase 3 iteration </li></ul>|
+|3.2.0|2025.01| 2025.03.14 |<ul><li> obdiag adapts to IPv6 </li><li> obdiag gather stack supports ARM machines </li><li> Check Scenario Expansion </li></ul>|
+|3.3.0|2025.04| - |<ul><li> obdiag check supports python script </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI for obdiag </li></ul>|
 
 # Support
