@@ -1,0 +1,10 @@
+info: "Check node'parameter 'datafile_maxsize'. When the datafile_maxsize is set and is greater than datafile_size, check if datafile_next is 0. If this value is 0, then the data file will not grow. issue #573"
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: "SELECT GROUP_CONCAT(DISTINCT p1.SVR_IP) FROM      oceanbase.GV$OB_PARAMETERS p1 JOIN      oceanbase.GV$OB_PARAMETERS p2 ON p1.SVR_IP = p2.SVR_IP JOIN      oceanbase.GV$OB_PARAMETERS p3 ON p1.SVR_IP = p3.SVR_IP WHERE      p1.NAME = 'datafile_maxsize' AND p1.VALUE <> '0'     AND p2.NAME = 'datafile_size' AND CAST(p1.VALUE AS DECIMAL) > CAST(p2.VALUE AS DECIMAL)     AND p3.NAME = 'datafile_next' AND p3.VALUE = '0';"
+      result:
+        set_value: ip_list
+        verify: '[ -z "${ip_list}" ]'
+        err_msg: "node: #{ip_list} datafile_next is 0, the data file will not grow. More info: https://github.com/oceanbase/obdiag/issues/573"

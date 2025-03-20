@@ -16,9 +16,9 @@
 @desc:
 """
 import unittest
-from handler.analyzer.sql.rules.review.update_delete_multi_table import UpdateDeleteMultiTableRule
+from src.handler.analyzer.sql.rules.review.update_delete_multi_table import UpdateDeleteMultiTableRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestUpdateDeleteMultiTableRule(unittest.TestCase):

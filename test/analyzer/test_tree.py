@@ -16,7 +16,7 @@
 @desc:
 """
 
-from handler.analyzer.log_parser.tree import Tree
+from src.handler.analyzer.log_parser.tree import Tree
 
 file_datas = [
     {'host_ip': '192.168.1.1', 'host_type': 'OBSERVER', 'trace_data': {"trace_id": "1", "name": "open1", "id": "1", "parent_id": "00000000-0000-0000-0000-000000000000", "is_follow": "false", "start_ts": 1662107166232204, "end_ts": 1662107166233214}},

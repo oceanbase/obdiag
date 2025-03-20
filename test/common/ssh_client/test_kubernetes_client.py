@@ -18,11 +18,10 @@
 
 import unittest
 import os
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 from kubernetes import config
-from kubernetes.stream import stream
-from context import HandlerContext
-from common.ssh_client.kubernetes_client import KubernetesClient
+from src.common.context import HandlerContext
+from src.common.ssh_client.kubernetes_client import KubernetesClient
 from kubernetes.client.api.core_v1_api import CoreV1Api
 from tempfile import NamedTemporaryFile
 from kubernetes.client import ApiClient
@@ -68,7 +67,7 @@ class TestKubernetesClient(unittest.TestCase):
         # Remove the temporary file to avoid leaving unused data
         os.remove(self.temp_file.name)
 
-    @patch('common.ssh_client.kubernetes_client.config.load_incluster_config')
+    @patch('src.common.ssh_client.kubernetes_client.config.load_incluster_config')
     def test_init_with_no_config_file(self, mock_load_incluster_config):
         """
         Test the initialization of KubernetesClient without a configuration file.
@@ -93,7 +92,7 @@ class TestKubernetesClient(unittest.TestCase):
         # Check if a message indicating the use of the default configuration file in the cluster was logged.
         self.context.stdio.verbose.assert_called_with("KubernetesClient load_kube_config from default config file in cluster.")
 
-    @patch('common.ssh_client.kubernetes_client.config.kube_config.load_kube_config')
+    @patch('src.common.ssh_client.kubernetes_client.config.kube_config.load_kube_config')
     def test_init_with_config_file(self, mock_load_kube_config):
         """
         Test the initialization of KubernetesClient with a configuration file.
@@ -118,7 +117,7 @@ class TestKubernetesClient(unittest.TestCase):
         # Verify that stdio.verbose was called to log the configuration file loading.
         self.context.stdio.verbose.assert_called_with(f"KubernetesClient load_kube_config from {FILE_DIR}")
 
-    @patch('common.ssh_client.kubernetes_client.config.load_incluster_config', side_effect=config.ConfigException)
+    @patch('src.common.ssh_client.kubernetes_client.config.load_incluster_config', side_effect=config.ConfigException)
     def test_init_raises_exception(self, mock_load_incluster_config):
         """
         Tests whether the __init__ method correctly raises an expected exception.
@@ -251,7 +250,7 @@ class TestKubernetesClient(unittest.TestCase):
             content = file.read()
             self.assertEqual(content, b"test file content")  # Compare byte type data
 
-    @patch('common.ssh_client.kubernetes_client.stream')
+    @patch('src.common.ssh_client.kubernetes_client.stream')
     def test_download_file_from_pod_error(self, mock_stream):
         """
         Test the scenario of an error occurring when downloading a file from a Pod.

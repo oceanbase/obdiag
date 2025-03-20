@@ -17,14 +17,14 @@
 """
 import unittest
 from unittest import mock
-from common.config_helper import ConfigHelper
+from src.common.config_helper import ConfigHelper
 
 
 class TestConfigHelper(unittest.TestCase):
-    @mock.patch('common.config_helper.YamlUtils.write_yaml_data')
-    @mock.patch('common.config_helper.DirectoryUtil.mkdir')
-    @mock.patch('common.config_helper.os.path.expanduser')
-    @mock.patch('common.config_helper.TimeUtils.timestamp_to_filename_time')
+    @mock.patch('src.common.config_helper.YamlUtils.write_yaml_data')
+    @mock.patch('src.common.config_helper.DirectoryUtil.mkdir')
+    @mock.patch('src.common.config_helper.os.path.expanduser')
+    @mock.patch('src.common.config_helper.TimeUtils.timestamp_to_filename_time')
     def test_save_old_configuration(self, mock_timestamp_to_filename_time, mock_expanduser, mock_mkdir, mock_write_yaml_data):
         # 模拟时间戳生成函数，返回一个特定的值
         mock_timestamp_to_filename_time.return_value = '20240806_123456'
@@ -93,7 +93,7 @@ class TestConfigHelper(unittest.TestCase):
         self.assertEqual(result, 'custom_user')
 
     # 测试带有默认值的密码输入方法
-    @mock.patch('common.config_helper.pwinput.pwinput')
+    @mock.patch('src.common.config_helper.pwinput.pwinput')
     def test_input_password_with_default(self, mock_pwinput):
         # 创建一个模拟的上下文对象
         context = mock.MagicMock()
@@ -120,7 +120,7 @@ class TestConfigHelper(unittest.TestCase):
         self.assertEqual(result, "custom_password")
 
     # 测试带有默认选项的选择输入方法
-    @mock.patch('common.config_helper.input')
+    @mock.patch('src.common.config_helper.input')
     def test_input_choice_default(self, mock_input):
         # 创建一个模拟的上下文对象
         context = mock.MagicMock()

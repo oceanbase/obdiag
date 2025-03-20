@@ -1,0 +1,28 @@
+info: 'Check when sysbench free , cluster info about network_speed'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: sql
+      sql: 'select VALUE from oceanbase.GV$OB_PARAMETERS where  NAME="devname" and SVR_IP="#{remote_ip}" ;'
+      result:
+        set_value: network_name
+    - type: ssh
+      ssh: "ethtool #{network_name} 2>/dev/null| grep Speed"
+      result:
+        set_value: network_speed
+        verify: '[[ ! $network_speed == *"Unknown"* ]]'
+        #report_type: warning
+        err_msg: "network_speed is #{network_speed}, can not get real speed"
+    - type: ssh
+      ssh: "ethtool #{network_name} 2>/dev/null | grep Speed | grep -o '[0-9]*'"
+      result:
+        set_value: network_speed
+        verify_type: min
+        verify: 999
+        #report_type: warning
+        err_msg: "network_speed is #{network_speed} , less than 1000"
+
+        
+        
+    
+

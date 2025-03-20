@@ -1,0 +1,18 @@
+
+info: "Check if there are files in the clog folder that do not belong to the observer"
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: ssh
+      ssh: 'find #{remote_data_dir}/ -name "sstable"'
+      result:
+        set_value: sstable_dir_path
+        verify: '[ -n "${sstable_dir_path}" ]'
+        err_msg: "sstable_dir_path is null . Please check your nodes.data_dir need absolute Path"
+    - type: ssh
+      ssh: "find #{sstable_dir_path}/ -type f ! -name block_file"
+      result:
+        set_value: files
+        verify: '[ -z "${files}" ]'
+        err_msg: "Users are not allowed to modify or create in the dir_path folder, It will be causing observer startup failure. Files need be checked: #{files}"
+

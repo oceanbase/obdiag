@@ -1,0 +1,16 @@
+info_en: "[leader]"
+info_cn: "[ob集群的leader信息]"
+command: obdiag display scene run --scene=observer.leader --env level=('all' or tenant_id or table_name)
+task:
+  - version: "[4.0.0,*]"
+    steps:
+      - type: sql
+        sql: "select a.tenant_id, b.tenant_name, a.svr_ip, a.role, count(1) part_count from oceanbase.CDB_OB_TABLE_LOCATIONS a, oceanbase.__all_tenant b
+where a.role='LEADER' and a.tenant_id = b.tenant_id  and b.tenant_name not like 'META$%' and (('all'='#{level}') or (a.tenant_id = '#{level}') or (a.table_name ='#{level}')) group by a.tenant_id, b.tenant_name, a.svr_ip, a.role order by 4,1;"
+        global: true
+  - version: "[*,3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "select a.tenant_id, b.tenant_name, a.svr_ip, a.role, count(1) part_count from oceanbase.__all_virtual_meta_table a, oceanbase.__all_tenant b
+where a.role='LEADER' and a.tenant_id = b.tenant_id and b.tenant_name not like 'META$%' and (('all'='#{level}') or (a.tenant_id = '#{level}') or (a.table_id in (select table_id from oceanbase.__all_virtual_table where table_name ='#{level}'))) group by a.tenant_id, b.tenant_name, a.svr_ip, a.role order by 4,1;"
+        global: true

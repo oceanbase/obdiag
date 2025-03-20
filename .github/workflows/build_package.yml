@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -35,27 +34,19 @@ jobs:
           source activate obdiag
           pwd
           ls -lh
-          export RELEASE=`date +%Y%m%d%H%M`
-          sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
-          python3 get-pip.py\n\
-          pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
-          python3 -m pip install --upgrade pip wheel
-          cat ./rpm/oceanbase-diagnostic-tool.spec
-          python3 --version
-          rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
+          bash dev_helper.sh pack
 
       - name: Find rpm
         run: |
           find / -name oceanbase-diagnostic-tool-*.rpm
 
       - name: "Upload rpm"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: obdiag-rpm-packages
           path: |
             /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
-          debug: true
 
   convert-to-deb:
     needs: build-rpm
@@ -66,7 +57,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: obdiag-rpm-packages
           path: .
@@ -82,7 +73,7 @@ jobs:
           pwd
 
       - name: Upload DEB Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb

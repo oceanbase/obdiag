@@ -1,0 +1,20 @@
+info_en: "[rs]"
+info_cn: "[查看 rootservice 信息]"
+command: obdiag display scene run --scene=observer.rs
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show parameters like '%rootservice_list%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history order by 1 desc limit 10;"
+        global: true
+  - version: "[3.0.0.0, 3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "show parameters like '%rootservice_list%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history order by 1 desc limit 10;"
+        global: true

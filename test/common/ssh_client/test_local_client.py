@@ -17,10 +17,10 @@
 """
 
 import unittest
-import subprocess32 as subprocess
+import subprocess
 from unittest.mock import patch, MagicMock
-from common.ssh_client.local_client import LocalClient
-from context import HandlerContext
+from src.common.ssh_client.local_client import LocalClient
+from src.common.context import HandlerContext
 
 
 class TestLocalClient(unittest.TestCase):
@@ -194,7 +194,7 @@ class TestLocalClient(unittest.TestCase):
         # Ensure the error log is recorded as expected
         self.local_client.stdio.error.assert_called_with("run cmd = [exit 1] on localhost, Exception = [Popen error]")
 
-    @patch('common.ssh_client.local_client.shutil.copy')
+    @patch('src.common.ssh_client.local_client.shutil.copy')
     def test_download_success(self, mock_copy):
         """
         Test the successful scenario of the download command.
@@ -224,7 +224,7 @@ class TestLocalClient(unittest.TestCase):
         # Verify that the error message method was not called
         self.local_client.stdio.error.assert_not_called()
 
-    @patch('common.ssh_client.local_client.shutil.copy')
+    @patch('src.common.ssh_client.local_client.shutil.copy')
     def test_download_failure(self, mock_copy):
         """
         Tests the failure scenario of the download command.
@@ -249,7 +249,7 @@ class TestLocalClient(unittest.TestCase):
         # Verify that the error message was recorded correctly
         self.local_client.stdio.error.assert_called_once()
 
-    @patch('common.ssh_client.local_client.shutil.copy')
+    @patch('src.common.ssh_client.local_client.shutil.copy')
     def test_upload_success(self, mock_copy):
         """
         Tests the successful scenario of the upload command.
@@ -273,7 +273,7 @@ class TestLocalClient(unittest.TestCase):
         # Verify if error messages were not called, ensuring no errors occurred during the upload
         self.local_client.stdio.error.assert_not_called()
 
-    @patch('common.ssh_client.local_client.shutil.copy')
+    @patch('src.common.ssh_client.local_client.shutil.copy')
     def test_upload_failure(self, mock_copy):
         """
         Test the upload command failure.

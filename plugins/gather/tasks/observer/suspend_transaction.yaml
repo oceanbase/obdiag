@@ -1,0 +1,89 @@
+info_en: "[suspend transaction]"
+info_cn: "[悬挂事务]"
+command: obdiag gather scene run --scene=observer.suspend_transaction
+task:
+  - version: "[2.0.0.0, 3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.v$ob_cluster"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
+        global: true
+      - type: sql
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
+        global: true
+      - type: sql
+        sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action > 2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_ZONES ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_SERVERS ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT SVR_IP,SVR_PORT,ZONE,SQL_PORT,CPU_CAPACITY,CPU_CAPACITY_MAX,CPU_ASSIGNED,CPU_ASSIGNED_MAX, concat(ROUND(MEM_CAPACITY/1024/1024/1024,0), 'G') as MEM_CAPACITY, concat(ROUND(MEM_ASSIGNED/1024/1024/1024,0), 'G') as MEM_ASSIGNED, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024,0), 'G') as LOG_DISK_CAPACITY, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024,0), 'G') as LOG_DISK_ASSIGNED, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024,0), 'G') as LOG_DISK_IN_USE, concat(ROUND(DATA_DISK_CAPACITY/1024/1024/1024,0), 'G') as DATA_DISK_CAPACITY,concat(ROUND(DATA_DISK_IN_USE/1024/1024/1024,0), 'G') as DATA_DISK_IN_USE,concat(ROUND(MEMORY_LIMIT/1024/1024/1024,0), 'G') as MEMORY_LIMIT FROM oceanbase.GV$OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
+        global: true
+      - type: sql
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_sys_variable where name like  'ob_trx_idle_timeout';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_sys_variable where name like  'ob_trx_timeout';"
+        global: true
+      - type: sql
+        sql: "SELECT count(1) FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE CTX_CREATE_TIME < date_sub(now(), INTERVAL 600 SECOND) AND (STATE = 'PREPARE' OR STATE = 'REDO COMPLETE' OR STATE ='PRECOMMIT');"
+        global: true
+      - type: sql
+        sql: "select tenant_name, svr_ip,  memstore_limit /(1024 * 1024 * 1024) as memstore_limit_GB,  freeze_trigger /(1024 * 1024 * 1024) as freeze_trigger_GB,  memstore_used /(1024 * 1024 * 1024) as memstore_used_GB,  concat((memstore_used * 100 / memstore_limit), '%') as memstore_used_percent,  active_span /(1024 * 1024 * 1024) as active_span_GB,  freeze_cnt   from oceanbase.GV$OB_MEMSTORE memstore_info  inner join oceanbase.DBA_OB_TENANTS tenant on  memstore_info.tenant_id = tenant.tenant_id  ORDER BY tenant.tenant_name,svr_ip;"
+        global: true
+      - type: log
+        grep: ""
+        global: false

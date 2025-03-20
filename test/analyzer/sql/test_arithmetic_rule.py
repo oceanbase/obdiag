@@ -16,9 +16,9 @@
 @desc:
 """
 import unittest
-from handler.analyzer.sql.rules.review.arithmetic import ArithmeticRule
+from src.handler.analyzer.sql.rules.review.arithmetic import ArithmeticRule
 from sqlgpt_parser.parser.oceanbase_parser import parser
-from handler.analyzer.sql.rules.level import Level
+from src.handler.analyzer.sql.rules.level import Level
 
 
 class TestArithmeticRuleWithRealSQL(unittest.TestCase):

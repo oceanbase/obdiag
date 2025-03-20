@@ -1,0 +1,33 @@
+info: |
+  'To detect ulimit parameters, refer to: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643'
+task:
+  - steps:
+    - type: ssh
+      ssh: ulimit -c
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ 'unlimited' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -c as "core file size" is #{parameter} . recommended: unlimited.'
+    - type: ssh
+      ssh: ulimit -u
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ '655360' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -u as "max user processes" is #{parameter} . recommended: 655360.'
+    - type: ssh
+      ssh: ulimit -s
+      result:
+        set_value: parameter
+        report_type: warning
+        verify: "[ 'unlimited' == ${parameter} ]"
+        err_msg: 'On ip : #{remote_ip}, ulimit -s as "stack size" is #{parameter} . recommended: unlimited.'
+    - type: ssh
+      ssh: ulimit -n
+      result:
+        set_value: parameter
+        report_type: warning
+        verify_type: equal
+        verify: 655350
+        err_msg: 'On ip : #{remote_ip}, ulimit -n as "open files" is #{parameter} . recommended: unlimited.'

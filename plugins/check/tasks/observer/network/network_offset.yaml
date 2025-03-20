@@ -1,0 +1,45 @@
+info: 'Check cluster info about network clockdiff offset'
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+    - type: local_ssh
+      ssh: 'if command -v clockdiff &>/dev/null; then     echo "exist"; fi'
+      result:
+        set_value: clockdiff_exist
+        report_type: execution
+        verify: '[ "exist" != "${clockdiff_exist}" ]'
+        err_msg: '[not warning] clockdiff is exist. We will check the clockdiff'
+    - type: local_ssh
+      ssh: 'clockdiff -o #{remote_ip}'
+      result:
+        set_value: clockdiff
+        verify: '[[ ! $clockdiff == *"is down"* ]]'
+        #report_type: warning
+        err_msg: "node: #{remote_ip} can not get clock offset by 'clockdiff -o #{remote_ip}', doc: https://www.oceanbase.com/knowledge-base/ocp-ee-1000000000346970?back=kb"
+    - type: local_ssh
+      ssh: "echo \"#{clockdiff}\" | awk '{print $2}'"
+      result:
+        set_value: offset
+        verify_type: max
+        verify: 50
+        err_msg: "node: #{remote_ip} clock offset is #{offset}, it is over 50ms, issue: https://github.com/oceanbase/obdiag/issues/701"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

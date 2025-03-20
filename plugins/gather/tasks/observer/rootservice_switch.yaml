@@ -1,0 +1,143 @@
+info_en: "[rootservice switch]"
+info_cn: "[有主改选或者无主选举的切主]"
+command: obdiag gather scene run --scene=observer.rootservice_switch
+task:
+  - version: "[2.0.0.0, 3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.v$ob_cluster"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
+        global: true
+      - type: sql
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
+        global: true
+      - type: sql
+        sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
+        global: true
+      - type: sql
+        sql: "show parameters like 'enable_auto_leader_switch';"
+        global: true
+      - type: sql
+        sql: "show parameters like 'enable_merge_by_turn';"
+        global: true
+      - type: sql
+        sql: "select count(*) from oceanbase.__all_virtual_database where primary_zone != '' group by tenant_id;"
+        global: true
+      - type: sql
+        sql: "select count(*) from oceanbase.__all_virtual_table where  primary_zone != '' group by tenant_id;"
+        global: true
+      - type: sql
+        sql: "select count(*) from oceanbase.__all_virtual_tablegroup where primary_zone != '' group by tenant_id;"
+        global: true
+      - type: sql
+        sql: "select tenant_id, table_id, partition_id from oceanbase.__all_virtual_partition_table group by 1,2,3 having min(role) = 2;"
+        global: true
+      - type: sql
+        sql: "select count(*) from oceanbase.__all_virtual_rebalance_task_stat where task_type in ('ADD_REPLICA', 'MIGRATE_REPLICA', 'TYPE_TRANSFORM');"
+        global: true
+      - type: sql
+        sql: "select count(*) from oceanbase.__all_virtual_replica_task where cmd_type in ('ADD_REPLICA', 'MIGRATE_REPLICA', 'TYPE_TRANSFORM'); "
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_election_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1) ;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_clog_stat group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_clog_stat where role = 'LEADER') ;"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+      - type: sysstat
+        sysstat: ""
+        global: false
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_ZONES ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_SERVERS ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT SVR_IP,SVR_PORT,ZONE,SQL_PORT,CPU_CAPACITY,CPU_CAPACITY_MAX,CPU_ASSIGNED,CPU_ASSIGNED_MAX, concat(ROUND(MEM_CAPACITY/1024/1024/1024,0), 'G') as MEM_CAPACITY, concat(ROUND(MEM_ASSIGNED/1024/1024/1024,0), 'G') as MEM_ASSIGNED, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024,0), 'G') as LOG_DISK_CAPACITY, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024,0), 'G') as LOG_DISK_ASSIGNED, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024,0), 'G') as LOG_DISK_IN_USE, concat(ROUND(DATA_DISK_CAPACITY/1024/1024/1024,0), 'G') as DATA_DISK_CAPACITY,concat(ROUND(DATA_DISK_IN_USE/1024/1024/1024,0), 'G') as DATA_DISK_IN_USE,concat(ROUND(MEMORY_LIMIT/1024/1024/1024,0), 'G') as MEMORY_LIMIT FROM oceanbase.GV$OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
+        global: true
+      - type: sql
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%switch%';"
+        global: true
+      - type: sql
+        sql: "select TIMESTAMP,MODULE,EVENT,VALUE1 tenant_id,VALUE2 ls_id,NAME3,VALUE3,NAME4,VALUE4,NAME5,VALUE5,NAME6,VALUE6 from oceanbase.DBA_OB_ROOTSERVICE_EVENT_HISTORY where module like '%disaster%' limit 20;"
+        global: true
+      - type: sql
+        sql: "(select value1, value2 from oceanbase.DBA_OB_ROOTSERVICE_EVENT_HISTORY where event like '%add_ls%') except (select value1, value2 from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module like 'storage_ha' and event like '%finish_complete%');"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where event like '%migrat%' and name6 like '%fail%' and value6=1;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module='FAILURE_DETECTOR';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.DBA_OB_SERVER_EVENT_HISTORY where module like '%ELECTION%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.GV$OB_LOG_STAT where role='LEADER';"
+        global: true
+      - type: sql
+        sql: "SELECT TENANT_NAME, TENANT_ID, TENANT_ROLE, STATUS, SWITCHOVER_STATUS FROM oceanbase.DBA_OB_TENANTS"
+        global: true
+      - type: sql # 大于1g的内存模块
+        sql: "SELECT CASE WHEN tenant_name IS NULL THEN TENANT_ID ELSE tenant_name END tenant_name, host,ctx_name, mod_name, hold, used, count FROM ( SELECT tenant_name,tenant_id,HOST,ctx_name,mod_name,hold,used,COUNT, ROW_NUMBER () OVER ( PARTITION BY tenant_name, HOST ORDER BY hold desc) rnum FROM   (SELECT  b.tenant_name, a.tenant_id, concat(a.svr_ip, ':', a.svr_port) HOST,  a.ctx_name, a.mod_name,  round(a.hold / 1024 / 1024 / 1024) hold, round(a.used / 1024 / 1024 / 1024) used, a.COUNT FROM  oceanbase.__all_virtual_memory_info a  LEFT JOIN oceanbase.__all_tenant b ON a.TENANT_ID = b.TENANT_ID  WHERE a.hold > 1024 * 1024 * 1024 ));"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+      - type: sysstat
+        sysstat: ""
+        global: false

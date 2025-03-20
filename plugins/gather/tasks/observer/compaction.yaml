@@ -1,0 +1,164 @@
+info_en: "[compaction]"
+info_cn: "[合并问题]"
+command: obdiag gather scene run --scene=observer.compaction
+task:
+  - version: "[2.0.0.0, 3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.v$ob_cluster"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_zone WHERE name='idc';"
+        global: true
+      - type: sql
+        sql: "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;"
+        global: true
+      - type: sql
+        sql: "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;"
+        global: true
+      - type: sql
+        sql: "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%enable_manual_merge%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%zone_merge_concurrency%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%zone_merge_order%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%enable_merge_by_turn%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%major_freeze_duty_time%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%enable_auto_leader_switch%';"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_zone;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_replica_task;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_rebalance_task_stat;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_sys_task_status;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_partition_compaction_progress;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_freeze_schema_version where schema_version = -1;"
+        global: true
+      - type: sql
+        sql: "select tenant_id, table_id, partition_id from oceanbase.__all_virtual_partition_table group by 1,2,3 having min(role) = 2;"
+        global: true
+      - type: sql
+        sql: "SELECT count(*),svr_ip FROM oceanbase.__all_virtual_clog_stat WHERE is_in_sync = 0 AND is_offline = 0 AND replica_type != 16 group by svr_ip;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.__all_virtual_clog_stat WHERE is_in_sync = 0 AND is_offline = 0 AND replica_type != 16  limit 10;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_tenant_memstore_info where (active_memstore_used > major_freeze_trigger) or (total_memstore_used > memstore_limit);"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_rootservice_event_history where module = 'daily_merge' and event like '%merge_error%' order by gmt_create desc limit 5;"
+        global: true
+      - type: sql
+        sql: "select * from oceanbase.__all_virtual_meta_table where data_version != (select value from oceanbase.__all_zone where name='global_broadcast_version') limit 10;"
+        global: true
+      - type: sql
+        sql: "SELECT count(1) FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action<=2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
+        global: true
+      - type: sql
+        sql: "SELECT count(1) FROM oceanbase.__all_virtual_trans_stat WHERE part_trans_action > 2 AND ctx_create_time < date_sub(now(), INTERVAL 600 SECOND) AND is_exiting != 1;"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1)"
+        global: true
+      - type: sql
+        sql: "(select table_id, partition_idx from oceanbase.__all_virtual_clog_stat group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_clog_stat where role = 'LEADER') ;"
+        global: true
+      - type: sql
+        sql: "SELECT svr_ip,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;"
+        global: true
+      - type: log
+        grep: ""
+        global: false
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show variables like 'version_comment';"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_ZONES ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_SERVERS ORDER BY ZONE;"
+        global: true
+      - type: sql
+        sql: "SELECT SVR_IP,SVR_PORT,ZONE,SQL_PORT,CPU_CAPACITY,CPU_CAPACITY_MAX,CPU_ASSIGNED,CPU_ASSIGNED_MAX, concat(ROUND(MEM_CAPACITY/1024/1024/1024,0), 'G') as MEM_CAPACITY, concat(ROUND(MEM_ASSIGNED/1024/1024/1024,0), 'G') as MEM_ASSIGNED, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024,0), 'G') as LOG_DISK_CAPACITY, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024,0), 'G') as LOG_DISK_ASSIGNED, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024,0), 'G') as LOG_DISK_IN_USE, concat(ROUND(DATA_DISK_CAPACITY/1024/1024/1024,0), 'G') as DATA_DISK_CAPACITY,concat(ROUND(DATA_DISK_IN_USE/1024/1024/1024,0), 'G') as DATA_DISK_IN_USE,concat(ROUND(MEMORY_LIMIT/1024/1024/1024,0), 'G') as MEMORY_LIMIT FROM oceanbase.GV$OB_SERVERS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;"
+        global: true
+      - type: sql
+        sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
+        global: true
+      - type: sql
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_level%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%syslog_io_bandwidth_limit%';"
+        global: true
+      - type: sql
+        sql: "show parameters like '%merge%';"
+        global: true
+      - type: sql
+        sql: "show parameters like 'memstore_limit_percentage';"
+        global: true
+      - type: sql
+        sql: "show parameters like 'freeze_trigger_percentage';"
+        global: true
+      - type: sql
+        sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t, oceanbase.cdb_ob_table_locations t1, oceanbase.cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
+        global: true
+      - type: sql
+        sql: "select b.zone, a.svr_ip,a.svr_port,b.with_rootserver, round(a.total_size/1024/1024/1024,0) as total_GB,round(a.free_size/1024/1024/1024,0) as free_GB, round((a.total_size-a.free_size)/1024/1024/1024,0) as used_GB,(a.total_size-a.free_size)/a.total_size as used_percent from oceanbase.__all_virtual_disk_stat a, oceanbase.DBA_OB_SERVERS b where a.svr_ip=b.svr_ip and a.svr_port=b.svr_port order by b.zone,used_percent desc;"
+        global: true
+      - type: sql
+        sql: "select tenant_name, svr_ip,  memstore_limit /(1024 * 1024 * 1024) as memstore_limit_GB,  freeze_trigger /(1024 * 1024 * 1024) as freeze_trigger_GB,  memstore_used /(1024 * 1024 * 1024) as memstore_used_GB,  concat((memstore_used * 100 / memstore_limit), '%') as memstore_used_percent,  active_span /(1024 * 1024 * 1024) as active_span_GB,  freeze_cnt   from oceanbase.GV$OB_MEMSTORE memstore_info  inner join oceanbase.DBA_OB_TENANTS tenant on  memstore_info.tenant_id = tenant.tenant_id  ORDER BY tenant.tenant_name,svr_ip;"
+        global: true
+      - type: sql # 查看每台机器上的tablet分布
+        sql: "select svr_ip, svr_port, ls_id, count(*) from oceanbase.CDB_OB_TABLE_LOCATIONS group by svr_ip, svr_port, ls_id;"
+        global: true
+      - type: log
+        global: false
+        grep: ""
