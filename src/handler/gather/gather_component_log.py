@@ -400,6 +400,7 @@ class GatherLogOnNode:
             self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
+        self.stdio.verbose("log_path: {0}".format(self.log_path))
 
         self.from_time_str = self.config.get("from_time")
         self.to_time_str = self.config.get("to_time")
