@@ -72,6 +72,16 @@ html_dict.set_value(
     .bar { margin-left:5%; margin-top: 20px; margin-bottom:100px; }
     .help {background-color:#fef8e9;width:100%;border-left:6px solid orange;padding:30px 20px;}
     .shortcut {color:gray;text-align:right;}
+    .statsWarning {
+      background-color: orange;
+      width: 100%;
+      text-align: left;
+      padding: 5px;
+      box-sizing: border-box;
+      margin-top: 10px;
+      z-index: 1000;
+      position: relative;
+    }
     </style>
     </head>
     <body>
@@ -236,6 +246,16 @@ html_dict.set_value(
     .help {background-color:#fef8e9;width:100%;border-left:6px solid orange;padding:30px 20px;}
     .shortcut {color:gray;text-align:right;}
     .dbtime {display:inline-block;}
+    .statsWarning {
+      background-color: orange;
+      width: 100%;
+      text-align: left;
+      padding: 5px;
+      box-sizing: border-box;
+      margin-top: 10px;
+      z-index: 1000;
+      position: relative;
+    }
     </style>
     </head>
     <body>

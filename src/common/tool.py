@@ -1406,6 +1406,76 @@ class StringUtils(object):
 
         return masked_data
 
+    @staticmethod
+    def parse_optimization_info(text, stdio):
+        # Fixed module names that should not be treated as table names
+        module_names = {'Outputs & filters', 'Used Hint', 'Qb name trace', 'Outline Data', 'Optimization Info', 'Plan Type', 'Note'}
+
+        tables = {}
+        current_table = None
+        lines = text.splitlines()
+
+        for line in lines:
+            # Remove leading/trailing whitespace and '|' characters
+            line = line.strip().strip('|').strip()
+            if not line or line.startswith('-') or line.startswith('|'):
+                # Skip empty lines, separator lines, and lines starting with '|'
+                continue
+
+            try:
+                # Check if it's the start of a new table (contains ':' and ends with it, and is not a module name)
+                if ':' in line and line.endswith(':') and line.rstrip(':').strip() not in module_names:
+                    current_table = line.rstrip(':').strip()
+                    tables[current_table] = None
+                elif current_table:
+                    match_stats_version = re.search(r'stats version:(\d+)', line)
+                    match_stats_info = re.search(r'stats info:\[version=(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+),\s*is_locked=\d+,\s*is_expired=\d+]', line)
+
+                    if match_stats_version:
+                        stats_version = int(match_stats_version.group(1))
+                        tables[current_table] = {'type': 'version', 'value': stats_version}
+                    elif match_stats_info:
+                        print(match_stats_info)
+                        stats_time_str = match_stats_info.group(1)
+                        stats_time = datetime.datetime.strptime(stats_time_str, '%Y-%m-%d %H:%M:%S.%f')
+                        tables[current_table] = {'type': 'info', 'value': stats_time}
+            except Exception as e:
+                return None
+
+        messages = []
+        for table, stats_data in tables.items():
+            if stats_data is None:
+                stdio.verbose(f"Could not find stats version information for the {table} table.")
+            else:
+                try:
+                    if stats_data['type'] == 'version':
+                        if stats_data['value'] == 0:
+                            message = f"In explain extended [Optimization Info], the [stats version] for the {table} table is 0, indicating that statistics have not been collected. Please collect statistics."
+                            stdio.print(message)
+                            messages.append(message)
+                        else:
+                            stats_time = datetime.datetime.utcfromtimestamp(stats_data['value'] // 1000000).strftime('%Y-%m-%d %H:%M:%S')
+                            if (datetime.datetime.now().timestamp() - stats_data['value'] / 1000000) > 24 * 60 * 60:
+                                message = f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_time}, indicating that statistics are over 24 hours old. Please collect statistics."
+                                stdio.print(message)
+                                messages.append(message)
+                            else:
+                                message = f"The statistics are up-to-date. The last collection time for the {table} table was {stats_time}. No action needed."
+                                stdio.verbose(message)
+                    elif stats_data['type'] == 'info':
+                        if (datetime.datetime.now() - stats_data['value']).total_seconds() > 24 * 60 * 60:
+                            message = (
+                                f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_data['value'].strftime('%Y-%m-%d %H:%M:%S')}, indicating that statistics are over 24 hours old. Please collect statistics."
+                            )
+                            stdio.print(message)
+                            messages.append(message)
+                        else:
+                            message = f"The statistics are up-to-date. The last collection time for the {table} table is {stats_data['value'].strftime('%Y-%m-%d %H:%M:%S')}，No action needed."
+                            stdio.verbose(message)
+                except Exception as e:
+                    stdio.verbose(f"Error processing {table} table: {e}")
+        return "\n".join(messages)
+
 
 class Cursor(SafeStdio):
 
