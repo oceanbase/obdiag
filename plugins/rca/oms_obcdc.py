@@ -74,9 +74,11 @@ class OMSOBcdcScene(RcaScene):
             raise RCAInitException("ssher is not exist. please check oms_node.")
 
     def mock(self):
-        self.check_obcdc_init_succeed_tag = False
-        self.oms_cdc_logs_name = self.get_all_filenames("./obcdclog/")
-        self.meta_data_refresh_mode = "data_dict"
+        # IF YOU WANT TO MOCK, PLEASE USE THE FOLLOWING CODE
+        # self.check_obcdc_init_succeed_tag = False
+        # self.oms_cdc_logs_name = self.get_all_filenames("./obcdclog/")
+        # self.meta_data_refresh_mode = "data_dict"
+        pass
 
     def execute(self):
         try:
