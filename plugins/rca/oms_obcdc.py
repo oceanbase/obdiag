@@ -35,6 +35,7 @@ from src.handler.rca.rca_handler import RcaScene
 class OMSOBcdcScene(RcaScene):
     def __init__(self):
         super().__init__()
+        self.check_obcdc_init_succeed_tag = None
         self.obcluster_version = None
         self.oms_cdc_logs_name = None
         self.meta_data_refresh_mode = None
@@ -72,8 +73,14 @@ class OMSOBcdcScene(RcaScene):
             self.record.add_record("ssher is not exist. please check oms_node.")
             raise RCAInitException("ssher is not exist. please check oms_node.")
 
+    def mock(self):
+        self.check_obcdc_init_succeed_tag = False
+        self.oms_cdc_logs_name = self.get_all_filenames("./obcdclog/")
+        self.meta_data_refresh_mode = "data_dict"
+
     def execute(self):
         try:
+            self.mock()
             # get obcdc_id by component_id
             self.get_obcdc_id_by_component_id()
             self.record.add_record("get obcdc_id by component_id: {0}".format(self.obcdc_id))
@@ -109,14 +116,15 @@ class OMSOBcdcScene(RcaScene):
                 self.record.add_record("start check obcdc status is normal, delayed or stuck")
                 self.record.add_record("do check obcdc init succeed or not.")
                 obcdc_init_succeed_tag = False
-                self.record.add_record("get stack info about obcdc pid")
-                obcdc_stack_info_file = self.get_obcdc_stack_info()
-                with open(obcdc_stack_info_file, "r", encoding='utf-8', errors='ignore') as f:
-                    for line in f:
-                        if "init_common_" in line:
-                            obcdc_init_succeed_tag = True
-                            self.record.add_record("find \"init_common_\" in obcdc stack info. it means obcdc init succeed.")
-                            break
+                if self.check_obcdc_init_succeed_tag:
+                    self.record.add_record("get stack info about obcdc pid")
+                    obcdc_stack_info_file = self.get_obcdc_stack_info()
+                    with open(obcdc_stack_info_file, "r", encoding='utf-8', errors='ignore') as f:
+                        for line in f:
+                            if "init_common_" in line:
+                                obcdc_init_succeed_tag = True
+                                self.record.add_record("find \"init_common_\" in obcdc stack info. it means obcdc init succeed.")
+                                break
                 if not obcdc_init_succeed_tag:
                     self.record.add_record("can not find \"init_common_\" in obcdc stack info. it means obcdc init failed.")
                     self.obcdc_init_failed()
@@ -168,22 +176,19 @@ class OMSOBcdcScene(RcaScene):
                 delay_tag = False
                 with open(HEARTBEAT_log_file, "r", encoding='utf-8', errors='ignore') as f:
                     for line in f:
-                        if "DELAY=" in line:
-                            try:
-                                match = re.search(r'DELAY="\[([^\]]+)\]"', line).group(1)
-                                if match:
-
-                                    delay_value = match.group(1)
-                                    delay_seconds = float(delay_value.split()[0])
-                                    if delay_seconds > 10:
-                                        delay_tag = True
-                                        self.record.add_record("DELAY value exceeds 10 seconds. on {0}".format(line))
-                                        break
-                            except Exception as e:
-                                self.stdio.warn("not warn DELAY value is not exist or type is error ")
+                        try:
+                            delay_seconds = self.check_delayed(line)
+                            if delay_seconds > 10:
+                                delay_tag = True
+                                self.record.add_record("DELAY value exceeds 10 seconds. on {0}".format(line))
+                                break
+                        except Exception as e:
+                            self.stdio.warn("not warn DELAY value is not exist or type is error ")
                 if delay_tag:
                     self.record.add_suggest("obcdc is delayed. DELAY value exceeds 10 seconds. the log in {0}.".format(HEARTBEAT_log_file))
                     return
+                else:
+                    self.record.add_record("not find HEARTBEAT DELAY value exceeds 10 seconds.")
 
             else:
                 # when obcdc pid is not exist
@@ -331,6 +336,10 @@ class OMSOBcdcScene(RcaScene):
             self.record.add_suggest("if you want to know more about the result, please contact with oms team with {0}".format(self.store_dir))
 
     def gather_obcdc_log(self):
+        # set self.oms_cdc_logs_name
+        if self.oms_cdc_logs_name:
+            self.record.add_record("oms_cdc_logs_name is mock, not gather obcdc log")
+            return
         self.record.add_record("download obcdc log from remote oms node")
         self.gather_log.set_parameters("target", "oms_cdc")
         oms_obcdc_log_dir = os.path.join(self.store_dir, "oms")
@@ -346,6 +355,7 @@ class OMSOBcdcScene(RcaScene):
         self.oms_cdc_logs_name = oms_cdc_logs_name
 
     def check_KBA(self):
+        return
         self.record.add_record("do check ret in OBCDC-KBA")
         for oms_cdc_log_name in self.oms_cdc_logs_name:
             self.record.add_record("do check error log in obcdc log: {0}".format(oms_cdc_log_name))
@@ -358,6 +368,15 @@ class OMSOBcdcScene(RcaScene):
                         self.record.add_record("find error log in obcdc log: {0}".format(line))
                         # todo get traceID and threadID by error log
                         match = re.search(r"traceID: (\d+), threadID: (\d+)", line)
+
+    def check_KBA_002(self):
+        for oms_cdc_log_name in self.oms_cdc_logs_name:
+            with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    if "request start lsn from all server fail" in line or "start lsn locate fail" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-002, request start lsn from all server fail or start lsn locate fail. please check the error log.")
+                        return True
 
     def execute_hold_or_delayed(self):
         try:
@@ -460,7 +479,10 @@ class OMSOBcdcScene(RcaScene):
             entries = os.listdir(path)
             # Filter out only files
             filenames = [entry for entry in entries if os.path.isfile(os.path.join(path, entry))]
-            return filenames
+            new_path = []
+            for filename in filenames:
+                new_path.append(os.path.join(path, filename))
+            return new_path
         except Exception as e:
             self.stdio.verbose(f"An error occurred: {e}")
             return []
@@ -471,15 +493,16 @@ class OMSOBcdcScene(RcaScene):
                 # for COMMITTER
                 match = re.search(r'DELAY="\[([^\]]+)\]"', log).group(1)
                 if match:
-                    delay_value = match.group(1)
+                    delay_value = match
                     delay_seconds = float(delay_value.split()[0])
                     return delay_seconds
                 # for FETCHER
                 match = re.search(r'DELAY=\[([0-9.]+)', log).group(1)
                 if match:
-                    delay_value = match.group(1)
+                    delay_value = match
                     delay_seconds = float(delay_value.split()[0])
                     return delay_seconds
+                return 0
             except Exception as e:
                 self.stdio.warn("not warn DELAY value is not exist or type is error ")
                 return 0
@@ -596,6 +619,9 @@ class OMSOBcdcScene(RcaScene):
             self.record.add_record("find the log: {0}".format(CLOG_success_log))
         else:
             self.record.add_record("[need check] can not find \"The last log of the baseline data has been fetched\" in libobcdc.log* may be this step is fail or the log refresh.")
+        # check KBA-002, find the log: "request start lsn from all server fail" or "start lsn locate fail"
+        if self.check_KBA_002():
+            return
         self.record.add_record("step3: Get and parse the CLOG logs from the baseline dictionary to the starting point, and obtain the incremental dictionary from it.")
         self.record.add_record("do check \"[LOG_META_DATA] [REPLAYER] end tenant_id=%xxx start_timestamp_ns=yyy\" in obcdc log")
         check_log_meta_data = ssh_client.exec_cmd("grep \"LOG_META_DATA] [REPLAYER] end tenant_id=\" {0}/store{1}/log/libobcdc.log*".format(self.oms_node.get("store_path"), self.obcdc_id))
@@ -656,6 +682,9 @@ class OMSOBcdcScene(RcaScene):
             cluster_url_data = ssh_client.exec_cmd("cat {0}/store{1}/etc/libobcdc.conf | grep cluster_url".format(self.oms_node.get("store_path"), self.obcdc_id))
             self.record.add_record("cluster_url_data: {0}".format(cluster_url_data))
             cluster_url = cluster_url_data.split("=")[1].strip()
+            match = re.search(r'cluster_url=(http[^\s]+)', cluster_url_data)
+            if match:
+                cluster_url = match.group(1)
             if cluster_url == "|":
                 self.record.add_record("cluster_url is useless")
             else:
@@ -740,6 +769,9 @@ class OMSOBcdcScene(RcaScene):
         return
 
     def get_obcdc_meta_data_refresh_mode(self):
+        # set self.meta_data_refresh_mode
+        if self.meta_data_refresh_mode:
+            return self.meta_data_refresh_mode
         # check meta_data_refresh_mode in obcdc {store}/etc/libobcdc.conf
         self.record.add_record("do check meta_data_refresh_mode in obcdc {store}/etc/libobcdc.conf")
         ssh_client = self.oms_node["ssher"]
