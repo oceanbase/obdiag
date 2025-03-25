@@ -46,7 +46,7 @@ class TestToolParseOptimizationInfo(unittest.TestCase):
 |                                                                          Degree of Parallelism is 3 because of hint                                                                                           |
 """
         result = StringUtils.parse_optimization_info(text=text, stdio=self.stdio)
-        self.assertEqual(result, 'In [Optimization Info], the [stats version] time for the game table is 2025-03-13 14:00:03, indicating that statistics are over 24 hours old. Please collect statistics.')
+        self.assertEqual(result, 'In explain extended [Optimization Info], the [stats version] time for the game table is 2025-03-13 14:00:03, indicating that statistics are over 24 hours old. Please collect statistics.')
 
     def test_stats_info_abnormal(self):
         text = """| Optimization Info:                                                                                                                                   |
@@ -66,7 +66,7 @@ class TestToolParseOptimizationInfo(unittest.TestCase):
 |       estimation method:[OPTIMIZER STATISTICS, STORAGE]                                                                                            |
 """
         result = StringUtils.parse_optimization_info(text=text, stdio=self.stdio)
-        self.assertEqual(result, 'In [Optimization Info], the [stats version] time for the chatDetail31 table is 2025-03-18 16:40:17, indicating that statistics are over 24 hours old. Please collect statistics.')
+        self.assertEqual(result, 'In explain extended [Optimization Info], the [stats version] time for the chatDetail31 table is 2025-03-18 16:40:17, indicating that statistics are over 24 hours old. Please collect statistics.')
 
     def test_stats_version_unmatch(self):
         text = """|                                                                                   Optimization Info:                                                                                   |
