@@ -355,28 +355,57 @@ class OMSOBcdcScene(RcaScene):
         self.oms_cdc_logs_name = oms_cdc_logs_name
 
     def check_KBA(self):
-        return
-        self.record.add_record("do check ret in OBCDC-KBA")
-        for oms_cdc_log_name in self.oms_cdc_logs_name:
-            self.record.add_record("do check error log in obcdc log: {0}".format(oms_cdc_log_name))
-            with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
-                for line in f:
-                    if "ERROR" in line or "HANDLE_ERROR" in line:
-                        # ingore some error log
-                        if "mark_stop_flag begin" in line or "there was memory leak" in line or "HAS UNFREE PTR" in line:
-                            continue
-                        self.record.add_record("find error log in obcdc log: {0}".format(line))
-                        # todo get traceID and threadID by error log
-                        match = re.search(r"traceID: (\d+), threadID: (\d+)", line)
-
-    def check_KBA_002(self):
         for oms_cdc_log_name in self.oms_cdc_logs_name:
             with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                 for line in f:
-                    if "request start lsn from all server fail" in line or "start lsn locate fail" in line:
+                    if "no valid tenant is in serve, skip get next_heartbeat_timestamp_" in line:
                         self.record.add_record("find the log: {0}".format(line))
-                        self.record.add_suggest("ERROR: KBA-002, request start lsn from all server fail or start lsn locate fail. please check the error log.")
+                        self.record.add_suggest("ERROR: KBA-001-no valid tenant is in serve")
+                        self.record.add_suggest("1. Confirm if there are tenants who meet the criteria. If not, adjust the blacklist or activation site;")
+                        self.record.add_suggest("2. If you only want tenants to be able to perceive new tenants even after they have been deleted, you need to")
+                        self.record.add_suggest("a. Change metadata refresh mode to online schema;")
+                        self.record.add_suggest("b. And configure enable_filter.sys_tenant=0")
                         return True
+                    elif "request start lsn from all server fail" in line or "start lsn locate fail" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-002-4016-request start lsn from all server")
+                        return True
+                    elif "fetch log fail" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-003, fetch log fail")
+                        self.record.add_suggest("please contact with oms team.")
+                        return True
+                    elif "row data is not full recorded" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        if self.obcdc_version and not StringUtils.compare_versions_greater(self.obcdc_version, "4.3.2"):
+                            self.record.add_suggest("obcdc version is less than 4.3.2, Need update it to 4.3.2 or higher")
+                        if self.obcluster_version and not StringUtils.compare_versions_greater(self.obcluster_version, "4.3.1"):
+                            self.record.add_suggest("obcluster version is less than 4.3.1, Need to confirm whether the tenant has enabled minimal mode")
+                        self.record.add_suggest("ERROR: KBA-004, row data is not full recorded")
+                        self.record.add_suggest("please contact with oms team.")
+                        return True
+                    elif "get_table_info_of_tablet_ failed" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-005, get_table_info_of_tablet_ failed")
+                        self.record.add_record("1. To eliminate known issues, it is recommended to upgrade OB and OBCDC to the latest version of the current upgrade path;")
+                        self.record.add_record(
+                            "2. OBCDC provides an emergency plan: restart OBCDC and specify the configuration item skip_delete_table_op=1 to OBCDC during restart; After emergency recovery, it is necessary to pay attention to whether downstream data is consistent with upstream data and upgrade OB and OBCDC versions as soon as possible"
+                        )
+                        self.record.add_record("3. When the above solutions cannot solve the problem, please contact OBCDC technical support for assistance;")
+                        return True
+                    elif "parse_tablet_change_mds_ failed" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-006, parse_tablet_change_mds_failed")
+                        self.record.add_record("1. Upgrade OBCDC version according to version compatibility rules")
+                        self.record.add_suggest("please contact with oms team.")
+                        return True
+                    elif "next_dict_entry for table_meta failed" in line:
+                        self.record.add_record("find the log: {0}".format(line))
+                        self.record.add_suggest("ERROR: KBA-007, next_dict_entry for table_meta failed")
+                        self.record.add_record("1. Upgrade OBCDC version according to version compatibility rules")
+                        self.record.add_suggest("please contact with oms team.")
+                        return True
+        return
 
     def execute_hold_or_delayed(self):
         try:
