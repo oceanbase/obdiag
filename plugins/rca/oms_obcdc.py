@@ -35,6 +35,7 @@ from src.handler.rca.rca_handler import RcaScene
 class OMSOBcdcScene(RcaScene):
     def __init__(self):
         super().__init__()
+        self.obcluster_version = None
         self.oms_cdc_logs_name = None
         self.meta_data_refresh_mode = None
         self.obcdc_pid_data = None
@@ -78,52 +79,26 @@ class OMSOBcdcScene(RcaScene):
             self.record.add_record("get obcdc_id by component_id: {0}".format(self.obcdc_id))
             # get obcdc version
             self.get_obcdc_version()
-            self.record.add_record("get obcdc version: {0}".format(self.obcdc_version))
             obcdc_store_path = "{0}/store{1}".format(self.oms_node.get("store_path"), self.obcdc_id)
             # gather obcdc conf
             download_file_path = os.path.join(obcdc_store_path, "etc/libobcdc.conf")
             local_libobcdc_conf_path = os.path.join(self.store_dir, "libobcdc.conf")
             self.meta_data_refresh_mode = self.get_obcdc_meta_data_refresh_mode()
             self.record.add_record("meta_data_refresh_mode is {0}".format(self.meta_data_refresh_mode))
-            self.oms_node["ssher"].download(download_file_path, os.path.join(self.store_dir, "libobcdc.conf"))
-            self.record.add_record("download libobcdc.conf to {0}".format(os.path.join(self.store_dir, "libobcdc.conf")))
+            self.oms_node["ssher"].download(download_file_path, local_libobcdc_conf_path)
+            self.record.add_record("download libobcdc.conf to {0}".format(local_libobcdc_conf_path))
             # get obcluster version on crawler.conf, the data like dbversion=4.3.4.0
-            obcluster_version = self.get_ob_version_by_crawler_conf()
-            self.record.add_record("get obversion: {0}".format(obcluster_version))
+            self.get_ob_version_by_crawler_conf()
             # check obcdc version and oceanbase version
-            if self.obcdc_version or obcluster_version:
-                if not StringUtils.compare_versions_greater(self.obcdc_version, obcluster_version):
-                    self.record.add_record("[Warn] obcdc version is less than obcluster version. obcdc version: {0}, obcluster version: {1}".format(self.obcdc_version, obcluster_version))
-
+            if self.obcdc_version or self.obcluster_version:
+                if not StringUtils.compare_versions_greater(self.obcdc_version, self.obcluster_version):
+                    self.record.add_record("[Warn] obcdc version is less than obcluster version. obcdc version: {0}, obcluster version: {1}".format(self.obcdc_version, self.obcluster_version))
             # download obcdc log from remote oms node
-            # check store
-            self.gather_log.set_parameters("target", "oms_cdc")
-            oms_obcdc_log_dir = os.path.join(self.store_dir, "oms_obcdc")
-            os.makedirs(oms_obcdc_log_dir, exist_ok=True)
-            self.gather_log.set_parameters("oms_component_id", self.component_id)
-            self.record.add_record("get oms cdc log about connector by component_id: {0}".format(self.component_id))
-            self.gather_log.set_parameters("store_dir", oms_obcdc_log_dir)
-            oms_cdc_logs_name = self.gather_log.execute()
-
-            if not oms_cdc_logs_name:
-                self.record.add_record("get oms cdc log about connector by component_id: {0} failed.".format(self.component_id))
-                self.record.add_suggest("get oms cdc log about connector by component_id: {0} failed.".format(self.component_id))
-                return
-            self.oms_cdc_logs_name = oms_cdc_logs_name
-            # check error log in obcdc log
+            self.gather_obcdc_log()
             # check ret in OBCDC-KBA
-            self.record.add_record("do check error log in obcdc log. And check ret in OBCDC-KBA")
-            for oms_cdc_log_name in oms_cdc_logs_name:
-                self.record.add_record("do check error log in obcdc log: {0}".format(oms_cdc_log_name))
-                with open(oms_cdc_log_name, "r") as f:
-                    for line in f:
-                        if "ERROR" in line or "HANDLE_ERROR" in line:
-                            # ingore some error log
-                            if "mark_stop_flag begin" in line or "there was memory leak" in line or "HAS UNFREE PTR" in line:
-                                continue
-                            self.record.add_record("find error log in obcdc log: {0}".format(line))
-                            # todo get traceID and threadID by error log
-                            match = re.search(r"traceID: (\d+), threadID: (\d+)", line)
+            self.check_KBA()
+            # check obcdc is online
+            self.record.add_record("do check obcdc is online")
             # get obcdc pid
             self.record.add_record("start get obcdc pid")
             self.get_obcdc_obcdc_pid()
@@ -136,7 +111,7 @@ class OMSOBcdcScene(RcaScene):
                 obcdc_init_succeed_tag = False
                 self.record.add_record("get stack info about obcdc pid")
                 obcdc_stack_info_file = self.get_obcdc_stack_info()
-                with open(obcdc_stack_info_file, "r") as f:
+                with open(obcdc_stack_info_file, "r", encoding='utf-8', errors='ignore') as f:
                     for line in f:
                         if "init_common_" in line:
                             obcdc_init_succeed_tag = True
@@ -149,14 +124,14 @@ class OMSOBcdcScene(RcaScene):
                 self.record.add_record("do check obcdc status stuck")
                 self.record.add_record("gather log about \"HEARTBEAT\" on libobcdc.log")
                 HEARTBEAT_log_file = os.path.join(self.store_dir, "heartbeat.log")
-                for oms_cdc_log_name in oms_cdc_logs_name:
+                for oms_cdc_log_name in self.oms_cdc_logs_name:
                     if not oms_cdc_log_name.endswith("libobcdc.log"):
                         continue
                     local_ssh = LocalClient(stdio=self.stdio)
                     local_ssh.run("grep \"HEARTBEAT\" {0} | grep \"TLOG.COMMITTER\" > {1}".format(oms_cdc_log_name, HEARTBEAT_log_file))
                 # check HEARTBEAT log
                 heartbeat_list = []
-                with open(HEARTBEAT_log_file, "r") as f:
+                with open(HEARTBEAT_log_file, "r", encoding='utf-8', errors='ignore') as f:
                     for line in f:
                         pattern = r'heartbeat="\[([^\]]+)\]"'
                         # Search for the pattern in the log line
@@ -180,10 +155,10 @@ class OMSOBcdcScene(RcaScene):
                 if hold_flag:
                     # check NEXT_RECORD_RPS=0 in obcdc log
                     self.record.add_record("do check NEXT_RECORD_RPS=0 in obcdc log")
-                    for oms_cdc_log_name in oms_cdc_logs_name:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
                         if not oms_cdc_log_name.endswith("libobcdc.log"):
                             continue
-                        with open(oms_cdc_log_name, "r") as f:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if "NEXT_RECORD_RPS=0" in line:
                                     self.record.add_record("find \"NEXT_RECORD_RPS=0\" in {0}".format(oms_cdc_log_name))
@@ -191,7 +166,7 @@ class OMSOBcdcScene(RcaScene):
                                     return
                 self.record.add_record("do check obcdc status delayed")
                 delay_tag = False
-                with open(HEARTBEAT_log_file, "r") as f:
+                with open(HEARTBEAT_log_file, "r", encoding='utf-8', errors='ignore') as f:
                     for line in f:
                         if "DELAY=" in line:
                             try:
@@ -209,7 +184,6 @@ class OMSOBcdcScene(RcaScene):
                 if delay_tag:
                     self.record.add_suggest("obcdc is delayed. DELAY value exceeds 10 seconds. the log in {0}.".format(HEARTBEAT_log_file))
                     return
-                # todo need check return
 
             else:
                 # when obcdc pid is not exist
@@ -217,8 +191,8 @@ class OMSOBcdcScene(RcaScene):
                 # check "libobcdc end" in libobcdc end
                 self.record.add_record("do check \"libobcdc end\" in libobcdc end")
                 libobcdc_end_tag = False
-                for oms_cdc_log_name in oms_cdc_logs_name:
-                    with open(oms_cdc_log_name, "r") as f:
+                for oms_cdc_log_name in self.oms_cdc_logs_name:
+                    with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                         for line in f:
                             if "libobcdc end" in line:
                                 self.record.add_record("find \"libobcdc end\" in libobcdc end in {0}".format(oms_cdc_log_name))
@@ -242,8 +216,8 @@ class OMSOBcdcScene(RcaScene):
                         self.record.add_record("can not find coredump file. need check disk is full or KILL by sys.")
                     self.record.add_record("do check disk is full or not")
                     disk_full_tag = False
-                    for oms_cdc_log_name in oms_cdc_logs_name:
-                        with open(oms_cdc_log_name, "r") as f:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if "-4009" in line:
                                     disk_full_tag = True
@@ -267,10 +241,10 @@ class OMSOBcdcScene(RcaScene):
                     self.record.add_record("do check KILL by sys")
                     kill_by_sys_tag = False
                     self.record.add_record("do check \"stop/destroy\" in obcdc log. just check libobcdc.log")
-                    for oms_cdc_log_name in oms_cdc_logs_name:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
                         if not oms_cdc_log_name.endswith("libobcdc.log"):
                             continue
-                        with open(oms_cdc_log_name, "r") as f:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if " stop " in line or " destroy " in line:
                                     self.record.add_record("find \"stop/destroy\" in {0}".format(oms_cdc_log_name))
@@ -305,10 +279,10 @@ class OMSOBcdcScene(RcaScene):
                     self.record.add_record("do check \"HANDLE_ERR\" in obcdc log")
                     HANDLE_ERR_tag = False
                     HANDLE_ERR_trace_id = None
-                    for oms_cdc_log_name in oms_cdc_logs_name:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
                         if not oms_cdc_log_name.endswith("libobcdc.log"):
                             continue
-                        with open(oms_cdc_log_name, "r") as f:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if "HANDLE_ERR" in line:
                                     HANDLE_ERR_tag = True
@@ -319,16 +293,16 @@ class OMSOBcdcScene(RcaScene):
                         self.record.add_record("find \"HANDLE_ERR\" in obcdc log. traceID: {0}".format(HANDLE_ERR_trace_id))
                         self.record.add_record("gather log save on {0}".format(os.path.join(self.store_dir, HANDLE_ERR_trace_id)))
                         HANDLE_ERR_trace_id_log_path = "{0}.log".format(os.path.join(self.store_dir, HANDLE_ERR_trace_id))
-                        LocalClient().run("grep \"{0}\" {1}/* >{2}".format(HANDLE_ERR_trace_id, os.path.join(self.store_dir, os.path.dirname(oms_cdc_logs_name[0])), HANDLE_ERR_trace_id_log_path))
+                        LocalClient().run("grep \"{0}\" {1}/* >{2}".format(HANDLE_ERR_trace_id, os.path.join(self.store_dir, os.path.dirname(self.oms_cdc_logs_name[0])), HANDLE_ERR_trace_id_log_path))
                         self.record.add_record("save HANDLE_ERR traceID log on {0}".format(HANDLE_ERR_trace_id_log_path))
                         self.record.add_suggest("find \"HANDLE_ERR\" in {0}. Process exit triggered by internal exception in OBCDC. Contact OBCDC support".format(HANDLE_ERR_trace_id_log_path))
                         return
                     ERROR_CALLBACK_tag = False
                     self.record.add_record("find \"stop_reason=ERROR_CALLBACK\" in obcdc log.")
-                    for oms_cdc_log_name in oms_cdc_logs_name:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
                         if not oms_cdc_log_name.endswith("libobcdc.log"):
                             continue
-                        with open(oms_cdc_log_name, "r") as f:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if "stop_reason=ERROR_CALLBACK" in line:
                                     ERROR_CALLBACK_tag = True
@@ -339,10 +313,10 @@ class OMSOBcdcScene(RcaScene):
                         return
                     self.record.add_record("can not find \"HANDLE_ERR\" in obcdc log.")
                     self.record.add_record("do check \"stop_reason=xxx\" without \"ERROR_CALLBACK\" in obcdc log.")
-                    for oms_cdc_log_name in oms_cdc_logs_name:
+                    for oms_cdc_log_name in self.oms_cdc_logs_name:
                         if not oms_cdc_log_name.endswith("libobcdc.log"):
                             continue
-                        with open(oms_cdc_log_name, "r") as f:
+                        with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 if "stop_reason=" in line and "ERROR_CALLBACK" not in line:
                                     self.record.add_record("find \"stop_reason=xxx\" without \"ERROR_CALLBACK\" in {0}".format(oms_cdc_log_name))
@@ -355,6 +329,35 @@ class OMSOBcdcScene(RcaScene):
             raise RCAExecuteException(e)
         finally:
             self.record.add_suggest("if you want to know more about the result, please contact with oms team with {0}".format(self.store_dir))
+
+    def gather_obcdc_log(self):
+        self.record.add_record("download obcdc log from remote oms node")
+        self.gather_log.set_parameters("target", "oms_cdc")
+        oms_obcdc_log_dir = os.path.join(self.store_dir, "oms")
+        os.makedirs(oms_obcdc_log_dir, exist_ok=True)
+        self.gather_log.set_parameters("oms_component_id", self.component_id)
+        self.record.add_record("get oms cdc log about connector by component_id: {0}".format(self.component_id))
+        self.gather_log.set_parameters("store_dir", oms_obcdc_log_dir)
+        oms_cdc_logs_name = self.gather_log.execute()
+        if not oms_cdc_logs_name:
+            self.record.add_record("get oms cdc log about connector by component_id: {0} failed.".format(self.component_id))
+            self.record.add_suggest("get oms cdc log about connector by component_id: {0} failed.".format(self.component_id))
+            return
+        self.oms_cdc_logs_name = oms_cdc_logs_name
+
+    def check_KBA(self):
+        self.record.add_record("do check ret in OBCDC-KBA")
+        for oms_cdc_log_name in self.oms_cdc_logs_name:
+            self.record.add_record("do check error log in obcdc log: {0}".format(oms_cdc_log_name))
+            with open(oms_cdc_log_name, "r", encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    if "ERROR" in line or "HANDLE_ERROR" in line:
+                        # ingore some error log
+                        if "mark_stop_flag begin" in line or "there was memory leak" in line or "HAS UNFREE PTR" in line:
+                            continue
+                        self.record.add_record("find error log in obcdc log: {0}".format(line))
+                        # todo get traceID and threadID by error log
+                        match = re.search(r"traceID: (\d+), threadID: (\d+)", line)
 
     def execute_hold_or_delayed(self):
         try:
@@ -400,7 +403,7 @@ class OMSOBcdcScene(RcaScene):
             # 1. check sql error in EDIAG_log_dir
             EDIAG_logs = self.get_all_filenames(EDIAG_log_dir)
             for EDIAG_log in EDIAG_logs:
-                with open(EDIAG_log, "r") as f:
+                with open(EDIAG_log, "r", encoding='utf-8', errors='ignore') as f:
                     file_data = f.read()
                     if "execute sql failed" in file_data or "sql read failed from sql_proxy, ret=" in file_data:
                         self.record.add_record("find sql error in EDIAG log: {0}".format(EDIAG_log))
@@ -414,7 +417,7 @@ class OMSOBcdcScene(RcaScene):
             # HEARTBEAT_logs for COMMITTER and FETCHER
             HEARTBEAT_logs = self.get_all_filenames(HEARTBEAT_log_dir)
             for HEARTBEAT_log in HEARTBEAT_logs:
-                with open(HEARTBEAT_log, "r") as f:
+                with open(HEARTBEAT_log, "r", encoding='utf-8', errors='ignore') as f:
                     if COMMITTER_delay_tag and FETCHER_delay_tag:
                         break
                     for line in f:
@@ -428,7 +431,7 @@ class OMSOBcdcScene(RcaScene):
             # OUTPUT_logs for SEQUENCER
             OUTPUT_logs = self.get_all_filenames(OUTPUT_log_dir)
             for OUTPUT_log in OUTPUT_logs:
-                with open(OUTPUT_log, "r") as f:
+                with open(OUTPUT_log, "r", encoding='utf-8', errors='ignore') as f:
                     if SEQUENCER_delay_tag:
                         break
                     for line in f:
@@ -459,7 +462,7 @@ class OMSOBcdcScene(RcaScene):
             filenames = [entry for entry in entries if os.path.isfile(os.path.join(path, entry))]
             return filenames
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.stdio.verbose(f"An error occurred: {e}")
             return []
 
     def check_delayed(self, log):
@@ -483,17 +486,19 @@ class OMSOBcdcScene(RcaScene):
         return 0
 
     def get_ob_version_by_crawler_conf(self):
+        # set self.obcluster_version
         try:
             obcluster_version_data = self.oms_node["ssher"].exec_cmd("cat {0}/store{1}/conf/crawler.conf | grep dbversion".format(self.oms_node.get("store_path"), self.obcdc_id))
             self.stdio.verbose("obversion_data: {0}".format(obcluster_version_data))
             obcluster_version = obcluster_version_data.split("=")[1].strip()
-            self.record.add_record("get obversion: {0}".format(obcluster_version))
-            return obcluster_version
+            self.obcluster_version = obcluster_version
+            self.record.add_record("get obversion: {0}".format(self.obcluster_version))
         except Exception as e:
             self.record.add_record("node:{0} get obversion_by_crawler error: {1}".format(self.oms_node["ssher"].get_ip(), e))
             return
 
     def get_obcdc_obcdc_pid(self):
+        # set self.obcdc_pid
         # need obcdc_id
         ssh_client = self.oms_node["ssher"]
         try:
@@ -512,6 +517,8 @@ class OMSOBcdcScene(RcaScene):
             raise RCAExecuteException("get obcdc pid error: {0}".format(e))
 
     def get_obcdc_version(self):
+        # set self.obcdc_version
+        self.record.add_record("do check obcdc version")
         ssh_client = self.oms_node["ssher"]
         try:
             self.stdio.verbose("node:{0} find obcdc".format(ssh_client.get_name()))

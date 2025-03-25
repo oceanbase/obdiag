@@ -129,7 +129,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         if not isinstance(self.target, str):
             raise Exception("target option can only be string")
         self.target = self.target.lower().strip()
-        if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms':
+        if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms' and self.target != 'oms_cdc':
             raise Exception("target option can only be observer or obproxy or oms")
 
         # check store_dir
@@ -150,7 +150,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.nodes = self.context.cluster_config.get("servers")
             elif self.target == 'obproxy':
                 self.nodes = self.context.obproxy_config.get("servers")
-            elif self.target == 'oms':
+            elif self.target == 'oms' or self.target == 'oms_cdc':
                 self.nodes = self.context.oms_config.get("servers")
             else:
                 raise Exception("can not get nodes by target: {0}".format(self.target))
@@ -397,7 +397,7 @@ class GatherLogOnNode:
                 obcdc_id = number
             else:
                 self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
-            self.log_path = os.path.join(node.get("store_path"), obcdc_id, "log")
+            self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
 
