@@ -1,4 +1,4 @@
-info: 'The configuration of writing_throttling_trigger_percentage was set to 100, which turned off the write speed limit and caused the memstore to explode'
+info: 'The configuration of writing_throttling_trigger_percentage was set to 100, which turned off the write speed limit and caused the memstore to explode. issue #758'
 task:
   - version: "[4.0.0.0,*]"
     steps:
