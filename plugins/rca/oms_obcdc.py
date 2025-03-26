@@ -641,23 +641,20 @@ class OMSOBcdcScene(RcaScene):
         # check the log. by shell
         get_data_dict_in_log_info_success_log = ssh_client.exec_cmd("grep \"get_data_dict_in_log_info success\" {0}/store{1}/log/libobcdc.log*".format(self.oms_node.get("store_path"), self.obcdc_id))
         if get_data_dict_in_log_info_success_log:
-            self.record.add_record("find the log: {0}".format(get_data_dict_in_log_info_success_log))
+            self.record.add_record("step1 end: find the log: {0}".format(get_data_dict_in_log_info_success_log))
         else:
             self.record.add_record("[need check] can not find \"get_data_dict_in_log_info success\" in libobcdc.log* may be this step is fail or the log refresh.")
         self.record.add_record("step2: Get and parse the CLOG logs of the baseline dictionary")
         CLOG_success_log = ssh_client.exec_cmd("grep \"The last log of the baseline data has been fetched\" {0}/store{1}/log/libobcdc.log*".format(self.oms_node.get("store_path"), self.obcdc_id))
         if CLOG_success_log:
-            self.record.add_record("find the log: {0}".format(CLOG_success_log))
+            self.record.add_record("step2 end: find the log: {0}".format(CLOG_success_log))
         else:
             self.record.add_record("[need check] can not find \"The last log of the baseline data has been fetched\" in libobcdc.log* may be this step is fail or the log refresh.")
-        # check KBA-002, find the log: "request start lsn from all server fail" or "start lsn locate fail"
-        if self.check_KBA_002():
-            return
         self.record.add_record("step3: Get and parse the CLOG logs from the baseline dictionary to the starting point, and obtain the incremental dictionary from it.")
         self.record.add_record("do check \"[LOG_META_DATA] [REPLAYER] end tenant_id=%xxx start_timestamp_ns=yyy\" in obcdc log")
         check_log_meta_data = ssh_client.exec_cmd("grep \"LOG_META_DATA] [REPLAYER] end tenant_id=\" {0}/store{1}/log/libobcdc.log*".format(self.oms_node.get("store_path"), self.obcdc_id))
         if check_log_meta_data.strip():
-            self.record.add_record("step4 pass. find the log: {0}".format(check_log_meta_data))
+            self.record.add_record("step4 end. find the log: {0}".format(check_log_meta_data))
             return
         else:
             self.record.add_record("can not find log")
@@ -692,7 +689,6 @@ class OMSOBcdcScene(RcaScene):
         rootserver_list = rootserver_list_data.split("=")[1].strip()
         if rootserver_list == "|":
             self.record.add_record("rootserver_list is useless")
-
         else:
             rootserver_list_info = rootserver_list.split("|")
             self.record.add_record("rootserver_list: {0}".format(rootserver_list_info))
@@ -727,7 +723,7 @@ class OMSOBcdcScene(RcaScene):
                     self.record.add_record("get cluster info by cluster_url is fail. please check cluster_url.")
                     self.record.add_suggest("get cluster info by cluster_url is fail. please check cluster_url.")
                     return
-                self.record.add_record("get cluster info by cluster_url is success. {0}".format(cluster_info))
+                self.record.add_record("step1 end: get cluster info by cluster_url is success. {0}".format(cluster_info))
 
         # 发SQL获取集群元信息
         self.record.add_record("step2: Get the baseline dictionary information")
@@ -757,8 +753,8 @@ class OMSOBcdcScene(RcaScene):
                 self.record.add_suggest("maybe the other schema mode is failed. please contact with oms team.")
 
         else:
-            self.record.add_record("can not find \"auto_switch_mode_and_refresh_schema failed\" in libobcdc.log* may be this step is fail or the log refresh.")
-            self.record.add_suggest("can not find error on init failed")
+            self.record.add_record("step2 end: can not find \"auto_switch_mode_and_refresh_schema failed\" in libobcdc.log* may be this step is fail or the log refresh.")
+            self.record.add_suggest("not find error on init failed")
 
         pass
 
