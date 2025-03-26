@@ -38,6 +38,12 @@ class TaskBase(object):
 
     def execute(self):
         self.stdio.verbose("task_base execute")
+        work_threads = []
+        if len(self.task) > 0 and self.task[0].get("task_type") and self.task[0]["task_type"] == "py":
+            for node in self.nodes:
+                t_py = threading.Thread(target=self.execute_code, args=(self.task[0], node))
+                work_threads.append(t_py)
+                t_py.start()
         steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
             self.stdio.verbose("Unadapted by version. SKIP")
@@ -46,7 +52,6 @@ class TaskBase(object):
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
             raise Exception("node is not exist")
-        work_threads = []
         for node in self.nodes:
             t = threading.Thread(target=self.execute_one_node, args=(steps_nu, node))
             work_threads.append(t)
@@ -92,3 +97,7 @@ class TaskBase(object):
         except Exception as e:
             self.stdio.error("TaskBase execute Exception: {0}".format(e))
             raise e
+
+    def execute_code(self, task_data, node):
+        task = task_data["module"]
+        self.report.add(task.execute(node))
