@@ -200,10 +200,7 @@ class CheckHandler:
                     if not hasattr(task_module, attr_name):
                         self.stdio.error("{0} import_module failed".format(attr_name))
                         continue
-                    task_data = {
-                        "task": [
-                            {"name":task_name, "module": getattr(task_module, attr_name), "task_type": "py"}
-                    ]}
+                    task_data = {"task": [{"name": task_name, "module": getattr(task_module, attr_name), "task_type": "py"}]}
                     tasks[task_name] = task_data
         if len(tasks) == 0:
             raise Exception("the len of tasks is 0")

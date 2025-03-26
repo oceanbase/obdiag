@@ -17,7 +17,7 @@
 """
 
 
-class Test():
+class Test:
     def execute(self, node):
         print("---> iP: ", node["ip"])
         print("---> ssh_username: ", node["ssh_username"])
@@ -35,5 +35,6 @@ class Test():
         print("---> host_type: ", node["host_type"])
         print("---> pod_name: ", node["pod_name"])
         return "this is a test."
+
 
 test = Test()
