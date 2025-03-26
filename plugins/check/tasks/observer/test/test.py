@@ -21,7 +21,6 @@ class Test:
     def execute(self, node):
         print("---> iP: ", node["ip"])
         print("---> ssh_username: ", node["ssh_username"])
-        print("---> ssh_password: ", node["ssh_password"])
         print("---> ssh_port: ", node["ssh_port"])
         print("---> home_path: ", node["home_path"])
         print("---> data_dir: ", node["data_dir"])
