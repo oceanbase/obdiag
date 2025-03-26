@@ -111,6 +111,8 @@ class DDLFailureScene(RcaScene):
             self.verbose("query sql: {0}\nsql result: {1}".format(sql, sql_result))
             if len(sql_result) <= 0:
                 result.add_record("ddl error message is empty, query sql: {0}".format(sql))
+                result.add_suggest("no ddl error message, no need to diagnose")
+                raise RCANotNeedExecuteException("no ddl error message, no need to diagnose")
             else:
                 error_messg = sql_result[0]
                 self.ddl_task_id = error_messg["task_id"]

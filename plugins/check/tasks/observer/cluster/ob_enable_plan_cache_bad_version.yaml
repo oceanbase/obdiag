@@ -1,4 +1,4 @@
-info: "There are too many table histories for a tenant in the cluster, and when the machine restarts, the schema refresh will continue to report -4013, resulting in the inability to refresh the corresponding tenant's schema for a particular machine."
+info: "when the version is between 4.1.0.0 and 4.1.0.1, the ob_enable_plan_cache suggestion to close"
 task:
   - version: "[4.1.0.0,4.1.0.1]"
     steps:

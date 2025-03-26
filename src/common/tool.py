@@ -1148,54 +1148,51 @@ class StringUtils(object):
     def parse_mysql_conn(cli_conn_str, stdio=None):
         db_info = {}
         # 处理密码选项，注意区分短选项和长选项的密码
-        password_pattern = re.compile(r'(-p\s*|--password=)([^ ]*)')
+        password_pattern = re.compile(r'(-p|--password=)([^ ]*)')
         password_match = password_pattern.search(cli_conn_str)
         if password_match:
             password = password_match.group(2)
-            db_info['password'] = password
+            # 如果'-p'后面没有跟具体值，则设为''
+            db_info['password'] = password if password else ''
             # 去除密码部分，避免后续解析出错
-            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :]
+            cli_conn_str = cli_conn_str[: password_match.start()] + cli_conn_str[password_match.end() :].strip()
 
         # 模式匹配短选项
-        short_opt_pattern = re.compile(r'-(\w)\s*(\S*)')
-        matches = short_opt_pattern.finditer(cli_conn_str)
-        for match in matches:
-            opt = match.group(1)
-            value = match.group(2)
+        short_opt_pattern = re.compile(r'-([hPuD])(\S*)')
+        for match in short_opt_pattern.finditer(cli_conn_str):
+            opt, value = match.groups()
             if opt == 'h':
                 db_info['host'] = value
             elif opt == 'u':
                 db_info['user'] = value
             elif opt == 'P':
-                db_info['port'] = int(value)
+                try:
+                    db_info['port'] = int(value)
+                except ValueError:
+                    if stdio:
+                        print("Invalid port number.")
+                    return False
             elif opt == 'D':
                 db_info['database'] = value
 
-        # 模式匹配长选项
+        # 长选项处理
         long_opt_pattern = re.compile(r'--(\w+)=([^ ]+)')
-        long_matches = long_opt_pattern.finditer(cli_conn_str)
-        for match in long_matches:
-            opt = match.group(1)
-            value = match.group(2)
-            if opt == 'host':
-                db_info['host'] = value
-            elif opt == 'user':
-                db_info['user'] = value
-            elif opt == 'port':
-                db_info['port'] = int(value)
-            elif opt in ['dbname', 'database']:
-                db_info['database'] = value
+        for match in long_opt_pattern.finditer(cli_conn_str):
+            opt, value = match.groups()
+            if opt in ['host', 'user', 'port', 'dbname', 'database']:
+                db_info[opt if opt != 'dbname' else 'database'] = value
 
-        # 如果存在命令行最后的参数，且不是一个选项，则认为是数据库名
-        last_param = cli_conn_str.split()[-1]
-        if last_param[0] != '-' and 'database' not in db_info:
-            db_info['database'] = last_param
+        # 最后一个参数处理，如果未指定数据库名且最后的参数不是选项，则认为是数据库名
+        parts = cli_conn_str.split()
+        if parts and parts[-1][0] != '-' and 'database' not in db_info:
+            db_info['database'] = parts[-1]
+
         return db_info
 
     @staticmethod
     def validate_db_info(db_info, stdio=None):
         required_keys = {'database', 'host', 'user', 'port'}
-        if not required_keys.issubset(db_info.keys()) or any(not value for value in db_info.values()):
+        if not required_keys.issubset(db_info.keys()):
             return False
         if not isinstance(db_info['port'], int):
             return False
@@ -1408,6 +1405,76 @@ class StringUtils(object):
                     masked_data[index] = StringUtils.mask_passwords(item)
 
         return masked_data
+
+    @staticmethod
+    def parse_optimization_info(text, stdio):
+        # Fixed module names that should not be treated as table names
+        module_names = {'Outputs & filters', 'Used Hint', 'Qb name trace', 'Outline Data', 'Optimization Info', 'Plan Type', 'Note'}
+
+        tables = {}
+        current_table = None
+        lines = text.splitlines()
+
+        for line in lines:
+            # Remove leading/trailing whitespace and '|' characters
+            line = line.strip().strip('|').strip()
+            if not line or line.startswith('-') or line.startswith('|'):
+                # Skip empty lines, separator lines, and lines starting with '|'
+                continue
+
+            try:
+                # Check if it's the start of a new table (contains ':' and ends with it, and is not a module name)
+                if ':' in line and line.endswith(':') and line.rstrip(':').strip() not in module_names:
+                    current_table = line.rstrip(':').strip()
+                    tables[current_table] = None
+                elif current_table:
+                    match_stats_version = re.search(r'stats version:(\d+)', line)
+                    match_stats_info = re.search(r'stats info:\[version=(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+),\s*is_locked=\d+,\s*is_expired=\d+]', line)
+
+                    if match_stats_version:
+                        stats_version = int(match_stats_version.group(1))
+                        tables[current_table] = {'type': 'version', 'value': stats_version}
+                    elif match_stats_info:
+                        print(match_stats_info)
+                        stats_time_str = match_stats_info.group(1)
+                        stats_time = datetime.datetime.strptime(stats_time_str, '%Y-%m-%d %H:%M:%S.%f')
+                        tables[current_table] = {'type': 'info', 'value': stats_time}
+            except Exception as e:
+                return None
+
+        messages = []
+        for table, stats_data in tables.items():
+            if stats_data is None:
+                stdio.verbose(f"Could not find stats version information for the {table} table.")
+            else:
+                try:
+                    if stats_data['type'] == 'version':
+                        if stats_data['value'] == 0:
+                            message = f"In explain extended [Optimization Info], the [stats version] for the {table} table is 0, indicating that statistics have not been collected. Please collect statistics."
+                            stdio.print(message)
+                            messages.append(message)
+                        else:
+                            stats_time = datetime.datetime.utcfromtimestamp(stats_data['value'] // 1000000).strftime('%Y-%m-%d %H:%M:%S')
+                            if (datetime.datetime.now().timestamp() - stats_data['value'] / 1000000) > 24 * 60 * 60:
+                                message = f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_time}, indicating that statistics are over 24 hours old. Please collect statistics."
+                                stdio.print(message)
+                                messages.append(message)
+                            else:
+                                message = f"The statistics are up-to-date. The last collection time for the {table} table was {stats_time}. No action needed."
+                                stdio.verbose(message)
+                    elif stats_data['type'] == 'info':
+                        if (datetime.datetime.now() - stats_data['value']).total_seconds() > 24 * 60 * 60:
+                            message = (
+                                f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_data['value'].strftime('%Y-%m-%d %H:%M:%S')}, indicating that statistics are over 24 hours old. Please collect statistics."
+                            )
+                            stdio.print(message)
+                            messages.append(message)
+                        else:
+                            message = f"The statistics are up-to-date. The last collection time for the {table} table is {stats_data['value'].strftime('%Y-%m-%d %H:%M:%S')}，No action needed."
+                            stdio.verbose(message)
+                except Exception as e:
+                    stdio.verbose(f"Error processing {table} table: {e}")
+        return "\n".join(messages)
 
 
 class Cursor(SafeStdio):
@@ -1707,7 +1774,7 @@ def check_new_obdiag_version(stdio):
         work_tag = NetUtils.network_connectivity("https://" + "cn-wan-api.oceanbase.com" + "/wanApi/forum/download/v1/getAllDownloadCenterData")
         if not work_tag:
             return
-        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=5)
+        conn = http.client.HTTPSConnection("cn-wan-api.oceanbase.com", timeout=1)
         headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json; charset=utf-8',
@@ -1728,9 +1795,9 @@ def check_new_obdiag_version(stdio):
         for product in productList:
             if "obdiag" in product.get("description", ""):
                 latest_version = product.get("recommendVersionVO", {}).get("version", None)
-                if not latest_version:
+                if latest_version:
                     if StringUtils.compare_versions_greater(latest_version, OBDIAG_VERSION):
-                        stdio.print('obdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
+                        stdio.print('\nobdiag latest version is {0}, current version is {1}, please update obdiag to the latest version'.format(latest_version, OBDIAG_VERSION))
     except Exception as e:
         stdio.verbose(f"Error: {e}")
         return None

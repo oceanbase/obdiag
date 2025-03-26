@@ -93,7 +93,7 @@ class GatherPlanMonitorHandler(object):
         return self.tenant_mode_detected()
 
     def __init_db_connector(self):
-        self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100)
+        self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password") or "", database=self.db_conn.get("database"), timeout=100)
 
     def handle(self):
         if not self.init_config():
@@ -890,6 +890,9 @@ class GatherPlanMonitorHandler(object):
             sql_explain_result_sql = "%s" % explain_sql
             sql_explain_result = from_db_cursor(sql_explain_cursor)
 
+            optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio)
+            self.report_optimization_info_warn(optimization_warn)
+
             # output explain result
             self.stdio.verbose("report sql_explain_result_sql complete")
             self.report_pre(sql_explain_result_sql)
@@ -1027,3 +1030,10 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception("display_cursor report> %s" % display_cursor_sql)
             self.stdio.exception(repr(e))
             pass
+
+    def report_optimization_info_warn(self, text):
+        if text:
+            content = '<div class="statsWarning">' + text + '</div>'
+            self.__report(content)
+        else:
+            self.stdio.warn("the result of optimization_info_warn is None")

@@ -1,0 +1,24 @@
+info: 'Check the clock delay status'
+task:
+  - steps:
+      - type: ssh
+        ssh: "chronyc sources -v | grep ms | awk '{print $NF}'"
+        result:
+          set_value: clock_delay_stats
+          verify: "[[ -n \"${clock_delay_stats}\" ]]"
+          err_msg: 'Clock source is abnormal. No delay value found. Please check the clock source status.'
+  - steps:
+      - type: ssh
+        ssh: "chronyc sources -v | grep ms | awk '{print $NF}'"
+        result:
+          set_value: clock_delays
+          verify: |
+            delay_check_passed=true
+            for delay in ${clock_delays}; do
+              if [[ ${delay%ms} -gt 100 ]]; then
+                delay_check_passed=false
+                break
+              fi
+            done
+            ${delay_check_passed}
+          err_msg: 'clock_delays: #{clock_delays}. Some clock delays are greater than 100ms. Please check the clock synchronization status.'
