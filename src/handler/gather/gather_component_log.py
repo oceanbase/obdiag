@@ -603,6 +603,7 @@ class GatherLogOnNode:
                     continue
                 if file_start_time_str_strp == "":
                     if file_end_time_str_strp < from_time_str_strp:
+                        self.stdio.warn("The log file {0} can't find start_time. skip".format(file_name))
                         continue
                     else:
                         self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
