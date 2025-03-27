@@ -598,9 +598,18 @@ class GatherLogOnNode:
                 file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
                 to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
                 from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+                if file_end_time_str_strp == "":
+                    self.stdio.warn("The log file {0} can't find endtime. skip".format(file_name))
+                    continue
+                if file_start_time_str_strp == "":
+                    if file_end_time_str_strp < from_time_str_strp:
+                        continue
+                    else:
+                        self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
+                        log_name_list.append(file_name)
                 if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
                     log_name_list.append(file_name)
-                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
+                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time_str, from_time_str, to_time_str))
             elif file_name.endswith("log") or file_name.endswith("wf"):
                 # get form_time and to_time from the first and last lines of text of the file
                 # Get the first and last lines of text of the file. Here, use a command
@@ -622,7 +631,7 @@ class GatherLogOnNode:
                     from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
                     if file_end_time_str_strp == "":
                         file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        self.stdio.verbose("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
+                        self.stdio.warn("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
                         file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
                     if file_start_time_str_strp == "":
                         if file_end_time_str_strp < from_time_str_strp:
