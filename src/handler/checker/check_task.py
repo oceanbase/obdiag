@@ -38,7 +38,6 @@ class TaskBase(object):
 
     def execute(self):
         self.stdio.verbose("task_base execute")
-        work_threads = []
         if len(self.task) > 0 and self.task[0].get("task_type") and self.task[0]["task_type"] == "py":
             module = self.task[0]["module"]
             module.init(self.context, self.report, self.nodes)
@@ -52,6 +51,7 @@ class TaskBase(object):
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
             raise Exception("node is not exist")
+        work_threads = []
         for node in self.nodes:
             t = threading.Thread(target=self.execute_one_node, args=(steps_nu, node))
             work_threads.append(t)
