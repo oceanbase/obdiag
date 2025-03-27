@@ -625,7 +625,7 @@ class GatherLogOnNode:
                         self.stdio.verbose("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
                         file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
                     if file_start_time_str_strp == "":
-                        if file_end_time_str_strp<from_time_str_strp:
+                        if file_end_time_str_strp < from_time_str_strp:
                             continue
                         else:
                             self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
