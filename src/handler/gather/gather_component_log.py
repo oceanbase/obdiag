@@ -129,8 +129,9 @@ class GatherComponentLogHandler(BaseShellHandler):
         if not isinstance(self.target, str):
             raise Exception("target option can only be string")
         self.target = self.target.lower().strip()
-        if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms' and self.target != 'oms_cdc':
-            raise Exception("target option can only be observer or obproxy or oms")
+        allowed_targets = {'observer', 'obproxy', 'oms', 'oms_cdc'}
+        if self.target not in allowed_targets:
+            raise Exception(f"Invalid target option: '{self.target}'. Allowed values are: {', '.join(allowed_targets)}")
 
         # check store_dir
         if not os.path.exists(self.store_dir):

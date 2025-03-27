@@ -371,11 +371,16 @@ class OMSOBcdcScene(RcaScene):
                     elif "request start lsn from all server fail" in line or "start lsn locate fail" in line:
                         self.record.add_record("find the log: {0}".format(line))
                         self.record.add_suggest("ERROR: KBA-002-4016-request start lsn from all server")
+                        self.record.add_suggest("1. Choose the appropriate starting point and starting mode")
                         return True
                     elif "fetch log fail" in line:
                         self.record.add_record("find the log: {0}".format(line))
                         self.record.add_suggest("ERROR: KBA-003, fetch log fail")
-                        self.record.add_suggest("please contact with oms team.")
+                        self.record.add_suggest("1. Under normal circumstances, it can be automatically restored;")
+                        self.record.add_suggest(
+                            "2. If there is no recovery for a long time and the same error occurs, it is necessary to consider that a known problem may have been hit. Technical support should be contacted to upgrade the OB version to the latest version under the current upgrade path."
+                        )
+
                         return True
                     elif "row data is not full recorded" in line:
                         self.record.add_record("find the log: {0}".format(line))
