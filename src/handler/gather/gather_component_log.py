@@ -129,8 +129,9 @@ class GatherComponentLogHandler(BaseShellHandler):
         if not isinstance(self.target, str):
             raise Exception("target option can only be string")
         self.target = self.target.lower().strip()
-        if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms':
-            raise Exception("target option can only be observer or obproxy or oms")
+        allowed_targets = {'observer', 'obproxy', 'oms', 'oms_cdc'}
+        if self.target not in allowed_targets:
+            raise Exception(f"Invalid target option: '{self.target}'. Allowed values are: {', '.join(allowed_targets)}")
 
         # check store_dir
         if not os.path.exists(self.store_dir):
@@ -150,7 +151,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.nodes = self.context.cluster_config.get("servers")
             elif self.target == 'obproxy':
                 self.nodes = self.context.obproxy_config.get("servers")
-            elif self.target == 'oms':
+            elif self.target == 'oms' or self.target == 'oms_cdc':
                 self.nodes = self.context.oms_config.get("servers")
             else:
                 raise Exception("can not get nodes by target: {0}".format(self.target))
@@ -397,9 +398,10 @@ class GatherLogOnNode:
                 obcdc_id = number
             else:
                 self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
-            self.log_path = os.path.join(node.get("store_path"), obcdc_id, "log")
+            self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
+        self.stdio.verbose("log_path: {0}".format(self.log_path))
 
         self.from_time_str = self.config.get("from_time")
         self.to_time_str = self.config.get("to_time")
