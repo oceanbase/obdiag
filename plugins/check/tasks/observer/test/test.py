@@ -18,22 +18,17 @@
 
 
 class Test:
-    def execute(self, node):
-        print("---> iP: ", node["ip"])
-        print("---> ssh_username: ", node["ssh_username"])
-        print("---> ssh_port: ", node["ssh_port"])
-        print("---> home_path: ", node["home_path"])
-        print("---> data_dir: ", node["data_dir"])
-        print("---> redo_dir: ", node["redo_dir"])
-        print("---> ssh_key_file: ", node["ssh_key_file"])
-        print("---> ssh_type: ", node["ssh_type"])
-        print("---> container_name: ", node["container_name"])
-        print("---> namespace: ", node["namespace"])
-        print("---> pod_name: ", node["pod_name"])
-        print("---> kubernetes_config_file: ", node["kubernetes_config_file"])
-        print("---> host_type: ", node["host_type"])
-        print("---> pod_name: ", node["pod_name"])
-        return "this is a test."
+
+    def init(self, context, report, nodes):
+        self.context = context
+        self.report = report
+        self.nodes = nodes
+
+    def execute(self):
+        pass
+
+    def get_scene_info(self):
+        pass
 
 
 test = Test()
