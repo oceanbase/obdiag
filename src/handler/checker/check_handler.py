@@ -27,9 +27,9 @@ from src.common.scene import get_version_by_type
 from src.common.ssh_client.ssh import SshClient
 from src.handler.checker.check_exception import CheckException
 from src.handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
-from src.handler.checker.check_task import TaskBase
+from src.handler.checker.check_task import Task
 import re
-from src.common.tool import Util
+from src.common.tool import Util, DynamicLoading
 from src.common.tool import StringUtils
 
 
@@ -191,6 +191,17 @@ class CheckHandler:
                         if task_data is None:
                             continue
                         tasks[task_name] = task_data
+                elif file.endswith('py'):
+                    folder_name = os.path.basename(root)
+                    task_name = "{}.{}".format(folder_name, file.split('.')[0])
+                    DynamicLoading.add_lib_path(root)
+                    task_module = DynamicLoading.import_module(file[:-3], None)
+                    attr_name = task_name.split('.')[-1]
+                    if not hasattr(task_module, attr_name):
+                        self.stdio.error("{0} import_module failed".format(attr_name))
+                        continue
+                    task_data = {"task": [{"name": task_name, "module": getattr(task_module, attr_name), "task_type": "py"}]}
+                    tasks[task_name] = task_data
         if len(tasks) == 0:
             raise Exception("the len of tasks is 0")
         self.tasks = tasks
@@ -222,7 +233,7 @@ class CheckHandler:
                 if version:
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
-                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
+                    task = Task(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
                     self.stdio.verbose("{0} execute!".format(task_name))
                     task.execute()
                     self.stdio.verbose("execute tasks end : {0}".format(task_name))
