@@ -23,7 +23,44 @@ from src.common.tool import StringUtils
 from src.common.scene import filter_by_version
 
 
-class TaskBase(object):
+class TaskBase:
+    def __init__(self):
+        self.work_path = None
+        self.record = None
+        self.gather_log = None
+        self.stdio = None
+        self.input_parameters = None
+        self.ob_cluster = None
+        self.ob_connector = None
+        self.store_dir = None
+        self.obproxy_version = None
+        self.observer_version = None
+        self.report = None
+        self.obproxy_nodes = None
+        self.observer_nodes = None
+        self.oms_nodes = None
+        self.context = None
+        self.name = type(self).__name__
+        self.Result = None
+
+    def init(self, context):
+        self.context = context
+        self.stdio = context.stdio
+        self.observer_nodes = context.get_variable("observer_nodes")
+        self.obproxy_nodes = context.get_variable("obproxy_nodes")
+        self.oms_nodes = context.get_variable("oms_nodes")
+        self.report = context.get_variable("report")
+        self.obproxy_version = context.get_variable("obproxy_version", default="")
+        self.observer_version = context.get_variable("observer_version", default="")
+        self.ob_connector = context.get_variable("ob_connector", default=None)
+        self.store_dir = context.get_variable("store_dir")
+        self.ob_cluster = context.get_variable("ob_cluster")
+        self.input_parameters = context.get_variable("input_parameters") or {}
+        self.gather_log = context.get_variable("gather_log")
+        self.work_path = self.store_dir
+
+
+class Task(TaskBase):
     def __init__(self, context, task, nodes, cluster, report, task_variable_dict=None):
         self.context = context
         self.stdio = context.stdio
@@ -80,20 +117,23 @@ class TaskBase(object):
                         self.stdio.verbose("report_type stop this step")
                         return
                 except StepExecuteFailException as e:
-                    self.stdio.error("TaskBase execute CheckStepFailException: {0} . Do Next Task".format(e))
+                    self.stdio.error("Task execute CheckStepFailException: {0} . Do Next Task".format(e))
                     return
                 except StepResultFalseException as e:
-                    self.stdio.warn("TaskBase execute StepResultFalseException: {0} .".format(e))
+                    self.stdio.warn("Task execute StepResultFalseException: {0} .".format(e))
                     continue
                 except StepResultFailException as e:
-                    self.stdio.warn("TaskBase execute StepResultFailException: {0}".format(e))
+                    self.stdio.warn("Task execute StepResultFailException: {0}".format(e))
                     return
                 except Exception as e:
-                    self.stdio.error("TaskBase execute Exception: {0}".format(e))
-                    raise TaskException("TaskBase execute Exception:  {0}".format(e))
+                    self.stdio.error("Task execute Exception: {0}".format(e))
+                    raise TaskException("Task execute Exception:  {0}".format(e))
 
                 self.stdio.verbose("step nu: {0} execute end ".format(nu))
                 nu = nu + 1
         except Exception as e:
-            self.stdio.error("TaskBase execute Exception: {0}".format(e))
+            self.stdio.error("Task execute Exception: {0}".format(e))
             raise e
+
+
+
