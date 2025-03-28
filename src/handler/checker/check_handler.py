@@ -36,6 +36,7 @@ from src.common.tool import StringUtils
 class CheckHandler:
 
     def __init__(self, context, check_target_type="observer"):
+        self.version = None
         self.context = context
         self.stdio = context.stdio
         # init input parameters
@@ -110,15 +111,19 @@ class CheckHandler:
             node["ssher"] = ssher
             new_node.append(node)
         self.nodes = new_node
-        self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
-        obConnectorPool = None
-        # add OBConnectorPool
-        try:
-            obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
-        except Exception as e:
-            self.stdio.warn("obConnector init error. Error info is {0}".format(e))
-        finally:
-            self.context.set_variable('check_obConnector_pool', obConnectorPool)
+        # for build build_before
+        if Util.get_option(self.options, 'cases') != "build_before":
+            self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
+            obConnectorPool = None
+            # add OBConnectorPool
+            try:
+                obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
+            except Exception as e:
+                self.stdio.warn("obConnector init error. Error info is {0}".format(e))
+            finally:
+                self.context.set_variable('check_obConnector_pool', obConnectorPool)
+        else:
+            self.stdio.warn("check cases is build_before, so don't get version")
 
     def handle(self):
         try:
