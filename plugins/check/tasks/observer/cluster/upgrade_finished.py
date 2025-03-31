@@ -17,6 +17,7 @@
 """
 import re
 
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -27,7 +28,18 @@ class UpgradeFinished(TaskBase):
 
     def execute(self):
         try:
+            # check observer version
+            min_supported_version = "4.0.0.0"
+            if self.observer_version:
+                if not (StringUtils.compare_versions_greater(self.observer_version, min_supported_version)) and self.observer_version != min_supported_version:
+                    self.report.add_warning("[SKIP] this task need observer version more than {1}, this cluster is {0}.".format(self.observer_version, min_supported_version))
+            else:
+                # this task need to check observer version, if observer version is not exist,
+                return self.report.add_warning("[SKIP] this task need to check observer version, if observer version is not exist, please check")
+
             pass_tag = True
+            if self.ob_connector is None:
+                return self.report.add_fail("can't build obcluster connection")
             build_version_data = self.ob_connector.execute_sql_return_cursor_dictionary("select distinct build_version from oceanbase.__all_server; ").fetchall()
             if len(build_version_data) != 1:
                 return self.report.add("build_version count >1, please check")
@@ -49,7 +61,7 @@ class UpgradeFinished(TaskBase):
                     self.report.add_critical("min_observer_version value not equal build_version. node:{0} min_observer_version:{1} build_version:{2}".format(row.get("svr_ip"), row.get("value"), build_version))
             if not pass_tag:
                 return
-            compatible_diff_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.DBA_OB_TENANTS where compatible<>'{0}' and TENANT_ROLE<>'STANDBY;".format(build_version)).fetchall()
+            compatible_diff_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.DBA_OB_TENANTS where compatible<>'{0}' and TENANT_ROLE<>'STANDBY';".format(build_version)).fetchall()
             if len(compatible_diff_data) > 0:
                 compatible_diff_tenants = ""
                 for row in compatible_diff_data:
