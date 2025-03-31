@@ -78,7 +78,6 @@ class UpgradeFinished(TaskBase):
                     self.report.add_critical("enable_upgrade_mode is True.")
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
-            # 检查的结果都需要以report.add的方式添加到report中,兜底异常以Fail返回
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
