@@ -191,28 +191,30 @@ class RCAHandler:
             self.stdio.verbose(traceback.format_exc())
             self.stdio.error("rca_scene.execute err: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.execute err: {0}".format(e))
-        try:
-            self.rca_scene.export_result()
-        except Exception as e:
-            self.stdio.verbose(traceback.format_exc())
-            self.stdio.error("rca_scene.export_result err: {0}".format(e))
-            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
-        self.stdio.print(
-            "rca finished. For more details, the result on '"
-            + Fore.YELLOW
-            + self.get_result_path()
-            + Style.RESET_ALL
-            + "' \nYou can get the suggest by '"
-            + Fore.YELLOW
-            + "cat "
-            + self.get_result_path()
-            + "/record"
-            + "."
-            + self.rca_scene.Result.rca_report_type
-            + Style.RESET_ALL
-            + "'"
-        )
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
+        finally:
+            try:
+                self.rca_scene.export_result()
+                return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.get_result_path(), "record": self.rca_scene.Result.records_data()})
+            except Exception as e:
+                self.stdio.verbose(traceback.format_exc())
+                self.stdio.error("rca_scene.export_result err: {0}".format(e))
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="rca_scene.export_result err: {0}".format(e))
+            finally:
+                self.stdio.print(
+                    "rca finished. For more details, the result on '"
+                    + Fore.YELLOW
+                    + self.get_result_path()
+                    + Style.RESET_ALL
+                    + "' \nYou can get the suggest by '"
+                    + Fore.YELLOW
+                    + "cat "
+                    + self.get_result_path()
+                    + "/record"
+                    + "."
+                    + self.rca_scene.Result.rca_report_type
+                    + Style.RESET_ALL
+                    + "'"
+                )
 
 
 class RcaScene:
@@ -247,6 +249,8 @@ class RcaScene:
         self.report = context.get_variable("report")
         self.obproxy_version = context.get_variable("obproxy_version", default="")
         self.observer_version = context.get_variable("observer_version", default="")
+        if self.observer_version:
+            self.record.add_record("observer version: {0}".format(self.observer_version))
         self.ob_connector = context.get_variable("ob_connector", default=None)
         self.store_dir = context.get_variable("store_dir")
         self.ob_cluster = context.get_variable("ob_cluster")
@@ -330,6 +334,9 @@ class Result:
 
     def export_report_table(self):
         with open(self.record_file_name, "w") as f:
+            f.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
+            if self.version is not None or self.version != "unknown":
+                f.write("observer Version: {0}\n".format(self.version))
             for record in self.records:
                 if record.records is None or len(record.records) == 0:
                     continue
@@ -554,6 +561,9 @@ class RCA_ResultRecord:
         return self.suggest == "The suggest: "
 
     def export_suggest(self):
+        if self.suggest == "The suggest: ":
+            self.add_suggest("you can send the record to the developer to get the suggest")
+            return "The suggest"
         return self.suggest
 
     def export_record_table(self):

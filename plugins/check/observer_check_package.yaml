@@ -12,11 +12,7 @@ build_before:
   info_en: "Deployment environment check"
   info_cn: "部署环境检查"
   tasks:
-    - cluster.data_path_settings
-    - system.parameter
-    - system.aio
-    - system.dependent_software
-    - system.ulimit_parameter
+    - system.*
 sysbench_run:
   info_en: "Collection of inspection tasks when executing sysbench"
   info_cn: "执行sysbench时的巡检任务集合"

@@ -56,6 +56,8 @@ class RcaScenesListHandler:
 
         for scene_name, scene in scene_list.items():
             scene_info = scene.get_scene_info()
+            if "oms_obcdc" in scene_name:
+                continue
             scene_info_list[scene_name] = {"name": scene_name, "command": "obdiag rca run --scene={0}".format(scene_name), "info_en": scene_info["info_en"], "info_cn": scene_info["info_cn"]}
         return scene_info_list, scene_list
 
