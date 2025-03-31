@@ -23,6 +23,7 @@ from src.common.tool import StringUtils
 from src.common.scene import filter_by_version
 
 
+# for python task
 class TaskBase:
     def __init__(self):
         self.work_path = None
@@ -60,7 +61,7 @@ class TaskBase:
         self.work_path = self.store_dir
 
 
-class Task(TaskBase):
+class Task:
     def __init__(self, context, task, nodes, cluster, report, task_variable_dict=None):
         super().__init__()
         self.context = context
