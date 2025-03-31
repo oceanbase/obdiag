@@ -15,16 +15,20 @@
 @file: test.py
 @desc:
 """
+from src.handler.checker.check_task import TaskBase
 
 
-class Test:
+class Test(TaskBase):
 
-    def init(self, context, report, nodes):
-        self.context = context
-        self.report = report
-        self.nodes = nodes
+    def init(self, context, report):
+        super().init(context, report)
 
     def execute(self):
+        for node in self.observer_nodes:
+            ssh_client = node.get("ssher")
+            self.stdio.print(ssh_client.exec_cmd("arch"))
+        version = self.ob_connector.execute_sql("select version()")
+        self.stdio.print(version)
         pass
 
     def get_scene_info(self):
