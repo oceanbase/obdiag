@@ -22,6 +22,7 @@ import traceback
 
 import yaml
 
+from src.common.import_module import import_modules
 from src.common.ob_connector import OBConnector
 from src.common.scene import get_version_by_type
 from src.common.ssh_client.ssh import SshClient

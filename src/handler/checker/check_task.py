@@ -17,50 +17,16 @@
 """
 import threading
 
+from src.common.command import get_observer_version
+from src.common.ob_connector import OBConnector
+from src.common.ssh_client.ssh import SshClient
 from src.handler.checker.check_exception import StepResultFailException, StepExecuteFailException, StepResultFalseException, TaskException
 from src.handler.checker.step.stepbase import StepBase
 from src.common.tool import StringUtils
 from src.common.scene import filter_by_version
 
 
-class TaskBase:
-    def __init__(self):
-        self.work_path = None
-        self.record = None
-        self.gather_log = None
-        self.stdio = None
-        self.input_parameters = None
-        self.ob_cluster = None
-        self.ob_connector = None
-        self.store_dir = None
-        self.obproxy_version = None
-        self.observer_version = None
-        self.report = None
-        self.obproxy_nodes = None
-        self.observer_nodes = None
-        self.oms_nodes = None
-        self.context = None
-        self.name = type(self).__name__
-        self.Result = None
-
-    def init(self, context):
-        self.context = context
-        self.stdio = context.stdio
-        self.observer_nodes = context.get_variable("observer_nodes")
-        self.obproxy_nodes = context.get_variable("obproxy_nodes")
-        self.oms_nodes = context.get_variable("oms_nodes")
-        self.report = context.get_variable("report")
-        self.obproxy_version = context.get_variable("obproxy_version", default="")
-        self.observer_version = context.get_variable("observer_version", default="")
-        self.ob_connector = context.get_variable("ob_connector", default=None)
-        self.store_dir = context.get_variable("store_dir")
-        self.ob_cluster = context.get_variable("ob_cluster")
-        self.input_parameters = context.get_variable("input_parameters") or {}
-        self.gather_log = context.get_variable("gather_log")
-        self.work_path = self.store_dir
-
-
-class Task(TaskBase):
+class Task:
     def __init__(self, context, task, nodes, cluster, report, task_variable_dict=None):
         super().__init__()
         self.context = context
@@ -78,7 +44,7 @@ class Task(TaskBase):
         self.stdio.verbose("task_base execute")
         if len(self.task) > 0 and self.task[0].get("task_type") and self.task[0]["task_type"] == "py":
             module = self.task[0]["module"]
-            module.init(self.context, self.report, self.nodes)
+            module.init(self.context, self.report)
             module.execute()
             return
         if self.cluster.get("version") is None:
@@ -138,3 +104,72 @@ class Task(TaskBase):
         except Exception as e:
             self.stdio.error("Task execute Exception: {0}".format(e))
             raise e
+
+
+# for python task
+class TaskBase:
+    def __init__(self):
+        self.work_path = None
+        self.record = None
+        self.gather_log = None
+        self.stdio = None
+        self.input_parameters = None
+        self.ob_cluster = None
+        self.ob_connector = None
+        self.store_dir = None
+        self.obproxy_version = None
+        self.observer_version = None
+        self.report = None
+        self.obproxy_nodes = []
+        self.observer_nodes = []
+        self.oms_nodes = []
+        self.context = None
+        self.name = type(self).__name__
+        self.Result = None
+
+    def init(self, context, report):
+        self.report = report
+        self.context = context
+        self.stdio = context.stdio
+        # get ob_cluster
+        self.ob_cluster = self.context.cluster_config
+        # set report
+        self.report = report
+        # get obproxy_nodes and observer_nodes
+        observer_nodes = self.context.cluster_config.get("servers")
+        if observer_nodes:
+            for node in observer_nodes:
+                # add ssher
+                ssher = None
+                try:
+                    ssher = SshClient(context, node)
+                except Exception as e:
+                    self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
+                node["ssher"] = ssher
+                self.observer_nodes.append(node)
+        obproxy_nodes = self.context.obproxy_config.get("servers")
+        if obproxy_nodes:
+            for node in obproxy_nodes:
+                # add ssher
+                ssher = None
+                try:
+                    ssher = SshClient(context, node)
+                except Exception as e:
+                    self.stdio.warn("StepBase get SshHelper fail on{0} ,Exception: {1}".format(node.get("ip"), e))
+                node["ssher"] = ssher
+                self.obproxy_nodes.append(node)
+
+        # build observer_version by sql or ssher. If using SSHer, the observer_version is set to node[0].
+        self.observer_version = ""
+        try:
+            self.observer_version = get_observer_version(self.context)
+        except Exception as e:
+            self.stdio.error("get observer_version fail: {0}".format(e))
+        self.ob_connector = OBConnector(
+            context=self.context,
+            ip=self.ob_cluster.get("db_host"),
+            port=self.ob_cluster.get("db_port"),
+            username=self.ob_cluster.get("tenant_sys").get("user"),
+            password=self.ob_cluster.get("tenant_sys").get("password"),
+            timeout=10000,
+        )
