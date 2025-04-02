@@ -173,3 +173,10 @@ class TaskBase:
             password=self.ob_cluster.get("tenant_sys").get("password"),
             timeout=10000,
         )
+
+    def check_ob_version_min(self, min_version):
+        if self.observer_version is None:
+            return False
+        if not (StringUtils.compare_versions_greater(self.observer_version, min_version)) and self.observer_version != min_version:
+            return False
+        return True
