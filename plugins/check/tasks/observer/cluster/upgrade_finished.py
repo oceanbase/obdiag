@@ -42,7 +42,7 @@ class UpgradeFinished(TaskBase):
                 return self.report.add_fail("can't build obcluster connection")
             build_version_data = self.ob_connector.execute_sql_return_cursor_dictionary("select distinct build_version from oceanbase.__all_server; ").fetchall()
             if len(build_version_data) != 1:
-                return self.report.add("build_version count >1, please check")
+                return self.report.add_critical("build_version count >1, please check")
             # like 4.3.5.2_1-b4a7793c1cd6935a42a3c210373eb3c97c57b9ec(Mar 28 2025 22:35:37)
             build_version = build_version_data[0].get("build_version")
             # Define the regex pattern to match the data before the underscore
@@ -53,7 +53,7 @@ class UpgradeFinished(TaskBase):
                 result = match.group(1)
                 build_version = result
             else:
-                return self.report.add("build_version format error, please check, build_version info: {0}".format(build_version))
+                return self.report.add_critical("build_version format error, please check, build_version info: {0}".format(build_version))
             min_observer_version_data = self.ob_connector.execute_sql_return_cursor_dictionary("show parameters like 'min_observer_version'; ").fetchall()
             for row in min_observer_version_data:
                 if row.get("value") != build_version:
