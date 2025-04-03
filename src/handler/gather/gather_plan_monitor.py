@@ -34,6 +34,7 @@ from src.common.tool import TimeUtils
 from src.common.tool import SQLTableExtractor
 from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.common.result_type import ObdiagResult
+from src.common.version import OBDIAG_VERSION
 
 
 class GatherPlanMonitorHandler(object):
@@ -203,7 +204,9 @@ class GatherPlanMonitorHandler(object):
                 self.__report("<div class='help' style='font-size:11px'>线程级<hr /><pre>%s</pre></div><br/>" % (sql_plan_monitor_detail_v1))
 
                 t = time.localtime(time.time())
-                self.__report("报告生成时间： %s" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
+                self.__report("Report generation time： %s <br>" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
+                self.__report( "obdiag version: {0} <br>".format(OBDIAG_VERSION))
+                self.__report( "observer version: {0} <br>".format(self.ob_version))
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
