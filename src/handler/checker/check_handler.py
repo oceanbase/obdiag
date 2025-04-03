@@ -22,20 +22,22 @@ import traceback
 
 import yaml
 
+from src.common.import_module import import_modules
 from src.common.ob_connector import OBConnector
 from src.common.scene import get_version_by_type
 from src.common.ssh_client.ssh import SshClient
 from src.handler.checker.check_exception import CheckException
 from src.handler.checker.check_report import TaskReport, CheckReport, CheckrReportException
-from src.handler.checker.check_task import TaskBase
+from src.handler.checker.check_task import Task
 import re
-from src.common.tool import Util
+from src.common.tool import Util, DynamicLoading
 from src.common.tool import StringUtils
 
 
 class CheckHandler:
 
     def __init__(self, context, check_target_type="observer"):
+        self.version = None
         self.context = context
         self.stdio = context.stdio
         # init input parameters
@@ -110,15 +112,19 @@ class CheckHandler:
             node["ssher"] = ssher
             new_node.append(node)
         self.nodes = new_node
-        self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
-        obConnectorPool = None
-        # add OBConnectorPool
-        try:
-            obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
-        except Exception as e:
-            self.stdio.warn("obConnector init error. Error info is {0}".format(e))
-        finally:
-            self.context.set_variable('check_obConnector_pool', obConnectorPool)
+        # for build build_before
+        if Util.get_option(self.options, 'cases') != "build_before":
+            self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
+            obConnectorPool = None
+            # add OBConnectorPool
+            try:
+                obConnectorPool = checkOBConnectorPool(context, 3, self.cluster)
+            except Exception as e:
+                self.stdio.warn("obConnector init error. Error info is {0}".format(e))
+            finally:
+                self.context.set_variable('check_obConnector_pool', obConnectorPool)
+        else:
+            self.stdio.warn("check cases is build_before, so don't get version")
 
     def handle(self):
         try:
@@ -191,6 +197,21 @@ class CheckHandler:
                         if task_data is None:
                             continue
                         tasks[task_name] = task_data
+                elif file.endswith('py'):
+                    folder_name = os.path.basename(root)
+                    task_name = "{}.{}".format(folder_name, file.split('.')[0])
+                    try:
+                        DynamicLoading.add_lib_path(root)
+                        task_module = DynamicLoading.import_module(file[:-3], None)
+                        attr_name = task_name.split('.')[-1]
+                        if not hasattr(task_module, attr_name):
+                            self.stdio.error("{0} import_module failed".format(attr_name))
+                            continue
+                        task_data = {"task": [{"name": task_name, "module": getattr(task_module, attr_name), "task_type": "py"}]}
+                        tasks[task_name] = task_data
+                    except Exception as e:
+                        self.stdio.error("import_module {1} failed: {0}".format(e, task_name))
+                        raise CheckException("import_module {1} failed: {0}".format(e, task_name))
         if len(tasks) == 0:
             raise Exception("the len of tasks is 0")
         self.tasks = tasks
@@ -222,7 +243,7 @@ class CheckHandler:
                 if version:
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
-                    task = TaskBase(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
+                    task = Task(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
                     self.stdio.verbose("{0} execute!".format(task_name))
                     task.execute()
                     self.stdio.verbose("execute tasks end : {0}".format(task_name))

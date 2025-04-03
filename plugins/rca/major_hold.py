@@ -150,13 +150,13 @@ class MajorHoldScene(RcaScene):
                 tenant_record.add_record("last_scn is {0}".format(last_scn))
                 sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(err_tenant_id, global_broadcast_scn)
                 OB_COMPACTION_PROGRESS_data_global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_global_broadcast_scn".format(self.local_path, err_tenant_id)
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_global_broadcast_scn.txt".format(self.local_path, err_tenant_id)
                 with open(file_name, "w") as f:
                     f.write(str(OB_COMPACTION_PROGRESS_data_global_broadcast_scn))
                 tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_global_broadcast_scn save on {1}".format(err_tenant_id, file_name))
                 sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(err_tenant_id, last_scn)
                 OB_COMPACTION_PROGRESS_data_last_scn = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_last_scn".format(self.local_path, err_tenant_id)
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_last_scn.txt".format(self.local_path, err_tenant_id)
                 with open(file_name, "w") as f:
                     f.write(str(OB_COMPACTION_PROGRESS_data_last_scn))
                 tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id, file_name))
@@ -192,7 +192,7 @@ class MajorHoldScene(RcaScene):
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_COMPACTION_SUGGESTIONS where tenant_id="{0}";'.format(err_tenant_id))
                 OB_COMPACTION_SUGGESTIONS_data = cursor.fetchall()
                 OB_COMPACTION_SUGGESTIONS_info = json.dumps(OB_COMPACTION_SUGGESTIONS_data, cls=DateTimeEncoder)
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info".format(self.local_path, err_tenant_id)
+                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info.txt".format(self.local_path, err_tenant_id)
                 with open(file_name, "w") as f:
                     f.write(str(OB_COMPACTION_SUGGESTIONS_info))
                 tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id, file_name))

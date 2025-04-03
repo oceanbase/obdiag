@@ -1,0 +1,18 @@
+info: 'If the node is arm architecture, check whether the smmu need to be closed. issue #784'
+task:
+  - steps:
+    - type: ssh
+      ssh: "arch"
+      result:
+        set_value: arch
+        verify: '[ "$arch" == "x86_64" ]'
+        report_type: execution
+        err_msg: '[not warning] The observer is not x86_64 architecture, please check the observer architecture.'
+    - type: ssh
+      ssh: 'dmesg -T|grep "stuck for"|wc -l'
+      result:
+        set_value: smmu_stuck_count
+        verify_type: equal
+        verify: 0
+        err_msg: 'find dmesg stuck for smmu, if the arch of the node  is arm, Please close the smmu on bios'
+

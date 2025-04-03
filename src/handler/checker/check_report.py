@@ -29,6 +29,7 @@ import xmltodict
 import json
 from io import open
 
+from src.common.command import get_obproxy_version, get_observer_version
 from src.handler.checker.check_exception import CheckException
 from src.telemetry.telemetry import telemetry
 from jinja2 import Template
@@ -170,6 +171,14 @@ class CheckReport:
             fp = open(self.report_path + ".table", 'a+', encoding='utf-8')
             fp.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
             fp.write("report time: {0}\n\n".format(self.report_time))
+            if self.report_target == "observer":
+                observer_version = get_observer_version(self.context)
+                if observer_version:
+                    fp.write("observer version: {0}\n".format(self.context.get_variable("observer_version")))
+            elif self.report_target == "obproxy":
+                obproxy_version = get_obproxy_version(self.context)
+                if obproxy_version:
+                    fp.write("obproxy version: {0}\n".format(self.context.get_variable("obproxy_version")))
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)

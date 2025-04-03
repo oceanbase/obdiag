@@ -129,8 +129,9 @@ class GatherComponentLogHandler(BaseShellHandler):
         if not isinstance(self.target, str):
             raise Exception("target option can only be string")
         self.target = self.target.lower().strip()
-        if self.target != 'observer' and self.target != 'obproxy' and self.target != 'oms':
-            raise Exception("target option can only be observer or obproxy or oms")
+        allowed_targets = {'observer', 'obproxy', 'oms', 'oms_cdc'}
+        if self.target not in allowed_targets:
+            raise Exception(f"Invalid target option: '{self.target}'. Allowed values are: {', '.join(allowed_targets)}")
 
         # check store_dir
         if not os.path.exists(self.store_dir):
@@ -150,7 +151,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.nodes = self.context.cluster_config.get("servers")
             elif self.target == 'obproxy':
                 self.nodes = self.context.obproxy_config.get("servers")
-            elif self.target == 'oms':
+            elif self.target == 'oms' or self.target == 'oms_cdc':
                 self.nodes = self.context.oms_config.get("servers")
             else:
                 raise Exception("can not get nodes by target: {0}".format(self.target))
@@ -397,9 +398,10 @@ class GatherLogOnNode:
                 obcdc_id = number
             else:
                 self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
-            self.log_path = os.path.join(node.get("store_path"), obcdc_id, "log")
+            self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
+        self.stdio.verbose("log_path: {0}".format(self.log_path))
 
         self.from_time_str = self.config.get("from_time")
         self.to_time_str = self.config.get("to_time")
@@ -581,27 +583,36 @@ class GatherLogOnNode:
 
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
         log_name_list = []
-        last_file_dict = {"prefix_file_name": "", "file_name": "", "file_end_time": ""}
         for file_name in log_files.split('\n'):
             if file_name == "":
                 self.stdio.verbose("existing file name is empty")
                 continue
             if not file_name.endswith("log") and not file_name.endswith("wf"):
-                file_start_time_str = ""
-                prefix_name = file_name[:-14] if len(file_name) > 24 else ""
+                # get end_time from file_name
+                first_line_text = self.ssh_client.exec_cmd("head -n 1 {0}/{1}".format(log_dir, file_name))
+                file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
                 file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
-                if last_file_dict["prefix_file_name"] != "" and last_file_dict["prefix_file_name"] == prefix_name:
-                    file_start_time_str = last_file_dict["file_end_time"]
-                elif last_file_dict["prefix_file_name"] != "" and last_file_dict["prefix_file_name"] != prefix_name:
-                    file_start_time_str = ""
-                    file_end_time_str = ""
-                elif last_file_dict["prefix_file_name"] == "":
-                    file_start_time_str = get_file_start_time(self.ssh_client, file_name, log_dir, self.stdio)
+                self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
                 # When two time intervals overlap, need to add the file
-                if (file_end_time_str != "") and (file_start_time_str != "") and (file_start_time_str <= to_time_str) and (file_end_time_str >= from_time_str):
+                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
+                file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
+                to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
+                from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+                if file_end_time_str_strp == "":
+                    self.stdio.warn("The log file {0} can't find endtime. skip".format(file_name))
+                    continue
+                if file_start_time_str_strp == "":
+                    if file_end_time_str_strp < from_time_str_strp:
+                        self.stdio.warn("The log file {0} can't find start_time. skip".format(file_name))
+                        continue
+                    else:
+                        self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
+                        log_name_list.append(file_name)
+                if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
                     log_name_list.append(file_name)
-                last_file_dict = {"prefix_file_name": prefix_name, "file_name": file_name, "file_end_time": file_end_time_str}
+                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time_str, from_time_str, to_time_str))
             elif file_name.endswith("log") or file_name.endswith("wf"):
+                # get form_time and to_time from the first and last lines of text of the file
                 # Get the first and last lines of text of the file. Here, use a command
                 get_first_line_cmd = "head -n 1 {0}/{1} && tail -n 1 {0}/{1}".format(log_dir, file_name)
                 first_and_last_line_text = self.ssh_client.exec_cmd(get_first_line_cmd)
@@ -615,8 +626,24 @@ class GatherLogOnNode:
                     file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
                     self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time))
                     self.stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
-                    if (file_start_time_str <= to_time_str) and (file_end_time >= from_time_str):
+                    file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
+                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
+                    from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+                    if file_end_time_str_strp == "":
+                        file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        self.stdio.warn("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
+                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    if file_start_time_str_strp == "":
+                        if file_end_time_str_strp < from_time_str_strp:
+                            continue
+                        else:
+                            self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
+                            log_name_list.append(file_name)
+
+                    if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
                         log_name_list.append(file_name)
+                        self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
         if len(log_name_list) > 0:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, self.ssh_client.get_ip()))
         else:
