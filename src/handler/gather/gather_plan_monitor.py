@@ -205,8 +205,8 @@ class GatherPlanMonitorHandler(object):
 
                 t = time.localtime(time.time())
                 self.__report("Report generation time： %s <br>" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
-                self.__report( "obdiag version: {0} <br>".format(OBDIAG_VERSION))
-                self.__report( "observer version: {0} <br>".format(self.ob_version))
+                self.__report("obdiag version: {0} <br>".format(OBDIAG_VERSION))
+                self.__report("observer version: {0} <br>".format(self.ob_version))
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
