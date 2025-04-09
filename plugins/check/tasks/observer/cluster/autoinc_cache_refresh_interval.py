@@ -19,15 +19,15 @@ class AutoincCacheRefreshInterval(TaskBase):
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             if not result:
                 return self.report.add_warning("can't find this  param_name")
-            #gather svr_ip
+            # gather svr_ip
             non_compliant_nodes = []
-        
+
             for data_item in result:
                 svr_ip = data_item['SVR_IP']
                 value = data_item['VALUE']
                 num_value = int(re.search(r'\d+', value).group())
                 expected_num = int(re.search(r'\d+', self.expected_value).group())
-                if num_value <expected_num:
+                if num_value < expected_num:
                     non_compliant_nodes.append(svr_ip)
             if non_compliant_nodes:
                 nodes_str = ", ".join(non_compliant_nodes)
