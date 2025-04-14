@@ -1,14 +1,11 @@
-#!/bin/bash
-
-PROCESS_NAME="obd"
-
+#!/bin/sh
 while true; do
-    # Check if the process is running
-    if pgrep -x "$PROCESS_NAME" > /dev/null; then
-        echo "$PROCESS_NAME is running. Checking again in 5 second..."
+    ps -fe | grep obd | grep -v grep
+    if [ $? -eq 0 ]; then
+        echo "Process exists, checking again in 5 second..."
         sleep 5
     else
-        echo "$PROCESS_NAME is not running. Exiting."
+        echo "Process not found. Exiting."
         exit 0
     fi
 done
