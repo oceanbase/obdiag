@@ -51,7 +51,7 @@ class MemoryLimitPercentage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memory_limit_percentage", "info": "Check the percentage of total available memory size to total memory size in the system. Suggest keeping the default value of 80"}
+        return {"name": "memory_limit_percentage", "info": "Check the percentage of total available memory size to total memory size in the system. Suggest keeping the default value of 80. issue#750"}
 
 
 memory_limit_percentage = MemoryLimitPercentage()

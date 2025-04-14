@@ -79,7 +79,7 @@ class CheckListHandler:
                             )
                     Util.print_title("check cases about {0}".format(target), stdio=self.stdio)
                     Util.print_scene(cases_map, stdio=self.stdio)
-            if True:
+            if False:
                 get_task_list = self.get_task_list()
                 for target in get_task_list:
                     if get_task_list[target] is None:
