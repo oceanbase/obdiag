@@ -13,7 +13,7 @@ jobs:
     name: run-with-observer
     runs-on: ubuntu-latest
     container:
-      image: "oceanbase/oceanbase-ce:4.2.5.3-103000022025033117"
+      image: "oceanbase/oceanbase-ce:4.3.0"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
