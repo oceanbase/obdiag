@@ -12,8 +12,7 @@ jobs:
   run-with-observer:
     name: run-with-observer
     runs-on: ubuntu-latest
-    container:
-      image: "oceanbase/oceanbase-ce:4.3.0"
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -21,17 +20,18 @@ jobs:
     - name: install obdiag
       run: |
         set -e
-        yum install -y wget
-        wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm
-        yum install -y ./oceanbase-diagnostic-tool-*.rpm
-        cp example/mini.yml /root/.obdiag/config.yml
-        cp -r /root/.obdiag /github/home
-        ps -aux |grep obd
-        cat /root/.obd/log/obd
-        sh workflow_data/wait_observer_run.sh
-    - name: run obdiag checks
-      run: |
-        ls ~/
-        obdiag check list
-        obdiag check run
+        docker run -itd --name "obdiag_ob" oceanbase/oceanbase-ce:4.3.0
+        docker cp workflow_data/wait_observer_run.sh obdiag_ob:/root
+        docker exec -it obdiag_ob /bin/bash -c "bash /root/wait_observer_run.sh"
+        docker exec -it obdiag_ob /bin/bash -c "yum install -y wget && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm"
+        docker exec -it obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
+        docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
+        docker exec -it obdiag_ob /bin/bash -c "obdiag check list"
+        docker exec -it obdiag_ob /bin/bash -c "obdiag check run"
+
+#    - name: run obdiag checks
+#      run: |
+#        ls ~/
+#        obdiag check list
+
           

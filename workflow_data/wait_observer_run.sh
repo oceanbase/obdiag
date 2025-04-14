@@ -1,13 +1,27 @@
-#!/bin/sh
+#!/bin/bash
+
+SUCCESS_MSG="boot success!"
+FAILURE_MSG="boot failed!"
+
+LOG_FILE=$(mktemp)
+
+function cleanup {
+    kill "$LOG_PID" 2>/dev/null
+    rm -f "$LOG_FILE"
+}
+
+trap cleanup EXIT
+
+docker logs -f "$obdiag_observer" >"$LOG_FILE" 2>&1 &
+
+LOG_PID=$!
+
 while true; do
-    obclient -h127.0.0.1 -P2881 -uroot -Doceanbase -e "show databases;"
-    if [ $? -eq 0 ]; then
-        echo "Process not found. Exiting."
-        exit 0
-    else
-        ps -aux |grep observer
-        ps -aux |grep obd
-        echo "Process exists, checking again in 5 second..."
-        sleep 5
-    fi
+    while IFS= read -r line; do
+        echo "$line"
+        if [[ "$line" == *"$SUCCESS_MSG"* || "$line" == *"$FAILURE_MSG"* ]]; then
+            cleanup
+            exit 0
+        fi
+    done < <(tail -f "$LOG_FILE")
 done
