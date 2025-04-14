@@ -15,13 +15,15 @@ jobs:
     container:
       image: "oceanbase/oceanbase-ce:4.2.5.3-103000022025033117"
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     - name: install obdiag
       run: |
         set -e
         yum install -y wget \
           && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm \
-          && yum install -y ./oceanbase-diagnostic-tool-*.rpm && cp /opt/oceanbase-diagnostic-tool/example/mini.yml /root/.obdiag/
+          && yum install -y ./oceanbase-diagnostic-tool-*.rpm && cp example/mini.yml /root/.obdiag/config.yml
     - name: run obdiag checks
       run: |
         ls ~/
