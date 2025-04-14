@@ -1,0 +1,67 @@
+name: build package
+
+on:
+  pull_request:
+    branches:
+      - *
+  push:
+    branches:
+      - *
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+jobs:
+  build-rpm:
+    name: Run on CentOS 7
+    runs-on: ubuntu-latest
+    container:
+      image: "oceanbase/obdiag-builder:latest"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          export PATH=/opt/miniconda3/bin:$PATH
+          source activate obdiag
+          ldd --version
+          pip3 install -r requirements3.txt
+
+      - name: Build package
+        run: |
+          export PATH=/opt/miniconda3/bin:$PATH
+          source activate obdiag
+          pwd
+          ls -lh
+          bash dev_helper.sh pack
+
+      - name: Find rpm
+        run: |
+          find / -name oceanbase-diagnostic-tool-*.rpm
+
+      - name: "Upload rpm"
+        uses: actions/upload-artifact@v4
+        with:
+          name: obdiag-rpm-packages
+          path: |
+            /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
+          retention-days: 3
+
+  run-with-observer:
+    name: run-with-observer
+    runs-on: ubuntu-latest
+    container:
+      image: "oceanbase/oceanbase-ce:4.2.5.3-103000022025033117"
+      steps:
+      - name: Download RPM Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: obdiag-rpm-packages
+          path: .
+      - name: install obdiag
+        run: |
+          sudo yum install -y ./oceanbase-diagnostic-tool-*.rpm
+          ls ~/
+          obdiag check list
+          
