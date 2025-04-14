@@ -2,7 +2,7 @@ info: 'Check if chronyd service is running'
 task:
   - steps:
       - type: ssh
-        ssh: "sudo systemctl status chronyd | grep running"
+        ssh: "systemctl status chronyd | grep running"
         result:
           set_value: chronyd_status
           verify: "[[ -n \"${chronyd_status}\" ]]"
