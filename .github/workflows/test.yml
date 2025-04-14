@@ -60,7 +60,15 @@ jobs:
         path: .
     - name: install obdiag
       run: |
-        sudo yum install -y ./oceanbase-diagnostic-tool-*.rpm
+        yum install -y ./oceanbase-diagnostic-tool-*.rpm
         ls ~/
+      # analyzer
+      # check
         obdiag check list
+        obdiag check run
+      # display
+      # gather
+        obdiag gather scene list
+      # rca
+        obdiag rca list
           
