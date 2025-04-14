@@ -1,0 +1,32 @@
+name: Python File Header Check
+
+on:
+  pull_request:
+    branches: "*"
+  push:
+    branches: "*"
+jobs:
+  check-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Run header check
+        run: python check_py_files.py .
+        working-directory: ${{ github.workspace }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set status
+        if: ${{ failure() }}
+        run: echo "存在不符合规范的文件！"
