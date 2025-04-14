@@ -32,6 +32,9 @@ class ClockSourceCheck(TaskBase):
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
                 node_ip = node["ip"]
+                if not self.check_command_exist(ssh_client, "chronyc"):
+                    self.report.add_warning("node:{0}. chronyc command does not exist.".format(ssh_client.get_name()))
+                    continue
                 output = ssh_client.exec_cmd(cmd)
 
                 sources = []
@@ -39,6 +42,23 @@ class ClockSourceCheck(TaskBase):
                     match = re.search(r'server\s+(\S+)\s+iburst', line.strip())
                     if match:
                         sources.append(match.group(1))
+                # check chronyc running
+                chronyc_status = ssh_client.exec_cmd("systemctl status chronyd | grep running")
+                if not chronyc_status:
+                    self.report.add_warning("node:{0}. chronyc is not running.".format(ssh_client.get_name()))
+                    continue
+
+                chronyc_data = ssh_client.exec_cmd("chronyc sources -v | grep ms | awk '{print $NF}'")
+                if not chronyc_data:
+                    self.report.add_warning("node:{0}.Clock source is abnormal. No delay value found. Please check the clock source status.".format(ssh_client.get_name()))
+                else:
+                    for line in chronyc_data.splitlines():
+                        # clock_delays: #{clock_delays}. Some clock delays are greater than 100ms. Please check the clock synchronization status.
+                        match = re.findall(r'(\d+)ms', line.strip())
+                        if match:
+                            if int(match[0]) > 100:
+                                self.report.add_warning("node:{0}. Some clock delays are greater than 100ms. Please check the clock synchronization status.".format(ssh_client.get_name()))
+                                break
 
                 sources_sorted = tuple(sorted(sources))
                 if sources_sorted not in self.clock_sources:
@@ -59,7 +79,7 @@ class ClockSourceCheck(TaskBase):
             return self.report.add_fail(f"Execute error: {e}")
 
     def get_task_info(self):
-        return {"name": "clock_source_check", "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent.issue #781"}
+        return {"name": "clock_source_check", "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent.issue #781 #873"}
 
     def get_scene_info(self):
         pass
