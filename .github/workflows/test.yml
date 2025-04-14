@@ -27,6 +27,7 @@ jobs:
         cp example/mini.yml /root/.obdiag/config.yml
         cp -r /root/.obdiag /github/home
         ps -aux |grep obd
+        cat /root/.obd/log/obd
         sh workflow_data/wait_observer_run.sh
     - name: run obdiag checks
       run: |
