@@ -12,7 +12,7 @@ function cleanup {
 
 trap cleanup EXIT
 
-docker logs -f "$obdiag_observer" >"$LOG_FILE" 2>&1 &
+docker logs -f "$obdiag_ob" >"$LOG_FILE" 2>&1 &
 
 LOG_PID=$!
 
