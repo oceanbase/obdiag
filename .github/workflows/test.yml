@@ -17,16 +17,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    - name: cp mini.yml
-      run: |
-        cp example/mini.yml ~/.obdiag/
 
     - name: install obdiag
       run: |
         set -e
         yum install -y wget \
           && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm \
-          && yum install -y ./oceanbase-diagnostic-tool-*.rpm
+          && yum install -y ./oceanbase-diagnostic-tool-*.rpm && cp example/mini.yml /root/.obdiag/
     - name: run obdiag checks
       run: |
         ls ~/
