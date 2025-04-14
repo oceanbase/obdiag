@@ -5,6 +5,8 @@ while true; do
         echo "Process not found. Exiting."
         exit 0
     else
+        ps -aux |grep observer
+        ps -aux |grep obd
         echo "Process exists, checking again in 5 second..."
         sleep 5
     fi
