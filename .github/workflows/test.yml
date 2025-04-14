@@ -47,6 +47,7 @@ jobs:
           retention-days: 3
 
   run-with-observer:
+    needs: build-rpm
     name: run-with-observer
     runs-on: ubuntu-latest
     container:
