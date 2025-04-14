@@ -44,7 +44,7 @@ class LargeQueryThreshold(TaskBase):
     def get_task_info(self):
         return {
             "name": "large_query_threshold",
-            "info": "Check the threshold for query execution time. Requests that exceed the time limit may be paused and automatically judged as large queries after the pause, and the large query scheduling strategy will be executed. Recommended setting is 5s",
+            "info": "Check the threshold for query execution time. Requests that exceed the time limit may be paused and automatically judged as large queries after the pause, and the large query scheduling strategy will be executed. Recommended setting is 5s. issue#859",
         }
 
 
