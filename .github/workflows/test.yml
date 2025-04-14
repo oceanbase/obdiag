@@ -15,6 +15,12 @@ jobs:
     container:
       image: "oceanbase/oceanbase-ce:4.2.5.3-103000022025033117"
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: cp mini.yml
+      run: |
+        cp example/mini.yml ~/.obdiag/
+
     - name: install obdiag
       run: |
         set -e
