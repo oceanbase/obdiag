@@ -16,11 +16,6 @@ jobs:
     container:
       image: "oceanbase/oceanbase-ce:4.2.5.3-103000022025033117"
     steps:
-    - name: Download RPM Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: obdiag-rpm-packages
-        path: .
     - name: install obdiag
       run: |
         yum install -y wget
