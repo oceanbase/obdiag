@@ -11,7 +11,7 @@ class ClockSourceCheck(TaskBase):
 
     def execute(self):
         try:
-            cmd = "sudo cat /etc/chrony.conf | grep -v '^#' | grep iburst"
+            cmd = "cat /etc/chrony.conf | grep -v '^#' | grep iburst"
 
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")

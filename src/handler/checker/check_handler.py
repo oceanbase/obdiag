@@ -240,7 +240,7 @@ class CheckHandler:
             report = TaskReport(self.context, task_name)
             if not self.ignore_version:
                 version = self.version
-                if version:
+                if version or Util.get_option(self.options, 'cases') == "build_before":
                     self.cluster["version"] = version
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
                     task = Task(self.context, self.tasks[task_name]["task"], self.nodes, self.cluster, report, task_variable_dict=self.input_env)
