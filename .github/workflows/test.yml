@@ -28,4 +28,5 @@ jobs:
       run: |
         ls ~/
         obdiag check list
+        obdiag check run
           
