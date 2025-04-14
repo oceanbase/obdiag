@@ -10,7 +10,6 @@ env:
 
 jobs:
   run-with-observer:
-    #needs: build-rpm
     name: run-with-observer
     runs-on: ubuntu-latest
     container:
@@ -18,16 +17,12 @@ jobs:
     steps:
     - name: install obdiag
       run: |
-        yum install -y wget
-        wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm
-        yum install -y ./oceanbase-diagnostic-tool-*.rpm
+        set -e
+        yum install -y wget \
+          && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm \
+          && yum install -y ./oceanbase-diagnostic-tool-*.rpm
+    - name: run obdiag checks
+      run: |
         ls ~/
-      # analyzer
-      # check
         obdiag check list
-      # display
-      # gather
-        obdiag gather scene list
-      # rca
-        obdiag rca list
           
