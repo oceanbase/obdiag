@@ -26,6 +26,7 @@ jobs:
         yum install -y ./oceanbase-diagnostic-tool-*.rpm
         cp example/mini.yml /root/.obdiag/config.yml
         cp -r /root/.obdiag /github/home
+        ps -aux |grep obd
         sh workflow_data/wait_observer_run.sh
     - name: run obdiag checks
       run: |
