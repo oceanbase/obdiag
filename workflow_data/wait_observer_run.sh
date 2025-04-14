@@ -1,6 +1,6 @@
 #!/bin/sh
 while true; do
-    ps -fe | grep obd | grep -v grep
+    ps -aux | grep obd | grep -v grep
     if [ $? -eq 0 ]; then
         echo "Process exists, checking again in 5 second..."
         sleep 5
