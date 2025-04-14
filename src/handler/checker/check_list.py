@@ -16,9 +16,8 @@
 @desc:
 """
 import os
-
 import yaml
-
+from prettytable import PrettyTable
 from src.common.tool import Util
 from src.common.result_type import ObdiagResult
 
@@ -80,7 +79,52 @@ class CheckListHandler:
                             )
                     Util.print_title("check cases about {0}".format(target), stdio=self.stdio)
                     Util.print_scene(cases_map, stdio=self.stdio)
+            if True:
+                get_task_list = self.get_task_list()
+                for target in get_task_list:
+                    if get_task_list[target] is None:
+                        continue
+                    self.stdio.print("\n\n")
+                    self.stdio.print("tasks of {0}:".format(target))
+                    for task_name in get_task_list[target]:
+                        self.stdio.print("name: {0}\ninfo: {1}\n".format(task_name, get_task_list[target][task_name]))
+
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_map)
         except Exception as e:
-
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
+
+    def get_task_list(self):
+        self.stdio.verbose("get_task_list")
+        # get traget dir
+        tasks_list = {"obproxy": None, "observer": None}
+        # for obproxy
+        tasks_list["obproxy"] = self.get_task_list_by_target("obproxy")
+        # for observer
+        tasks_list["observer"] = self.get_task_list_by_target("observer")
+        return tasks_list
+
+    def get_task_list_by_target(self, target):
+        self.stdio.verbose("get all tasks by target: {0}".format(target))
+        current_path = os.path.join(os.path.expanduser("~/.obdiag/check/tasks"), target)
+        tasks_info = {}
+
+        # load task data and get the value of info
+        def load_task_data(file):
+            with open(file, 'r', encoding='utf-8') as f:
+                task_data = yaml.safe_load(f)
+                if "info" not in task_data:
+                    raise Exception("the info field is not in the task data. Please check the task file")
+                return task_data["info"]
+
+        # get traget dir
+        for root, dirs, files in os.walk(current_path):
+            for file in files:
+                #
+                if file.endswith('.yaml'):
+                    folder_name = os.path.basename(root)
+                    task_name = "{}.{}".format(folder_name, file.split('.')[0])
+                    try:
+                        tasks_info[task_name] = load_task_data(os.path.join(root, file))
+                    except Exception as e:
+                        self.stdio.error("load task data fail, file: {0}, e:".format(os.path.join(root, file), e))
+        return tasks_info

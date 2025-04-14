@@ -15,7 +15,6 @@
 @file: default_compress_func.py
 @desc:
 """
-from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,30 +27,23 @@ class DefaultCompressFunc(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
-            default_compress_func_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_PARAMETERS where Name=\"default_compress_func\";").fetchall()
-            for default_compress_func_one in default_compress_func_data:
-                default_compress_func_value = default_compress_func_one.get("VALUE")
-                svr_ip = default_compress_func_one.get("SVR_IP")
-                if default_compress_func_value is None:
-                    return self.report.add_fail("get default_compress_func value error")
-                # get default_value
-                default_value = default_compress_func_one.get("default_value") or default_compress_func_one.get("DEFAULT_VALUE")
-                if default_value is None:
-                    default_value = "zstd_1.0"
-                if not (self.observer_version == "4.2.2" or StringUtils.compare_versions_greater(self.observer_version, "4.2.2")):
-                    default_value = "zstd_1.3.8"
-                if default_compress_func_value != default_value:
-                    self.report.add_warning("svr_ip: {1}. default_compress_func is {0}, recommended value is {2}.".format(default_compress_func_value, svr_ip, default_value))
-
+            proxy_ids = {}
+            proxy_ids_data = self.ob_connector.execute_sql_return_cursor_dictionary("show proxyconfig like 'proxy_id';").fetchall()
+            for proxy_id_data in proxy_ids_data:
+                proxy_id_value = proxy_id_data.get("value")
+                if proxy_id_value is None:
+                    return self.report.add_fail("get proxy_id value error")
+                if int(proxy_id_value) in proxy_ids:
+                    return self.report.add_warning("proxy_id is not unique, please check")
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
         return {
-            "name": "default_compress_func",
+            "name": "proxy_id_check",
             "info": "The default compression algorithm for checklist data. Recommend using default value with ob_version to improve compression ratio and reduce storage costs. For scenarios with high requirements for querying rt, consider using lz4_1.0 or turning off compression",
         }
 
 
-default_compress_func = DefaultCompressFunc()
+proxy_id_check = DefaultCompressFunc()
