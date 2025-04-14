@@ -21,7 +21,7 @@ jobs:
       run: |
         set -e
         docker run -itd --name "obdiag_ob" oceanbase/oceanbase-ce:4.3.0
-        docker cp workflow_data/wait_observer_run.sh obdiag_ob:/root
+        bash workflow_data/wait_observer_run.sh 
         docker exec -it obdiag_ob /bin/bash -c "bash /root/wait_observer_run.sh"
         docker exec -it obdiag_ob /bin/bash -c "yum install -y wget && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm"
         docker exec -it obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
