@@ -93,7 +93,7 @@ jobs:
           set -e
           docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.3.0
           bash workflow_data/wait_observer_run.sh 
-          docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/oceanbase-diagnostic-tool.rpm
+          docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
