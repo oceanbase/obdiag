@@ -108,10 +108,11 @@ jobs:
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
           docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
+          docker rm -f obdiag_ob
   run-with-observer-4_0_0_0:
     name: run-with-observer-4_0_0_0
     runs-on: ubuntu-latest
-    needs: build-rpm
+    needs: run-with-observer
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -134,10 +135,11 @@ jobs:
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob4000:/root/run_obdiag_test.sh
           docker exec -i obdiag_ob4000 /bin/bash -c "sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
+          docker rm -f obdiag_ob4000
   run-with-observer-4_2_1:
     name: run-with-observer-4_2_1
     runs-on: ubuntu-latest
-    needs: build-rpm
+    needs: run-with-observer-4_0_0_0
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -160,3 +162,4 @@ jobs:
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob421:/root/run_obdiag_test.sh
           docker exec -i obdiag_ob421 /bin/bash -c "sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
+          docker rm -f obdiag_ob421
