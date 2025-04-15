@@ -88,8 +88,8 @@ class GatherAshReportHandler(SafeStdio):
             return False
         self.ob_version = observer_version
         self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
-        if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            self.stdio.error("observer version: {0}, must greater than 4.0.0.0".format(observer_version))
+        if not (observer_version == "4.1.0.0" or StringUtils.compare_versions_greater(observer_version, "4.1.0.0")):
+            self.stdio.error("observer version: {0}, must greater than 4.1.0.0".format(observer_version))
             return False
         return True
 
