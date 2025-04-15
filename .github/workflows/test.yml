@@ -25,8 +25,10 @@ jobs:
         docker exec -i obdiag_ob /bin/bash -c "yum install -y wget && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm"
         docker exec -i obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
         docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-        docker exec -i obdiag_ob /bin/bash -c "obdiag check list"
-        docker exec -i obdiag_ob /bin/bash -c "obdiag check ru"
+        docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
+        docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+        echo "obdiag install success"
+        
 
 #    - name: run obdiag checks
 #      run: |
