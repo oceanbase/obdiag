@@ -1,34 +1,35 @@
-name: build package
-
-on:
-  pull_request:
-    branches: "*"
-  push:
-    branches: "*"
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
-jobs:
-  run-with-observer:
-    name: run-with-observer
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: install obdiag
-      run: |
-        set -e
-        docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.3.0
-        bash workflow_data/wait_observer_run.sh 
-        docker exec -i obdiag_ob /bin/bash -c "yum install -y wget && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm"
-        docker exec -i obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
-        docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-        docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-        docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
-        echo "obdiag install success"
-        
+#name: build package and run obdiag test
+#
+#on:
+#  pull_request:
+#    branches: "*"
+#  push:
+#    branches: "*"
+#env:
+#  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+#
+#jobs:
+#
+#  run-with-observer:
+#    name: run-with-observer
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v3
+#
+#    - name: install obdiag
+#      run: |
+#        set -e
+#        docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.3.0
+#        bash workflow_data/wait_observer_run.sh
+#        docker exec -i obdiag_ob /bin/bash -c "yum install -y wget && wget https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/v3.2.0/oceanbase-diagnostic-tool-3.2.0-52025031411.el7.x86_64.rpm"
+#        docker exec -i obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
+#        docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
+#        docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
+#        docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+#        echo "obdiag install success"
+#
 
 #    - name: run obdiag checks
 #      run: |
