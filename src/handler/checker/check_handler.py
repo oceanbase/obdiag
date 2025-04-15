@@ -133,6 +133,9 @@ class CheckHandler:
                 package_name = Util.get_option(self.options, 'obproxy_cases')
             if self.check_target_type == "observer" and Util.get_option(self.options, 'cases'):
                 package_name = Util.get_option(self.options, 'cases')
+            if Util.get_option(self.options, 'cases') == "build_before" and self.check_target_type == "obproxy":
+                self.stdio.print("when cases is build_before, not check obproxy")
+                return
             if Util.get_option(self.options, 'store_dir'):
                 self.export_report_path = Util.get_option(self.options, 'store_dir')
                 self.stdio.verbose("export_report_path change to " + self.export_report_path)
