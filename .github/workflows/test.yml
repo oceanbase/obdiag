@@ -26,7 +26,7 @@ jobs:
         docker exec -i obdiag_ob /bin/bash -c "yum install -y ./oceanbase-diagnostic-tool-*.rpm"
         docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
         docker exec -i obdiag_ob /bin/bash -c "obdiag check list"
-        docker exec -i obdiag_ob /bin/bash -c "obdiag check run"
+        docker exec -i obdiag_ob /bin/bash -c "obdiag check ru"
 
 #    - name: run obdiag checks
 #      run: |
