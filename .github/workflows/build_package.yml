@@ -9,8 +9,14 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.1
   build-rpm:
     name: Run on CentOS 7
+    needs: cancel
     runs-on: ubuntu-latest
     container:
       image: "oceanbase/obdiag-builder:latest"
