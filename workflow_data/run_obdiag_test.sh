@@ -2,13 +2,13 @@
 set -e
 function check_error_log {
   output=$($1)
+  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
     exit 1
   fi
 }
 # analyer
-# obdiag analyze log
 echo "=================obdiag analyze log================="
 check_error_log "obdiag analyze log"
 echo "=================obdiag analyze log --since 1d================="

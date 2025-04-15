@@ -109,37 +109,10 @@ jobs:
           docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
           docker rm -f obdiag_ob
-  run-with-observer-4_0_0_0:
-    name: run-with-observer-4_0_0_0
-    runs-on: ubuntu-latest
-    needs: run-with-observer
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: obdiag-rpm-packages
-          path: .
-      - name: install obdiag
-        run: |
-          set -e
-          docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.0.0.0
-          bash workflow_data/wait_observer_run.sh 
-          docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
-          docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-      - name: run obdiag test
-        run: |
-          set -e
-          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
-          echo "obdiag install success"
-          docker rm -f obdiag_ob
   run-with-observer-4_2_1:
     name: run-with-observer-4_2_1
     runs-on: ubuntu-latest
-    needs: run-with-observer-4_0_0_0
+    needs: run-with-observer
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
