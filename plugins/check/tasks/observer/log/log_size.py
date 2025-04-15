@@ -36,11 +36,12 @@ class LogSize(TaskBase):
                 log_size_value = log_size_one.get("VALUE")
                 if log_size_value is None:
                     return self.report.add_critical("get log_size value error")
+                SVR_IP = log_size_one.get("SVR_IP")
                 log_size_value = int(log_size_value)
                 if log_size_value == 0 or log_size_value > 100:
                     pass
                 else:
-                    self.report.add_warning("log_size is {0}, please check. the recommended is 0 or over 100".format(log_size_value))
+                    self.report.add_warning("node: {1} log_size is {0}, please check. the recommended is 0 or over 100".format(log_size_value, SVR_IP))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
