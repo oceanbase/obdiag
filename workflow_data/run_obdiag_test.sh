@@ -9,5 +9,5 @@ function check_error_log {
 }
 # check
 check_error_log "obdiag check list"
-check_error_log "obdiag check run --case=11"
+check_error_log "obdiag check run"
 check_error_log "obdiag rca list"
