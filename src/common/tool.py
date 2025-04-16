@@ -1435,7 +1435,6 @@ class StringUtils(object):
                         stats_version = int(match_stats_version.group(1))
                         tables[current_table] = {'type': 'version', 'value': stats_version}
                     elif match_stats_info:
-                        print(match_stats_info)
                         stats_time_str = match_stats_info.group(1)
                         stats_time = datetime.datetime.strptime(stats_time_str, '%Y-%m-%d %H:%M:%S.%f')
                         tables[current_table] = {'type': 'info', 'value': stats_time}
