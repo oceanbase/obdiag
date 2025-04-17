@@ -1,12 +1,13 @@
 #!/bin/bash
 set -e
+EXIT_CODE=0
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
 #  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
-    exit 1
+    EXIT_CODE=1
   fi
 }
 date "+%Y-%m-%d %H:%M:%S"
@@ -132,3 +133,4 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag update"
 date "+%Y-%m-%d %H:%M:%S"
 wait
+exit $EXIT_CODE
