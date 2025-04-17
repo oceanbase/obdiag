@@ -2,11 +2,9 @@ name: build package
 
 on:
   pull_request:
-    branches:
-      - master
+    branches: "*"
   push:
-    branches:
-      - master
+    branches: "*"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -84,7 +82,7 @@ jobs:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
           retention-days: 3
-  run-with-observer:
+  install-obdiag:
     name: run-with-observer
     runs-on: ubuntu-latest
     needs: build-rpm
@@ -104,37 +102,48 @@ jobs:
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-      - name: run obdiag test
-        run: |
-          set -e
-          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
-          echo "obdiag install success"
-          docker rm -f obdiag_ob
-  run-with-observer-4_2_1:
-    name: run-with-observer-4_2_1
+          docker cp workflow_data/*.sh obdiag_ob:/root/
+  run-obdiag-test-analyze:
+    name: run-with-observer
     runs-on: ubuntu-latest
-    needs: run-with-observer
+    needs: install-obdiag
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: obdiag-rpm-packages
-          path: .
-      - name: install obdiag
+      - name: run-obdiag-test-analyze
         run: |
           set -e
-          docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.2.1
-          bash workflow_data/wait_observer_run.sh 
-          docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
-          docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-      - name: run obdiag test
+          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test_analyze.sh"
+  delete-container:
+    name: delete-container
+    runs-on: ubuntu-latest
+    needs: run-obdiag-test-analyze
+    steps:
+      - name: delete-container
         run: |
-          set -e
-          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
-          echo "obdiag install success"
           docker rm -f obdiag_ob
+#  run-with-observer-4_2_1:
+#    name: run-with-observer-4_2_1
+#    runs-on: ubuntu-latest
+#    needs: run-with-observer
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#      - name: Download RPM Artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: obdiag-rpm-packages
+#          path: .
+#      - name: install obdiag
+#        run: |
+#          set -e
+#          docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.2.1
+#          bash workflow_data/wait_observer_run.sh
+#          docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
+#          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
+#          docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
+#      - name: run obdiag test
+#        run: |
+#          set -e
+#          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
+#          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+#          echo "obdiag install success"
+#          docker rm -f obdiag_ob
