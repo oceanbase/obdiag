@@ -1,5 +1,5 @@
 #!/bin/bash
-set +e
+set -e
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
