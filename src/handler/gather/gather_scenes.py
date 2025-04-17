@@ -240,5 +240,6 @@ class GatherSceneHandler(SafeStdio):
             return None
 
     def __print_result(self):
-        self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
+        if self.context.get_variable("adapted_version", default=True) == True:
+            self.stdio.print(Fore.YELLOW + "\nGather scene results stored in this directory: {0}\n".format(self.report_path) + Style.RESET_ALL)
         return self.report_path
