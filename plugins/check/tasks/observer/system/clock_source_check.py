@@ -64,7 +64,8 @@ class ClockSourceCheck(TaskBase):
                 if sources_sorted not in self.clock_sources:
                     self.clock_sources[sources_sorted] = []
                 self.clock_sources[sources_sorted].append(node_ip)
-
+            if len(self.clock_sources) == 0:
+                return self.report.add_warning("No clock source configuration found.")
             most_common_config = max(self.clock_sources.items(), key=lambda x: len(x[1]))[0]
             non_compliant_nodes = []
 

@@ -898,7 +898,7 @@ class ObdiagAnalyzeParameterCommand(MajorCommand):
 class ObdiagAnalyzeVariableDiffCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagAnalyzeVariableDiffCommand, self).__init__('diff', 'Analyze and identify variables that have changed compared to the specified variable file')
-        self.parser.add_option('--file', type='string', help="specify initialization parameter file")
+        self.parser.add_option('--file', type='string', help="specify initialization variable file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
