@@ -110,7 +110,7 @@ check_error_log  "obdiag gather scene run --scene=observer.base" &
 check_error_log  "obdiag gather ash" &
 check_error_log  "obdiag gather ash --report_type TEXT" &
 check_error_log  "obdiag gather ash --store_dir ./ash" &
-check_error_log  "obdiag rca list" &
+check_error_log  "obdiag rca list"
 #echo "=================obdiag rca run================="
 #check_error_log  "obdiag rca run"
 #echo "=================obdiag rca run --scene=major_hold================="
@@ -129,3 +129,4 @@ check_error_log  "obdiag rca list" &
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
+wait
