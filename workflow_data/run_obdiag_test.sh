@@ -133,5 +133,5 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag update"
 wait
 date "+%Y-%m-%d %H:%M:%S"
-echo $?
+echo $EXIT_CODE
 exit $EXIT_CODE
