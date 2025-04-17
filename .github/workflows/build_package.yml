@@ -2,11 +2,9 @@ name: build package
 
 on:
   pull_request:
-    branches:
-      - master
+    branches: "*"
   push:
-    branches:
-      - master
+    branches: "*"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -110,7 +108,7 @@ jobs:
   run-with-observer-4_2_1:
     name: run-with-observer-4_2_1
     runs-on: ubuntu-latest
-    needs: run-with-observer
+    needs: build-rpm
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
