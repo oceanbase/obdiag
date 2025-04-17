@@ -82,6 +82,16 @@ fi
 # Clean up the temporary backup directory
 rm -rf "$TEMP_BACKUP_DIR"
 echo "Temporary files removed."
+# Clean old directory
+echo "Cleaning up old directories..."
+for dir in "${DIRS[@]}"; do
+    if [ -d "$SOURCE_DIR$dir" ]; then
+        rm -rf "$SOURCE_DIR$dir"
+        echo "Removed old directory $SOURCE_DIR$dir."
+    else
+        echo "Directory $SOURCE_DIR$dir does not exist. Skipping removal."
+    fi
+done
 
 # Cleanup phase: Remove backups older than one year or delete the oldest backups if more than 12 exist
 ONE_YEAR_AGO="+365"  # find command uses days, so +365 means older than one year

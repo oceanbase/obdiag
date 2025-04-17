@@ -89,7 +89,7 @@ class ObdiagHome(object):
             self.inner_config_manager.config.get("obdiag") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is not None
-            and self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False
+            and (self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry") is False or "false" in self.inner_config_manager.config.get("obdiag").get("basic").get("telemetry").lower())
         ):
             telemetry.work_tag = False
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("basic") is not None and self.inner_config_manager.config.get("obdiag").get("basic").get("dis_rsa_algorithms") is not None:
