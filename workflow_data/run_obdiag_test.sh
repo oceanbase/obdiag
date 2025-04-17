@@ -9,6 +9,7 @@ function check_error_log {
     exit 1
   fi
 }
+date "+%Y-%m-%d %H:%M:%S"
 # cp ~/.obdiag/config.yml ./config.yml for "obdiag {command} -c ./config.yml"
 cp ~/.obdiag/config.yml ./config.yml &
 check_error_log  "obdiag check" &
@@ -17,7 +18,7 @@ check_error_log  "obdiag check run" &
 check_error_log  "obdiag check run --store_dir ./check" &
 check_error_log  "obdiag check run --report_type yaml" &
 check_error_log  "obdiag check run -c ./config.yml" &
-check_error_log  "obdiag check run --cases=ad" &
+check_error_log  "obdiag check run --cases=a" &
 check_error_log  "obdiag check run --cases=column_storage_poc" &
 check_error_log  "obdiag check run --cases=build_before" &
 #echo "=================obdiag check run --cases=sysbench_run================="
@@ -129,4 +130,5 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
+date "+%Y-%m-%d %H:%M:%S"
 wait
