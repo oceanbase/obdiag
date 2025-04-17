@@ -82,7 +82,7 @@ jobs:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
           retention-days: 3
-  install-obdiag:
+  run-with-observer:
     name: run-with-observer
     runs-on: ubuntu-latest
     needs: build-rpm
