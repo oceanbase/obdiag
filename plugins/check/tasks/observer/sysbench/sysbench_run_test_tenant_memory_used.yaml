@@ -1,4 +1,4 @@
-info: 'Check when sysbench free , cluster info about network_speed'
+info: 'Check when sysbench free , cluster info about memory used and memory hold'
 task:
   - version: "[4.0.0.0,*]"
     steps:

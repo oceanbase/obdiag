@@ -110,7 +110,6 @@ class Task:
 class TaskBase:
     def __init__(self):
         self.work_path = None
-        self.record = None
         self.gather_log = None
         self.stdio = None
         self.input_parameters = None
@@ -180,3 +179,27 @@ class TaskBase:
         if not (StringUtils.compare_versions_greater(self.observer_version, min_version)) and self.observer_version != min_version:
             return False
         return True
+
+    def check_command_exist(self, ssh_client, command):
+        if ssh_client is None:
+            return False
+        try:
+            result = ssh_client.exec_cmd("command -v " + command)
+            if result is None or len(result) == 0:
+                return False
+            return True
+        except Exception as e:
+            self.stdio.error("check_command_exist error: {0}".format(e))
+            return False
+
+    def get_system_parameter(self, ssh_client, parameter_name):
+        try:
+            parameter_name = parameter_name.replace(".", "/")
+            # check parameter_name is exist
+            if ssh_client.exec_cmd('find /proc/sys/ -name "{0}"'.format(parameter_name.split("/")[-1])) == "":
+                self.stdio.warn("{0} is not exist".format(parameter_name))
+                return None
+            parameter_value = ssh_client.exec_cmd("cat /proc/sys/" + parameter_name).strip()
+            return parameter_value
+        except Exception as e:
+            self.stdio.warn("get {0} fail:{1} .please check, the parameter_value will be set -1".format(parameter_name, e))

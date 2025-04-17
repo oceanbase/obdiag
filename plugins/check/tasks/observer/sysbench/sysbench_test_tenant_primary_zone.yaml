@@ -1,4 +1,4 @@
-info: 'Check when running sysbench, cluster paramters'
+info: 'Check when running sysbench, cluster info about tenant primary zone'
 task:
   - version: "[4.0.0.0,*]"
     steps:

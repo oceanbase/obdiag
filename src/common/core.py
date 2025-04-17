@@ -503,7 +503,8 @@ class ObdiagHome(object):
                     observer_check_handler = CheckHandler(self.context, check_target_type="observer")
                     observer_result = observer_check_handler.handle()
                     result_data['observer'] = observer_result
-                if obproxy_check_handler is not None:
+                # when cases=build_before, obproxy_check_handler is not execute
+                if obproxy_check_handler is not None and obproxy_check_handler.report:
                     obproxy_report_path = os.path.expanduser(obproxy_check_handler.report.get_report_path())
                     if os.path.exists(obproxy_report_path):
                         result_data['obproxy_report_path'] = os.path.abspath(obproxy_report_path)

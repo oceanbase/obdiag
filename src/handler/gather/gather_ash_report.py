@@ -26,6 +26,7 @@ from src.common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
 from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
 from colorama import Fore, Style
+from src.common.version import OBDIAG_VERSION
 
 
 class GatherAshReportHandler(SafeStdio):
@@ -44,6 +45,7 @@ class GatherAshReportHandler(SafeStdio):
         self.stdio = self.context.stdio
         self.gather_pack_dir = gather_pack_dir
         self.ob_cluster = self.context.cluster_config
+        self.ob_version = None
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -82,11 +84,12 @@ class GatherAshReportHandler(SafeStdio):
             observer_version = get_observer_version(self.context)
         except Exception as e:
             self.stdio.verbose(traceback.format_exc())
-            self.stdio.warn("RCAHandler Failed to get observer version:{0}".format(e))
+            self.stdio.warn("ash Failed to get observer version:{0}".format(e))
             return False
-        self.stdio.verbose("RCAHandler.init get observer version: {0}".format(observer_version))
-        if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            self.stdio.error("observer version: {0}, must greater than 4.0.0.0".format(observer_version))
+        self.ob_version = observer_version
+        self.stdio.verbose("ash.init get observer version: {0}".format(observer_version))
+        if not (observer_version == "4.1.0.0" or StringUtils.compare_versions_greater(observer_version, "4.1.0.0")):
+            self.stdio.error("observer version: {0}, must greater than 4.1.0.0".format(observer_version))
             return False
         return True
 
@@ -109,6 +112,8 @@ class GatherAshReportHandler(SafeStdio):
             self.ash_report_file_name = os.path.join(self.report_path, self.ash_report_file_name)
 
             with open(self.ash_report_file_name, 'w+') as f:
+                f.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
+                f.write("observer version: {0}\n".format(self.ob_version))
                 f.write(ash_report)
             self.stdio.print("save ash report file name: " + Fore.YELLOW + "{0}".format(self.ash_report_file_name) + Style.RESET_ALL)
             self.result_summary_file_name = os.path.join(self.report_path, "result_summary.txt")

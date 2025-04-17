@@ -174,11 +174,11 @@ class CheckReport:
             if self.report_target == "observer":
                 observer_version = get_observer_version(self.context)
                 if observer_version:
-                    fp.write("observer version: {0}\n".format(self.context.get_variable("observer_version")))
-            elif self.report_target == "obproxy":
-                obproxy_version = get_obproxy_version(self.context)
-                if obproxy_version:
-                    fp.write("obproxy version: {0}\n".format(self.context.get_variable("obproxy_version")))
+                    fp.write("observer version: {0}\n".format(observer_version))
+                elif self.report_target == "obproxy":
+                    obproxy_version = get_obproxy_version(self.context)
+                    if obproxy_version:
+                        fp.write("obproxy version: {0}\n".format(obproxy_version))
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)
