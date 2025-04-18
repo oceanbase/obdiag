@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 EXIT_CODE=0
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
