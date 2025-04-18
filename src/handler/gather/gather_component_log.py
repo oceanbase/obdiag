@@ -658,7 +658,7 @@ class GatherLogOnNode:
                 first_line = file.readline().strip()
                 return first_line
         except FileNotFoundError:
-            self.stdio.warning(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
+            self.stdio.warn(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
         except Exception as e:
             self.stdio.exception(f"An error occurred: {e}")
 
@@ -671,7 +671,7 @@ class GatherLogOnNode:
                 pid = observer_processes[0].split()[1]
                 return pid
             else:
-                self.stdio.warning("No observer process found at the specified path.")
+                self.stdio.warn("No observer process found at the specified path.")
                 return None
         except Exception as e:
             self.stdio.exception(f"An error occurred while trying to find the observer process: {e}")
