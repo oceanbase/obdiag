@@ -106,6 +106,8 @@ jobs:
         run: |
           set -e
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
+          docker exec -i obdiag_ob /bin/bash -c "ps -aux"
+          docker exec -i obdiag_ob /bin/bash -c "tree /root/ob"
           docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
           docker rm -f obdiag_ob
