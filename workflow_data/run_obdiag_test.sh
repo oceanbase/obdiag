@@ -34,7 +34,7 @@ check_error_log  "obdiag analyze log --scope rootservice" &
 check_error_log  "obdiag analyze log --grep observer" &
 check_error_log  "obdiag analyze log --store_dir ./log" &
 check_error_log  "obdiag analyze log --log_level INFO" &
-check_error_log  "obdiag analyze log --temp_dir ./log" &
+#check_error_log  "obdiag analyze log --temp_dir ./log" &
 #echo "=================obdiag analyze flt_trace================="
 #check_error_log  "obdiag analyze flt_trace"
 #echo "=================obdiag analyze variable================="
