@@ -4,9 +4,9 @@ touch error_code.txt
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
-#  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
+    echo "$output"
     echo "1"  > error_code.txt
   fi
 }
