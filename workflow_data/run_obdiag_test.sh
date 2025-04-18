@@ -1,12 +1,13 @@
 #!/bin/bash
-EXIT_CODE=0
+# error code save file
+touch error_code.txt
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
 #  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
-    EXIT_CODE=1
+    echo "1"  > error_code.txt
   fi
 }
 date "+%Y-%m-%d %H:%M:%S"
@@ -132,5 +133,12 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag update"
 wait
 date "+%Y-%m-%d %H:%M:%S"
-echo $EXIT_CODE
-exit $EXIT_CODE
+
+# Check if error_code.txt contains any data
+if [[ -s error_code.txt ]]; then
+  echo "Errors detected. Exiting with status 1."
+  exit 1
+else
+  echo "No errors detected. Exiting with status 0."
+  exit 0
+fi
