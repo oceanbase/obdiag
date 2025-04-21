@@ -30,7 +30,7 @@ check_error_log  "obdiag check run --cases=build_before" &
 #echo "=================obdiag check run --obproxy_cases=proxy================="
 #check_error_log  "obdiag check run --obproxy_cases=proxy" &
 check_error_log  "obdiag analyze log" &
-check_error_log  "obdiag analyze log --since 1d" &
+check_error_log  "obdiag analyze log --since 1d -v" &
 check_error_log  "obdiag analyze log --scope rootservice" &
 check_error_log  "obdiag analyze log --grep observer" &
 check_error_log  "obdiag analyze log --store_dir ./log" &
