@@ -97,7 +97,7 @@ check_error_log  "obdiag gather scene list" &
 check_error_log  "obdiag gather scene run --scene=other.application_error" &
 #echo "=================obdiag gather scene run --scene=obproxy.restart================="
 #check_error_log  "obdiag gather scene run --scene=obproxy.restart" &
-check_error_log  "obdiag gather scene run --scene=observer.clog_disk_full" &
+check_error_log  "obdiag gather scene run --scene=observer.clog_disk_full -v" &
 check_error_log  "obdiag gather scene run --scene=observer.cluster_down" &
 check_error_log  "obdiag gather scene run --scene=observer.compaction" &
 check_error_log  "obdiag gather scene run --scene=observer.delay_of_primary_and_backup" &
