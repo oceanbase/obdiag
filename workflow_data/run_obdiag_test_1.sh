@@ -13,7 +13,8 @@ function check_error_log {
 date "+%Y-%m-%d %H:%M:%S"
 # cp ~/.obdiag/config.yml ./config.yml for "obdiag {command} -c ./config.yml"
 cp ~/.obdiag/config.yml ./config.yml
-
+ls /root/ob/run/
+ls /root/ob/log/
 check_error_log  "obdiag gather log" &
 check_error_log  "obdiag gather log --since 1d" &
 check_error_log  "obdiag gather log --scope all" &
