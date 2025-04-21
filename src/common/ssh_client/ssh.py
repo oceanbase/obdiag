@@ -88,7 +88,7 @@ class SshClient(SafeStdio):
         self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))
         try:
             self.stdio.verbose("download file mkdir local dir {0}".format(os.path.dirname(local_path)))
-            os.makedirs(os.path.dirname(local_path),exist_ok=True)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
         except Exception as e:
             self.stdio.warn("mkdir local dir {0} error: {1}".format(os.path.dirname(local_path), e))
             pass
