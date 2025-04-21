@@ -15,6 +15,7 @@
 @file: ssh.py
 @desc:
 """
+import os
 import re
 import socket
 from src.common.ssh_client.docker_client import DockerClient
@@ -85,6 +86,11 @@ class SshClient(SafeStdio):
 
     def download(self, remote_path, local_path):
         self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))
+        try:
+            self.stdio.verbose("download file mkdir local dir".format(os.path.dirname(local_path)))
+            os.makedirs(os.path.dirname(local_path))
+        except Exception as e:
+            pass
         return self.client.download(remote_path, local_path)
 
     def upload(self, remote_path, local_path):
