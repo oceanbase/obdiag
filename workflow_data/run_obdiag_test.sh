@@ -6,7 +6,9 @@ function check_error_log {
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
-    echo "$output"
+    command_to_run=$(echo "$output" | grep "please run:" | sed -n 's/.*please run: //p')
+    echo "Executing extracted command: $command_to_run"
+    eval "$command_to_run"
     echo "1"  > error_code.txt
   fi
 }
