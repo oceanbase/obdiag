@@ -703,6 +703,8 @@ class AnalyzeMemoryHandler(object):
                                 if '[MEMORY] hold=' in line:
                                     if not in_parse_module:
                                         in_parse_module = True
+                                    if "mod=" not in line:
+                                        continue
                                     mod_name = line.split('mod=')[1].strip()
                                     if mod_name == 'SUMMARY':
                                         mod_hold_bytes = self.__convert_string_bytes_2_int_bytes(line.split('hold=')[1].split('used')[0].strip())
