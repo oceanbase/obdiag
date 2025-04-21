@@ -53,7 +53,7 @@ class LocalClient(SsherClient):
             os.path.exists(os.path.dirname(local_path)) or os.makedirs(os.path.dirname(local_path))
             directory_path = os.path.dirname(local_path)
             files = [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
-            self.stdio.verbose("Files in the directory:")
+            self.stdio.verbose("Files in the directory {0}:".format(directory_path))
             for file in files:
                 self.stdio.verbose(file)
             shutil.copy(remote_path, local_path)
