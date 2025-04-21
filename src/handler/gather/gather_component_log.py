@@ -627,7 +627,11 @@ class GatherLogOnNode:
                     self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time))
                     self.stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
                     file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
-                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    try:
+                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    except Exception as e:
+                        self.stdio.verbose("The log file {0} can't find endtime. skip".format(file_name))
+                        file_end_time_str_strp = ""
                     to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
                     from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
                     if file_end_time_str_strp == "":
