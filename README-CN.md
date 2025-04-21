@@ -84,7 +84,8 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 |3.0.0|2024.12| 2024.12.31 |<ul><li> 插件化改造 </li><li> 支持 OMS 诊断 </li></ul>|
 |3.1.0|2025.01| 2025.01.22 |<ul><li> obdiag display 三期迭代 </li></ul>|
 |3.2.0|2025.01| 2025.03.14 |<ul><li> obdiag 适配 ipv6 </li><li> obdiag gather stack 支持 arm 机器 </li><li> 巡检场景扩展 </li></ul>|
-|3.3.0|2025.04| - |<ul><li> obdiag check 支持 python 脚本以适应复杂场景的巡检 </li></ul>|
+|3.3.0|2025.04| 2025.04.18 |<ul><li> obdiag check 支持 python 脚本以适应复杂场景的巡检 </li></ul>|
+|3.4.0|2025.05| - |<ul><li> obdiag rca 支持 OMS obcdc 通用问题根因分析 </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI 化探索 </li></ul>|
 
 # 支持
