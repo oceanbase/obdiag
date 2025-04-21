@@ -13,8 +13,8 @@ function check_error_log {
   fi
 }
 date "+%Y-%m-%d %H:%M:%S"
-# cp ~/.obdiag/config.yml ./config.yml for "obdiag {command} -c ./config.yml"
-cp ~/.obdiag/config.yml ./config.yml &
+df -h
+cp ~/.obdiag/config.yml ./config.yml
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
 check_error_log  "obdiag check run" &
