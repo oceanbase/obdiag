@@ -23,19 +23,19 @@ check_error_log  "obdiag check run --report_type yaml" &
 check_error_log  "obdiag check run -c ./config.yml" &
 check_error_log  "obdiag check run --cases=ad" &
 check_error_log  "obdiag check run --cases=column_storage_poc" &
-check_error_log  "obdiag check run --cases=build_before" &
+check_error_log  "obdiag check run --cases=build_before"
 #echo "=================obdiag check run --cases=sysbench_run================="
 #check_error_log  "obdiag check run --cases=sysbench_run"
 #echo "=================obdiag check run --cases=sysbench_free================="
 #check_error_log  "obdiag check run --cases=sysbench_free"
 #echo "=================obdiag check run --obproxy_cases=proxy================="
 #check_error_log  "obdiag check run --obproxy_cases=proxy" &
-check_error_log  "obdiag analyze log" &
-check_error_log  "obdiag analyze log --since 1d" &
-check_error_log  "obdiag analyze log --scope rootservice" &
-check_error_log  "obdiag analyze log --grep observer" &
-check_error_log  "obdiag analyze log --store_dir ./log" &
-check_error_log  "obdiag analyze log --log_level INFO" &
+check_error_log  "obdiag analyze log"
+check_error_log  "obdiag analyze log --since 1d"
+check_error_log  "obdiag analyze log --scope rootservice"
+check_error_log  "obdiag analyze log --grep observer"
+check_error_log  "obdiag analyze log --store_dir ./log"
+check_error_log  "obdiag analyze log --log_level INFO"
 #check_error_log  "obdiag analyze log --temp_dir ./log" &
 #echo "=================obdiag analyze flt_trace================="
 #check_error_log  "obdiag analyze flt_trace"
