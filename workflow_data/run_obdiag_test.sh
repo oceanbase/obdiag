@@ -10,6 +10,8 @@ function check_error_log {
     echo "Executing extracted command: $command_to_run"
     eval "$command_to_run"
     echo "1"  > error_code.txt
+  else
+    echo "1" >> pass_case.txt
   fi
 }
 date "+%Y-%m-%d %H:%M:%S"
@@ -135,7 +137,12 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag update"
 wait
 date "+%Y-%m-%d %H:%M:%S"
-
+# print pass_case the number of “1”
+#echo "=================pass_case================="
+#echo "pass_case: "
+#cat pass_case.txt|wc -l
+pass_case=${cat pass_case.txt |wc -l}
+echo "pass_case: $pass_case"
 # Check if error_code.txt contains any data
 if [[ -s error_code.txt ]]; then
   echo "Errors detected. Exiting with status 1."
