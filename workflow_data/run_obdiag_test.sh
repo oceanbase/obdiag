@@ -107,8 +107,8 @@ check_error_log  "obdiag gather scene run --scene=observer.io" &
 check_error_log  "obdiag gather scene run --scene=observer.log_archive" &
 check_error_log  "obdiag gather scene run --scene=observer.long_transaction" &
 check_error_log  "obdiag gather scene run --scene=observer.recovery" &
-check_error_log  "obdiag gather scene run --scene=observer.restart" &
-check_error_log  "obdiag gather scene run --scene=observer.rootservice_switch" &
+check_error_log  "obdiag gather scene run --scene=observer.restart"
+check_error_log  "obdiag gather scene run --scene=observer.rootservice_switch"
 #check_error_log  "obdiag gather scene run --scene=observer.unknown" &
 check_error_log  "obdiag gather scene run --scene=observer.base" &
 check_error_log  "obdiag gather ash" &
