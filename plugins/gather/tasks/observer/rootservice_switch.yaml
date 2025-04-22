@@ -73,7 +73,7 @@ task:
       - type: sysstat
         sysstat: ""
         global: false
-  - version: "[4.1.0.0, *]"
+  - version: "[4.0.0.0, *]"
     steps:
       - type: sql
         sql: "show variables like 'version_comment';"
