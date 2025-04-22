@@ -141,7 +141,7 @@ date "+%Y-%m-%d %H:%M:%S"
 #echo "=================pass_case================="
 #echo "pass_case: "
 #cat pass_case.txt|wc -l
-pass_case=${cat pass_case.txt |wc -l}
+pass_case=$(wc -l < pass_case.txt)
 echo "pass_case: $pass_case"
 # Check if error_code.txt contains any data
 if [[ -s error_code.txt ]]; then
