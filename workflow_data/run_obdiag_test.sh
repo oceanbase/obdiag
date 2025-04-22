@@ -75,7 +75,7 @@ check_error_log  "obdiag gather log" &
 check_error_log  "obdiag gather log --since 1d" &
 check_error_log  "obdiag gather log --scope all" &
 check_error_log  "obdiag gather log --grep observer" &
-check_error_log  "obdiag gather log --store_dir ./zkc" &
+check_error_log  "obdiag gather log --store_dir ./test" &
 #echo "=================obdiag gather sysstat================="
 #check_error_log  "obdiag gather sysstat"
 #echo "=================obdiag gather sysstat --store_dir ./sysstat================="
