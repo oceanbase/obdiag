@@ -627,7 +627,11 @@ class GatherLogOnNode:
                     self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time))
                     self.stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
                     file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
-                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    try:
+                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    except Exception as e:
+                        self.stdio.verbose("The log file {0} can't find endtime. skip".format(file_name))
+                        file_end_time_str_strp = ""
                     to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
                     from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
                     if file_end_time_str_strp == "":
@@ -658,7 +662,7 @@ class GatherLogOnNode:
                 first_line = file.readline().strip()
                 return first_line
         except FileNotFoundError:
-            self.stdio.warning(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
+            self.stdio.warn(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
         except Exception as e:
             self.stdio.exception(f"An error occurred: {e}")
 
@@ -671,7 +675,7 @@ class GatherLogOnNode:
                 pid = observer_processes[0].split()[1]
                 return pid
             else:
-                self.stdio.warning("No observer process found at the specified path.")
+                self.stdio.warn("No observer process found at the specified path.")
                 return None
         except Exception as e:
             self.stdio.exception(f"An error occurred while trying to find the observer process: {e}")

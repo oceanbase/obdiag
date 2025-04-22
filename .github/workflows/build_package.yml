@@ -103,14 +103,19 @@ jobs:
           bash workflow_data/wait_observer_run.sh 
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
-          docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
-          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/
+          docker cp workflow_data/config.yml obdiag_ob:/root/.obdiag/config.yml
+      - name: run obdiag test
+        run: |
+          set -e
+          docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
+          docker exec -i obdiag_ob /bin/bash -c "obclient -h127.0.0.1 -u root -P2881 -e 'select version();'"
           docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+          echo "obdiag install success"
           docker rm -f obdiag_ob
   run-with-observer-4_2_1:
     name: run-with-observer-4_2_1
     runs-on: ubuntu-latest
-    needs: run-with-observer
+    needs: build-rpm
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -126,7 +131,7 @@ jobs:
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
-          docker cp example/mini.yml obdiag_ob:/root/.obdiag/config.yml
+          docker cp workflow_data/config.yml.421 obdiag_ob:/root/.obdiag/config.yml
       - name: run obdiag test
         run: |
           set -e
