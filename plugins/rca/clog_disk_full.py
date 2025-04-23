@@ -52,6 +52,16 @@ class ClogDiskFullScene(RcaScene):
 
     def execute(self):
         try:
+            # check input tenant_id and ls_id
+            tenant_id = self.input_parameters.get("tenant_id")
+            ls_id = self.input_parameters.get("ls_id")
+            if tenant_id and ls_id:
+                self.record.add_record("input tenant_id is {0}, ls_id is {1}".format(tenant_id, ls_id))
+                ClogDiskFullChecker(context=self.context, tenant_id=tenant_id, ls_id=ls_id, record=self.record, work_path=self.work_path, stdio=self.stdio).execute()
+                if self.record.suggest_is_empty():
+                    self.record.add_suggest("not found stuck about clog disk full. You can package the files under '{0}' and upload them to the OceanBase community for further analysis.".format(self.work_path))
+                return
+            # if tenant_id or ls_id is None, check tenant_id and ls_id
             # get log_disk_utilization_threshold
             sql = "select SVR_IP,SVR_PORT,TENANT_ID,value/100 as value from oceanbase.GV$OB_PARAMETERS where name = 'log_disk_utilization_threshold';"
             self.verbose("get log_disk_utilization_threshold execute_sql is {0}".format(sql))
