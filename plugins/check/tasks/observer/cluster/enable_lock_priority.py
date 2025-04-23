@@ -15,7 +15,8 @@
 @file: enable_lock_priority.py
 @desc:
 """
-
+from src.common.command import get_observer_version
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -29,7 +30,11 @@ class EnableLockPriority(TaskBase):
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
             if not super().check_ob_version_min("4.2.5"):
-                return self.report.add_normal("enable_lock_priority is not supported in this version")
+                return self.report.add_warning("enable_lock_priority is not supported in this version")
+            observer_version = get_observer_version(self.context)
+            if not (observer_version == "4.3.0.0" or StringUtils.compare_versions_greater("4.3.0.0",observer_version)):
+                self.stdio.add_warning("observer version is {0}, which is more than 4.3.0.0.".format(observer_version))
+                return
 
             enable_lock_priority_data = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE 'enable_lock_priority';").fetchall()
             if len(enable_lock_priority_data) < 1:
