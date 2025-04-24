@@ -176,9 +176,12 @@ class TaskBase:
     def check_ob_version_min(self, min_version):
         if self.observer_version is None:
             return False
-        if not (StringUtils.compare_versions_greater(self.observer_version, min_version)) and self.observer_version != min_version:
+        if self.observer_version == min_version:
+            return True
+        if StringUtils.compare_versions_greater(self.observer_version, min_version):
+            return True
+        else:
             return False
-        return True
 
     def check_command_exist(self, ssh_client, command):
         if ssh_client is None:
