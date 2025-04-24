@@ -38,7 +38,7 @@ class EnableLockPriority(TaskBase):
 
             enable_lock_priority_data = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE 'enable_lock_priority';").fetchall()
             if len(enable_lock_priority_data) < 1:
-                return self.report.add_fail("get enable_lock_priority data error")
+                return self.report.add_warning("not get enable_lock_priority data. maybe the version not support")
             for enable_lock_priority_one in enable_lock_priority_data:
                 # check VALUE is exist
                 enable_lock_priority_value = enable_lock_priority_one.get("value")
