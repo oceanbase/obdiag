@@ -752,15 +752,9 @@ class GatherPlanMonitorHandler(object):
 
     def full_audit_sql_by_trace_id_sql(self, trace_id):
         if self.tenant_mode == 'mysql':
-            if self.ob_major_version >= 4:
-                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_mysql_obversion4"), self.sql_audit_name, trace_id)
-            else:
-                sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_mysql"), self.sql_audit_name, trace_id)
+            sql = "select /*+ sql_audit */ * from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (self.sql_audit_name, trace_id)
         else:
-            if self.ob_major_version >= 4:
-                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_oracle_obversion4"), self.sql_audit_name, trace_id)
-            else:
-                sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (GlobalSqlMeta().get_value(key="sql_audit_item_oracle"), self.sql_audit_name, trace_id)
+            sql = "select /*+ sql_audit */ * from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (self.sql_audit_name, trace_id)
         return sql
 
     def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id, svr_ip, svr_port):
