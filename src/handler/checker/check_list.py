@@ -17,9 +17,9 @@
 """
 import os
 import yaml
-from prettytable import PrettyTable
-from src.common.tool import Util
+
 from src.common.result_type import ObdiagResult
+from src.common.tool import Util, DynamicLoading
 
 
 class CheckListHandler:
@@ -103,6 +103,7 @@ class CheckListHandler:
         tasks_list["observer"] = self.get_task_list_by_target("observer")
         return tasks_list
 
+    # just get info
     def get_task_list_by_target(self, target):
         self.stdio.verbose("get all tasks by target: {0}".format(target))
         current_path = os.path.join(os.path.expanduser("~/.obdiag/check/tasks"), target)
@@ -119,7 +120,6 @@ class CheckListHandler:
         # get traget dir
         for root, dirs, files in os.walk(current_path):
             for file in files:
-                #
                 if file.endswith('.yaml'):
                     folder_name = os.path.basename(root)
                     task_name = "{}.{}".format(folder_name, file.split('.')[0])
@@ -127,4 +127,15 @@ class CheckListHandler:
                         tasks_info[task_name] = load_task_data(os.path.join(root, file))
                     except Exception as e:
                         self.stdio.error("load task data fail, file: {0}, e:".format(os.path.join(root, file), e))
+                elif file.endswith('.py'):
+                    lib_path = root
+                    module_name = os.path.basename(file)[:-3]
+                    task_name = "{}.{}".format(os.path.basename(root), module_name)
+                    DynamicLoading.add_lib_path(lib_path)
+                    module = DynamicLoading.import_module(os.path.basename(file)[:-3], None)
+                    if not hasattr(module, module_name):
+                        self.stdio.error("{0} import_module failed".format(module_name))
+                        continue
+                    # get task info
+                    tasks_info[task_name] = getattr(module, module_name).get_task_info().get("info", "")
         return tasks_info

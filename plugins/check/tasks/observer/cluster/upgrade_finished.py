@@ -32,7 +32,7 @@ class UpgradeFinished(TaskBase):
             min_supported_version = "4.2.0.0"
             if self.observer_version:
                 if not (StringUtils.compare_versions_greater(self.observer_version, min_supported_version)) and self.observer_version != min_supported_version:
-                    self.report.add_warning("[SKIP] this task need observer version more than {1}, this cluster is {0}.".format(self.observer_version, min_supported_version))
+                    return self.report.add_warning("[SKIP] this task need observer version more than {1}, this cluster is {0}.".format(self.observer_version, min_supported_version))
             else:
                 # this task need to check observer version, if observer version is not exist,
                 return self.report.add_warning("[SKIP] this task need to check observer version, if observer version is not exist, please check")

@@ -1,0 +1,17 @@
+obcluster:
+  ob_cluster_name: test
+  db_host: 127.0.0.1
+  db_port: 2881 # default 2881
+  tenant_sys:
+    user: root@sys # default root@sys
+    password: ""
+  servers:
+    nodes:
+      - ip: 127.0.0.1
+        ssh_username: root
+        ssh_password: ''
+        home_path: /root/ob
+        data_dir: /root/ob/store
+        redo_dir: /root/ob/store
+    global:
+      ssh_port: 22

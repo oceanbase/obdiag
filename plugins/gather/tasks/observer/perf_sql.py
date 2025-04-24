@@ -88,9 +88,13 @@ class PerfSQL(SafeStdio):
             handler = GatherComponentLogHandler()
             if self.scene_name:
                 if self.scene_name == "observer.sql_err" or self.scene_name == "observer.perf_sql":
-                    handler.init(self.context, target="obproxy", grep=[self.trace_id], store_dir=self.report_path, is_scene=True)
-                    self.stdio.verbose("gather obproxy log end")
-                    return handler.handle()
+                    if self.obproxy_nodes and len(self.obproxy_nodes) > 0:
+                        handler.init(self.context, target="obproxy", grep=[self.trace_id], store_dir=self.report_path, is_scene=True)
+                        self.stdio.verbose("gather obproxy log end")
+                        return handler.handle()
+                    else:
+                        self.stdio.warn("obproxy nodes is None. Skipping gathering obproxy log.")
+                        return
                 else:
                     self.stdio.warn("unsupported scene {0}".format(self.scene_name))
                     return

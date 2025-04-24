@@ -1039,4 +1039,4 @@ class GatherPlanMonitorHandler(object):
             content = '<div class="statsWarning">' + text + '</div>'
             self.__report(content)
         else:
-            self.stdio.warn("the result of optimization_info_warn is None")
+            self.stdio.verbose("the result of optimization_info_warn is None")
