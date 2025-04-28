@@ -1,10 +1,10 @@
 #!/bin/bash
+echo $tag
 # error code save file
 touch error_code.txt
 function check_error_log {
-#  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
+  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
-  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
     command_to_run=$(echo "$output" | grep "please run:" | sed -n 's/.*please run: //p')
@@ -48,19 +48,6 @@ compare_versions_greater() {
 date "+%Y-%m-%d %H:%M:%S"
 df -h
 cp ~/.obdiag/config.yml ./config.yml
-
-echo "obdiag gather ash --report_type html"
-echo $tag
-# Check if the tag is "latest" or if the version is greater than 4.2.4.0
-is_version_greater=false
-if compare_versions_greater "$tag" "4.2.4.0"; then
-    is_version_greater=true
-fi
-
-if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
-
-    check_error_log "obdiag gather ash --report_type html"
-fi
 
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
@@ -180,8 +167,7 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
-echo "obdiag gather ash --report_type html"
-echo $tag
+
 # Check if the tag is "latest" or if the version is greater than 4.2.4.0
 is_version_greater=false
 if compare_versions_greater "$tag" "4.2.4.0"; then
