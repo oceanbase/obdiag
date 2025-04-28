@@ -109,7 +109,7 @@ jobs:
           set -e
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
           docker exec -i obdiag_ob /bin/bash -c "obclient -h127.0.0.1 -u root -P2881 -e 'select version();'"
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh latest"
           echo "obdiag install success"
           docker rm -f obdiag_ob
   run-with-observer-4_2_1:
@@ -136,6 +136,6 @@ jobs:
         run: |
           set -e
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh 4.2.1"
           echo "obdiag install success"
           docker rm -f obdiag_ob
