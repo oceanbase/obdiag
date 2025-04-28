@@ -165,6 +165,8 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
+echo "obdiag gather ash --report_type html"
+echo $tag
 if [[ "$tag" == "latest" || compare_versions_greater "$tag" "4.2.4.0" ]]; then
     check_error_log  "obdiag gather ash --report_type html"
 fi
