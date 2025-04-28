@@ -4,6 +4,7 @@ touch error_code.txt
 function check_error_log {
 #  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
+  echo "$output"
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
     command_to_run=$(echo "$output" | grep "please run:" | sed -n 's/.*please run: //p')
@@ -57,6 +58,7 @@ if compare_versions_greater "$tag" "4.2.4.0"; then
 fi
 
 if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+
     check_error_log "obdiag gather ash --report_type html"
 fi
 
