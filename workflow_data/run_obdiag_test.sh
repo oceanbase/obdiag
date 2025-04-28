@@ -47,6 +47,19 @@ compare_versions_greater() {
 date "+%Y-%m-%d %H:%M:%S"
 df -h
 cp ~/.obdiag/config.yml ./config.yml
+
+echo "obdiag gather ash --report_type html"
+echo $tag
+# Check if the tag is "latest" or if the version is greater than 4.2.4.0
+is_version_greater=false
+if compare_versions_greater "$tag" "4.2.4.0"; then
+    is_version_greater=true
+fi
+
+if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+    check_error_log "obdiag gather ash --report_type html"
+fi
+
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
 check_error_log  "obdiag check run" &
