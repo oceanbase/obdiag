@@ -190,7 +190,7 @@ class GatherAshReportHandler(SafeStdio):
         if report_type_option:
             self.report_type = report_type_option.strip().lower()
             if self.report_type != "text":
-                if not (self.ob_version == "4.2.4.0" or StringUtils.compare_versions_greater(self.ob_version, "4.2.4.0")) :
+                if not (self.ob_version == "4.2.4.0" or StringUtils.compare_versions_greater(self.ob_version, "4.2.4.0")):
                     if self.report_type == "html":
                         self.stdio.warn("observer version: {0}, html report is not supported. must greater than 4.2.4.0. The report_type reset 'text'".format(self.ob_version))
                         self.report_type = "text"
