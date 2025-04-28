@@ -2,11 +2,9 @@ name: build package
 
 on:
   pull_request:
-    branches:
-      - master
+    branches: "*"
   push:
-    branches:
-      - master
+    branches: "*"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
