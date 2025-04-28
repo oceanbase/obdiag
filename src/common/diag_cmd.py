@@ -713,7 +713,7 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         self.parser.add_option('--sql_id', type='string', help="The SQL.ID, if left blank or filled with NULL, indicates that SQL.ID is not restricted.")
         # WAIT_CLASS
         self.parser.add_option('--wait_class', type='string', help='Event types to be sampled.')
-        self.parser.add_option('--report_type', type='string', help='Report type, currently only supports text type.', default='TEXT')
+        self.parser.add_option('--report_type', type='string', help='Report type, currently only supports text and html （need 4.2.4.0 or higer) type.', default='TEXT')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')

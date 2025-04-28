@@ -108,7 +108,13 @@ class GatherAshReportHandler(SafeStdio):
                 raise OBDIAGException("ash report data is empty")
 
             # save ash_report_data
-            self.ash_report_file_name = "ash_report_{0}.txt".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            self.ash_report_file_name = "ash_report_{0}.".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            # Add suffix name
+            if self.report_type == "html":
+                self.ash_report_file_name += "html"
+            elif self.report_type == "text":
+                self.ash_report_file_name += "txt"
+
             self.ash_report_file_name = os.path.join(self.report_path, self.ash_report_file_name)
 
             with open(self.ash_report_file_name, 'w+') as f:
@@ -182,8 +188,13 @@ class GatherAshReportHandler(SafeStdio):
             self.trace_id = None
 
         if report_type_option:
-            self.report_type = report_type_option.strip()
-            if report_type_option.upper() != "TEXT":
+            self.report_type = report_type_option.strip().lower()
+            if self.report_type != "text":
+                if not (self.ob_version == "4.2.4.0" or StringUtils.compare_versions_greater(self.ob_version, "4.2.4.0")) :
+                    if self.report_type == "html":
+                        self.stdio.warn("observer version: {0}, html report is not supported. must greater than 4.2.4.0. The report_type reset 'text'".format(self.ob_version))
+                        self.report_type = "text"
+            else:
                 self.stdio.error("Invalid argument for report type, Now just support TEXT")
                 return False
         else:
