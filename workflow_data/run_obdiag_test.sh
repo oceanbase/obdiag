@@ -167,8 +167,14 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag update"
 echo "obdiag gather ash --report_type html"
 echo $tag
-if [[ "$tag" == "latest" || compare_versions_greater "$tag" "4.2.4.0" ]]; then
-    check_error_log  "obdiag gather ash --report_type html"
+# Check if the tag is "latest" or if the version is greater than 4.2.4.0
+is_version_greater=false
+if compare_versions_greater "$tag" "4.2.4.0"; then
+    is_version_greater=true
+fi
+
+if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+    check_error_log "obdiag gather ash --report_type html"
 fi
 wait
 date "+%Y-%m-%d %H:%M:%S"
