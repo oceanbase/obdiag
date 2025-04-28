@@ -20,9 +20,9 @@ import locale
 
 try:
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-except locale.Error:
+except Exception:
     # Fallback to the default locale if setting fails
-    print("Warning: 'en_US.UTF-8' locale is not supported on this system. Using default locale.")
+    pass
 
 import logging
 
