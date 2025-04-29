@@ -544,7 +544,7 @@ class GatherLogOnNode:
                 self.stdio.warn("gather_log_on_node {0} find logs scope is null".format(self.ssh_client.get_ip(), logs_scope))
                 return []
             self.stdio.verbose("gather_log_on_node {0} find logs scope: {1}".format(self.ssh_client.get_ip(), logs_scope))
-            find_cmd = "find {0}/ {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}'"
+            find_cmd = "find {0}/ {1} | awk -F '/' ".format(self.log_path, logs_scope) + "'{print $NF}' | sort"
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
@@ -589,7 +589,7 @@ class GatherLogOnNode:
                 continue
             if not file_name.endswith("log") and not file_name.endswith("wf"):
                 # get end_time from file_name
-                first_line_text = self.ssh_client.exec_cmd("head -n 1 {0}/{1}".format(log_dir, file_name))
+                first_line_text = self.ssh_client.exec_cmd('grep -E "^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}\]" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
                 file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
                 file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
                 self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
@@ -619,7 +619,7 @@ class GatherLogOnNode:
                 # Split the first and last lines of text
                 first_and_last_line_text_list = str(first_and_last_line_text).splitlines()
                 if len(first_and_last_line_text_list) >= 2:
-                    first_line_text = first_and_last_line_text_list[0]
+                    first_line_text = self.ssh_client.exec_cmd('grep -E "^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}\]" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
                     last_line_text = first_and_last_line_text_list[-1]
                     # Time to parse the first and last lines of text
                     file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
