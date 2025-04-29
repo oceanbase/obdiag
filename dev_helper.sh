@@ -7,7 +7,7 @@ build_rpm() {
     clean_old_rpm_data
     download_obstack
     export RELEASE=`date +%Y%m%d%H%M`
-    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/get-pip.py -o get-pip.py\n\
+    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/3.8\/get-pip.py -o get-pip.py\n\
 python3 get-pip.py\n\
 pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     cat ./rpm/oceanbase-diagnostic-tool.spec

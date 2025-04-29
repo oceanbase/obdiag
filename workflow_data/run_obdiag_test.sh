@@ -1,8 +1,9 @@
 #!/bin/bash
+echo $tag
 # error code save file
 touch error_code.txt
 function check_error_log {
-#  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
+  echo "Executing command: $1 --inner_config=\"obdiag.basic.telemetry=False\""
   output=$($1 --inner_config="obdiag.basic.telemetry=False")
   if echo "$output" | grep -q "\[ERROR\]"; then
     echo "Error detected in obdiag output for command: $1. Failing the job."
@@ -14,9 +15,40 @@ function check_error_log {
     echo "1" >> pass_case.txt
   fi
 }
+compare_versions_greater() {
+    local v1=$1
+    local v2=$2
+
+    # 将版本号分割成数组
+    IFS='.' read -r -a v1_parts <<< "$v1"
+    IFS='.' read -r -a v2_parts <<< "$v2"
+
+    # 获取较长的版本号长度
+    local max_length=${#v1_parts[@]}
+    if [ ${#v2_parts[@]} -gt $max_length ]; then
+        max_length=${#v2_parts[@]}
+    fi
+
+    # 逐一比较版本号的每一部分
+    for ((i=0; i<max_length; i++)); do
+        local v1_part=${v1_parts[i]:-0} # 如果某部分不存在，默认为0
+        local v2_part=${v2_parts[i]:-0}
+
+        if ((v1_part > v2_part)); then
+            return 0 # v1 > v2
+        elif ((v1_part < v2_part)); then
+            return 1 # v1 < v2
+        fi
+    done
+
+    # 如果所有部分都相等
+    return 0
+}
+
 date "+%Y-%m-%d %H:%M:%S"
 df -h
 cp ~/.obdiag/config.yml ./config.yml
+
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
 check_error_log  "obdiag check run" &
@@ -135,6 +167,16 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
+
+# Check if the tag is "latest" or if the version is greater than 4.2.4.0
+is_version_greater=false
+if compare_versions_greater "$tag" "4.2.4.0"; then
+    is_version_greater=true
+fi
+
+if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+    check_error_log "obdiag gather ash --report_type html"
+fi
 wait
 date "+%Y-%m-%d %H:%M:%S"
 # print pass_case the number of “1”

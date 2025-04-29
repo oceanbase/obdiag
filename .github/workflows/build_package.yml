@@ -109,7 +109,7 @@ jobs:
           set -e
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
           docker exec -i obdiag_ob /bin/bash -c "obclient -h127.0.0.1 -u root -P2881 -e 'select version();'"
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+          docker exec -i obdiag_ob /bin/bash -c "export tag=latest && sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
           docker rm -f obdiag_ob
   run-with-observer-4_2_1:
@@ -127,7 +127,8 @@ jobs:
       - name: install obdiag
         run: |
           set -e
-          docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:4.2.1
+          export tag="4.2.1"
+          docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:${tag}
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
@@ -136,6 +137,6 @@ jobs:
         run: |
           set -e
           docker cp workflow_data/run_obdiag_test.sh obdiag_ob:/root/run_obdiag_test.sh
-          docker exec -i obdiag_ob /bin/bash -c "sh /root/run_obdiag_test.sh"
+          docker exec -i obdiag_ob /bin/bash -c "export tag=4.2.1 && sh /root/run_obdiag_test.sh"
           echo "obdiag install success"
           docker rm -f obdiag_ob
