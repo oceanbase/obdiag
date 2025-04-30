@@ -32,7 +32,7 @@ class MacroblockUtilizationRateTenant(TaskBase):
             if super().check_ob_version_min("4.0.0.0") is False:
                 return
             sql = '''
-SELECT /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id,d.tenant_name,b.database_name,b.table_name,sum(c.occupy_size) / 1024 / 1024 / 1024 AS data_size_gb,count(distinct(macro_block_idx)) * 2 / 1024 AS required_size_gb FROM cdb_ob_table_locations b INNER JOIN (SELECT svr_ip,svr_port,tenant_id,ROW_COUNT,tablet_id,occupy_size,macro_block_idx FROM __all_virtual_tablet_sstable_macro_info GROUP BY svr_ip,svr_port,tenant_id,tablet_id,macro_block_idx) c ON b.tenant_id = c.tenant_id AND b.tablet_id = c.tablet_id LEFT JOIN dba_ob_tenants d ON d.tenant_id = b.tenant_id WHERE b.tenant_id <> 1 GROUP BY tenant_id, table_id, b.tablet_id     
+select /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id, d.tenant_name, sum(c.occupy_size) / 1024 / 1024 / 1024 as data_size_gb, count(distinct(macro_block_idx)) * 2 / 1024 as required_size_gb from __all_virtual_table b inner join (select svr_ip, svr_port, tenant_id, row_count, tablet_id, occupy_size, macro_block_idx from __all_virtual_tablet_sstable_macro_info group by svr_ip, svr_port, tenant_id, tablet_id, macro_block_idx) c on b.tenant_id = c.tenant_id and b.tablet_id = c.tablet_id left join dba_ob_tenants d on d.tenant_id = b.tenant_id where b.tenant_id <> 1 group by tenant_id;
        '''
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             for row in result:
