@@ -593,21 +593,22 @@ class GatherLogOnNode:
                 file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
                 file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
                 self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
-                # When two time intervals overlap, need to add the file
-                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
-                file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
-                to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
-                from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
-                if file_end_time_str_strp == "":
+                if file_end_time_str == "":
                     self.stdio.warn("The log file {0} can't find endtime. skip".format(file_name))
                     continue
-                if file_start_time_str_strp == "":
+                file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
+                from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+                if file_start_time_str == "":
                     if file_end_time_str_strp < from_time_str_strp:
                         self.stdio.warn("The log file {0} can't find start_time. skip".format(file_name))
                         continue
                     else:
                         self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
                         log_name_list.append(file_name)
+                        continue
+                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
+                to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
+                # When two time intervals overlap, need to add the file
                 if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
                     log_name_list.append(file_name)
                     self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time_str, from_time_str, to_time_str))
@@ -623,6 +624,9 @@ class GatherLogOnNode:
                     last_line_text = first_and_last_line_text_list[-1]
                     # Time to parse the first and last lines of text
                     file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
+                    if file_start_time_str == "":
+                        self.stdio.warn("node: {1} The log file {0} can't find starttime. skip".format(file_name, self.ssh_client.get_name()))
+                        continue
                     file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
                     self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time))
                     self.stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
@@ -630,7 +634,7 @@ class GatherLogOnNode:
                     try:
                         file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
                     except Exception as e:
-                        self.stdio.verbose("The log file {0} can't find endtime. skip".format(file_name))
+                        self.stdio.verbose("The log file {0} can't find endtime.".format(file_name))
                         file_end_time_str_strp = ""
                     to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
                     from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
