@@ -32,7 +32,7 @@ class MacroblockUtilizationRateTenant(TaskBase):
             if super().check_ob_version_min("4.0.0.0") is False:
                 return
             sql = '''
-select /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id, d.tenant_name, sum(c.occupy_size) / 1024 / 1024 / 1024 as data_size_gb, count(distinct(macro_block_idx)) * 2 / 1024 as required_size_gb from __all_virtual_table b inner join (select svr_ip, svr_port, tenant_id, row_count, tablet_id, occupy_size, macro_block_idx from __all_virtual_tablet_sstable_macro_info group by svr_ip, svr_port, tenant_id, tablet_id, macro_block_idx) c on b.tenant_id = c.tenant_id and b.tablet_id = c.tablet_id left join dba_ob_tenants d on d.tenant_id = b.tenant_id where b.tenant_id <> 1 group by tenant_id;
+select /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id, d.tenant_name, sum(c.occupy_size) / 1024 / 1024 / 1024 as data_size_gb, count(distinct(macro_block_idx)) * 2 / 1024 as required_size_gb from oceanbase.__all_virtual_table b inner join (select svr_ip, svr_port, tenant_id, row_count, tablet_id, occupy_size, macro_block_idx from oceanbase.__all_virtual_tablet_sstable_macro_info group by svr_ip, svr_port, tenant_id, tablet_id, macro_block_idx) c on b.tenant_id = c.tenant_id and b.tablet_id = c.tablet_id left join oceanbase.dba_ob_tenants d on d.tenant_id = b.tenant_id where b.tenant_id <> 1 group by tenant_id;
        '''
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             for row in result:
