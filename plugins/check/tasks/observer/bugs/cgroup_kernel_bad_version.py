@@ -59,7 +59,7 @@ class CgroupKernelBadVersion(TaskBase):
                 # check kernel version
                 self.stdio.verbose("node: {0} kernel version is {1}".format(ssh_client.get_name(), kernel_version))
 
-                if re.match(r"3\.10\.0-\d+", kernel_version):
+                if re.match(r"3\.10\.\d+-\d+", kernel_version):
                     self.report.add_critical(
                         "node: {0} kernel version is {1}, There is a risk of system downtime when deploying OBServer using cgroup method on an operating system with kernel version 3.10 issue #910".format(ssh_client.get_name(), kernel_version)
                     )
