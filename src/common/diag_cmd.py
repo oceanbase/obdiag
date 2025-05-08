@@ -748,6 +748,26 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
         return obdiag.gather_function('gather_tabledump', self.opts)
 
 
+class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherDBMSXPLANHandler, self).__init__('dbms_xplan', 'gather dbms_xplan')
+        self.parser.add_option('--trace_id', type='string', help="Specifies the name of the database to connect to.")
+        self.parser.add_option('--scope', type='string', help="choices=[opt_trace, display_cursor, all]", default='all')
+        self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
+        self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./obdiag_gather_report')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagGatherDBMSXPLANHandler, self).init(cmd, args)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_dbms_xplan', self.opts)
+
+
 class ObdiagDisplaySceneListCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1200,6 +1220,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherTableDumpHandler())
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
+        self.register_command(ObdiagGatherDBMSXPLANHandler())
 
 
 class ObdiagDisplayCommand(MajorCommand):

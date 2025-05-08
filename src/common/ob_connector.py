@@ -171,6 +171,51 @@ class OBConnector(object):
         finally:
             cursor.close()
 
+    def execute_enable_opt_trace(self, suffix, business_sql):
+        """
+        Enables optimizer tracing using DBMS_XPLAN, executes EXPLAIN on the provided SQL,
+        and then disables the optimizer trace.
+
+        :param suffix: A string used to identify the current trace session.
+        :param business_sql: The actual SQL statement to be explained.
+        """
+        if self.conn is None:
+            self._connect_db()
+        else:
+            self.conn.ping(reconnect=True)
+        cursor = self.conn.cursor()
+        try:
+            self.stdio.print("execute dbms_xplan.enable_opt_trace start ...")
+            set_transaction = "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+            self.stdio.print(set_transaction)
+            cursor.execute(set_transaction)
+
+            enable_opt_trace = "call dbms_xplan.enable_opt_trace();"
+            self.stdio.print(enable_opt_trace)
+            cursor.execute(enable_opt_trace)
+
+            set_opt_trace_parameter = "call dbms_xplan.set_opt_trace_parameter(identifier=>'{0}', `level`=>3);".format(suffix)
+            self.stdio.print(set_opt_trace_parameter)
+            cursor.execute(set_opt_trace_parameter)
+
+            explain = "explain {0}".format(business_sql)
+            self.stdio.print(explain)
+            cursor.execute(explain)
+
+            disable_opt_trace = "call dbms_xplan.disable_opt_trace();"
+            self.stdio.print(disable_opt_trace)
+            cursor.execute(disable_opt_trace)
+
+            cursor.close()
+            self.stdio.print("execute dbms_xplan.enable_opt_trace end")
+        except Exception as e:
+            # Print error details for debugging and re-raise the exception
+            self.stdio.exception(f"error occurred during execution: {e}")
+        finally:
+            # Safely close cursor if it was created
+            if cursor:
+                cursor.close()
+
     def callproc(self, procname, args=()):
         if self.conn is None:
             self._connect_db()
