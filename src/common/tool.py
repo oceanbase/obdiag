@@ -537,7 +537,7 @@ class FileUtil(object):
             os.remove(path)
             return True
         except:
-            stdio and getattr(stdio, 'exception', print)('failed to remove %s' % path)
+            stdio.warn('failed to remove %s' % path)
         return False
 
     @staticmethod
