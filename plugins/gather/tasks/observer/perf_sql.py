@@ -18,6 +18,7 @@
 from src.handler.gather.gather_component_log import GatherComponentLogHandler
 from src.common.stdio import SafeStdio
 from src.handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
+from src.handler.gather.gather_dbms_xplan import GatherDBMSXPLANHandler
 from src.common.tool import StringUtils
 from src.common.ssh_client.ssh import SshClient
 from src.common.command import find_home_path_by_port
@@ -52,6 +53,7 @@ class PerfSQL(SafeStdio):
                 self.__gather_obproxy_log()
             if skip_type != "sql":
                 self.__gather_sql_info()
+                self.__gather_dbms_xplan_opt_trace()
 
     def __find_home_path_by_port(self, ip_str, internal_port_str):
         for node in self.ob_nodes:
@@ -116,6 +118,19 @@ class PerfSQL(SafeStdio):
         except Exception as e:
             self.stdio.error("gather sql info failed, error: {0}".format(e))
             raise Exception("gather sql info failed, error: {0}".format(e))
+
+    def __gather_dbms_xplan_opt_trace(self):
+        try:
+            self.stdio.verbose("gather dbms_xplan_opt_trace start")
+            self.stdio.verbose("gather dbms_xplan_opt_trace set_variable, key: gather_trace_id, value:{0}, key: dbms_xplan_scope, value {1}".format(self.trace_id, 'opt_trace'))
+            self.context.set_variable('gather_trace_id', self.trace_id)
+            self.context.set_variable('dbms_xplan_scope', 'opt_trace')
+            handler = GatherDBMSXPLANHandler(self.context, store_dir=self.report_path, is_scene=True)
+            handler.handle()
+            self.stdio.verbose("gather dbms_xplan_opt_trace end")
+        except Exception as e:
+            self.stdio.error("gather dbms_xplan_opt_trace failed, error: {0}".format(e))
+            raise Exception("gather dbms_xplan_opt_trace failed, error: {0}".format(e))
 
     def report(self):
         pass

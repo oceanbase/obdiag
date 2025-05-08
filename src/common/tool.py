@@ -537,7 +537,7 @@ class FileUtil(object):
             os.remove(path)
             return True
         except:
-            stdio and getattr(stdio, 'exception', print)('failed to remove %s' % path)
+            stdio.warn('failed to remove %s' % path)
         return False
 
     @staticmethod
@@ -1474,6 +1474,15 @@ class StringUtils(object):
                 except Exception as e:
                     stdio.verbose(f"Error processing {table} table: {e}")
         return "\n".join(messages)
+
+    def generate_numeric_code(length=6):
+        """生成指定长度的纯数字验证码"""
+        return ''.join(random.choices('0123456789', k=length))
+
+    def generate_alphanum_code(length=8):
+        """生成包含大小写字母和数字的随机码"""
+        characters = string.ascii_letters + string.digits  # a-zA-Z0-9
+        return ''.join(random.choices(characters, k=length))
 
 
 class Cursor(SafeStdio):

@@ -70,10 +70,24 @@ task:
         sql: "SELECT * FROM oceanbase.DBA_OB_TENANTS;"
         global: true
       - type: sql
-        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;"
+        sql: "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID ORDER BY c.TENANT_ID;"
         global: true
       - type: sql
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
+        global: true
+      # 租户磁盘占用量
+      - type: sql
+        sql: "select /*+ READ_CONSISTENCY(WEAK) */
+          t1.svr_ip,t1.tenant_id,
+          concat(round(sum(t2.data_size/1024/1024/1024), 2), 'G') datasize_primary_replica ,
+          concat(round(sum(t2.required_size)/1024/1024/1024, 2), 'G') requiredsize_primary_replica
+          from oceanbase.cdb_ob_table_locations t1,oceanbase.cdb_ob_tablet_replicas t2
+          where
+          t1.svr_ip=t2.svr_ip
+          and t1.ls_id=t2.ls_id and t1.TENANT_ID=t2.TENANT_ID
+          and t1.tablet_id=t2.tablet_id
+          group by t1.svr_ip,t1.tenant_id
+          order by 1,2 desc;"
         global: true
       - type: sql
         sql: "show parameters like '%syslog_level%';"

@@ -18,7 +18,12 @@
 from __future__ import absolute_import, division, print_function
 import locale
 
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+try:
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+except Exception:
+    # Fallback to the default locale if setting fails
+    pass
+
 import logging
 
 
