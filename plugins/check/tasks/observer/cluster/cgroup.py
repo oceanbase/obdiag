@@ -58,8 +58,5 @@ class Cgroup(TaskBase):
     def get_task_info(self):
         return {"name": "cgroup", "info": "Check if tenant isolation is enabled in versions 4. x and above. Default should be enabled to ensure performance. issue #849"}
 
-    def get_scene_info(self):
-        pass
-
 
 cgroup = Cgroup()

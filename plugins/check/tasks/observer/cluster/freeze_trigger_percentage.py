@@ -67,8 +67,5 @@ class FreezeTriggerPercentage(TaskBase):
     def get_task_info(self):
         return {"name": "freeze_trigger_percentage", "info": "It is recommended that the server keep the default configuration of 20. issue #795"}
 
-    def get_scene_info(self):
-        pass
-
 
 freeze_trigger_percentage = FreezeTriggerPercentage()

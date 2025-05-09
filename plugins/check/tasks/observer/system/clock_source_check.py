@@ -82,8 +82,5 @@ class ClockSourceCheck(TaskBase):
     def get_task_info(self):
         return {"name": "clock_source_check", "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent.issue #781 #873"}
 
-    def get_scene_info(self):
-        pass
-
 
 clock_source_check = ClockSourceCheck()
