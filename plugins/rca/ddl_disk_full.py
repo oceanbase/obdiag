@@ -90,7 +90,7 @@ class DDlDiskFullScene(RcaScene):
         if self.tenant_id is None:
             raise RCAInitException("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
         if database_name:
-            database_id_data = self.ob_connector.execute_sql("select database_id from oceanbase.__all_database where database_name = '{0}';".format(database_name))
+            database_id_data = self.ob_connector.execute_sql("select database_id from oceanbase.__all_virtual_database where database_name = '{0}';".format(database_name))
             if len(database_id_data) == 0:
                 raise RCAInitException("can not find database id by database name: {0}. Please check the table name.".format(database_name))
             self.database_id = database_id_data[0][0]
