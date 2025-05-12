@@ -41,7 +41,7 @@ class LogSize(TaskBase):
                 if log_size_value == 0 or log_size_value > 100:
                     pass
                 else:
-                    self.report.add_warning("node: {1} log_size is {0}, please check. the recommended is 0 or over 100".format(log_size_value, SVR_IP))
+                    self.report.add_warning("node: {1} max_syslog_file_count is {0}, please check. the recommended is 0 or over 100".format(log_size_value, SVR_IP))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
