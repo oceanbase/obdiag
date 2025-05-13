@@ -38,11 +38,11 @@ class DockerClient(SsherClient):
                 stderr=True,
             )
             if result.exit_code != 0:
-                raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.container_name, cmd, result.output.decode('utf-8')))
+                raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.container_name, cmd, result.output.decode('utf-8', errors='ignore')))
         except Exception as e:
             self.stdio.error("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
             raise Exception("sshHelper ssh_exec_cmd docker Exception: {0}".format(e))
-        return result.output.decode('utf-8')
+        return result.output.decode('utf-8', errors='ignore')
 
     def download(self, remote_path, local_path):
         try:

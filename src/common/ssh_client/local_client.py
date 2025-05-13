@@ -33,9 +33,9 @@ class LocalClient(SsherClient):
             out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable='/bin/bash')
             stdout, stderr = out.communicate()
             if stderr:
-                return stderr.decode('utf-8')
+                return stderr.decode('utf-8', errors='ignore')
             if stdout:
-                return stdout.decode('utf-8')
+                return stdout.decode('utf-8', errors='ignore')
             return ""
         except UnicodeDecodeError as e:
             self.stdio.warn("[localhost] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
