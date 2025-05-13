@@ -55,6 +55,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.db_name = None
         self.scope = "all"
         self.env = None
+        self.skip_gather = False
         self.opt_trace_file_suffix = "obdiag_" + StringUtils.generate_alphanum_code(6)
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
@@ -206,6 +207,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
                 continue
             handle_from_node(node)
+            self.skip_gather = True
             exec_tag = True
 
         if not exec_tag:
@@ -228,7 +230,9 @@ class GatherDBMSXPLANHandler(SafeStdio):
 
     def __handle_from_node(self, node, local_stored_path):
         resp = {"skip": False, "error": "", "gather_pack_path": ""}
-        error_info = self.__generate_opt_trace(self.raw_query_sql)
+        error_info = ''
+        if not self.skip_gather:
+            error_info = self.__generate_opt_trace(self.raw_query_sql)
         if len(error_info) == 0:
             remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
             remote_user = node.get("ssh_username")

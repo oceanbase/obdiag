@@ -634,6 +634,7 @@ class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
         self.parser.add_option('--trace_id', type='string', help='sql trace id')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--env', type='string', help='''env, eg: "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}"''')
+        self.parser.add_option('--skip', type='string', help="choices=[dbms_xplan]")
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -756,7 +757,7 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
         self.parser.add_option('--scope', type='string', help="choices=[opt_trace, display_cursor, all]", default='all')
         self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
         self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
-        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./obdiag_gather_report')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
