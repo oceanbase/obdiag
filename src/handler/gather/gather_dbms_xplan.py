@@ -70,7 +70,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
             password = Util.get_option(options, 'password') or ""
             store_dir_option = Util.get_option(options, 'store_dir')
             self.scope_option = Util.get_option(options, 'scope')
-            valid_scopes = ['opt_trace', 'display_cursor']
+            valid_scopes = ['all', 'opt_trace', 'display_cursor']
             if self.scope_option:
                 if self.scope_option not in valid_scopes:
                     error_msg = f"invalid --scope option: '{self.scope_option}'. Valid options are: {', '.join(valid_scopes)}. Setting default --scope=all."
@@ -338,7 +338,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         )
 
     def __build_find_latest_log_cmd(self, log_path, suffix):
-        return f"find \"{log_path}\" -type f -name \"*{suffix}.trac\" -print0 | " "xargs -0 ls -lt | head -n 1 | awk '{print $NF}'"
+        return f"find \"{log_path}\" -type f -name \"*{suffix}.trac\" "
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
