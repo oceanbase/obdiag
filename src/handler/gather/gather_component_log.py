@@ -589,7 +589,7 @@ class GatherLogOnNode:
                 continue
             if not file_name.endswith("log") and not file_name.endswith("wf"):
                 # get end_time from file_name
-                first_line_text = self.ssh_client.exec_cmd('grep -E "^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}\]" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
+                first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
                 file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
                 file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
                 self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
@@ -615,43 +615,38 @@ class GatherLogOnNode:
             elif file_name.endswith("log") or file_name.endswith("wf"):
                 # get form_time and to_time from the first and last lines of text of the file
                 # Get the first and last lines of text of the file. Here, use a command
-                get_first_line_cmd = "head -n 1 {0}/{1} && tail -n 1 {0}/{1}".format(log_dir, file_name)
-                first_and_last_line_text = self.ssh_client.exec_cmd(get_first_line_cmd)
-                # Split the first and last lines of text
-                first_and_last_line_text_list = str(first_and_last_line_text).splitlines()
-                if len(first_and_last_line_text_list) >= 2:
-                    first_line_text = self.ssh_client.exec_cmd('grep -E "^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}\]" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
-                    last_line_text = first_and_last_line_text_list[-1]
-                    # Time to parse the first and last lines of text
-                    file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
-                    if file_start_time_str == "":
-                        self.stdio.warn("node: {1} The log file {0} can't find starttime. skip".format(file_name, self.ssh_client.get_name()))
-                        continue
-                    file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
-                    self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time))
-                    self.stdio.verbose("to_time_str {0} from_time_str {1}".format(to_time_str, from_time_str))
-                    file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
-                    try:
-                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
-                    except Exception as e:
-                        self.stdio.verbose("The log file {0} can't find endtime.".format(file_name))
-                        file_end_time_str_strp = ""
-                    to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
-                    from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
-                    if file_end_time_str_strp == "":
-                        file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        self.stdio.warn("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
-                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
-                    if file_start_time_str_strp == "":
-                        if file_end_time_str_strp < from_time_str_strp:
-                            continue
-                        else:
-                            self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
-                            log_name_list.append(file_name)
+                first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
+                if first_line_text == "":
+                    self.stdio.verbose("The log file {0} can't find starttime.".format(file_name))
+                    continue
+                file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
+                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
 
-                    if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
+                last_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | tail -n 1")
+                file_end_time_str_strp = None
+                if last_line_text == "":
+                    self.stdio.verbose("The log file {0} can't find endtime.".format(file_name))
+                    file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.stdio.warn("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
+                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                else:
+                    file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
+                    file_end_time_str = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
+                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
+                self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
+
+                to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
+                from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+                if file_start_time_str_strp == "":
+                    if file_end_time_str_strp < from_time_str_strp:
+                        continue
+                    else:
+                        self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
                         log_name_list.append(file_name)
-                        self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
+
+                if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
+                    log_name_list.append(file_name)
+                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
         if len(log_name_list) > 0:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, self.ssh_client.get_ip()))
         else:
