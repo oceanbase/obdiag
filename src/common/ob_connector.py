@@ -214,9 +214,6 @@ class OBConnector(object):
                 self.stdio.exception(f"execution failed: call dbms_xplan.enable_opt_trace() not supported")
             else:
                 self.stdio.exception(f"error occurred during execution: {e}")
-        except Exception as e:
-            # Print error details for debugging and re-raise the exception
-            self.stdio.exception(f"error occurred during execution: {e}")
         finally:
             # Safely close cursor if it was created
             if cursor:
