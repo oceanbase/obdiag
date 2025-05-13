@@ -177,12 +177,12 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');\n".format(sql)
                     result = step + str(plan_result)
                     self.stdio.verbose("dbms_xplan.display_cursor report complete")
+                    self.__report(result)
+                    self.__print_display_cursor_result()
                 else:
                     self.stdio.warn("the result of dbms_xplan.display_cursor is None")
             else:
-                self.stdio.verbose("dbms_xplan.display_cursor report requires the OB version to be greater than 4.2.5.0 Your version: {0} does not meet this requirement.".format(self.version))
-            self.__report(result)
-            self.__print_display_cursor_result()
+                self.stdio.warn("dbms_xplan.display_cursor report requires the OB version to be greater than 4.2.5.0 Your version: {0} does not meet this requirement.".format(self.version))
         except Exception as e:
             self.stdio.exception("dbms_xplan.display_cursor report> %s" % sql)
             self.stdio.exception(repr(e))
