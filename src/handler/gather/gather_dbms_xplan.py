@@ -207,7 +207,6 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
                 continue
             handle_from_node(node)
-            self.skip_gather = True
             exec_tag = True
 
         if not exec_tag:
@@ -233,6 +232,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         error_info = ''
         if not self.skip_gather:
             error_info = self.__generate_opt_trace(self.raw_query_sql)
+            self.skip_gather = True
         if len(error_info) == 0:
             remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
             remote_user = node.get("ssh_username")
@@ -252,7 +252,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 home_path = node.get("home_path")
                 log_path = os.path.join(home_path, "log")
                 get_remote_file_full_path_cmd = self.__build_find_latest_log_cmd(log_path, self.opt_trace_file_suffix)
-                remote_file_full_path = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path_res = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path = next((line for line in remote_file_full_path_res.splitlines() if line.strip()), None)
                 if remote_file_full_path:
                     file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
                     if int(file_size) < self.file_size_limit:
