@@ -99,11 +99,10 @@ class RemoteClient(SsherClient):
             stdin, stdout, stderr = self._ssh_fd.exec_command(cmd)
             err_text = stderr.read()
             if len(err_text):
-                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8'))
-
+                output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', err_text.decode('utf-8', errors='ignore'))
                 return output_str
             # support Kerberos
-            output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8'))
+            output_str = re.sub(r'klist: No credentials cache found \(filename: .+?\)', '', stdout.read().decode('utf-8', errors='ignore'))
             return output_str
         except UnicodeDecodeError as e:
             self.stdio.warn("[remote] Execute Shell command UnicodeDecodeError, command=[{0}]  Exception = [{1}]".format(cmd, e))
