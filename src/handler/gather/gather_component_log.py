@@ -511,13 +511,13 @@ class GatherLogOnNode:
             self.stdio.verbose("grep files, source_log_name = [{0}], target_log_name = [{1}]".format(source_log_name, target_log_name))
             # for oms log
             if log_name.endswith(".gz"):
-                log_grep_cmd = "cp {0} {1}".format(source_log_name, target_log_name)
+                log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
                 self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
                 self.ssh_client.exec_cmd(log_grep_cmd)
                 continue
             log_grep_cmd = ""
             if grep_cmd == "":
-                log_grep_cmd = "cp {0} {1}".format(source_log_name, target_log_name)
+                log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
             else:
                 log_grep_cmd = grep_cmd + " {0}".format(source_log_name)
                 log_grep_cmd += " > {0} ".format(target_log_name)
