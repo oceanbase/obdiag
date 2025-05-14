@@ -213,10 +213,11 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     if self.retry_opt_trace:
                         self.skip_gather = False
                         self.gather_tuples = []
-                        self.stdio.warn("failed to gather dbms_xplan.opt_trace, wait to retry")
+                        self.stdio.warn("failed to gather dbms_xplan.enable_opt_trace, wait to retry")
                         raise
             except Exception as e:
                 raise e
+
         is_ready()
         summary_tuples = self.__get_overall_summary(self.gather_tuples)
         self.stdio.print(summary_tuples)
