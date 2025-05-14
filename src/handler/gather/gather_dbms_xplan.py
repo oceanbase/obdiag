@@ -252,7 +252,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 home_path = node.get("home_path")
                 log_path = os.path.join(home_path, "log")
                 get_remote_file_full_path_cmd = self.__build_find_latest_log_cmd(log_path, self.opt_trace_file_suffix)
-                remote_file_full_path = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path_res = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path = next((line for line in remote_file_full_path_res.splitlines() if line.strip()), None)
                 if remote_file_full_path:
                     file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
                     if int(file_size) < self.file_size_limit:
