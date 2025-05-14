@@ -55,8 +55,5 @@ class AutoincCacheRefreshInterval(TaskBase):
     def get_task_info(self):
         return {"name": "autoinc_cache_refresh_interval", "info": "Check the refresh interval of the auto-increment column cache. Frequent refreshes will affect the system performance. It is recommended to set it to more than 1 hour. . issue #817"}
 
-    def get_scene_info(self):
-        pass
-
 
 autoinc_cache_refresh_interval = AutoincCacheRefreshInterval()

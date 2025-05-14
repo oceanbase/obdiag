@@ -57,6 +57,7 @@ class GatherPlanMonitorHandler(object):
         self.plan_explain_name = "gv$plan_cache_plan_explain"
         self.is_scene = is_scene
         self.ob_version = "4.2.5.0"
+        self.skip = None
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -74,6 +75,7 @@ class GatherPlanMonitorHandler(object):
         trace_id_option = Util.get_option(options, 'trace_id')
         store_dir_option = Util.get_option(options, 'store_dir')
         env_option = Util.get_option(options, 'env')
+        skip_option = Util.get_option(options, 'skip')
         if self.context.get_variable("gather_plan_monitor_trace_id", None):
             trace_id_option = self.context.get_variable("gather_plan_monitor_trace_id")
         if trace_id_option is not None:
@@ -91,6 +93,8 @@ class GatherPlanMonitorHandler(object):
                 return False
         else:
             self.db_connector = self.sys_connector
+        if skip_option:
+            self.skip = skip_option
         return self.tenant_mode_detected()
 
     def __init_db_connector(self):
@@ -1008,7 +1012,11 @@ class GatherPlanMonitorHandler(object):
         return stripped_sql.startswith('SELECT')
 
     def report_display_cursor_obversion4(self, display_cursor_sql):
+        if self.skip and self.skip == "dbms_xplan":
+            self.stdio.warn("you have set the option --skip to skip gather dbms_xplan")
+            return
         if not self.__is_select_statement(display_cursor_sql):
+            self.stdio.verbose("display_cursor report complete")
             return
         try:
             if not StringUtils.compare_versions_lower(self.ob_version, "4.2.5.0"):

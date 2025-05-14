@@ -76,7 +76,7 @@ class KubernetesClient(SsherClient):
                     if out:
                         tar_buffer.write(out)
                     elif err:
-                        self.stdio.error("Error copying file {0}".format(err.decode("utf-8", "replace")))
+                        self.stdio.error("Error copying file {0}".format(err.decode("utf-8", errors='ignore')))
                     if closed:
                         break
                 exec_stream.close()

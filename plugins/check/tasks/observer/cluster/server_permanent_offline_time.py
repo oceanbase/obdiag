@@ -55,8 +55,5 @@ class ServerPermanentOfflineTime(TaskBase):
     def get_task_info(self):
         return {"name": "server_permanent_offline_time", "info": "check the cluster parameters of server_permanent_offline_time . issue #816"}
 
-    def get_scene_info(self):
-        pass
-
 
 server_permanent_offline_time = ServerPermanentOfflineTime()

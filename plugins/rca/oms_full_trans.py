@@ -111,7 +111,7 @@ class OMSFullTransScene(RcaScene):
                 for error_details_path in error_details_paths:
                     try:
                         self.stdio.verbose("check {0} is start.".format(error_details_path))
-                        with open(error_details_path, 'r', encoding='utf-8') as f:
+                        with open(error_details_path, 'r', encoding='utf-8', errors='ignore') as f:
                             # TDDO find something on error.details
                             SINK_TABLE_NOT_FOUND_tag = False
                             SINK_TABLE_IS_NOT_EMPTY_tag = False
