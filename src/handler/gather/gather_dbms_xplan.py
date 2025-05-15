@@ -85,6 +85,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     self.stdio.warn('args --store_dir [{0}]: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                     os.makedirs(os.path.abspath(store_dir_option))
                     self.store_dir = os.path.abspath(store_dir_option)
+                else:
+                    self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
                 user = self.context.get_variable("gather_user")
