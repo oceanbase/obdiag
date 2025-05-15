@@ -203,6 +203,15 @@ class GatherDBMSXPLANHandler(SafeStdio):
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
             self.gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
+            # recycle *_obdiag_*.trac in observer log dir
+            try:
+                log_path = os.path.join(node.get("home_path"), "log")
+                ssh_client = node.get("ssher")
+                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
+                ssh_client.exec_cmd(f"find {log_path} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +")
+            except Exception as e:
+                self.stdio.warn("node: {}. recycle *_obdiag_*.trac in observer log dir failed: {}".format(node.get("ip"), e))
+                pass
 
         @Util.retry(8, 2)
         def is_ready():
@@ -277,9 +286,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     resp["gather_pack_path"] = "{0}".format(local_file_path)
                 else:
                     resp["error"] = "command: {0} execution on Node {1} failed: file not found.".format(get_remote_file_full_path_cmd, remote_ip)
-                # recycle *_obdiag_*.trac in observer log dir
-                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
-                ssh_client.exec_cmd(f"find {log_path} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +")
+
         else:
             resp["skip"] = True
             resp["error"] = error_info
