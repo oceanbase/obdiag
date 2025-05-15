@@ -275,6 +275,9 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     resp["gather_pack_path"] = "{0}".format(local_file_path)
                 else:
                     resp["error"] = "command: {0} execution on Node {1} failed: file not found.".format(get_remote_file_full_path_cmd, remote_ip)
+                # recycle *_obdiag_*.trac in observer log dir
+                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
+                ssh_client.exec_cmd("find {0} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +".format(log_path))
 
         else:
             resp["skip"] = True
