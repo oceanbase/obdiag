@@ -286,6 +286,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     resp["gather_pack_path"] = "{0}".format(local_file_path)
                 else:
                     resp["error"] = "command: {0} execution on Node {1} failed: file not found.".format(get_remote_file_full_path_cmd, remote_ip)
+
         else:
             resp["skip"] = True
             resp["error"] = error_info
