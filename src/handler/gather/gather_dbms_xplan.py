@@ -85,6 +85,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     self.stdio.warn('args --store_dir [{0}]: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                     os.makedirs(os.path.abspath(store_dir_option))
                     self.store_dir = os.path.abspath(store_dir_option)
+                else:
+                    self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
                 user = self.context.get_variable("gather_user")
@@ -275,7 +277,9 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     resp["gather_pack_path"] = "{0}".format(local_file_path)
                 else:
                     resp["error"] = "command: {0} execution on Node {1} failed: file not found.".format(get_remote_file_full_path_cmd, remote_ip)
-
+                # recycle *_obdiag_*.trac in observer log dir
+                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
+                ssh_client.exec_cmd(f"find {log_path} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +")
         else:
             resp["skip"] = True
             resp["error"] = error_info
