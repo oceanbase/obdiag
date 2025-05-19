@@ -56,6 +56,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.scope = "all"
         self.env = None
         self.skip_gather = False
+        self.retry_opt_trace = True
         self.opt_trace_file_suffix = "obdiag_" + StringUtils.generate_alphanum_code(6)
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
@@ -83,6 +84,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 if not os.path.exists(os.path.abspath(store_dir_option)):
                     self.stdio.warn('args --store_dir [{0}]: No such directory, Now create it'.format(os.path.abspath(store_dir_option)))
                     os.makedirs(os.path.abspath(store_dir_option))
+                    self.store_dir = os.path.abspath(store_dir_option)
+                else:
                     self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
@@ -140,6 +143,17 @@ class GatherDBMSXPLANHandler(SafeStdio):
             self.stdio.error('init config failed')
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         excute_status = self.execute()
+        # recycle *_obdiag_*.trac in observer log dir
+        for node in self.ob_nodes:
+            try:
+                log_path = os.path.join(node.get("home_path"), "log")
+                ssh_client = SshClient(self.context, node)
+                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
+                ssh_client.exec_cmd(f"find {log_path} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +")
+            except Exception as e:
+                self.stdio.warn("node: {}. recycle *_obdiag_*.trac in observer log dir failed: {}".format(node.get("ip"), e))
+                pass
+
         if not self.is_innner and excute_status:
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.store_dir})
         return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="execute failed")
@@ -150,10 +164,10 @@ class GatherDBMSXPLANHandler(SafeStdio):
             raw_query_sql = self.__get_sql_from_trace_id()
             if raw_query_sql:
                 self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.tenant_user, password=self.tenant_password, timeout=100, database=self.db_name)
-                if self.scope in ['all', 'display_cursor']:
-                    self.get_display_cursor(raw_query_sql)
                 if self.scope in ['all', 'opt_trace']:
                     self.get_opt_trace()
+                if self.scope in ['all', 'display_cursor']:
+                    self.get_display_cursor(raw_query_sql)
                 return True
             else:
                 self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
@@ -191,7 +205,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
 
     def get_opt_trace(self):
         self.stdio.verbose("Use {0} as pack dir.".format(self.store_dir))
-        gather_tuples = []
+        self.gather_tuples = []
 
         def handle_from_node(node):
             st = time.time()
@@ -199,20 +213,35 @@ class GatherDBMSXPLANHandler(SafeStdio):
             file_size = ""
             if len(resp["error"]) == 0:
                 file_size = os.path.getsize(resp["gather_pack_path"])
-            gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
+            self.gather_tuples.append((node.get("ip"), False, resp["error"], file_size, int(time.time() - st), resp["gather_pack_path"]))
+            # recycle *_obdiag_*.trac in observer log dir
+            try:
+                log_path = os.path.join(node.get("home_path"), "log")
+                ssh_client = node.get("ssher")
+                self.stdio.verbose("node: {}. recycle *_obdiag_*.trac in observer log dir. obdiag will clean all '*_obdiag_*.trac'".format(ssh_client.get_name()))
+                ssh_client.exec_cmd(f"find {log_path} -type f -name '*_obdiag_*.trac' -exec rm -f {{}} +")
+            except Exception as e:
+                self.stdio.warn("node: {}. recycle *_obdiag_*.trac in observer log dir failed: {}".format(node.get("ip"), e))
+                pass
 
-        exec_tag = False
-        for node in self.ob_nodes:
-            if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
-                self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
-                continue
-            handle_from_node(node)
-            self.skip_gather = True
-            exec_tag = True
+        @Util.retry(8, 2)
+        def is_ready():
+            try:
+                for node in self.ob_nodes:
+                    if node.get("ssh_type") == "docker" or node.get("ssh_type") == "kubernetes":
+                        self.stdio.warn("Skip gather from node {0} because it is a docker or kubernetes node".format(node.get("ip")))
+                        continue
+                    handle_from_node(node)
+                    if self.retry_opt_trace:
+                        self.skip_gather = False
+                        self.gather_tuples = []
+                        self.stdio.warn("failed to gather dbms_xplan.enable_opt_trace, wait to retry")
+                        raise
+            except Exception as e:
+                raise e
 
-        if not exec_tag:
-            self.stdio.verbose("No node to gather, skip")
-        summary_tuples = self.__get_overall_summary(gather_tuples)
+        is_ready()
+        summary_tuples = self.__get_overall_summary(self.gather_tuples)
         self.stdio.print(summary_tuples)
 
     def __get_sql_from_trace_id(self):
@@ -233,6 +262,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         error_info = ''
         if not self.skip_gather:
             error_info = self.__generate_opt_trace(self.raw_query_sql)
+            self.skip_gather = True
         if len(error_info) == 0:
             remote_ip = node.get("ip") if self.is_ssh else NetUtils.get_inner_ip(self.stdio)
             remote_user = node.get("ssh_username")
@@ -252,8 +282,10 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 home_path = node.get("home_path")
                 log_path = os.path.join(home_path, "log")
                 get_remote_file_full_path_cmd = self.__build_find_latest_log_cmd(log_path, self.opt_trace_file_suffix)
-                remote_file_full_path = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path_res = ssh_client.exec_cmd(get_remote_file_full_path_cmd)
+                remote_file_full_path = next((line for line in remote_file_full_path_res.splitlines() if line.strip()), None)
                 if remote_file_full_path:
+                    self.retry_opt_trace = False
                     file_size = get_file_size(ssh_client, remote_file_full_path, self.stdio)
                     if int(file_size) < self.file_size_limit:
                         local_file_path = "{0}/{1}".format(local_stored_path, remote_ip.replace('.', '_') + '_' + Path(remote_file_full_path).name)
