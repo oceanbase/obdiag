@@ -5,7 +5,7 @@ WORK_DIR=$(readlink -f "$(dirname ${BASH_SOURCE[0]})")
 
 build_rpm() {
     clean_old_rpm_data
-    download_obstack
+    download_ob_tool
     export RELEASE=`date +%Y%m%d%H%M`
     sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/3.8\/get-pip.py -o get-pip.py\n\
 python3 get-pip.py\n\
@@ -17,11 +17,11 @@ pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     echo "rpm_path: ${rpm_path}"
 }
 
-download_obstack() {
-  echo "check obstack"
+download_ob_tool() {
+  echo "check obstack and obadmin"
   mkdir -p ./dependencies/bin
-  # download obstack
-  if [ -f ./dependencies/bin/obstack_aarch64 ]; then
+  # download obstack and obadmin
+  if [ -f ./dependencies/bin/obstack_aarch64 ] && [ -f ./dependencies/bin/ob_admin_aarch64 ]; then
     echo "obstack_aarch64 exist, skip download"
     return
   else
@@ -30,10 +30,11 @@ download_obstack() {
     wget ${obutils_aarch64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_aarch64
+    cp -f ./usr/bin/ob_admin ./dependencies/bin/ob_admin_aarch64
     rm -rf ./usr
     rm -rf obutils.rpm
   fi
-  if [ -f ./dependencies/bin/obstack_x86_64 ]; then
+  if [ -f ./dependencies/bin/obstack_x86_64 ] && [ -f ./dependencies/bin/ob_admin_x86_64 ]; then
     echo "obstack_x86_64 exist, skip download"
     return
   else
@@ -42,6 +43,7 @@ download_obstack() {
     wget ${obutils_x64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_x86_64
+    cp -f ./usr/bin/ob_admin ./dependencies/bin/ob_admin_x86_64
     rm -rf ./usr
     rm -rf obutils.rpm
   fi
@@ -141,7 +143,7 @@ initialize_environment() {
     copy_file
     check_python_version
     install_requirements
-    download_obstack
+    download_ob_tool
 
     source  ${WORK_DIR}/rpm/init_obdiag_cmd.sh
 
@@ -158,7 +160,7 @@ show_help() {
     echo "  clean  - Clean result files"
     echo "  init   - Initialize dev environment"
     echo "  format - Format code with black"
-    echo "  download_obstack - Download obstack"
+    echo "  download_ob_tool - Download ob_tool"
 }
 
 format_code() {
@@ -185,8 +187,8 @@ case "$1" in
     format)
         format_code
         ;;
-    download_obstack)
-        download_obstack
+    download_ob_tool)
+        download_ob_tool
         ;;
     *)
         show_help
