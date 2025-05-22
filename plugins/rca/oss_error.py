@@ -15,9 +15,7 @@
 @file: oss_error.py
 @desc:
 """
-import json
 import os.path
-import re
 import sys
 import uuid
 
@@ -25,11 +23,8 @@ from src.common.command import upload_file
 from src.handler.rca.rca_exception import (
     RCAInitException,
     RCAExecuteException,
-    RCANotNeedExecuteException,
 )
-from src.handler.rca.rca_handler import RcaScene, RCA_ResultRecord
-from src.common.tool import DateTimeEncoder
-from src.common.tool import StringUtils
+from src.handler.rca.rca_handler import RcaScene
 
 
 class OSSError(RcaScene):
