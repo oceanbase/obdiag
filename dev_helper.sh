@@ -27,7 +27,7 @@ download_obstack() {
   else
     echo "downland aarch64 obstack."
     obutils_aarch64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.aarch64.rpm"
-    wget ${obutils_aarch64_url} -O ./obutils.rpm
+    wget  --quiet ${obutils_aarch64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_aarch64
     rm -rf ./usr
@@ -39,7 +39,7 @@ download_obstack() {
   else
     echo "downland x64 obstack."
     obutils_x64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.x86_64.rpm"
-    wget ${obutils_x64_url} -O ./obutils.rpm
+    wget  --quiet ${obutils_x64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_x86_64
     rm -rf ./usr
