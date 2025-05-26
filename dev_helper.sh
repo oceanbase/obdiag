@@ -7,7 +7,7 @@ build_rpm() {
     clean_old_rpm_data
     download_obstack
     export RELEASE=`date +%Y%m%d%H%M`
-    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/3.8\/get-pip.py -o get-pip.py\n\
+    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/get-pip.py -o get-pip.py\n\
 python3 get-pip.py\n\
 pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     cat ./rpm/oceanbase-diagnostic-tool.spec
@@ -73,8 +73,8 @@ initialize_environment() {
         major=${version[0]}
         minor=${version[1]}
 
-        if (( major < 3 || (major == 3 && minor < 8) )); then
-            echo "Your Python3 version is less than 3.8. Please updating Python3..."
+        if (( major < 3 || (major == 3 && minor < 11) )); then
+            echo "Your Python3 version is less than 3.11. Please updating Python3..."
             exit 1
         fi
     }
