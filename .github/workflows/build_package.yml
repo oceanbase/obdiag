@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies and build obdiag rpm
         run: |
           yum install -y wget rpm-build gcc gcc-c++ make
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate > /dev/null
           sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
           export PATH=/opt/miniconda3/bin:$PATH
           /opt/miniconda3/bin/conda init
