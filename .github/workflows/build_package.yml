@@ -21,25 +21,24 @@ jobs:
     needs: cancel
     runs-on: ubuntu-latest
     container:
-      image: "oceanbase/obdiag-builder:latest"
+      image: "registry.openanolis.cn/openanolis/anolisos:8.9"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: Install dependencies and build obdiag rpm
         run: |
+          yum install -y wget rpm-build gcc gcc-c++ make
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
+          sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
           export PATH=/opt/miniconda3/bin:$PATH
+          /opt/miniconda3/bin/conda init
+          /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
+          source /opt/miniconda3/bin/activate obdiag
+          /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
           source activate obdiag
-          ldd --version
           pip3 install -r requirements3.txt
-
-      - name: Build package
-        run: |
-          export PATH=/opt/miniconda3/bin:$PATH
-          source activate obdiag
-          pwd
-          ls -lh
           bash dev_helper.sh pack
 
       - name: Find rpm
