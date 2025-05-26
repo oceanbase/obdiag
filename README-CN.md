@@ -5,8 +5,8 @@
     <a href="https://github.com/oceanbase/obdiag/releases/latest">
         <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag%2Freleases%2Flatest" />
     </a>
-    <a href="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg">
-        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg" />
+    <a href="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg">
+        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg" />
     </a>
     <a href="https://github.com/oceanbase/obdiag">
         <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag" />
@@ -41,7 +41,7 @@ sh /opt/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## 方式二：源码安装
-源码安装需要在python >= 3.8的环境下进行
+源码安装需要在python >= 3.11的环境下进行
 
 ```shell
 ./dev_helper.sh init
