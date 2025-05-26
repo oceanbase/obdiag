@@ -7,8 +7,8 @@ English | [中文版](README-CN.md)
     <a href="https://github.com/oceanbase/obdiag/releases/latest">
         <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag%2Freleases%2Flatest" />
     </a>
-    <a href="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg">
-        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg" />
+    <a href="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg">
+        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg" />
     </a>
     <a href="https://github.com/oceanbase/obdiag">
         <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag" />
@@ -41,7 +41,7 @@ sh /opt/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## Method 2: Install obdiag by using the source code
-To install obdiag on Python >= 3.8, run these commands:
+To install obdiag on Python >= 3.11, run these commands:
 
 ```shell
 ./dev_helper.sh init
