@@ -594,7 +594,7 @@ class GatherLogOnNode:
 
                 if not file_name.endswith("log") and not file_name.endswith("wf"):
                     # get end_time from file_name
-                    first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
+                    first_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
                     if first_line_text == "":
                         self.stdio.verbose("node: {0}, The log file {1} can't find starttime. skip".format(self.ssh_client.get_name(), file_name))
                         continue
@@ -625,7 +625,7 @@ class GatherLogOnNode:
                 elif file_name.endswith("log") or file_name.endswith("wf"):
                     # get form_time and to_time from the first and last lines of text of the file
                     # Get the first and last lines of text of the file. Here, use a command
-                    first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
+                    first_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
                     if first_line_text == "":
                         self.stdio.verbose("node: {0}, The log file {1} can't find starttime. skip".format(self.ssh_client.get_name(), file_name))
                         continue
@@ -633,7 +633,7 @@ class GatherLogOnNode:
                     file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
                     file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
 
-                    last_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | tail -n 1").strip()
+                    last_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | tail -n 1").strip()
                     if last_line_text == "":
                         file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         self.stdio.warn("node: {0}, The log file {1} can't find endtime. set nowtime:{2}".format(self.ssh_client.get_name(), file_name, file_end_time))
