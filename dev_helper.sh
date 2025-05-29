@@ -7,9 +7,9 @@ build_rpm() {
     clean_old_rpm_data
     download_obstack
     export RELEASE=`date +%Y%m%d%H%M`
-    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/3.8\/get-pip.py -o get-pip.py\n\
-python3 get-pip.py\n\
-pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
+#    sed -i 's/pip install -r requirements3.txt/curl https:\/\/bootstrap.pypa.io\/pip\/get-pip.py -o get-pip.py\n\
+#python3 get-pip.py\n\
+#pip3 install -r requirements3.txt/' ./rpm/oceanbase-diagnostic-tool.spec
     cat ./rpm/oceanbase-diagnostic-tool.spec
     yum install rpm-build -y
     rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec
@@ -27,7 +27,7 @@ download_obstack() {
   else
     echo "downland aarch64 obstack."
     obutils_aarch64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.aarch64.rpm"
-    wget ${obutils_aarch64_url} -O ./obutils.rpm
+    wget  --quiet ${obutils_aarch64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_aarch64
     rm -rf ./usr
@@ -39,7 +39,7 @@ download_obstack() {
   else
     echo "downland x64 obstack."
     obutils_x64_url="https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.x86_64.rpm"
-    wget ${obutils_x64_url} -O ./obutils.rpm
+    wget  --quiet ${obutils_x64_url} -O ./obutils.rpm
     rpm2cpio obutils.rpm | cpio -idv
     cp -f ./usr/bin/obstack ./dependencies/bin/obstack_x86_64
     rm -rf ./usr
@@ -73,8 +73,8 @@ initialize_environment() {
         major=${version[0]}
         minor=${version[1]}
 
-        if (( major < 3 || (major == 3 && minor < 8) )); then
-            echo "Your Python3 version is less than 3.8. Please updating Python3..."
+        if (( major < 3 || (major == 3 && minor < 11) )); then
+            echo "Your Python3 version is less than 3.11. Please updating Python3..."
             exit 1
         fi
     }

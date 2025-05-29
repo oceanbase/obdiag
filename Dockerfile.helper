@@ -5,7 +5,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 RUN sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
 RUN export PATH=/opt/miniconda3/bin:$PATH
 RUN /opt/miniconda3/bin/conda init
-RUN /opt/miniconda3/bin/conda create --name obdiag python=3.8 -y
+RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
 RUN source /opt/miniconda3/bin/activate obdiag
-RUN /opt/miniconda3/envs/obdiag/bin/python3.8  -m pip install --upgrade pip setuptools wheel
+RUN /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
 RUN yum install -y gcc gcc-c++ make
