@@ -691,4 +691,3 @@ class GatherLogOnNode:
         except Exception as e:
             self.stdio.exception(f"An error occurred while trying to find the observer process: {e}")
             return None
-
