@@ -1,16 +1,29 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+# Get current effective user information
 CURRENT_USER_ID=$(id -u)
-CURRENT_USER_NAME=$(logname 2>/dev/null || echo "$SUDO_USER" | awk -F'[^a-zA-Z0-9_]' '{print $1}')
 
-if [ "$CURRENT_USER_ID" -eq 0 ]; then
-    if [ -n "$SUDO_USER" ]; then
-        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    else
-        USER_HOME=/root
-    fi
+# Determine if the script is executed via sudo (not simply based on SUDO_USER)
+IS_SUDO_EXECUTED=0
+if [ "$CURRENT_USER_ID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    IS_SUDO_EXECUTED=1
 else
+    IS_SUDO_EXECUTED=0
+fi
+
+# Set user and home directory
+if [ $IS_SUDO_EXECUTED -eq 1 ]; then
+    # It was executed via sudo, use the original user
+    CURRENT_USER_NAME="$SUDO_USER"
+    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    # Otherwise, use the current user
+    CURRENT_USER_NAME=$(id -un)
     USER_HOME="$HOME"
+fi
+
+if [ -z "$USER_HOME" ]; then
+    echo "Error: Could not determine home directory for current user."
+    exit 1
 fi
 
 # Define source directory and target backup directory
