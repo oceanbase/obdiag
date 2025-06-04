@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 
 CURRENT_USER_ID=$(id -u)
-CURRENT_USER_NAME=$(logname 2>/dev/null || echo "$SUDO_USER" | awk -F'[^a-zA-Z0-9_]' '{print $1}')
+CURRENT_USER_NAME=$(id -un)
 
-if [ "$CURRENT_USER_ID" -eq 0 ]; then
-    if [ -n "$SUDO_USER" ]; then
-        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    else
-        USER_HOME=/root
-    fi
-else
-    USER_HOME="$HOME"
+USER_HOME="$HOME"
+
+if [ -z "$USER_HOME" ]; then
+    echo "Error: Could not determine home directory for current user."
+    exit 1
 fi
 
 if [[ $# == 1 && $1 == "-f" ]]; then
