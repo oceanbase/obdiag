@@ -48,6 +48,10 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.tenant_connector = None
         self.store_dir = store_dir
         self.raw_query_sql = None
+        self.plan_id = None
+        self.tenant_id = None
+        self.svr_ip = None
+        self.svr_port = None
         self.is_innner = is_inner
         self.is_scene = is_scene
         self.tenant_user = None
@@ -161,13 +165,13 @@ class GatherDBMSXPLANHandler(SafeStdio):
     def execute(self):
         try:
             self.version = get_observer_version(self.context)
-            raw_query_sql = self.__get_sql_from_trace_id()
+            raw_query_sql = self.__get_sql_audit_from_trace_id()
             if raw_query_sql:
                 self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.tenant_user, password=self.tenant_password, timeout=100, database=self.db_name)
                 if self.scope in ['all', 'opt_trace']:
                     self.get_opt_trace()
                 if self.scope in ['all', 'display_cursor']:
-                    self.get_display_cursor(raw_query_sql)
+                    self.get_display_cursor()
                 return True
             else:
                 self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
@@ -176,21 +180,16 @@ class GatherDBMSXPLANHandler(SafeStdio):
             self.stdio.error("get dbms_xplan result failed, error: {0}".format(e))
             return False
 
-    def __is_select_statement(self, sql):
-        stripped_sql = sql.strip().upper()
-        return stripped_sql.startswith('SELECT')
-
-    def get_display_cursor(self, sql):
+    def get_display_cursor(self):
         result = ''
-        if not self.__is_select_statement(sql):
-            self.stdio.warn("Your sql is: {0}. But, this functionality only supports SQL query statements.".format(sql))
+        display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=self.plan_id, svr_ip=self.svr_ip, svr_port=self.svr_port, tenant_id=self.tenant_id)
         try:
             if not StringUtils.compare_versions_lower(self.version, "4.2.5.0"):
-                plan_result = self.tenant_connector.execute_display_cursor(sql)
+                self.stdio.verbose("execute SQL: %s", display_cursor_sql)
+                plan_result = self.tenant_connector.execute_sql_pretty(display_cursor_sql)
                 if plan_result:
-                    self.stdio.verbose("execute SQL: %s", sql)
-                    step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');\n".format(sql)
-                    result = step + str(plan_result)
+                    plan_result.align = 'l'
+                    result = 'obclient> ' + display_cursor_sql + '\n' + str(plan_result)
                     self.stdio.verbose("dbms_xplan.display_cursor report complete")
                     self.__report(result)
                     self.__print_display_cursor_result()
@@ -235,15 +234,23 @@ class GatherDBMSXPLANHandler(SafeStdio):
         summary_tuples = self.__get_overall_summary(self.gather_tuples)
         self.stdio.print(summary_tuples)
 
-    def __get_sql_from_trace_id(self):
+    def __get_sql_audit_from_trace_id(self):
         sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit")
         audit_result = self.ob_connector.execute_sql(sql)
         if len(audit_result) > 0:
             trace = audit_result[0]
             raw_sql = trace[1]
             db_name = trace[8]
+            plan_id = trace[9]
+            tenant_id = trace[10]
+            svr_ip = trace[12]
+            svr_port = trace[13]
             self.raw_query_sql = raw_sql
             self.db_name = db_name
+            self.plan_id = plan_id
+            self.tenant_id = tenant_id
+            self.svr_ip = svr_ip
+            self.svr_port = svr_port
             return raw_sql
         else:
             return

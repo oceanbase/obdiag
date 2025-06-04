@@ -173,7 +173,8 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("[sql plan monitor report task] report plan cache")
                 self.report_plan_cache(plan_explain_sql)
                 # dbms_xplan.display_cursor
-                self.report_display_cursor_obversion4(sql)
+                display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=plan_id, svr_ip=svr_ip, svr_port=svr_port, tenant_id=tenant_id)
+                self.report_display_cursor_obversion4(display_cursor_sql)
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql, tenant_name)
@@ -1007,24 +1008,17 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception(repr(e))
             pass
 
-    def __is_select_statement(self, sql):
-        stripped_sql = sql.strip().upper()
-        return stripped_sql.startswith('SELECT')
-
     def report_display_cursor_obversion4(self, display_cursor_sql):
         if self.skip and self.skip == "dbms_xplan":
             self.stdio.warn("you have set the option --skip to skip gather dbms_xplan")
             return
-        if not self.__is_select_statement(display_cursor_sql):
-            self.stdio.verbose("display_cursor report complete")
-            return
         try:
             if not StringUtils.compare_versions_lower(self.ob_version, "4.2.5.0"):
-                plan_result = self.db_connector.execute_display_cursor(display_cursor_sql)
+                self.stdio.print("execute SQL: %s", display_cursor_sql)
+                plan_result = self.db_connector.execute_sql_pretty(display_cursor_sql)
                 if plan_result:
-                    self.stdio.verbose("execute SQL: %s", display_cursor_sql)
-                    step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');".format(display_cursor_sql)
-                    self.report_pre(step)
+                    plan_result.align = 'l'
+                    self.report_pre("obclient> " + display_cursor_sql)
                     self.report_pre(plan_result)
                     self.stdio.verbose("display_cursor report complete")
                 else:
