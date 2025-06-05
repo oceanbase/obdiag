@@ -1078,6 +1078,11 @@ class TimeUtils(object):
                 format_time_str = ""
         else:
             format_time_str = ""
+        if format_time_str == "":
+            time_pattern = r'[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}'
+            match = re.search(time_pattern, log_text)
+            if match:
+                format_time_str = match.group(0)
         return format_time_str
 
     @staticmethod
