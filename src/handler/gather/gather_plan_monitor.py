@@ -58,6 +58,7 @@ class GatherPlanMonitorHandler(object):
         self.is_scene = is_scene
         self.ob_version = "4.2.5.0"
         self.skip = None
+        self.db_tables = []
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -892,7 +893,8 @@ class GatherPlanMonitorHandler(object):
             sql_explain_result_sql = "%s" % explain_sql
             sql_explain_result = from_db_cursor(sql_explain_cursor)
 
-            optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio)
+            filter_tables = self.get_stat_stale_yes_tables(raw_sql)
+            optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio, filter_tables)
             self.report_optimization_info_warn(optimization_warn)
 
             # output explain result
@@ -1036,3 +1038,35 @@ class GatherPlanMonitorHandler(object):
             self.__report(content)
         else:
             self.stdio.verbose("the result of optimization_info_warn is None")
+
+    def get_stat_stale_yes_tables(self, sql):
+        try:
+            parser = SQLTableExtractor()
+            parse_tables = parser.parse(sql)
+            for t in parse_tables:
+                db_name, table_name = t
+                if not db_name:
+                    db_name = self.db_conn.get("database")
+                self.db_tables.append((db_name, table_name))
+        except Exception as e:
+            self.stdio.warn(f"parse_tables failed, err: {str(e)}")
+        stale_tables = []
+        for db, table in self.db_tables:
+            sql = """
+                SELECT IS_STALE 
+                FROM oceanbase.DBA_OB_TABLE_STAT_STALE_INFO 
+                WHERE DATABASE_NAME = '{0}' AND TABLE_NAME = '{1}' limit 1
+            """.format(
+                db, table
+            )
+            try:
+                result = self.db_connector.execute_sql(sql)
+                is_stale = result[0][0] if result else 'NO'
+                self.stdio.print(f"{db}.{table} -> oceanbase.DBA_OB_TABLE_STAT_STALE_INFO IS_STALE={is_stale}")
+                if is_stale == 'YES':
+                    stale_tables.append(table)
+
+            except Exception as e:
+                self.stdio.warn(f"execute SQL: {sql} {str(e)}")
+                continue
+        return stale_tables
