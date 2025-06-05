@@ -1412,7 +1412,7 @@ class StringUtils(object):
         return masked_data
 
     @staticmethod
-    def parse_optimization_info(text, stdio):
+    def parse_optimization_info(text, stdio, filter_tables=None):
         # Fixed module names that should not be treated as table names
         module_names = {'Outputs & filters', 'Used Hint', 'Qb name trace', 'Outline Data', 'Optimization Info', 'Plan Type', 'Note'}
 
@@ -1453,13 +1453,13 @@ class StringUtils(object):
             else:
                 try:
                     if stats_data['type'] == 'version':
-                        if stats_data['value'] == 0:
+                        if stats_data['value'] == 0 and (table in filter_tables):
                             message = f"In explain extended [Optimization Info], the [stats version] for the {table} table is 0, indicating that statistics have not been collected. Please collect statistics."
                             stdio.print(message)
                             messages.append(message)
                         else:
                             stats_time = datetime.datetime.utcfromtimestamp(stats_data['value'] // 1000000).strftime('%Y-%m-%d %H:%M:%S')
-                            if (datetime.datetime.now().timestamp() - stats_data['value'] / 1000000) > 24 * 60 * 60:
+                            if ((datetime.datetime.now().timestamp() - stats_data['value'] / 1000000) > 24 * 60 * 60) and (table in filter_tables):
                                 message = f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_time}, indicating that statistics are over 24 hours old. Please collect statistics."
                                 stdio.print(message)
                                 messages.append(message)
@@ -1467,7 +1467,7 @@ class StringUtils(object):
                                 message = f"The statistics are up-to-date. The last collection time for the {table} table was {stats_time}. No action needed."
                                 stdio.verbose(message)
                     elif stats_data['type'] == 'info':
-                        if (datetime.datetime.now() - stats_data['value']).total_seconds() > 24 * 60 * 60:
+                        if ((datetime.datetime.now() - stats_data['value']).total_seconds() > 24 * 60 * 60) and (table in filter_tables):
                             message = (
                                 f"In explain extended [Optimization Info], the [stats version] time for the {table} table is {stats_data['value'].strftime('%Y-%m-%d %H:%M:%S')}, indicating that statistics are over 24 hours old. Please collect statistics."
                             )
