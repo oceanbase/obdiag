@@ -173,7 +173,7 @@ class TaskBase:
             timeout=10000,
         )
 
-    def check_ob_version_min(self, min_version):
+    def check_ob_version_min(self, min_version: str):
         if self.observer_version is None:
             return False
         if self.observer_version == min_version:

@@ -27,6 +27,16 @@ class NetworkSpeedDiff(TaskBase):
             self.report.add_critical("Database connection required for NIC name lookup")
 
     def execute(self):
+        if self.observer_version:
+            if super().check_ob_version_min("4.0.0.0"):
+                pass
+            else:
+                self.report.add_warning("Unadapted by version. SKIP")
+                return
+        else:
+            self.report.add_warning("Unable to determine observer version")
+            return
+
         speeds = []
         for node in self.observer_nodes:
             ssh_client = node.get("ssher")
