@@ -183,6 +183,35 @@ class TaskBase:
         else:
             return False
 
+    def check_obproxy_version_min(self, min_version):
+        if self.obproxy_version is None:
+            return False
+        if self.obproxy_version == min_version:
+            return True
+        if StringUtils.compare_versions_greater(self.obproxy_version, min_version):
+            return True
+        else:
+            return False
+
+    def check_ob_version_max(self, max_version):
+        if self.observer_version is None:
+            return False
+        if self.observer_version == max_version:
+            return True
+        if StringUtils.compare_versions_greater(max_version, self.observer_version):
+            return True
+        else:
+            return False
+
+    def get_obproxy_parameter(self, parameter_name):
+        try:
+            sql = "show proxyconfig like '{0}';".format(parameter_name)
+            data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
+            return data
+        except Exception as e:
+            self.stdio.error("get {0} fail:{1} .please check".format(parameter_name, e))
+            return []
+
     def check_command_exist(self, ssh_client, command):
         if ssh_client is None:
             return False
