@@ -62,9 +62,11 @@ GROUP BY
                 parameters_default_value = parameters_data_one.get("default_value")
                 parameters_tenant_ids = parameters_data_one.get("tenant_ids")
                 if parameters_tenant_ids is None:
-                    report_str = "the {0} is not default_value. value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
+                    if parameters_default_value is None:
+                        continue
+                    report_str = "the {0} value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
                 else:
-                    report_str = "the {0} is not default_value. tenant_ids: {1}, value: {2}, default_value: {3}".format(parameters_name, parameters_tenant_ids, parameters_value, parameters_default_value)
+                    report_str = "the {0} tenant_ids: {1}, value: {2}, default_value: {3}".format(parameters_name, parameters_tenant_ids, parameters_value, parameters_default_value)
                 self.report.add_warning(report_str)
 
         except Exception as e:
