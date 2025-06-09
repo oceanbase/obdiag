@@ -33,17 +33,23 @@ class DmesgLog(TaskBase):
                     self.report.add_warning("node:{0}. dmesg command does not exist.".format(ssh_client.get_name()))
                     continue
                 # check dmesg log
-                dmesg_log = ssh_client.exec_cmd("dmesg").strip()
-                if not dmesg_log:
-                    self.report.add_warning("node:{0}. dmesg log is empty.".format(ssh_client.get_name()))
-                    continue
-                # check "Hardware Error" is existed
-                if re.search(r"Hardware Error", dmesg_log):
-                    dmesg_log_lines = dmesg_log.splitlines("\n")
-                    for line in dmesg_log_lines:
-                        if "Hardware Error" in line:
-                            self.report.add_warning("node:{0}. dmesg log has Hardware Error. log:{1}".format(ssh_client.get_name(), line))
-                            break
+                # download dmesg log
+                dmesg_log = ssh_client.exec_cmd("dmesg > /tmp/dmesg.log").strip()
+                ssh_client.download("/tmp/dmesg.log", "./dmesg.log")
+                ssh_client.exec_cmd("rm -rf /tmp/dmesg.log")
+                with open("dmesg.log", "r", encoding="utf-8", errors="ignore") as f:
+                    dmesg_log = f.read()
+                    if not dmesg_log:
+                        self.report.add_warning("node:{0}. dmesg log is empty.".format(ssh_client.get_name()))
+                        continue
+                    # check "Hardware Error" is existed
+                    if re.search(r"Hardware Error", dmesg_log):
+                        dmesg_log_lines = dmesg_log.splitlines("\n")
+                        for line in dmesg_log_lines:
+                            if "Hardware Error" in line:
+                                self.report.add_warning("node:{0}. dmesg log has Hardware Error. log:{1}".format(ssh_client.get_name(), line))
+                                break
+                    print("done")
 
         except Exception as e:
             return self.report.add_fail(f"Execute error: {e}")

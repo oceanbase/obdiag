@@ -40,7 +40,7 @@ class CpuQuotaConcurrency(TaskBase):
                 if int(tenant_id) == 1:
                     if cpu_quota_concurrency_value != 10:
                         self.report.add_warning("tenant_id: {1}, svr_ip: {2}. cpu_quota_concurrency is {0}, recommended value is 10.".format(cpu_quota_concurrency_value, tenant_id, svr_ip))
-                        continue
+                    continue
 
                 if cpu_quota_concurrency_value > 4 or cpu_quota_concurrency_value < 2:
                     self.report.add_warning("tenant_id: {1}, svr_ip: {2}. cpu_quota_concurrency is {0}, recommended value is 2-4.".format(cpu_quota_concurrency_value, tenant_id, svr_ip))
