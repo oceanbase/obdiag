@@ -15,7 +15,10 @@
 @file: dmesg_log.py
 @desc:
 """
+import os
 import re
+import uuid
+
 from src.handler.checker.check_task import TaskBase
 
 
@@ -25,6 +28,7 @@ class DmesgLog(TaskBase):
         super().init(context, report)
 
     def execute(self):
+        os.mkdir("./dmesg_log_tmp/")
         try:
             # check dmesg is exist
             for node in self.observer_nodes:
@@ -34,11 +38,11 @@ class DmesgLog(TaskBase):
                     continue
                 # check dmesg log
                 # download dmesg log
-                dmesg_log_file_name = "dmesg.log." + ssh_client.get_name()
+                dmesg_log_file_name = "dmesg.log.{0}.{1}".format(ssh_client.get_name(), str(uuid.uuid4())[:6])
                 ssh_client.exec_cmd("dmesg > {}".format(dmesg_log_file_name)).strip()
-                ssh_client.download("{0}".format(dmesg_log_file_name), "./{}".format(dmesg_log_file_name))
+                ssh_client.download("{0}".format(dmesg_log_file_name), "./dmesg_log_tmp/{}".format(dmesg_log_file_name))
                 ssh_client.exec_cmd("rm -rf {0}".format(dmesg_log_file_name))
-                with open(dmesg_log_file_name, "r", encoding="utf-8", errors="ignore") as f:
+                with open("./dmesg_log_tmp/{}".format(dmesg_log_file_name), "r", encoding="utf-8", errors="ignore") as f:
                     dmesg_log = f.read()
                     if not dmesg_log:
                         self.report.add_warning("node:{0}. dmesg log is empty.".format(ssh_client.get_name()))
@@ -53,6 +57,8 @@ class DmesgLog(TaskBase):
 
         except Exception as e:
             return self.report.add_fail(f"Execute error: {e}")
+        finally:
+            os.system("rm -rf ./dmesg_log_tmp/")
 
     def get_task_info(self):
         return {"name": "dmesg_log", "info": "Confirm whether there is \"Hardware Error\" in dmesg. issue #885 "}
