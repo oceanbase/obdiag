@@ -34,10 +34,10 @@ class DmesgLog(TaskBase):
                     continue
                 # check dmesg log
                 # download dmesg log
-                dmesg_log_file_name = "dmesg.{0}.log".format(ssh_client.get_name())
-                ssh_client.exec_cmd("dmesg > /tmp/{}".format(dmesg_log_file_name)).strip()
-                ssh_client.download("/tmp/{0}".format(dmesg_log_file_name), "./{}".format(dmesg_log_file_name))
-                ssh_client.exec_cmd("rm -rf /tmp/{0}".format(dmesg_log_file_name))
+                dmesg_log_file_name = "dmesg.log." + ssh_client.get_name()
+                ssh_client.exec_cmd("dmesg > {}".format(dmesg_log_file_name)).strip()
+                ssh_client.download("{0}".format(dmesg_log_file_name), "./{}".format(dmesg_log_file_name))
+                ssh_client.exec_cmd("rm -rf {0}".format(dmesg_log_file_name))
                 with open(dmesg_log_file_name, "r", encoding="utf-8", errors="ignore") as f:
                     dmesg_log = f.read()
                     if not dmesg_log:
