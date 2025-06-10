@@ -58,4 +58,4 @@ class DmesgLog(TaskBase):
         return {"name": "dmesg_log", "info": "Confirm whether there is \"Hardware Error\" in dmesg. issue #885 "}
 
 
-test = DmesgLog()
+dmesg_log = DmesgLog()
