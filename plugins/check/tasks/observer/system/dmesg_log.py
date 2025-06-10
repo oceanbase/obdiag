@@ -34,7 +34,7 @@ class DmesgLog(TaskBase):
                     continue
                 # check dmesg log
                 # download dmesg log
-                dmesg_log_file_name = "dmesg.log"+ssh_client.get_name()
+                dmesg_log_file_name = "dmesg.log" + ssh_client.get_name()
                 ssh_client.exec_cmd("dmesg > /tmp/{}".format(dmesg_log_file_name)).strip()
                 ssh_client.download("/tmp/{0}".format(dmesg_log_file_name), "./{}".format(dmesg_log_file_name))
                 ssh_client.exec_cmd("rm -rf /tmp/{0}".format(dmesg_log_file_name))
