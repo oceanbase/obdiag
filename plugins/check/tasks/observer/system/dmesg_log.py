@@ -17,6 +17,7 @@
 """
 import os
 import re
+import shutil
 import uuid
 
 from src.handler.checker.check_task import TaskBase
@@ -28,7 +29,12 @@ class DmesgLog(TaskBase):
         super().init(context, report)
 
     def execute(self):
-        os.mkdir("./dmesg_log_tmp/")
+        local_tmp_dir = "./dmesg_log_tmp/"
+        if not os.path.exists(local_tmp_dir):
+            os.makedirs(local_tmp_dir)
+        else:
+            self.report.add_warning("SKIP: local dmesg_log_tmp:{} directory already exists. Please delete it or move it manually.".format(local_tmp_dir))
+            return
         try:
             # check dmesg is exist
             for node in self.observer_nodes:
@@ -58,7 +64,8 @@ class DmesgLog(TaskBase):
         except Exception as e:
             return self.report.add_fail(f"Execute error: {e}")
         finally:
-            os.system("rm -rf ./dmesg_log_tmp/")
+            if os.path.exists(local_tmp_dir):
+                shutil.rmtree(local_tmp_dir, ignore_errors=True)
 
     def get_task_info(self):
         return {"name": "dmesg_log", "info": "Confirm whether there is \"Hardware Error\" in dmesg. issue #885 "}
