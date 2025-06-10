@@ -38,11 +38,11 @@ class DmesgLog(TaskBase):
                     continue
                 # check dmesg log
                 # download dmesg log
-                dmesg_log_file_name = "dmesg.log.{0}.{1}".format(ssh_client.get_name(), str(uuid.uuid4())[:6])
-                ssh_client.exec_cmd("dmesg > {}".format(dmesg_log_file_name)).strip()
-                ssh_client.download("{0}".format(dmesg_log_file_name), "./dmesg_log_tmp/{}".format(dmesg_log_file_name))
-                ssh_client.exec_cmd("rm -rf {0}".format(dmesg_log_file_name))
-                with open("./dmesg_log_tmp/{}".format(dmesg_log_file_name), "r", encoding="utf-8", errors="ignore") as f:
+                dmesg_log_file_name = "dmesg.{0}.log".format(ssh_client.get_name())
+                ssh_client.exec_cmd("dmesg > /tmp/{}".format(dmesg_log_file_name)).strip()
+                ssh_client.download("/tmp/{0}".format(dmesg_log_file_name), "./{}".format(dmesg_log_file_name))
+                ssh_client.exec_cmd("rm -rf /tmp/{0}".format(dmesg_log_file_name))
+                with open(dmesg_log_file_name, "r", encoding="utf-8", errors="ignore") as f:
                     dmesg_log = f.read()
                     if not dmesg_log:
                         self.report.add_warning("node:{0}. dmesg log is empty.".format(ssh_client.get_name()))
