@@ -3,13 +3,8 @@ task:
   - version: "[4.0.0.0,*]"
     steps:
     - type: sql
-      sql: 'select count(0) from oceanbase.DBA_OB_SERVERS where STATUS<>"ACTIVE";'
+      sql: 'select  GROUP_CONCAT(DISTINCT SVR_IP) from oceanbase.DBA_OB_SERVERS where STATUS <> "ACTIVE" or START_SERVICE_TIME = null or START_SERVICE_TIME = 0 or STOP_TIME is not null;'
       result:
-        set_value: not_ACTIVE
-        verify_type: equal
-        verify: 0
-        err_msg: 'There is #{not_ACTIVE} not_ACTIVE observer, please check as soon as possible.'
-
-
-
-
+        set_value: not_ACTIVE_OBSERVER
+        verify: '[ -z "$not_ACTIVE_OBSERVER" ]'
+        err_msg: 'There is #{not_ACTIVE_OBSERVER} not_ACTIVE observer, please check as soon as possible.'
