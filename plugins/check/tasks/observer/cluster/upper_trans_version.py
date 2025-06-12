@@ -27,7 +27,7 @@ class UpperTransVersion(TaskBase):
     def execute(self):
         try:
             sql = """
-            select svr_ip, svr_port, table_type, tenant_id, ls_id, tablet_id, size, usec_to_time(END_LOG_SCN/1000), (CONVERT(UNIX_TIMESTAMP(NOW(6)) * 1000000, UNSIGNED) - (END_LOG_SCN/1000))/1000/1000 as end_scn_gap_seconds from gv$ob_sstables where TABLE_TYPE != 'MEMTABLE' and UPPER_TRANS_VERSION = 9223372036854775807 and (CONVERT(UNIX_TIMESTAMP(NOW(6)) * 1000000, UNSIGNED) - (END_LOG_SCN/1000))/1000/1000 > 3600 * 24 * 2 order by end_scn_gap_seconds desc;
+            select svr_ip, svr_port, table_type, tenant_id, ls_id, tablet_id, size, usec_to_time(END_LOG_SCN/1000), (CONVERT(UNIX_TIMESTAMP(NOW(6)) * 1000000, UNSIGNED) - (END_LOG_SCN/1000))/1000/1000 as end_scn_gap_seconds from oceanbase.gv$ob_sstables where TABLE_TYPE != 'MEMTABLE' and UPPER_TRANS_VERSION = 9223372036854775807 and (CONVERT(UNIX_TIMESTAMP(NOW(6)) * 1000000, UNSIGNED) - (END_LOG_SCN/1000))/1000/1000 > 3600 * 24 * 2 order by end_scn_gap_seconds desc;
             """
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
