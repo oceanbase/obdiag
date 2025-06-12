@@ -22,6 +22,7 @@ from src.handler.gather.gather_component_log import GatherComponentLogHandler
 from src.common.stdio import SafeStdio
 from src.handler.gather.gather_obstack2 import GatherObstack2Handler
 from src.handler.gather.gather_perf import GatherPerfHandler
+from src.handler.gather.step.sql import StepSQLHandler
 
 
 class CPUHigh(SafeStdio):
@@ -44,6 +45,7 @@ class CPUHigh(SafeStdio):
         self.__gather_perf()
         self.__gather_current_clocksource()
         self.__gather_log()
+        self.__get_processlist()
 
     def __gather_obstack(self):
         self.stdio.print("gather obstack start")
@@ -92,6 +94,17 @@ class CPUHigh(SafeStdio):
                 f.write(data + '\n')
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error: ".format(file_path))
+
+    def __get_processlist(self):
+        try:
+            self.stdio.print("gather processlist start")
+            step = {'global': 'true', 'type': 'sql', 'sql': 'show full processlist'}
+            handler = StepSQLHandler(self.context, step, self.cluster, self.report_path, self.task_variable_dict, self.env)
+            handler.execute()
+            self.stdio.print("gather processlist end")
+        except Exception as e:
+            self.stdio.error("gather processlist failed, error: {0}".format(e))
+            raise Exception("gather processlist failed, error: {0}".format(e))
 
 
 cpu_high = CPUHigh()
