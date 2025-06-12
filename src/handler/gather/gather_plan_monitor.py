@@ -647,15 +647,25 @@ class GatherPlanMonitorHandler(object):
         self.__report(data)
 
     def report_fast_preview(self):
-        content = '''
-        <script>
-        generate_db_time_graph("dfo", db_time_serial, $('#db_time_serial'));
-        generate_graph("dfo", agg_serial, $('#agg_serial'));
-        generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
-        generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
-        generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
-        </script>
-        '''
+        if self.ob_major_version >= 4:
+            content = '''
+            <script>
+            generate_db_time_graph("dfo", db_time_serial, $('#db_time_serial'));
+            generate_graph("dfo", agg_serial, $('#agg_serial'));
+            generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
+            generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
+            generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
+            </script>
+            '''
+        else:
+            content = '''
+            <script>
+            generate_graph("dfo", agg_serial, $('#agg_serial'));
+            generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
+            generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
+            generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
+            </script>
+            '''
         self.__report(content)
         self.stdio.verbose("report SQL_PLAN_MONITOR fast preview complete")
 
@@ -893,9 +903,10 @@ class GatherPlanMonitorHandler(object):
             sql_explain_result_sql = "%s" % explain_sql
             sql_explain_result = from_db_cursor(sql_explain_cursor)
 
-            filter_tables = self.get_stat_stale_yes_tables(raw_sql)
-            optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio, filter_tables)
-            self.report_optimization_info_warn(optimization_warn)
+            if self.ob_major_version >= 4:
+                filter_tables = self.get_stat_stale_yes_tables(raw_sql)
+                optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio, filter_tables)
+                self.report_optimization_info_warn(optimization_warn)
 
             # output explain result
             self.stdio.verbose("report sql_explain_result_sql complete")

@@ -128,7 +128,7 @@ class GatherTableDumpHandler(SafeStdio):
                 self.__report_simple(sql, result[0][1])
             return True
         except Exception as e:
-            self.stdio.error("show create table error {0}".format(e))
+            self.stdio.verbose("show create table error: {0}".format(e))
 
     def __get_table_info(self):
         try:
@@ -203,11 +203,10 @@ class GatherTableDumpHandler(SafeStdio):
             query_count = '''select /*+read_consistency(weak) */ 
                     m.zone, 
                     m.svr_ip,
-                    t.database_name,
                     t.table_name,
                     m.role,
                     ROUND(m.data_size / 1024 / 1024, 2) AS "DATA_SIZE(M)",
-                    ROUND(m.required_size / 1024 / 1024, 2) AS "REQUIRED_SIZE(M)"
+                    ROUND(m.required_size / 1024 / 1024, 2) AS "REQUIRED_SIZE(M)",
                     m.row_count as total_rows_count 
                     from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
                             where m.table_id = t.table_id and m.tenant_id = '{0}' and m.table_id = '{1}' and t.table_name = '{2}' order by total_rows_count desc limit 1'''.format(
