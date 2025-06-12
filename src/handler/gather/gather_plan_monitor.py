@@ -567,7 +567,6 @@ class GatherPlanMonitorHandler(object):
             )
         data = data + "{start:0}];"
         data = data + "</script><p>%s</p><div class='bar' id='agg_sched_serial'></div>" % (title)
-        print(data)
         self.__report(data)
 
     def report_dfo_sched_agg_graph_data_obversion4(self, cursor, title=''):
