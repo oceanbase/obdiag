@@ -149,7 +149,7 @@ jobs:
         run: |
           set -e
           export tag="4.2.5"
-          docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:4.2.5.3-103000022025033117
+          docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:4.2.5.1-101000092024120918
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
           docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
