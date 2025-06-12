@@ -15,9 +15,7 @@
 @file: unit_gc.py
 @desc:
 """
-import datetime
 import os
-import re
 
 from src.handler.rca.rca_exception import RCAInitException, RCAExecuteException, RCANotNeedExecuteException
 from src.handler.rca.rca_handler import RcaScene, RCA_ResultRecord
@@ -134,7 +132,7 @@ class UnitGCScene(RcaScene):
             # ls_waiting_compaction_log: check "need wait before readonly tx been cleaned up" in log
             ls_waiting_compaction_log = self.__check_str_in_log("need wait before readonly tx been cleaned up")
             if ls_waiting_compaction_log:
-                self.record.add_record("find \"need wait before readonly tx been cleaned up\" exit in log: {0}".format(ls_waiting_log))
+                self.record.add_record("find \"need wait before readonly tx been cleaned up\" exit in log: {0}".format(ls_waiting_compaction_log))
                 self.record.add_record("the type of problem is \"ls waiting for comparison\"")
                 return
             else:
