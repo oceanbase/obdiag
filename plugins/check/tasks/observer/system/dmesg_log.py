@@ -29,7 +29,7 @@ class DmesgLog(TaskBase):
         super().init(context, report)
 
     def execute(self):
-        local_tmp_dir = "./dmesg_log_tmp/"
+        local_tmp_dir = "./dmesg_log_tmp_{0}/".format(str(uuid.uuid4())[:6])
         if not os.path.exists(local_tmp_dir):
             os.makedirs(local_tmp_dir, exist_ok=True)
         else:
