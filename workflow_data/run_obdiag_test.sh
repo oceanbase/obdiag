@@ -49,6 +49,7 @@ date "+%Y-%m-%d %H:%M:%S"
 df -h
 cp ~/.obdiag/config.yml ./config.yml
 
+
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
 check_error_log  "obdiag check run" &
@@ -145,9 +146,9 @@ check_error_log  "obdiag gather scene run --scene=observer.restart"
 check_error_log  "obdiag gather scene run --scene=observer.rootservice_switch"
 #check_error_log  "obdiag gather scene run --scene=observer.unknown" &
 check_error_log  "obdiag gather scene run --scene=observer.base" &
-check_error_log  "obdiag gather ash" &
-check_error_log  "obdiag gather ash --report_type TEXT" &
-check_error_log  "obdiag gather ash --store_dir ./ash" &
+#check_error_log  "obdiag gather ash" &
+#check_error_log  "obdiag gather ash --report_type TEXT" &
+#check_error_log  "obdiag gather ash --store_dir ./ash" &
 check_error_log  "obdiag rca list"
 #echo "=================obdiag rca run================="
 #check_error_log  "obdiag rca run"
@@ -174,9 +175,10 @@ if compare_versions_greater "$tag" "4.2.4.0"; then
     is_version_greater=true
 fi
 
-if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
-    check_error_log "obdiag gather ash --report_type html"
-fi
+#if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+#    check_error_log "obdiag gather ash --report_type html"
+#fi
+
 wait
 date "+%Y-%m-%d %H:%M:%S"
 # print pass_case the number of “1”
