@@ -220,7 +220,10 @@ class AnalyzeQueueHandler(BaseShellHandler):
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
         gather_dir_full_path = "{0}/{1}".format("/tmp", gather_dir_name)
-        mkdir(ssh_client, gather_dir_full_path)
+        mkdir_info = mkdir(ssh_client, gather_dir_full_path)
+        if mkdir_info:
+            self.stdio.error("failed to handle from node: {0}, error: {1}".format(node, mkdir_info))
+            return result_dict
 
         log_list = self.__handle_log_list(ssh_client, node)
         self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))

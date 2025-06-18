@@ -430,8 +430,11 @@ class GatherLogOnNode:
                 tmp_dir = "{0}_pid_{1}".format(tmp_dir, pid)
         tmp_log_dir = os.path.join(self.tmp_dir, tmp_dir)
         # mkdir tmp_log_dir
-        self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
-        self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}".format(self.ssh_client.get_ip(), tmp_log_dir))
+        mkdir_response = self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
+        if mkdir_response:
+            self.stdio.error("gather_log_on_node {0} mkdir -p {0}: {1}, error:{2}".format(self.ssh_client.get_ip(), tmp_log_dir, mkdir_response))
+            return
+        self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}, info:{2}".format(self.ssh_client.get_ip(), tmp_log_dir, mkdir_response))
         try:
             # find logs
             logs_name = self.__find_logs_name()
