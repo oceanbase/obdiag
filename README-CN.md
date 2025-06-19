@@ -91,7 +91,7 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 
 # 支持
 
-如果您在使用 OceanBase LogProxy 时遇到任何问题，欢迎联系我们寻求帮助：
+如果您在使用 obdiag 时遇到任何问题，欢迎联系我们寻求帮助：
 
 - [GitHub Issue](https://github.com/oceanbase/obdiag/issues)
 - [官方网站](https://www.oceanbase.com/docs/obdiag-cn)
