@@ -70,7 +70,7 @@ class TenantThreshold(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "tenant threshold", "info": ""}
+        return {"name": "tenant_threshold", "info": "check tenant threshold. issue #963"}
 
 
 tenant_threshold = TenantThreshold()

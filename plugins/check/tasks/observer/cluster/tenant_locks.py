@@ -12,7 +12,7 @@
 
 """
 @time: 2025/06/03
-@file: memstore_usage.py
+@file: tenant_locks.py
 @desc:
 """
 
@@ -54,7 +54,7 @@ class TenantLocks(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "tennat_locks", "info": "retrieve locks information for the tenant"}
+        return {"name": "tennat_locks", "info": "retrieve locks information for the tenant. issue #963"}
 
 
 tenant_locks = TenantLocks()
