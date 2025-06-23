@@ -57,6 +57,10 @@ class MemoryFullScene(RcaScene):
             log_path = os.path.join(self.work_path, "all_log")
             if not os.path.exists(log_path):
                 os.makedirs(log_path)
+            if self.ob_connector:
+                # save desc __all_virtual_memory_info;
+                self.record.add_record("ob_connector is exist, use sql to save __all_virtual_memory_info.")
+                self.__execute_sql_with_save("desc oceanbase.__all_virtual_memory_info;", "virtual_memory_info")
             self.logs_name = self.gather_log.execute(save_path=log_path)
             if self.logs_name is None or len(self.logs_name) <= 0:
                 self.record.add_record("Not find log.")
