@@ -74,12 +74,9 @@ class DeleteServerError(RcaScene):
             for enable_rebalance_false_node in enable_rebalance_false_nodes:
                 self.record.add_record("node {0} enable_rebalance is false. when delete server, enable_rebalance should be True".format(enable_rebalance_false_node))
 
-            # 获得server上对应的tenant列表，    	 select tenant_id from oceanbase.__all_resource_pool where resource_pool_id in (select resource_pool_id from oceanbase.__all_unit where svr_ip = '$DELETE_SERVER_PORT.210.101' and svr_port = '$DELETE_SERVER_PORT');
-            self.record.add_record(
-                "start check tenant by: select tenant_id from oceanbase.__all_resource_pool where resource_pool_id in (select resource_pool_id from oceanbase.__all_unit where svr_ip = '$DELETE_SERVER_PORT.210.101' and svr_port = '$DELETE_SERVER_PORT');"
-            )
+            # 获得server上对应的tenant列表，    	 select tenant_id from oceanbase.__all_resource_pool where resource_pool_id in (select resource_pool_id from oceanbase.__all_unit where svr_ip = '$DELETE_SERVER_PORT' and svr_port = '$DELETE_SERVER_PORT');
             sql = "select tenant_id from oceanbase.__all_resource_pool where resource_pool_id in (select resource_pool_id from oceanbase.__all_unit where svr_ip = '{0}' and svr_port = '{1}');".format(self.svr_ip, self.svr_port)
-
+            self.record.add_record("start check tenant by: {0}".format(sql))
             self.verbose("get tenant execute_sql is {0}".format(sql))
             tenant_datas = self.__execute_sql_with_save(sql, "tenant")
             for tenant_data in tenant_datas:
