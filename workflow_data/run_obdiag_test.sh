@@ -153,6 +153,7 @@ check_error_log  "obdiag rca list"
 echo "=================obdiag rca run================="
 obdiag rca run --scene=replay_hold
 obdiag rca run --scene=memory_full
+obdiag rca run --scene=delete_server_error --env svr_ip=127.0.0.1 --env svr_port=2881
 #echo "=================obdiag rca run --scene=major_hold================="
 #check_error_log  "obdiag rca run --scene=major_hold"
 #echo "=================obdiag rca run --scene=disconnection --env since=1d================="
