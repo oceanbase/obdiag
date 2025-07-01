@@ -93,6 +93,9 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
+                if not self.context.get_variable("gather_user"):
+                    self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
+                    return False
                 user = self.context.get_variable("gather_user")
             if self.context.get_variable("gather_password", None):
                 password = self.context.get_variable("gather_password")
@@ -100,8 +103,11 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 self.store_dir = self.context.get_variable("store_dir")
             if self.context.get_variable("dbms_xplan_scope", None):
                 self.scope = self.context.get_variable("dbms_xplan_scope")
-            if not (self.trace_id and user):
-                self.stdio.error("option --trace_id/--user not found, please provide")
+            if not self.trace_id:
+                self.stdio.error("option --trace_id not found, please provide")
+                return False
+            if not user:
+                self.stdio.error("option --user not found, please provide")
                 return False
             env_option = Util.get_option(options, 'env')
             if env_option:
