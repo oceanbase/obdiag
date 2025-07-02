@@ -116,7 +116,7 @@ class SshClient(SafeStdio):
             # Thread is still running, indicating timeout
             if self.stdio is not None:
                 self.stdio.error("Command execution timeout after {} seconds: {}".format(timeout, cmd))
-            raise TimeoutException("node: {} Command execution timeout after {} seconds: {}".format(self.get_name(),timeout, cmd))
+            raise TimeoutException("node: {} Command execution timeout after {} seconds: {}".format(self.get_name(), timeout, cmd))
 
         if exception[0] is not None:
             raise exception[0]
