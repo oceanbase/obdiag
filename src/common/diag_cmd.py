@@ -310,7 +310,12 @@ class ObdiagOriginCommand(BaseCommand):
 
                 ret.set_command(self.prev_cmd + " " + args_to_str(self.args))
                 ROOT_IO.set_silent(False)
-                ROOT_IO.print(ret.get_result())
+                # get silent_type
+                silent_type = self.inner_config_change_map.get("obdiag", {}).get("logger", {}).get("silent_type", None)
+                if silent_type == "md":
+                    ROOT_IO.print(ret.get_result_md())
+                else:
+                    ROOT_IO.print(ret.get_result())
                 ROOT_IO.set_silent(True)
             if self.has_trace:
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
