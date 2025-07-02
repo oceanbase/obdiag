@@ -51,7 +51,7 @@ class SshClient(SafeStdio):
         self.client = None
         self.init()
         if self.context is not None:
-            self.cmd_exec_timeout = self.context.inner_config.get("obdiag", {}).get("ssh_client", {}).get("cmd_exec_timeout", 180)
+            self.cmd_exec_timeout = int(self.context.inner_config.get("obdiag", {}).get("ssh_client", {}).get("cmd_exec_timeout", 180))
         else:
             self.cmd_exec_timeout = 180
 
