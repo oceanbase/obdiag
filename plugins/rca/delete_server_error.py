@@ -30,9 +30,6 @@ class DeleteServerError(RcaScene):
         self.svr_ip = None
         self.svr_port = None
         self.work_path = None
-        self.index_table_id = None
-        self.estimated_size = None
-        self.estimated_data_size = None
 
     def init(self, context):
         super().init(context)
