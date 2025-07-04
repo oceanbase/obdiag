@@ -57,6 +57,43 @@ class ObdiagResult:
         result = {"code": self.code, "data": self.data, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
         return json.dumps(result, ensure_ascii=False)
 
+    def _json_to_markdown(self, obj, indent=0):
+        """将JSON对象转换为Markdown格式"""
+        if obj is None:
+            return "`null`"
+        elif isinstance(obj, (str, int, float, bool)):
+            return f"`{obj}`"
+        elif isinstance(obj, list):
+            if not obj:
+                return "`[]`"
+            md_lines = []
+            for i, item in enumerate(obj):
+                md_lines.append(f"{'  ' * indent}- {self._json_to_markdown(item, indent + 1)}")
+            return "\n".join(md_lines)
+        elif isinstance(obj, dict):
+            if not obj:
+                return "`{}`"
+            md_lines = []
+            for key, value in obj.items():
+                if isinstance(value, (dict, list)) and value:
+                    md_lines.append(f"{'  ' * indent}- **{key}**:")
+                    md_lines.append(self._json_to_markdown(value, indent + 1))
+                else:
+                    md_lines.append(f"{'  ' * indent}- **{key}**: {self._json_to_markdown(value, indent + 1)}")
+            return "\n".join(md_lines)
+        else:
+            return f"`{str(obj)}`"
+
+    def get_result_md(self):
+        result = {"code": self.code, "data": self.data, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
+        result_data = json.dumps(result, ensure_ascii=False)
+
+        # 转换为Markdown格式
+        md_content = "# Obdiag Result\n\n"
+        md_content += self._json_to_markdown(result)
+
+        return md_content
+
     def get_code(self):
         return self.code
 
