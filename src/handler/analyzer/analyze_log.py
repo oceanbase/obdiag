@@ -124,7 +124,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         if scope_option:
             self.scope = scope_option
         if log_level_option:
-            self.log_level = OBLogLevel().get_log_level(scope_option)
+            self.log_level = OBLogLevel().get_log_level(log_level_option)
         if temp_dir_option:
             self.gather_ob_log_temporary_dir = temp_dir_option
         return True
