@@ -33,7 +33,6 @@ class ClogHang(TaskBase):
                 select /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */ svr_ip,is_disk_valid from oceanbase.__all_virtual_disk_stat where is_disk_valid = 0             
             '''
             clog_hang_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-            print(clog_hang_data)
             if clog_hang_data is None:
                 return self.report.add_fail("get clog hang value error")
             for clog_hang_one in clog_hang_data:
