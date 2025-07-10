@@ -55,6 +55,7 @@ from src.handler.gather.gather_variables import GatherVariablesHandler
 from src.handler.gather.gather_dbms_xplan import GatherDBMSXPLANHandler
 from src.handler.display.display_scenes import DisplaySceneHandler
 from src.handler.display.scenes.list import DisplayScenesListHandler
+from src.handler.tools.crypto_config_handler import CryptoConfigHandler
 from src.handler.update.update import UpdateHandler
 from src.common.result_type import ObdiagResult
 from src.telemetry.telemetry import telemetry
@@ -571,6 +572,16 @@ class ObdiagHome(object):
             self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
             UpdateHandler.context = self.context
+            return handler.handle()
+
+    def tool_crypto_config(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
+        else:
+            self.set_offline_context('tool_crypto_config', 'tool_crypto_config')
+            handler = CryptoConfigHandler(self.context)
             return handler.handle()
 
     def config(self, opt):

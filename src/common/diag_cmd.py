@@ -1207,6 +1207,22 @@ class ObdiagUpdateCommand(ObdiagOriginCommand):
         return obdiag.update(self.opts)
 
 
+class ObdiagToolCryptoConfigCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolCryptoConfigCommand, self).__init__('crypto_config', 'obdiag tool crypto')
+        self.parser.add_option('--key', type='string', help="the key to encrypt or decrypt")
+        self.parser.add_option('--file', type='string', help="the file path to encrypt or decrypt")
+
+    def init(self, cmd, args):
+        super(ObdiagToolCryptoConfigCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_crypto_config(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1281,6 +1297,12 @@ class ObdiagCheckCommand(MajorCommand):
         super(ObdiagCheckCommand, self).__init__('check', 'Check OceanBase cluster info')
         self.register_command(ObdiagCheckRunCommand())
         self.register_command(ObdiagCheckListCommand())
+
+
+class ToolCommand(MajorCommand):
+    def __init__(self):
+        super(ToolCommand, self).__init__('tool', 'obdiag tool')
+        self.register_command()
 
 
 class MainCommand(MajorCommand):
