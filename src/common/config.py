@@ -171,7 +171,7 @@ class ConfigManager(Manager):
                 if config_password is None:
                     raise ValueError("config_password must be provided when decrypting a file")
                 fileEncryptor = FileEncryptor(context=None, stdio=self.stdio)
-                fileEncryptor.decrypt_file(self.path, password=config_password)
+                self.config_data = yaml.safe_load(fileEncryptor.decrypt_file(self.path, password=config_password))
 
         else:
             parser = ConfigOptionsParserUtil()

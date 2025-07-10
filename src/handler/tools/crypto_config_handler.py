@@ -30,7 +30,7 @@ class CryptoConfigHandler:
     def handle(self):
         self.stdio.verbose("CryptoConfigHandler execute")
         file_path = Util.get_option(self.options, "file")
-        pd = Util.get_option(self.options, "password")
+        pd = Util.get_option(self.options, "key")
         file_path = os.path.abspath(file_path)
         if not os.path.exists(file_path):
             self.stdio.error("file {} not exists".format(file_path))
