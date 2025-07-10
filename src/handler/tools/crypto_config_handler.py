@@ -37,6 +37,6 @@ class CryptoConfigHandler:
             return
         try:
             fileEncryptor = FileEncryptor(context=self.context)
-            fileEncryptor.decrypt_file(file_path, password=pd)
+            fileEncryptor.encrypt_file(file_path, password=pd)
         except Exception as e:
             self.stdio.error("decrypt file failed, error: {}".format(e))

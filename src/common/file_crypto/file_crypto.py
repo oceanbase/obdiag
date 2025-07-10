@@ -6,10 +6,12 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class FileEncryptor:
-    def __init__(self, context):
+    def __init__(self, context, stdio=None):
         self.salt = b'obdiag'
-        self.context = context
-        self.stdio = context.stdio
+        if context is None:
+            self.stdio = stdio
+        else:
+            self.stdio = context.stdio
 
     def generate_key_from_password(self, password):
         """Generate encryption key from password"""
@@ -46,7 +48,7 @@ class FileEncryptor:
             with open(encrypted_file_path, 'wb') as file:
                 file.write(encrypted_data)
 
-            self.stdio(f"File encrypted successfully: {encrypted_file_path}. Please remember your password")
+            self.stdio.print(f"File encrypted successfully: {encrypted_file_path}. Please remember your password")
             return True
 
         except Exception as e:
