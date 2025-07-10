@@ -774,6 +774,25 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
         return obdiag.gather_function('gather_dbms_xplan', self.opts)
 
 
+class ObdiagGatherCoreCommand(ObdiagOriginCommand):
+    def __init__(self):
+        super(ObdiagGatherCoreCommand, self).__init__('core', 'Gather core diagnostic information')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes before to now. format: <n><m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagGatherCoreCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_core', self.opts)
+
+
 class ObdiagDisplaySceneListCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1227,6 +1246,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
         self.register_command(ObdiagGatherDBMSXPLANHandler())
+        self.register_command(ObdiagGatherCoreCommand())
 
 
 class ObdiagDisplayCommand(MajorCommand):
