@@ -41,7 +41,7 @@ class FileEncryptor:
         key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         return key
 
-    def encrypt_file(self, file_path, password, save=False):
+    def encrypt_file(self, file_path, password, save=True):
         """Encrypt file"""
         try:
             # Check if file exists
