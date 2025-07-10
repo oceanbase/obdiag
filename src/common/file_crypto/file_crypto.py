@@ -41,7 +41,7 @@ class FileEncryptor:
         key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         return key
 
-    def encrypt_file(self, file_path, password):
+    def encrypt_file(self, file_path, password, save=False):
         """Encrypt file"""
         try:
             # Check if file exists
@@ -61,12 +61,16 @@ class FileEncryptor:
             encrypted_data = fernet.encrypt(file_data)
 
             # Save encrypted file
-            encrypted_file_path = file_path + '.encrypted'
-            with open(encrypted_file_path, 'wb') as file:
-                file.write(encrypted_data)
+            if save:
+                encrypted_file_path = file_path + '.encrypted'
+                if os.path.exists(encrypted_file_path):
+                    self.stdio.error(f"Error: Encrypted file '{encrypted_file_path}' already exists. Please backup it first")
+                    raise FileExistsError(f"Encrypted file '{encrypted_file_path}' already exists. Please backup it first")
+                with open(encrypted_file_path, 'wb') as file:
+                    file.write(encrypted_data)
 
-            self.stdio.print(f"File encrypted successfully: {encrypted_file_path}. Please remember your password")
-            return True
+                self.stdio.print(f"File encrypted successfully: {encrypted_file_path}. Please remember your password")
+            return encrypted_data
 
         except Exception as e:
             self.stdio.error(f"Encryption failed: {str(e)}")
@@ -98,6 +102,9 @@ class FileEncryptor:
             if save:
                 # Save decrypted file
                 original_file_path = encrypted_file_path[:-10]  # Remove .encrypted suffix
+                if os.path.exists(original_file_path):
+                    self.stdio.error(f"Error: Decrypted file '{original_file_path}' already exists. Please backup it first")
+                    raise FileExistsError(f"Decrypted file '{original_file_path}' already exists. Please backup it first")
                 with open(original_file_path, 'wb') as file:
                     file.write(decrypted_data)
 
@@ -107,4 +114,22 @@ class FileEncryptor:
 
         except Exception as e:
             self.stdio.error(f"Decryption failed: {str(e)}")
+            return False
+
+    def check_encrypt_file(self, file_path, encrypted_file_path, password):
+        """Check if file is encrypted"""
+        try:
+            encrypt_data = self.encrypt_file(file_path, password, save=False)
+
+            # Read original file
+            with open(encrypted_file_path, 'rb') as file:
+                file_data = file.read()
+            if encrypt_data == file_data:
+                self.stdio.print(f"File is encrypted successfully")
+                return True
+            else:
+                self.stdio.error("{} and {} is not same".format(file_path, encrypted_file_path))
+                return False
+        except Exception as e:
+            self.stdio.error(f"Check encrypt file failed: {str(e)}")
             return False

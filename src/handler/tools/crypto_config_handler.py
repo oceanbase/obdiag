@@ -30,13 +30,39 @@ class CryptoConfigHandler:
     def handle(self):
         self.stdio.verbose("CryptoConfigHandler execute")
         file_path = Util.get_option(self.options, "file")
-        pd = Util.get_option(self.options, "key")
+        encrypted_file_path = Util.get_option(self.options, "encrypted_file") or ""
+        pd = Util.get_option(self.options, "key") or ""
         file_path = os.path.abspath(file_path)
         if not os.path.exists(file_path):
             self.stdio.error("file {} not exists".format(file_path))
             return
+        if file_path and pd and not encrypted_file_path:
+            self.stdio.verbose("encrypt file {} ".format(file_path))
+            self.encrypt_file(file_path, pd)
+        elif file_path and pd and encrypted_file_path:
+            self.stdio.verbose("check encrypt file {} and {}".format(file_path, encrypted_file_path))
+            self.check_encrypt_file(file_path, pd, encrypted_file_path)
+        elif encrypted_file_path and pd and not file_path:
+            self.stdio.verbose("decrypt file {} ".format(encrypted_file_path))
+            self.decrypt_file(encrypted_file_path, pd)
+
+    def encrypt_file(self, file_path, password):
         try:
             fileEncryptor = FileEncryptor(context=self.context)
-            fileEncryptor.encrypt_file(file_path, password=pd)
+            fileEncryptor.encrypt_file(file_path, password=password)
+        except Exception as e:
+            self.stdio.error("decrypt file failed, error: {}".format(e))
+
+    def decrypt_file(self, encrypted_file_path, password):
+        try:
+            fileEncryptor = FileEncryptor(context=self.context)
+            fileEncryptor.decrypt_file(encrypted_file_path, password=password, save=True)
+        except Exception as e:
+            self.stdio.error("decrypt file failed, error: {}".format(e))
+
+    def check_encrypt_file(self, file_path, password, encrypted_file_path):
+        try:
+            fileEncryptor = FileEncryptor(context=self.context)
+            fileEncryptor.check_encrypt_file(file_path, password=password, encrypted_file_path=encrypted_file_path)
         except Exception as e:
             self.stdio.error("decrypt file failed, error: {}".format(e))
