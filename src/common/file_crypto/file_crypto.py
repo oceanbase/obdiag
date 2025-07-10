@@ -119,12 +119,11 @@ class FileEncryptor:
     def check_encrypt_file(self, file_path, encrypted_file_path, password):
         """Check if file is encrypted"""
         try:
-            encrypt_data = self.encrypt_file(file_path, password, save=False)
-
+            data = self.decrypt_file(encrypted_file_path, password, save=False)
             # Read original file
-            with open(encrypted_file_path, 'rb') as file:
+            with open(file_path, 'rb') as file:
                 file_data = file.read()
-            if encrypt_data == file_data:
+            if str(file_data) == str(data):
                 self.stdio.print(f"File is encrypted successfully")
                 return True
             else:
