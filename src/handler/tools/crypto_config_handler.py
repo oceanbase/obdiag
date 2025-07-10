@@ -32,10 +32,17 @@ class CryptoConfigHandler:
         file_path = Util.get_option(self.options, "file")
         encrypted_file_path = Util.get_option(self.options, "encrypted_file") or ""
         pd = Util.get_option(self.options, "key") or ""
-        file_path = os.path.abspath(file_path)
-        if not os.path.exists(file_path):
-            self.stdio.error("file {} not exists".format(file_path))
-            return
+        if file_path:
+            file_path = os.path.abspath(file_path)
+        if file_path and not pd and not encrypted_file_path:
+            self.stdio.warn("file path is empty or key is empty. need input key")
+            key_first = input("please input key: ")
+            key_second = input("please input key again: ")
+            if key_first != key_second:
+                self.stdio.error("key is not same")
+                return
+            pd = key_first
+
         if file_path and pd and not encrypted_file_path:
             self.stdio.verbose("encrypt file {} ".format(file_path))
             self.encrypt_file(file_path, pd)
@@ -56,7 +63,7 @@ class CryptoConfigHandler:
     def decrypt_file(self, encrypted_file_path, password):
         try:
             fileEncryptor = FileEncryptor(context=self.context)
-            fileEncryptor.decrypt_file(encrypted_file_path, password=password, save=True)
+            self.stdio.print(str(fileEncryptor.decrypt_file(encrypted_file_path, password=password, save=False).decode('utf-8', errors='ignore')))
         except Exception as e:
             self.stdio.error("decrypt file failed, error: {}".format(e))
 
