@@ -284,7 +284,7 @@ class ObdiagOriginCommand(BaseCommand):
                     else:
                         ROOT_IO.error('The option you provided with -c: {0} is not exist.'.format(custom_config))
                         return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list,config_password=config_password)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list, config_password=config_password)
             ROOT_IO.print('obdiag version: {}'.format(OBDIAG_VERSION))
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)

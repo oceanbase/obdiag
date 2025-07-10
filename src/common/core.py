@@ -69,7 +69,7 @@ from src.common.ob_connector import OBConnector
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None,config_password=None):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None, config_password=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -86,7 +86,7 @@ class ObdiagHome(object):
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
             stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
-        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list,config_password=config_password)
+        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list, config_password=config_password)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic") is not None
