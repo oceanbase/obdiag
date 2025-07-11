@@ -53,6 +53,7 @@ from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.handler.gather.gather_parameters import GatherParametersHandler
 from src.handler.gather.gather_variables import GatherVariablesHandler
 from src.handler.gather.gather_dbms_xplan import GatherDBMSXPLANHandler
+from src.handler.gather.gather_core import GatherCoreHandler
 from src.handler.display.display_scenes import DisplaySceneHandler
 from src.handler.display.scenes.list import DisplayScenesListHandler
 from src.handler.update.update import UpdateHandler
@@ -361,6 +362,9 @@ class ObdiagHome(object):
                 return handler.handle()
             elif function_type == 'gather_dbms_xplan':
                 handler = GatherDBMSXPLANHandler(self.context)
+                return handler.handle()
+            elif function_type == 'gather_core':
+                handler = GatherCoreHandler(self.context)
                 return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
