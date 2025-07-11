@@ -67,7 +67,7 @@ class KubernetesClient(SsherClient):
         exec_command = ['/bin/sh', '-c', f'cd {dir}; tar cf - {bname}']
 
         with TemporaryFile() as tar_buffer:
-            exec_stream = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, container_name, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False)
+            exec_stream = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False, container=container_name)
             # Copy file to stream
             try:
                 reader = WSFileManager(exec_stream)
