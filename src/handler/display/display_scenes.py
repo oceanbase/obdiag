@@ -77,9 +77,15 @@ class DisplaySceneHandler(SafeStdio):
 
     def execute(self):
         try:
+            return_data = ""
             self.stdio.verbose("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
-                self.__execute_yaml_task_one(key, value)
+                data = self.__execute_yaml_task_one(key, value)
+                if isinstance(data, str):
+                    return_data = return_data + "\n" + self.__execute_yaml_task_one(key, value)
+                elif isinstance(data, ObdiagResult):
+                    return data
+            # todo display no code task
             for task in self.code_tasks:
                 self.__execute_code_task_one(task)
         except Exception as e:
@@ -111,11 +117,12 @@ class DisplaySceneHandler(SafeStdio):
                     self.cluster["version"] = match.group(0)
                 else:
                     self.stdio.error("get cluster.version failed")
-                    return
+                    return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="get cluster.version failed")
                 task = SceneBase(context=self.context, scene=task_data["task"], env=self.env, scene_variable_dict=self.variables, task_type=task_type, db_connector=self.db_connector)
                 self.stdio.verbose("{0} execute!".format(task_name))
-                task.execute()
+                data = task.execute()
                 self.stdio.verbose("execute tasks end : {0}".format(task_name))
+                return str(data)
             else:
                 self.stdio.error("can't get version")
         except Exception as e:
