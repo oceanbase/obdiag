@@ -123,7 +123,7 @@ class CheckReport:
             if len(task.all()) != 0:
                 allInfoMap[task.name] = task.all()
             if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
-                allInfoMap[task.name] = "all pass"
+                allInfoMap[task.name] = ["all pass"]
 
         allMap["fail"] = failMap
         allMap["critical"] = criticalMap
