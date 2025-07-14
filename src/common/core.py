@@ -53,8 +53,10 @@ from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.handler.gather.gather_parameters import GatherParametersHandler
 from src.handler.gather.gather_variables import GatherVariablesHandler
 from src.handler.gather.gather_dbms_xplan import GatherDBMSXPLANHandler
+from src.handler.gather.gather_core import GatherCoreHandler
 from src.handler.display.display_scenes import DisplaySceneHandler
 from src.handler.display.scenes.list import DisplayScenesListHandler
+from src.handler.tools.crypto_config_handler import CryptoConfigHandler
 from src.handler.update.update import UpdateHandler
 from src.common.result_type import ObdiagResult
 from src.telemetry.telemetry import telemetry
@@ -68,7 +70,7 @@ from src.common.ob_connector import OBConnector
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None):
+    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None, config_password=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None
@@ -85,7 +87,7 @@ class ObdiagHome(object):
         if self.inner_config_manager.config.get("obdiag") is not None and self.inner_config_manager.config.get("obdiag").get("logger") is not None and self.inner_config_manager.config.get("obdiag").get("logger").get("silent") is not None:
             stdio.set_silent(self.inner_config_manager.config.get("obdiag").get("logger").get("silent"))
         self.set_stdio(stdio)
-        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list)
+        self.config_manager = ConfigManager(config_path, stdio, custom_config_env_list, config_password=config_password)
         if (
             self.inner_config_manager.config.get("obdiag") is not None
             and self.inner_config_manager.config.get("obdiag").get("basic") is not None
@@ -362,6 +364,9 @@ class ObdiagHome(object):
             elif function_type == 'gather_dbms_xplan':
                 handler = GatherDBMSXPLANHandler(self.context)
                 return handler.handle()
+            elif function_type == 'gather_core':
+                handler = GatherCoreHandler(self.context)
+                return handler.handle()
             else:
                 self._call_stdio('error', 'Not support gather function: {0}'.format(function_type))
                 return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Not support gather function: {0}'.format(function_type))
@@ -571,6 +576,16 @@ class ObdiagHome(object):
             self.set_offline_context('update', 'update')
             handler = UpdateHandler(self.context)
             UpdateHandler.context = self.context
+            return handler.handle()
+
+    def tool_crypto_config(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
+        else:
+            self.set_offline_context('tool_crypto_config', 'tool_crypto_config')
+            handler = CryptoConfigHandler(self.context)
             return handler.handle()
 
     def config(self, opt):
