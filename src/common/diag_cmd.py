@@ -118,6 +118,7 @@ class BaseCommand(object):
         self.parser = AllowUndefinedOptionParser(add_help_option=True)
         self.parser.add_option('-h', '--help', action='callback', callback=self._show_help, help='Show help and exit.')
         self.parser.add_option('-v', '--verbose', action='callback', callback=self._set_verbose, help='Activate verbose output.')
+        self.parser.add_option('--config_password', type="string", help='config password')
         self.parser.add_option('--inner_config', action='callback', type="str", callback=self._inner_config_change, help='change inner config. ')
 
     def _set_verbose(self, *args, **kwargs):
@@ -274,6 +275,7 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.verbose('opts: %s' % self.opts)
             custom_config_env_list = Util.get_option(self.opts, 'config')
             config_path = os.path.expanduser('~/.obdiag/config.yml')
+            config_password = Util.get_option(self.opts, 'config_password')
             if custom_config_env_list is None:
                 custom_config = Util.get_option(self.opts, 'c')
                 if custom_config:
@@ -282,7 +284,7 @@ class ObdiagOriginCommand(BaseCommand):
                     else:
                         ROOT_IO.error('The option you provided with -c: {0} is not exist.'.format(custom_config))
                         return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list, config_password=config_password)
             ROOT_IO.print('obdiag version: {}'.format(OBDIAG_VERSION))
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
@@ -1226,6 +1228,23 @@ class ObdiagUpdateCommand(ObdiagOriginCommand):
         return obdiag.update(self.opts)
 
 
+class ObdiagToolCryptoConfigCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolCryptoConfigCommand, self).__init__('crypto_config', 'obdiag tool crypto')
+        self.parser.add_option('--key', type='string', help="the key to encrypt or decrypt")
+        self.parser.add_option('--file', type='string', help="the file path to encrypt or decrypt")
+        self.parser.add_option('--encrypted_file', type='string', help="the file path to encrypt")
+
+    def init(self, cmd, args):
+        super(ObdiagToolCryptoConfigCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_crypto_config(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1303,6 +1322,12 @@ class ObdiagCheckCommand(MajorCommand):
         self.register_command(ObdiagCheckListCommand())
 
 
+class ToolCommand(MajorCommand):
+    def __init__(self):
+        super(ToolCommand, self).__init__('tool', 'obdiag tool')
+        self.register_command(ObdiagToolCryptoConfigCommand())
+
+
 class MainCommand(MajorCommand):
 
     def __init__(self):
@@ -1315,5 +1340,6 @@ class MainCommand(MajorCommand):
         self.register_command(ObdiagRCACommand())
         self.register_command(ObdiagConfigCommand())
         self.register_command(ObdiagUpdateCommand())
+        self.register_command(ToolCommand())
         self.parser.version = get_obdiag_version()
         self.parser._add_version_option()
