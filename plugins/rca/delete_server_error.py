@@ -13,14 +13,13 @@
 """
 @time: 2025/06/30
 @file: delete_server_error.py
-@desc:
+@desc: 诊断删除OceanBase集群中observer节点时遇到的问题
 """
-import datetime
 import os
-import re
+from typing import List, Dict, Optional, Any
 
 from src.handler.rca.rca_exception import RCAInitException, RCAExecuteException, RCANotNeedExecuteException
-from src.handler.rca.rca_handler import RcaScene, RCA_ResultRecord
+from src.handler.rca.rca_handler import RcaScene
 from src.common.tool import StringUtils
 
 
@@ -130,7 +129,7 @@ class DeleteServerError(RcaScene):
             self.verbose("the sql:{1} .data is {0}".format(data, sql))
             if len(data) <= 0:
                 self.record.add_record("sql: {0} execute result is empty.".format(sql))
-                return None
+                return []
             columns = [desc[0] for desc in cursor.description]
             data_save_path = os.path.join(self.work_path, "{}.txt".format(save_file_name))
             with open(data_save_path, 'w') as f:
