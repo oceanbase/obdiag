@@ -16,6 +16,7 @@
 @desc: 诊断删除OceanBase集群中observer节点时遇到的问题
 """
 import os
+import traceback
 from typing import List, Dict, Optional, Any
 
 from src.handler.rca.rca_exception import RCAInitException, RCAExecuteException, RCANotNeedExecuteException
@@ -118,6 +119,7 @@ class DeleteServerError(RcaScene):
         except RCANotNeedExecuteException as e:
             self.stdio.print("[Not Need Execute]DeleteServerError need not execute: {0}".format(e))
         except Exception as e:
+            self.stdio.error("DeleteServerError execute error: {0}; trace:".format(e, traceback.format_exc()))
             raise RCAExecuteException("DeleteServerError execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end DeleteServerError execute")
