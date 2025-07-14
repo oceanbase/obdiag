@@ -47,8 +47,8 @@ class SceneBase(SafeStdio):
                     return self.__execute_yaml_mode(self.obproxy_nodes)
                 elif self.task_type == "other":
                     data = ""
-                    data = data + "\n" + self.__execute_yaml_mode(self.ob_nodes)
-                    data = data + "\n" + self.__execute_yaml_mode(self.obproxy_nodes)
+                    data = "{0}\n{1}".format(data, self.__execute_yaml_mode(self.ob_nodes))
+                    data = "{0}\n{1}".format(data, self.__execute_yaml_mode(self.obproxy_nodes))
                     return data
             elif self.mode == "code":
                 return self.__execute_code_mode()
@@ -82,7 +82,7 @@ class SceneBase(SafeStdio):
                         return
                     step_run = Base(self.context, step, node, self.cluster, self.scene_variable_dict, self.env, node_number, self.db_connector)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
-                    data = data + "\n" + step_run.execute()
+                    data = "{0}\n{1}".format(data, step_run.execute())
                     self.scene_variable_dict = step_run.update_task_variable_dict()
                 except Exception as e:
                     self.stdio.error("SceneBase execute Exception: {0}".format(e))

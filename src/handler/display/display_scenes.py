@@ -72,8 +72,8 @@ class DisplaySceneHandler(SafeStdio):
         self.context.set_variable('temp_dir', self.temp_dir)
         self.__init_variables()
         self.__init_task_names()
-        self.execute()
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE)
+        data = self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"display_data": data})
 
     def execute(self):
         try:
@@ -82,12 +82,13 @@ class DisplaySceneHandler(SafeStdio):
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
                 data = self.__execute_yaml_task_one(key, value)
                 if isinstance(data, str):
-                    return_data = return_data + "\n" + self.__execute_yaml_task_one(key, value)
+                    return_data = "{0}\n{1}".format(return_data, data)
                 elif isinstance(data, ObdiagResult):
                     return data
             # todo display no code task
             for task in self.code_tasks:
                 self.__execute_code_task_one(task)
+            return return_data
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
 
@@ -122,6 +123,7 @@ class DisplaySceneHandler(SafeStdio):
                 self.stdio.verbose("{0} execute!".format(task_name))
                 data = task.execute()
                 self.stdio.verbose("execute tasks end : {0}".format(task_name))
+                print(data)
                 return str(data)
             else:
                 self.stdio.error("can't get version")
@@ -135,8 +137,9 @@ class DisplaySceneHandler(SafeStdio):
             scene = {"name": task_name}
             task = SceneBase(context=self.context, scene=scene, env=self.env, mode='code', task_type=task_name, db_connector=self.db_connector)
             self.stdio.verbose("{0} execute!".format(task_name))
-            task.execute()
+            data = task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))
+            return data
         except Exception as e:
             self.stdio.error("__execute_code_task_one Exception : {0}".format(e))
 

@@ -68,9 +68,9 @@ class StepSQLHandler(SafeStdio):
                 title = StringUtils.replace_parameters(title, self.env)
                 formatted_title = f"\n[obdiag display]: {title} "
                 self.stdio.print(formatted_title)
-                data = data + "\n" + formatted_title
+                data = "{0}\n{1}".format(data, formatted_title)
             self.stdio.print(table)
-            data = data + "\n" + table.get_string()
+            data = "{0}\n{1}".format(data, table)
             return data
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
