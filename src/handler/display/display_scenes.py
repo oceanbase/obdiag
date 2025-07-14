@@ -123,7 +123,6 @@ class DisplaySceneHandler(SafeStdio):
                 self.stdio.verbose("{0} execute!".format(task_name))
                 data = task.execute()
                 self.stdio.verbose("execute tasks end : {0}".format(task_name))
-                print(data)
                 return str(data)
             else:
                 self.stdio.error("can't get version")
