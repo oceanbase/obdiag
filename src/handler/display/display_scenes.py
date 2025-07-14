@@ -126,8 +126,10 @@ class DisplaySceneHandler(SafeStdio):
                 return str(data)
             else:
                 self.stdio.error("can't get version")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="can't get version")
         except Exception as e:
             self.stdio.error("__execute_yaml_task_one Exception : {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="__execute_yaml_task_one Exception : {0}".format(e))
 
     # execute code task
     def __execute_code_task_one(self, task_name):
@@ -141,6 +143,7 @@ class DisplaySceneHandler(SafeStdio):
             return data
         except Exception as e:
             self.stdio.error("__execute_code_task_one Exception : {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="__execute_code_task_one Exception : {0}".format(e))
 
     def __init_task_names(self):
         if self.scene:
@@ -163,6 +166,7 @@ class DisplaySceneHandler(SafeStdio):
                 self.yaml_tasks["observer.base"] = yaml_task_base
         else:
             self.stdio.error("get task name failed")
+            return False
 
     def __init_variables(self):
         try:
@@ -175,6 +179,7 @@ class DisplaySceneHandler(SafeStdio):
             self.stdio.verbose("display scene variables: {0}".format(self.variables))
         except Exception as e:
             self.stdio.error("init display scene variables failed, error: {0}".format(e))
+            return False
 
     def __get_task_type(self, s):
         trimmed_str = s.strip()
