@@ -52,6 +52,7 @@ class SshHandler(SafeStdio):
             if len(ssh_report_value) > 0:
                 ssh_report_value = ssh_report_value.strip()
                 self.report(ssh_cmd, ssh_report_value)
+            return '\n' + '[' + self.node.get("ip") + '] shell > ' + ssh_cmd + '\n' + ssh_report_value
         except Exception as e:
             self.stdio.error("ssh execute Exception:{0}".format(e).strip())
         finally:
