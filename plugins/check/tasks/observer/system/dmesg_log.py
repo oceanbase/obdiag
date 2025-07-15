@@ -45,7 +45,7 @@ class DmesgLog(TaskBase):
                 # check dmesg log
                 # download dmesg log
                 dmesg_log_file_name = "dmesg.{0}.{1}.log".format(ssh_client.get_name(), str(uuid.uuid4())[:6])
-                ssh_client.exec_cmd("dmesg > {0}".format(dmesg_log_file_name)).strip()
+                ssh_client.exec_cmd("dmesg > ~/{0}".format(dmesg_log_file_name)).strip()
                 ssh_client.download(dmesg_log_file_name, os.path.join(local_tmp_dir, dmesg_log_file_name))
                 ssh_client.exec_cmd("rm -rf {0}".format(dmesg_log_file_name))
                 with open(os.path.join(local_tmp_dir, dmesg_log_file_name), "r", encoding="utf-8", errors="ignore") as f:
