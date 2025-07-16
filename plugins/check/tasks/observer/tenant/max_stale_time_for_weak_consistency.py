@@ -45,7 +45,7 @@ select * from oceanbase.GV$OB_PARAMETERS  where name="max_stale_time_for_weak_co
                 default = "5s"
                 value = max_stale_time_for_weak_consistency_one.get("VALUE")
                 if value.lower() != default:
-                    self.report.warning("tenant_id: {0} max_stale_time_for_weak_consistency: {1} is not default value: {2}".format(tenant_id, value, default))
+                    self.report.add_warning("tenant_id: {0} max_stale_time_for_weak_consistency: {1} is not default value: {2}".format(tenant_id, value, default))
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
             return self.report.add_fail("execute error {0}".format(e))
