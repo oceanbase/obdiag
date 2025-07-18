@@ -53,7 +53,6 @@ class Task:
             steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
             self.stdio.verbose("Unadapted by version. SKIP")
-            self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:

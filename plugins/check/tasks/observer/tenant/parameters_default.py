@@ -62,7 +62,9 @@ GROUP BY
                 parameters_default_value = parameters_data_one.get("default_value")
                 parameters_tenant_ids = parameters_data_one.get("tenant_ids")
                 if parameters_tenant_ids is None:
-                    if parameters_default_value is None:
+                    if parameters_default_value:
+                        pass
+                    else:
                         continue
                     report_str = "the {0} value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
                 else:
