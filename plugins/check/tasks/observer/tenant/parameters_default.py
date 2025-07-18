@@ -66,6 +66,8 @@ GROUP BY
                         pass
                     else:
                         continue
+                    if parameters_value == parameters_default_value:
+                        continue
                     report_str = "the {0} value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
                 else:
                     report_str = "the {0} tenant_ids: {1}, value: {2}, default_value: {3}".format(parameters_name, parameters_tenant_ids, parameters_value, parameters_default_value)
