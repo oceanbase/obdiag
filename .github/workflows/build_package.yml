@@ -97,7 +97,7 @@ jobs:
           docker run -id --name "obdiag_ob" oceanbase/oceanbase-ce:latest
           bash workflow_data/wait_observer_run.sh 
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
+          docker exec -i obdiag_ob /bin/bash -c "rpm -ivh /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp workflow_data/config.yml obdiag_ob:/root/.obdiag/config.yml
       - name: run obdiag test
         run: |
@@ -126,7 +126,7 @@ jobs:
           docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:${tag}
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
+          docker exec -i obdiag_ob /bin/bash -c "rpm -ivh /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp workflow_data/config.yml.421 obdiag_ob:/root/.obdiag/config.yml
       - name: run obdiag test
         run: |
@@ -154,7 +154,7 @@ jobs:
           docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:4.2.5.1-101000092024120918
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
+          docker exec -i obdiag_ob /bin/bash -c "rpm -ivh /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp workflow_data/config.yml.421 obdiag_ob:/root/.obdiag/config.yml
       - name: run obdiag test
         run: |
@@ -182,7 +182,7 @@ jobs:
           docker run -id --name "obdiag_ob" -e tag=${tag} oceanbase/oceanbase-ce:4.3.5-lts
           bash workflow_data/wait_observer_run.sh
           docker cp oceanbase-diagnostic-tool-*.rpm obdiag_ob:/root/
-          docker exec -i obdiag_ob /bin/bash -c "yum install -y /root/oceanbase-diagnostic-tool-*.rpm"
+          docker exec -i obdiag_ob /bin/bash -c "rpm -ivh /root/oceanbase-diagnostic-tool-*.rpm"
           docker cp workflow_data/config.yml obdiag_ob:/root/.obdiag/config.yml
       - name: run obdiag test
         run: |
