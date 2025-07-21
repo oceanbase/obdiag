@@ -85,10 +85,13 @@ class DeleteServerError(RcaScene):
                 return
             # check node is only one of the zone
             ## get the zone of the node
-            sql = "select zone from oceanbase.DBA_OB_SERVERS where svr_ip='{0}' and svr_port={1};".format(self.svr_ip, self.svr_port)
+            sql = "select ZONE from oceanbase.DBA_OB_SERVERS where svr_ip='{0}' and svr_port={1};".format(self.svr_ip, self.svr_port)
             self.verbose("get zone execute_sql is {0}".format(sql))
             zone_data = self.__execute_sql_with_save(sql, "node_zone")
-            zone = zone_data[0]['zone']
+            if len(zone_data) <= 0:
+                self.record.add_record("node {0} is not in the cluster".format(self.svr_ip))
+                return
+            zone = zone_data[0]['ZONE']
             ## get the zone of all the nodes
             sql = "SELECT * FROM oceanbase.DBA_OB_SERVERS where zone='{0}';".format(zone)
             self.verbose("get zone execute_sql is {0}".format(sql))
