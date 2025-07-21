@@ -18,6 +18,7 @@
 
 from src.handler.checker.check_task import TaskBase
 
+
 class LogEasySlowTask(TaskBase):
     def init(self, context, report):
         super().init(context, report)
@@ -39,31 +40,21 @@ class LogEasySlowTask(TaskBase):
                 # Check observer.log for "EASY SLOW" occurrences
                 log_file_path = "{0}/log/observer.log".format(home_path)
                 check_cmd = "grep -c 'EASY SLOW' {0} 2>/dev/null || echo '0'".format(log_file_path)
-                
+
                 result = ssh_client.exec_cmd(check_cmd).strip()
-                self.stdio.verbose("Found {0} 'EASY SLOW' occurrences in {1} on {2}".format(
-                    result, log_file_path, ssh_client.get_name()
-                ))
+                self.stdio.verbose("Found {0} 'EASY SLOW' occurrences in {1} on {2}".format(result, log_file_path, ssh_client.get_name()))
 
                 try:
                     easy_slow_count = int(result)
                     if easy_slow_count > 0:
                         self.report.add_critical(
-                            "Found {0} 'EASY SLOW' occurrences in observer.log on {1}. "
-                            "This indicates potential network latency issues. "
-                            "Please check network connectivity and performance between nodes.".format(
-                                easy_slow_count, ssh_client.get_name()
-                            )
+                            "Found {0} 'EASY SLOW' occurrences in observer.log on {1}. " "This indicates potential network latency issues. " "Please check network connectivity and performance between nodes.".format(easy_slow_count, ssh_client.get_name())
                         )
-                        self.stdio.warn("Network latency issue detected on {0}: {1} EASY SLOW occurrences".format(
-                            ssh_client.get_name(), easy_slow_count
-                        ))
+                        self.stdio.warn("Network latency issue detected on {0}: {1} EASY SLOW occurrences".format(ssh_client.get_name(), easy_slow_count))
                     else:
                         self.stdio.verbose("No network latency issues detected on {0}".format(ssh_client.get_name()))
                 except ValueError:
-                    self.report.add_fail("Failed to parse EASY SLOW count on {0}: {1}".format(
-                        ssh_client.get_name(), result
-                    ))
+                    self.report.add_fail("Failed to parse EASY SLOW count on {0}: {1}".format(ssh_client.get_name(), result))
 
         except Exception as e:
             self.report.add_fail("Execution error: {0}".format(e))
@@ -73,5 +64,6 @@ class LogEasySlowTask(TaskBase):
             "name": "log_easy_slow",
             "info": "Check for network latency issues by searching 'EASY SLOW' in observer logs",
         }
+
 
 log_easy_slow = LogEasySlowTask()

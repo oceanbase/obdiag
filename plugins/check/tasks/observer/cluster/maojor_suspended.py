@@ -18,6 +18,7 @@
 
 from src.handler.checker.check_task import TaskBase
 
+
 class MajorSuspendedTask(TaskBase):
     def init(self, context, report):
         super().init(context, report)
@@ -30,28 +31,23 @@ class MajorSuspendedTask(TaskBase):
 
             # Query for suspended major compaction
             sql = "SELECT TENANT_ID, IS_SUSPENDED FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE IS_SUSPENDED = 'YES'"
-            
+
             try:
                 cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
                 results = cursor.fetchall()
-                
+
                 self.stdio.verbose("Found {0} suspended major compaction records".format(len(results)))
-                
+
                 if results:
                     for row in results:
                         tenant_id = row.get('TENANT_ID', 'Unknown')
                         is_suspended = row.get('IS_SUSPENDED', 'Unknown')
-                        
-                        self.report.add_warning(
-                            "Tenant ID {0} has major compaction manually suspended (IS_SUSPENDED = {1}). "
-                            "This may impact storage efficiency and performance.".format(
-                                tenant_id, is_suspended
-                            )
-                        )
+
+                        self.report.add_warning("Tenant ID {0} has major compaction manually suspended (IS_SUSPENDED = {1}). " "This may impact storage efficiency and performance.".format(tenant_id, is_suspended))
                         self.stdio.warn("Major compaction suspended for tenant {0}".format(tenant_id))
                 else:
                     self.stdio.verbose("No suspended major compaction found")
-                    
+
             except Exception as e:
                 self.report.add_fail("Failed to query major compaction status: {0}".format(e))
                 self.stdio.warn("SQL execution error: {0}".format(e))
@@ -64,5 +60,6 @@ class MajorSuspendedTask(TaskBase):
             "name": "maojor_suspended",
             "info": "Check for manually suspended major compaction in OceanBase cluster. issue #1015",
         }
+
 
 maojor_suspended = MajorSuspendedTask()

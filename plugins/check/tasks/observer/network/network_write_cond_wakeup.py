@@ -18,6 +18,7 @@
 
 from src.handler.checker.check_task import TaskBase
 
+
 class NetworkWriteCondWakeupTask(TaskBase):
     def init(self, context, report):
         super().init(context, report)
@@ -39,11 +40,9 @@ class NetworkWriteCondWakeupTask(TaskBase):
                 # Check observer.log for "write cond wakeup" occurrences
                 log_file_path = "{0}/log/observer.log".format(home_path)
                 check_cmd = "grep -c 'write cond wakeup' {0} 2>/dev/null || echo '0'".format(log_file_path)
-                
+
                 result = ssh_client.exec_cmd(check_cmd).strip()
-                self.stdio.verbose("Found {0} 'write cond wakeup' occurrences in {1} on {2}".format(
-                    result, log_file_path, ssh_client.get_name()
-                ))
+                self.stdio.verbose("Found {0} 'write cond wakeup' occurrences in {1} on {2}".format(result, log_file_path, ssh_client.get_name()))
 
                 try:
                     wakeup_count = int(result)
@@ -51,21 +50,13 @@ class NetworkWriteCondWakeupTask(TaskBase):
                         self.report.add_critical(
                             "Found {0} 'write cond wakeup' occurrences in observer.log on {1}. "
                             "This indicates potential network issues between client and OBServer. "
-                            "Please check network connectivity and performance.".format(
-                                wakeup_count, ssh_client.get_name()
-                            )
+                            "Please check network connectivity and performance.".format(wakeup_count, ssh_client.get_name())
                         )
-                        self.stdio.warn("Network write condition wakeup count exceeds threshold on {0}: {1}".format(
-                            ssh_client.get_name(), wakeup_count
-                        ))
+                        self.stdio.warn("Network write condition wakeup count exceeds threshold on {0}: {1}".format(ssh_client.get_name(), wakeup_count))
                     else:
-                        self.stdio.verbose("Network write condition wakeup count is normal on {0}: {1}".format(
-                            ssh_client.get_name(), wakeup_count
-                        ))
+                        self.stdio.verbose("Network write condition wakeup count is normal on {0}: {1}".format(ssh_client.get_name(), wakeup_count))
                 except ValueError:
-                    self.report.add_fail("Failed to parse wakeup count on {0}: {1}".format(
-                        ssh_client.get_name(), result
-                    ))
+                    self.report.add_fail("Failed to parse wakeup count on {0}: {1}".format(ssh_client.get_name(), result))
 
         except Exception as e:
             self.report.add_fail("Execution error: {0}".format(e))
@@ -75,5 +66,6 @@ class NetworkWriteCondWakeupTask(TaskBase):
             "name": "network_write_cond_wakeup",
             "info": "Check for network write condition wakeup issues in observer logs",
         }
+
 
 network_write_cond_wakeup = NetworkWriteCondWakeupTask()
