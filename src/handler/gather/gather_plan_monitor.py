@@ -860,7 +860,7 @@ class GatherPlanMonitorHandler(object):
             # 保留原表格格式并添加\G风格的垂直显示
             # 获取原始表格HTML
             table_html = full_audit_sql_result.get_html_string()
-            
+
             # 生成\G风格的垂直显示HTML
             # 生成垂直显示格式 (MySQL \G 风格)
             vertical_html = ""
@@ -966,7 +966,7 @@ class GatherPlanMonitorHandler(object):
             combined_html += f'<div class="table-display">{table_html}</div>'
             combined_html += f'<div class="vertical-display">{vertical_html}</div>'
             combined_html += '</div>'
-            
+
             self.__report(f"<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>{combined_html}</div></div>")
         self.stdio.verbose("report full sql audit complete")
 
