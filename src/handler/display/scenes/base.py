@@ -42,14 +42,16 @@ class SceneBase(SafeStdio):
         try:
             if self.mode == "yaml":
                 if self.task_type == "observer":
-                    self.__execute_yaml_mode(self.ob_nodes)
+                    return self.__execute_yaml_mode(self.ob_nodes)
                 elif self.task_type == "obproxy":
-                    self.__execute_yaml_mode(self.obproxy_nodes)
+                    return self.__execute_yaml_mode(self.obproxy_nodes)
                 elif self.task_type == "other":
-                    self.__execute_yaml_mode(self.ob_nodes)
-                    self.__execute_yaml_mode(self.obproxy_nodes)
+                    data = ""
+                    data = "{0}\n{1}".format(data, self.__execute_yaml_mode(self.ob_nodes))
+                    data = "{0}\n{1}".format(data, self.__execute_yaml_mode(self.obproxy_nodes))
+                    return data
             elif self.mode == "code":
-                self.__execute_code_mode()
+                return self.__execute_code_mode()
             else:
                 self.stdio.error("Unsupported mode. SKIP")
                 raise Exception("Unsupported mode. SKIP")
@@ -66,6 +68,7 @@ class SceneBase(SafeStdio):
             self.stdio.warn("node is not exist")
             return
         node_number = 0
+        data = ""
         for node in nodes:
             # self.stdio.print("run scene excute yaml mode in node: {0} start".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
             steps = self.scene[steps_nu]
@@ -79,7 +82,7 @@ class SceneBase(SafeStdio):
                         return
                     step_run = Base(self.context, step, node, self.cluster, self.scene_variable_dict, self.env, node_number, self.db_connector)
                     self.stdio.verbose("step nu: {0} initted, to execute".format(nu))
-                    step_run.execute()
+                    data = "{0}\n{1}".format(data, step_run.execute())
                     self.scene_variable_dict = step_run.update_task_variable_dict()
                 except Exception as e:
                     self.stdio.error("SceneBase execute Exception: {0}".format(e))
@@ -88,3 +91,4 @@ class SceneBase(SafeStdio):
                 nu = nu + 1
             # self.stdio.print("run scene excute yaml mode in node: {0} end".format(StringUtils.node_cut_passwd_for_log(node['ip'], self.stdio)))
         self.stdio.verbose("run scene excute yaml mode in node")
+        return data

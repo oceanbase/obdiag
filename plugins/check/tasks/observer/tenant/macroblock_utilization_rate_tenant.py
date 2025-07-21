@@ -38,13 +38,12 @@ select /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id, d.tenant_name, sum(c.occupy_size
             for row in result:
                 tenant_name = row.get("tenant_name") or row.get("TENANT_NAME")
                 data_size_gb = row.get("data_size_gb") or row.get("DATA_SIZE_GB")
-                svr_ip = row.get("svr_ip") or row.get("SVR_IP")
                 required_size_gb = row.get("required_size_gb") or row.get("REQUIRED_SIZE_GB")
 
                 if required_size_gb > 1:
                     ratio = round(data_size_gb / required_size_gb, 2)
                     if ratio > 0.5:
-                        self.report.warning("tenant: {0} ratio: {1}, dataSize: {2}G, requiredSize: {3}G. need major".format(tenant_name, ratio, round(data_size_gb, 2), round(required_size_gb, 2)))
+                        self.report.add_warning("tenant: {0} ratio: {1}, dataSize: {2}G, requiredSize: {3}G. need major".format(tenant_name, ratio, round(data_size_gb, 2), round(required_size_gb, 2)))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))

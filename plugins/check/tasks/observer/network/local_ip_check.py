@@ -29,7 +29,6 @@ class LocalIPCheck(TaskBase):
             if super().check_ob_version_min("4.0.0.0"):
                 pass
             else:
-                self.report.add_warning("Unadapted by version. SKIP")
                 return
         else:
             self.report.add_warning("Unable to determine observer version")
