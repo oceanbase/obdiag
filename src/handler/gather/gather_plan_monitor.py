@@ -857,7 +857,117 @@ class GatherPlanMonitorHandler(object):
     def report_sql_audit_details(self, sql):
         if self.enable_dump_db:
             full_audit_sql_result = self.sys_connector.execute_sql_pretty(sql)
-            self.__report("<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>" + full_audit_sql_result.get_html_string() + "</div></div>")
+            # 保留原表格格式并添加\G风格的垂直显示
+            # 获取原始表格HTML
+            table_html = full_audit_sql_result.get_html_string()
+            
+            # 生成\G风格的垂直显示HTML
+            # 生成垂直显示格式 (MySQL \G 风格)
+            vertical_html = ""
+
+            # 添加垂直显示的JavaScript功能
+            vertical_html += '''
+            <script>
+            function toggleRecord(recordId) {
+                const content = document.getElementById('record-content-' + recordId);
+                const button = document.getElementById('toggle-btn-' + recordId);
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    button.innerHTML = '▼ 收起';
+                } else {
+                    content.style.display = 'none';
+                    button.innerHTML = '► 展开';
+                }
+            }
+
+            function copyRecord(recordId) {
+                const content = document.getElementById('record-content-' + recordId).innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    const button = document.getElementById('copy-btn-' + recordId);
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '✓ 已复制';
+                    setTimeout(() => button.innerHTML = originalText, 2000);
+                });
+            }
+            </script>
+            '''
+
+            vertical_html += '<div class="vertical-display mt-4">'
+            vertical_html += '<h4 class="mb-3">SQL Audit Information (Vertical View - Record with Maximum ELAPSED_TIME)</h4>'
+
+            # 获取PrettyTable数据
+            field_names = full_audit_sql_result.field_names
+            records = full_audit_sql_result.rows
+
+            # 查找符合条件的记录 (ELAPSED_TIME最大且QUERY_SQL和TENANT_NAME不为空)
+            filtered_records = []
+            elapsed_time_index = None
+            query_sql_index = None
+            tenant_name_index = None
+
+            # 获取字段索引
+            for idx, field in enumerate(field_names):
+                if field.upper() == 'ELAPSED_TIME':
+                    elapsed_time_index = idx
+                elif field.upper() == 'QUERY_SQL':
+                    query_sql_index = idx
+                elif field.upper() == 'TENANT_NAME':
+                    tenant_name_index = idx
+
+            # 验证必要字段是否存在
+            if elapsed_time_index is not None and query_sql_index is not None and tenant_name_index is not None:
+                # 筛选记录：QUERY_SQL和TENANT_NAME不为空
+                for row in records:
+                    query_sql = row[query_sql_index] if query_sql_index < len(row) else ''
+                    tenant_name = row[tenant_name_index] if tenant_name_index < len(row) else ''
+                    if query_sql and tenant_name:
+                        filtered_records.append(row)
+
+                # 找到ELAPSED_TIME最大的记录
+                max_elapsed_record = None
+                max_elapsed_value = -1
+                for row in filtered_records:
+                    try:
+                        # Convert to string first since value is stored as integer
+                        elapsed_str = str(row[elapsed_time_index]).strip()
+                        elapsed_value = int(elapsed_str)
+                        if elapsed_value > max_elapsed_value:
+                            max_elapsed_value = elapsed_value
+                            max_elapsed_record = row
+                    except (ValueError, TypeError):
+                        continue  # Skip records with invalid integer format
+
+            # 生成符合条件的记录的垂直显示卡片
+            sql_audit_records = []
+            if max_elapsed_record:
+                # 创建单条记录卡片
+                record_html = f'<div class="card mb-3">'
+                record_html += f'<div class="card-header d-flex justify-content-between align-items-center">'
+                record_html += f'<span><strong>sql_audit (\G)</strong></span>'
+                record_html += f'<div>'
+                record_html += f'<button id="toggle-btn-0" class="btn btn-sm btn-outline-secondary me-2" onclick="toggleRecord(0)"><span>► 展开</span></button>'
+                record_html += f'<button id="copy-btn-0" class="btn btn-sm btn-outline-primary" onclick="copyRecord(0)"><span>复制</span></button>'
+                record_html += f'</div></div>'
+                record_html += f'<div id="record-content-0" class="card-body" style="display: none;">'
+                record_html += '<table class="table table-sm table-borderless">'
+
+                # 添加字段值对
+                for field, value in zip(field_names, max_elapsed_record):
+                    record_html += f'<tr><th style="width: 30%; text-align: right">{field}:</th><td>{value}</td></tr>'
+
+                record_html += '</table></div></div>'
+                sql_audit_records.append(record_html)
+
+            vertical_html += ''.join(sql_audit_records)
+            vertical_html += '</div>'  # 关闭vertical-display容器
+
+            # 组合表格和垂直格式显示
+            combined_html = f'<div class="sql-audit-container">'
+            combined_html += f'<div class="table-display">{table_html}</div>'
+            combined_html += f'<div class="vertical-display">{vertical_html}</div>'
+            combined_html += '</div>'
+            
+            self.__report(f"<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>{combined_html}</div></div>")
         self.stdio.verbose("report full sql audit complete")
 
     # plan cache
