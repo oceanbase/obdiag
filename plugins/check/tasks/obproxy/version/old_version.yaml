@@ -6,4 +6,4 @@ task:
       result:
         set_value: obproxy_version
         verify: '[[ ! "${obproxy_version}" == "4.0"* ]] && [[ ! "${obproxy_version}" == "4.1"* ]] && [[ ! "${obproxy_version}" == "4.2"* ]] && [[ ! "${obproxy_version}" == "4.3.0"* ]] &&  [[ ! "${obproxy_version}" == "3"* ]] && [[ ! "${obproxy_version}" == "4.3.1"* ]]'
-        err_msg: '#{obproxy_version} is not recommended, please upgrade to the bproxy'
+        err_msg: '#{obproxy_version} is not recommended, please upgrade to the obproxy'
