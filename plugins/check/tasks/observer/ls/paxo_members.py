@@ -63,7 +63,7 @@ class PaxosMembersTask(TaskBase):
                 PAXOS_MEMBER_LIST = row.get('PAXOS_MEMBER_LIST')
                 for ls in ls_data:
                     if ls not in PAXOS_MEMBER_LIST:
-                        self.report.add_fail(f"tenant_id:{tenant_id} ls:{ls} is not in paxos_member_list")
+                        self.report.add_critical(f"tenant_id:{tenant_id} ls:{ls} is not in paxos_member_list:{PAXOS_MEMBER_LIST}")
 
         except Exception as e:
             self.report.add_fail(f"Paxos members query failed: {str(e)}")
