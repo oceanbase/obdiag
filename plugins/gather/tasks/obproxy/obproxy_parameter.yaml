@@ -1,0 +1,9 @@
+info_en: "[obproxy parameter]"
+info_cn: "[obproxy参数采集]"
+command: obdiag gather scene run --scene=obproxy.obproxy_parameter
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        sql: "show proxyconfig;"
+        global: false
