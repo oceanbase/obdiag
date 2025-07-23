@@ -32,6 +32,7 @@ from src.common.tool import StringUtils
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
 from src.common.tool import SQLTableExtractor
+from src.common.command import get_observer_commit_id
 from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.common.result_type import ObdiagResult
 from src.common.version import OBDIAG_VERSION
@@ -213,6 +214,9 @@ class GatherPlanMonitorHandler(object):
                 self.__report("Report generation time： %s <br>" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
                 self.__report("obdiag version: {0} <br>".format(OBDIAG_VERSION))
                 self.__report("observer version: {0} <br>".format(self.ob_version))
+                observer_version_commit_id = get_observer_commit_id(self.context)
+                if observer_version_commit_id:
+                    self.__report("observer commit id: {0} <br>".format(observer_version_commit_id))
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
