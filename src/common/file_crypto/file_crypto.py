@@ -44,6 +44,7 @@ class FileEncryptor:
     def encrypt_file(self, file_path, password, save=True):
         """Encrypt file"""
         try:
+            file_path = os.path.expanduser(file_path)
             # Check if file exists
             if not os.path.exists(file_path):
                 self.stdio.error(f"Error: File '{file_path}' does not exist")
@@ -79,6 +80,7 @@ class FileEncryptor:
     def decrypt_file(self, encrypted_file_path, password, save=False):
         """Decrypt file"""
         try:
+            encrypted_file_path = os.path.expanduser(encrypted_file_path)
             # Check if encrypted file exists
             if not os.path.exists(encrypted_file_path):
                 self.stdio.verbose(f"Error: Encrypted file '{encrypted_file_path}' does not exist")

@@ -1231,7 +1231,7 @@ class ObdiagUpdateCommand(ObdiagOriginCommand):
 class ObdiagToolCryptoConfigCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagToolCryptoConfigCommand, self).__init__('crypto_config', 'obdiag tool crypto')
+        super(ObdiagToolCryptoConfigCommand, self).__init__('crypto_config', 'obdiag tool crypto. Crypto the config.yaml of obdiag file')
         self.parser.add_option('--key', type='string', help="the key to encrypt or decrypt")
         self.parser.add_option('--file', type='string', help="the file path to encrypt or decrypt")
         self.parser.add_option('--encrypted_file', type='string', help="the file path to encrypt")
