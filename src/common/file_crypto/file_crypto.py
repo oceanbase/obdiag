@@ -126,7 +126,7 @@ class FileEncryptor:
             with open(file_path, 'rb') as file:
                 file_data = file.read()
             if str(file_data) == str(data):
-                self.stdio.print(f"File is encrypted successfully")
+                self.stdio.print(f"The file, password, and encrypted file maintain consistency.")
                 return True
             else:
                 self.stdio.error("{} and {} is not same".format(file_path, encrypted_file_path))
