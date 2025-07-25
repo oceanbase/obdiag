@@ -1,5 +1,5 @@
-info_en: "[slowsql]"
-info_cn: "[查看慢sql]"
+info_en: "[slowsql，mtime is query time, unit minute]"
+info_cn: "[查看慢sql，mtime为查询时间，单位分钟]"
 command: obdiag display scene run --scene=observer.slowsql --env tenant_name=test --env mtime=10
 
 task:
