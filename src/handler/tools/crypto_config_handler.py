@@ -16,7 +16,7 @@
 @desc:
 """
 import os
-
+import getpass
 from src.common.file_crypto.file_crypto import FileEncryptor
 from src.common.tool import Util
 
@@ -36,8 +36,8 @@ class CryptoConfigHandler:
             file_path = os.path.abspath(file_path)
         if file_path and not pd and not encrypted_file_path:
             self.stdio.warn("file path is empty or key is empty. need input key")
-            key_first = input("please input key: ")
-            key_second = input("please input key again: ")
+            key_first = getpass.getpass("please input key: ")
+            key_second = getpass.getpass("please input key again: ")
             if key_first != key_second:
                 self.stdio.error("key is not same")
                 return
@@ -48,6 +48,11 @@ class CryptoConfigHandler:
             self.encrypt_file(file_path, pd)
         elif file_path and pd and encrypted_file_path:
             self.stdio.verbose("check encrypt file {} and {}".format(file_path, encrypted_file_path))
+            self.check_encrypt_file(file_path, pd, encrypted_file_path)
+        elif file_path and encrypted_file_path and not pd:
+            self.stdio.warn("file path is empty or key is empty. need input key")
+            key_first = getpass.getpass("please input key: ")
+            pd = key_first
             self.check_encrypt_file(file_path, pd, encrypted_file_path)
         elif encrypted_file_path and pd and not file_path:
             self.stdio.verbose("decrypt file {} ".format(encrypted_file_path))

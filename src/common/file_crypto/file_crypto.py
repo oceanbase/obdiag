@@ -44,6 +44,7 @@ class FileEncryptor:
     def encrypt_file(self, file_path, password, save=True):
         """Encrypt file"""
         try:
+            file_path = os.path.expanduser(file_path)
             # Check if file exists
             if not os.path.exists(file_path):
                 self.stdio.error(f"Error: File '{file_path}' does not exist")
@@ -79,6 +80,7 @@ class FileEncryptor:
     def decrypt_file(self, encrypted_file_path, password, save=False):
         """Decrypt file"""
         try:
+            encrypted_file_path = os.path.expanduser(encrypted_file_path)
             # Check if encrypted file exists
             if not os.path.exists(encrypted_file_path):
                 self.stdio.verbose(f"Error: Encrypted file '{encrypted_file_path}' does not exist")
@@ -124,7 +126,7 @@ class FileEncryptor:
             with open(file_path, 'rb') as file:
                 file_data = file.read()
             if str(file_data) == str(data):
-                self.stdio.print(f"File is encrypted successfully")
+                self.stdio.print(f"The file, password, and encrypted file maintain consistency.")
                 return True
             else:
                 self.stdio.error("{} and {} is not same".format(file_path, encrypted_file_path))
