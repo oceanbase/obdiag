@@ -101,7 +101,6 @@ k8s_performance:
     - cluster.syslog_io_bandwidth_limit
     - cluster.task_opt_stat
     - cluster.trace_log_slow_query_watermark
-    - column_storage.tenant_parameters
     - cpu.oversold
     - disk.disk_iops
     - table.macroblock_utilization_rate_table
