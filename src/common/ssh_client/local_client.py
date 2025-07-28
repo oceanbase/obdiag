@@ -51,7 +51,7 @@ class LocalClient(SsherClient):
     def download(self, remote_path, local_path):
         try:
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            shutil.copy(remote_path, local_path)
+            shutil.copyfile(remote_path, local_path)
         except Exception as e:
             self.stdio.error("download file from localhost, remote_path=[{0}], local_path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
             raise Exception("download file from localhost, remote_path=[{0}], local_path=[{1}], error=[{2}]".format(remote_path, local_path, str(e)))
