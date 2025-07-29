@@ -874,13 +874,16 @@ class GatherPlanMonitorHandler(object):
             <script>
             function toggleRecord(recordId) {
                 const content = document.getElementById('record-content-' + recordId);
-                const button = document.getElementById('toggle-btn-' + recordId);
+                const toggleButton = document.getElementById('toggle-btn-' + recordId);
+                const copyButton = document.getElementById('copy-btn-' + recordId);
                 if (content.style.display === 'none') {
                     content.style.display = 'block';
-                    button.innerHTML = '▼ 收起';
+                    toggleButton.innerHTML = '▼ 收起';
+                    copyButton.style.display = 'inline-block'; // 展开时显示复制按钮
                 } else {
                     content.style.display = 'none';
-                    button.innerHTML = '► 展开';
+                    toggleButton.innerHTML = '► 展开';
+                    copyButton.style.display = 'none'; // 收起时隐藏复制按钮
                 }
             }
 
@@ -950,7 +953,7 @@ class GatherPlanMonitorHandler(object):
                 record_html += f'<span><strong>sql_audit (\G)</strong></span>'
                 record_html += f'<div>'
                 record_html += f'<button id="toggle-btn-0" class="btn btn-sm btn-outline-secondary me-2" onclick="toggleRecord(0)"><span>► 展开</span></button>'
-                record_html += f'<button id="copy-btn-0" class="btn btn-sm btn-outline-primary" onclick="copyRecord(0)"><span>复制</span></button>'
+                record_html += f'<button id="copy-btn-0" class="btn btn-sm btn-outline-primary" onclick="copyRecord(0)" style="display: none;"><span>复制</span></button>'
                 record_html += f'</div></div>'
                 record_html += f'<div id="record-content-0" class="card-body" style="display: none;">'
                 record_html += '<table class="table table-sm table-borderless">'
