@@ -387,14 +387,14 @@ class GatherCoreHandler(BaseShellHandler):
         self.stdio.print(table)
 
         # Ask for user confirmation
-        while True:
-            confirm = input("\nDo you want to download these core files? (y/n): ").strip().lower()
-            if confirm in ['y', 'yes']:
-                return True
-            elif confirm in ['n', 'no']:
-                return False
-            else:
-                self.stdio.print("Please enter 'y' or 'n'")
+        confirm = input("\nDo you want to download these core files? (y/n): ").strip().lower()
+        if confirm in ['y', 'yes']:
+            return True
+        else:
+            # 当输入不是'y'或'yes'时，结束收集
+            self.stdio.print("User declined to download core files, terminating collection.")
+            return False
+            self.stdio.print("Please enter 'y' or 'n'")
 
     def __download_core_files(self, ssh_client, core_files_info, local_stored_path, remote_ip):
         """Download core files directly from remote to local"""
