@@ -1,5 +1,5 @@
-info_en: "[plan]"
-info_cn: "[查看sql的执行计划的统计信息]"
+info_en: "[plan, display sql's plan statistics, sqlid is the SQL ID corresponding to the cached object]"
+info_cn: "[查看sql的执行计划的统计信息，sqlid指缓存对象对应的 SQL ID]"
 command: obdiag display scene run --scene=observer.plan  --env tenant_name=test --env sqlid=test
 
 task:

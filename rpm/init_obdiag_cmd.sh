@@ -5,7 +5,7 @@ _obdiag_completion() {
 
     case "${COMP_CWORD}" in
         1)
-            type_list="--version display-trace config gather display analyze check rca update"
+            type_list="--version display-trace config gather display analyze check rca update tool"
             COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))
             ;;
         2)
@@ -38,6 +38,9 @@ _obdiag_completion() {
                     ;;
                 rca)
                     type_list="list run"
+                    ;;
+                tool)
+                    type_list="crypto_config"
                     ;;
                 *)
                     type_list=""
