@@ -160,7 +160,13 @@ class GatherObstack2Handler(BaseShellHandler):
             else:
                 self.stdio.warn("node:{1} arch {0} not support gather obstack. obdiag will try use x86 obstack".format(node_arch, ssh_client.get_name()))
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_X86_64)
-
+            # issue #133 . Check libtinfo.so.5 is existing
+            self.stdio.verbose("Check node:{0} libtinfo.so.5 is existing or not".format(ssh_client.get_name()))
+            libtinfo_info = ssh_client.exec_cmd("ldconfig -p | grep libtinfo.so.5")
+            if not libtinfo_info:
+                self.stdio.warn("node:{0} libtinfo.so.5 not found, obstack need it".format(ssh_client.get_name()))
+                resp["error"] = "node:{0} libtinfo.so.5 not found, obstack need it".format(ssh_client.get_name())
+                return resp
             upload_file(ssh_client, obstack2_local_stored_full_path, const.OBSTACK2_DEFAULT_INSTALL_PATH, self.context.stdio)
             self.stdio.verbose("Installation of obstack2 is completed and gather begins ...")
 

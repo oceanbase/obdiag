@@ -175,6 +175,8 @@ class CheckReport:
             fp.write("report time: {0}\n\n".format(self.report_time))
             if self.report_target == "observer":
                 observer_version = get_observer_version(self.context)
+                if observer_version:
+                    fp.write("observer version: {0}\n".format(observer_version))
                 observer_version_commit_id = get_observer_commit_id(self.context)
                 if observer_version_commit_id:
                     fp.write("observer commit id: {0}\n".format(observer_version_commit_id))
