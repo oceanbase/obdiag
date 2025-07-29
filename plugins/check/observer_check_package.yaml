@@ -106,7 +106,6 @@ k8s_performance:
     - table.macroblock_utilization_rate_table
     - tenant.macroblock_utilization_rate_tenant
     - tenant.max_stale_time_for_weak_consistency
-    - tenant.parameters_default
     - tenant.tenant_threshold
 
 filter:
