@@ -33,7 +33,7 @@ class CryptoConfigHandler:
         encrypted_file_path = Util.get_option(self.options, "encrypted_file") or ""
         pd = Util.get_option(self.options, "key") or ""
         if file_path:
-            file_path = os.path.abspath(file_path)
+            file_path = os.path.abspath(os.path.expanduser(file_path))
         if file_path and not pd and not encrypted_file_path:
             self.stdio.warn("file path is empty or key is empty. need input key")
             key_first = getpass.getpass("please input key: ")
