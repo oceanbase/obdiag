@@ -137,8 +137,9 @@ class SshClient(SafeStdio):
         Raises:
             TimeoutException: Raised when command execution times out
         """
-        self.__cmd_filter(cmd)
-        return self._exec_cmd_with_timeout(cmd, timeout)
+        return self.client.exec_cmd(cmd).strip()
+        # self.__cmd_filter(cmd)
+        # return self._exec_cmd_with_timeout(cmd, timeout)
 
     def download(self, remote_path, local_path):
         self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))
