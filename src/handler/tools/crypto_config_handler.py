@@ -57,6 +57,8 @@ class CryptoConfigHandler:
         elif encrypted_file_path and pd and not file_path:
             self.stdio.verbose("decrypt file {} ".format(encrypted_file_path))
             self.decrypt_file(encrypted_file_path, pd)
+        elif not file_path and not encrypted_file_path:
+            self.stdio.error("file path is empty or encrypted_file_path is empty")
 
     def encrypt_file(self, file_path, password):
         try:
