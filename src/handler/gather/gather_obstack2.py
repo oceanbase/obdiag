@@ -152,13 +152,13 @@ class GatherObstack2Handler(BaseShellHandler):
             else:
                 absPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             # check node is x86_64 or aarch64
-            node_arch = ssh_client.exec_cmd("arch")
+            node_arch = ssh_client.exec_cmd("arch").strip()
             if node_arch == "aarch64":
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_AARCH64)
             elif node_arch == "x86_64":
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_X86_64)
             else:
-                self.stdio.warn("node:{1} arch {0} not support gather obstack. obdiag will try use x86 obstack".format(node_arch, ssh_client.get_name()))
+                self.stdio.warn("node:{1} arch is {0} not support gather obstack. obdiag will try use obstack_x86 to gather info".format(node_arch, ssh_client.get_name()))
                 obstack2_local_stored_full_path = os.path.join(absPath, const.OBSTACK2_LOCAL_STORED_PATH_X86_64)
             # issue #133 . Check libtinfo.so.5 is existing
             self.stdio.verbose("Check node:{0} libtinfo.so.5 is existing or not".format(ssh_client.get_name()))
@@ -242,7 +242,7 @@ class GatherObstack2Handler(BaseShellHandler):
         cmd = "{obstack} {pid} > /tmp/{gather_dir}/observer_{pid}_obstack.txt".format(obstack=const.OBSTACK2_DEFAULT_INSTALL_PATH, pid=observer_pid, gather_dir=remote_gather_dir)
         if user == ssh_client.exec_cmd('whoami'):
             self.stdio.verbose("gather obstack info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), cmd))
-            ssh_client.exec_cmd(cmd)
+            ssh_client.exec_cmd(cmd, timeout=10)
         else:
             chown_cmd = "chown {user} /tmp/{gather_dir}/".format(user=user, gather_dir=remote_gather_dir)
             ssh_client.exec_cmd(chown_cmd)
