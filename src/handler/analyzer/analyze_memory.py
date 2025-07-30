@@ -554,7 +554,9 @@ class AnalyzeMemoryHandler(object):
         ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         if self.version >= '4.3':
             grep_cmd = 'grep -n "memory_dump.*statistics" ' + file_full_path
-        elif self.version >= '4.0' and self.version < '4.3':
+        elif self.version >= '4.2.5.3' and self.version < '4.3':
+            grep_cmd = 'grep -n "Run print tenant memory usage task" ' + file_full_path
+        elif self.version >= '4.0' and self.version < '4.2.5.3':
             grep_cmd = 'grep -n "runTimerTask.*MemDumpTimer" ' + file_full_path
         else:
             grep_cmd = 'grep -n "Run print tenant memstore usage task" ' + file_full_path
@@ -615,8 +617,13 @@ class AnalyzeMemoryHandler(object):
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
                                     memory_dict[memory_print_time] = dict()
-                            elif self.version > '4.0' and self.version < '4.3':
+                            elif self.version > '4.0' and self.version < '4.2.5.3':
                                 if 'runTimerTask' in line and 'MemDumpTimer' in line:
+                                    time_str = self.__get_time_from_ob_log_line(line)
+                                    memory_print_time = time_str.split('.')[0]
+                                    memory_dict[memory_print_time] = dict()
+                            elif self.version >= '4.2.5.3' and self.version < '4.3':
+                                if 'Run print tenant memory usage task' in line:
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
                                     memory_dict[memory_print_time] = dict()
