@@ -738,7 +738,7 @@ class AnalyzeMemoryHandler(object):
                                     mod_info['mod_used_bytes'] = mod_used_bytes
                                     mod_info['mod_used_block_cnt'] = mod_used_block_cnt
                                     mod_info['mod_avg_used_bytes'] = mod_avg_used_bytes
-                                    if self.version > '4.0':
+                                    if self.version > '4.0' and self.version < '4.3':
                                         mod_info['mod_block_cnt'] = mod_block_cnt
                                         mod_info['mod_chunk_cnt'] = mod_chunk_cnt
                                     if 'mod_info' in ctx_info:
