@@ -17,6 +17,9 @@
     <a href="https://www.oceanbase.com/docs/obdiag-cn">
         <img alt="Chinese doc" src="https://img.shields.io/badge/文档-简体中文-blue" />
     </a>
+    <a href="https://deepwiki.com/oceanbase/obdiag">
+        <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" />
+    </a>
 </p>
 
 # OceanBase Diagnostic Tool (obdiag)
@@ -87,7 +90,8 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 |3.3.0|2025.04| 2025.04.18 |<ul><li> obdiag check 支持 python 脚本以适应复杂场景的巡检 </li></ul>|
 |3.4.0|2025.05| 2025.05.15 |<ul><li> obdiag rca 支持 OMS obcdc 通用问题根因分析 </li><li> 新增 obdiag gather dbms_xplan </li></ul>|
 |3.5.0|2024.06| 2025.06.20 |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
-|3.6.0|2024.07| - |<ul><li> 根因分析场景扩展 </li><li> 支持 MCP </li></ul>|
+|3.6.0|2024.07| 2025.07.31 |<ul><li> 新增 obdiag tool 功能 </li><li> 支持 MCP </li></ul>|
+|3.7.0|2024.08| - |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI 化探索 </li></ul>|
 
 # 支持
