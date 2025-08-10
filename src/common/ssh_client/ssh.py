@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -120,8 +120,8 @@ class SshClient(SafeStdio):
 
         if exception[0] is not None:
             raise exception[0]
-
-        return result[0]
+        if isinstance(result[0], str):
+            return result[0].strip()
 
     def exec_cmd(self, cmd, timeout=None):
         """
@@ -137,9 +137,8 @@ class SshClient(SafeStdio):
         Raises:
             TimeoutException: Raised when command execution times out
         """
-        return self.client.exec_cmd(cmd).strip()
-        # self.__cmd_filter(cmd)
-        # return self._exec_cmd_with_timeout(cmd, timeout)
+        self.__cmd_filter(cmd)
+        return self._exec_cmd_with_timeout(cmd, timeout)
 
     def download(self, remote_path, local_path):
         self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))

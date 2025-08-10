@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -66,12 +66,12 @@ class ReplayHoldScene(RcaScene):
                 return
 
             for row in replay_hold_data_start:
-                if row["unsubmitted_scn"] < row["end_scn"]:
-                    self.record.add_record("find unsubmitted_scn < end_scn. svr_ip: {0}, svr_port: {1}, tenant_id: {2}, ls_id: {3}".format(row["svr_ip"], row["svr_port"], row["tenant_id"], row["ls_id"]))
+                if row["unsubmitted_log_scn"] < row["end_scn"]:
+                    self.record.add_record("find unsubmitted_log_scn < end_scn. svr_ip: {0}, svr_port: {1}, tenant_id: {2}, ls_id: {3}".format(row["svr_ip"], row["svr_port"], row["tenant_id"], row["ls_id"]))
                     need_check = True
             if not need_check:
-                self.record.add_record("no unsubmitted_scn < end_scn found.")
-                self.record.add_suggest("no unsubmitted_scn < end_scn found.")
+                self.record.add_record("no unsubmitted_log_scn < end_scn found.")
+                self.record.add_suggest("no unsubmitted_log_scn < end_scn found.")
                 return
             self.record.add_record("replay_hold_data_start save: {0}".format("replay_hold_data_start.txt"))
             # gather log
