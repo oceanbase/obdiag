@@ -93,12 +93,7 @@ class DataPathSettings(TaskBase):
                     raise StepResultFailException(f"ip:{ip}, data_dir_path: {data_dir_path} file_system is not xfs or ext4.")
 
                 # 所有检查通过
-                self.report.add_success_result(
-                    f"ip:{ip}",
-                    "data_path_settings",
-                    "Check data path settings passed.",
-                    {"data_dir": data_dir, "log_dir": redo_dir}
-                )
+                self.report.add_success_result(f"ip:{ip}", "data_path_settings", "Check data path settings passed.", {"data_dir": data_dir, "log_dir": redo_dir})
 
             except StepResultFailException as e:
                 self.stdio.warn(str(e))
@@ -112,6 +107,6 @@ class DataPathSettings(TaskBase):
             "name": "data_path_settings",
             "info": "Check whether data_dir and log_dir_disk are on the same disk",
         }
-    
+
 
 data_path_settings = DataPathSettings()
