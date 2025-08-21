@@ -19,6 +19,7 @@
 from src.handler.checker.check_task import TaskBase
 from src.handler.checker.check_exception import StepResultFailException
 
+
 class CheckSystemLanguage(TaskBase):
     def init(self, context, report):
         super().init(context, report)
