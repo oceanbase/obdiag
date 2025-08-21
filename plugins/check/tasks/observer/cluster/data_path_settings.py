@@ -60,6 +60,12 @@ class DataPathSettings(TaskBase):
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 log_dir_disk = ssher.exec_cmd(cmd).strip()
 
+                # 检查获取到的磁盘设备是否为空
+                if data_dir_disk == "" or data_dir_disk == None:
+                    self.stdio.warn(f"ip:{ip}, The obtained data_ir_disk disk device is null, please manually check.")
+                if log_dir_disk == "" or log_dir_disk == None:
+                    self.stdio.warn(f"ip:{ip}, The obtained log_dir_disk disk device is null, please manually check.")
+
                 # 检查数据目录和日志目录是否在不同磁盘
                 if data_dir_disk == log_dir_disk:
                     raise StepResultFailException(f"ip:{ip}, data_dir and log_dir_disk are on the same disk.")
