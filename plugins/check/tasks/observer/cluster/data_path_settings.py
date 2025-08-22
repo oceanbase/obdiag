@@ -96,9 +96,6 @@ class DataPathSettings(TaskBase):
                 if file_system not in ["xfs", "ext4"]:
                     self.report.add_warning(f"ip:{ip}, data_dir_path: {data_dir_path} file_system is not xfs or ext4.")
 
-                # All checks passed
-                self.report.add_success_result(f"ip:{ip}", "data_path_settings", "Check data path settings passed.", {"data_dir": data_dir, "log_dir": redo_dir})
-
             except StepResultFailException as e:
                 self.stdio.warn(str(e))
                 self.report.add_critical(f"ip:{ip}, data_path_settings, {str(e)}")
