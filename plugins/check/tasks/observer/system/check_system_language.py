@@ -37,14 +37,14 @@ class CheckSystemLanguage(TaskBase):
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 system_language_check = ssher.exec_cmd(cmd).strip()
                 if not system_language_check:
-                    raise StepResultFailException(f"ip:{ip}, the os language($LANG) setting is not en-US.UTF-8, please manually intervene and check.")
+                    self.report.add_warning(f"ip:{ip}, the os language($LANG) setting is not en-US.UTF-8, please manually intervene and check.")
 
             except StepResultFailException as e:
                 self.stdio.warn(str(e))
-                self.report.add_fail(f"ip:{ip}, check_system_language, {str(e)}")
+                self.report.add_critical(f"ip:{ip}, check_system_language, {str(e)}")
             except Exception as e:
                 self.stdio.error(f"Check system language failed on {ip}: {str(e)}")
-                self.report.add_critical(f"ip:{ip}, check_system_language, Exception: {str(e)}")
+                self.report.add_fail(f"ip:{ip}, check_system_language, Exception: {str(e)}")
 
     def get_task_info(self):
         return {
