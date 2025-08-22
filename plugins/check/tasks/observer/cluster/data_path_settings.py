@@ -32,7 +32,7 @@ class DataPathSettings(TaskBase):
                 self.stdio.warn(f"Node {ip} has no ssher, skip check.")
                 continue
             try:
-                # 检查数据目录是否存在 sstable 文件
+                # Check if sstable files exist in the data directory
                 data_dir = node.get("data_dir")
                 cmd = f'find {data_dir}/ -name "sstable"'
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
@@ -40,13 +40,12 @@ class DataPathSettings(TaskBase):
                 if not data_dir_path:
                     self.report.add_warning(f"ip:{ip}, data_dir_path is null. Please check your nodes.data_dir need absolute Path")
 
-                # 获取数据目录所在磁盘
-                # cmd = f"df -h {data_dir_path} | grep '/' | awk '{{print $6}}'"
+                # Get the disk where the data directory is located
                 cmd = f"device=$(df -P {data_dir_path} | awk 'NR==2{{print $1}}') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 data_dir_disk = ssher.exec_cmd(cmd).strip()
 
-                # 检查日志目录是否存在 clog 文件
+                # Check if clog files exist in the log directory
                 redo_dir = node.get("redo_dir")
                 cmd = f'find {redo_dir}/ -name "clog"'
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
@@ -54,51 +53,50 @@ class DataPathSettings(TaskBase):
                 if not log_dir_path:
                     self.report.add_warning(f"ip:{ip}, log_dir_path is null. Please check your nodes.redo_dir need absolute Path")
 
-                # 获取日志目录所在磁盘
-                # cmd = f"df -h {log_dir_path} | grep '/' | awk '{{print $6}}'"
+                # Get the disk where the log directory is located
                 cmd = f"device=$(df -P {log_dir_path} | awk 'NR==2{{print $1}}') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 log_dir_disk = ssher.exec_cmd(cmd).strip()
 
-                # 检查获取到的磁盘设备是否为空
+                # Check if the obtained disk device is empty
                 if data_dir_disk == "" or data_dir_disk == None:
                     self.stdio.warn(f"ip:{ip}, The obtained data_ir_disk disk device is null, please manually check.")
                 if log_dir_disk == "" or log_dir_disk == None:
                     self.stdio.warn(f"ip:{ip}, The obtained log_dir_disk disk device is null, please manually check.")
 
-                # 检查数据目录和日志目录是否在不同磁盘
+                # Check if data directory and log directory are on different disks
                 if data_dir_disk == log_dir_disk:
                     self.report.add_warning(f"ip:{ip}, data_dir and log_dir_disk are on the same disk.")
 
-                # 检查数据目录的文件系统类型 (如果磁盘大小超过16TB，必须是xfs)
+                # Check the file system type of the data directory (must be xfs if disk size exceeds 16TB)
                 cmd = f"df -T {data_dir_path} | grep '/' | awk '{{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system_check = ssher.exec_cmd(cmd).strip()
                 if file_system_check == "1":
                     self.report.add_warning(f"ip:{ip}, the data_dir_path of disk size over 16TB, the type must be xfs")
 
-                # 检查日志目录的文件系统类型必须是xfs或ext4
+                # Check that the file system type of the log directory must be xfs or ext4
                 cmd = f"df -Th {log_dir_path} | grep '/' | awk '{{print $2}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system = ssher.exec_cmd(cmd).strip()
                 if file_system not in ["xfs", "ext4"]:
                     self.report.add_warning(f"ip:{ip}, log_dir_path: {log_dir_path} file_system is not xfs or ext4.")
 
-                # 检查日志目录的文件系统类型 (如果磁盘大小超过16TB，必须是xfs)
+                # Check the file system type of the log directory (must be xfs if disk size exceeds 16TB)
                 cmd = f"df -T {log_dir_path} | grep '/' | awk '{{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system_check = ssher.exec_cmd(cmd).strip()
                 if file_system_check == "1":
                     self.report.add_warning(f"ip:{ip}, the log_dir_path of disk size over 16TB, the type must be xfs")
 
-                # 检查数据目录的文件系统类型必须是xfs或ext4
+                # Check that the file system type of the data directory must be xfs or ext4
                 cmd = f"df -Th {data_dir_path} | grep '/' | awk '{{print $2}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system = ssher.exec_cmd(cmd).strip()
                 if file_system not in ["xfs", "ext4"]:
                     self.report.add_warning(f"ip:{ip}, data_dir_path: {data_dir_path} file_system is not xfs or ext4.")
 
-                # 所有检查通过
+                # All checks passed
                 self.report.add_success_result(f"ip:{ip}", "data_path_settings", "Check data path settings passed.", {"data_dir": data_dir, "log_dir": redo_dir})
 
             except StepResultFailException as e:
