@@ -17,8 +17,6 @@
 """
 
 from src.handler.checker.check_task import TaskBase
-from src.handler.checker.check_exception import StepResultFailException
-
 
 class DataPathSettings(TaskBase):
     def init(self, context, report):
@@ -39,6 +37,7 @@ class DataPathSettings(TaskBase):
                 data_dir_path = ssher.exec_cmd(cmd).strip()
                 if not data_dir_path:
                     self.report.add_warning(f"ip:{ip}, data_dir_path is null. Please check your nodes.data_dir need absolute Path")
+                    return
 
                 # Get the disk where the data directory is located
                 cmd = f"device=$(df -P {data_dir_path} | awk 'NR==2{{print $1}}') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done"
@@ -51,7 +50,8 @@ class DataPathSettings(TaskBase):
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 log_dir_path = ssher.exec_cmd(cmd).strip()
                 if not log_dir_path:
-                    self.report.add_warning(f"ip:{ip}, log_dir_path is null. Please check your nodes.redo_dir need absolute Path")
+                    self.report.add_critical(f"ip:{ip}, log_dir_path is null. Please check your nodes.redo_dir need absolute Path")
+                    return
 
                 # Get the disk where the log directory is located
                 cmd = f"device=$(df -P {log_dir_path} | awk 'NR==2{{print $1}}') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done"
@@ -66,39 +66,36 @@ class DataPathSettings(TaskBase):
 
                 # Check if data directory and log directory are on different disks
                 if data_dir_disk == log_dir_disk:
-                    self.report.add_warning(f"ip:{ip}, data_dir and log_dir_disk are on the same disk.")
+                    self.report.add_critical(f"ip:{ip}, data_dir and log_dir_disk are on the same disk.")
 
                 # Check the file system type of the data directory (must be xfs if disk size exceeds 16TB)
                 cmd = f"df -T {data_dir_path} | grep '/' | awk '{{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system_check = ssher.exec_cmd(cmd).strip()
                 if file_system_check == "1":
-                    self.report.add_warning(f"ip:{ip}, the data_dir_path of disk size over 16TB, the type must be xfs")
+                    self.report.add_critical(f"ip:{ip}, the data_dir_path of disk size over 16TB, the type must be xfs")
 
                 # Check that the file system type of the log directory must be xfs or ext4
                 cmd = f"df -Th {log_dir_path} | grep '/' | awk '{{print $2}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system = ssher.exec_cmd(cmd).strip()
                 if file_system not in ["xfs", "ext4"]:
-                    self.report.add_warning(f"ip:{ip}, log_dir_path: {log_dir_path} file_system is not xfs or ext4.")
+                    self.report.add_critical(f"ip:{ip}, log_dir_path: {log_dir_path} file_system is not xfs or ext4.")
 
                 # Check the file system type of the log directory (must be xfs if disk size exceeds 16TB)
                 cmd = f"df -T {log_dir_path} | grep '/' | awk '{{if ($3 > 17179869184 && $2 != \"xfs\") print \"1\"; else print \"0\"}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system_check = ssher.exec_cmd(cmd).strip()
                 if file_system_check == "1":
-                    self.report.add_warning(f"ip:{ip}, the log_dir_path of disk size over 16TB, the type must be xfs")
+                    self.report.add_critical(f"ip:{ip}, the log_dir_path of disk size over 16TB, the type must be xfs")
 
                 # Check that the file system type of the data directory must be xfs or ext4
                 cmd = f"df -Th {data_dir_path} | grep '/' | awk '{{print $2}}'"
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 file_system = ssher.exec_cmd(cmd).strip()
                 if file_system not in ["xfs", "ext4"]:
-                    self.report.add_warning(f"ip:{ip}, data_dir_path: {data_dir_path} file_system is not xfs or ext4.")
+                    self.report.add_critical(f"ip:{ip}, data_dir_path: {data_dir_path} file_system is not xfs or ext4.")
 
-            except StepResultFailException as e:
-                self.stdio.warn(str(e))
-                self.report.add_critical(f"ip:{ip}, data_path_settings, {str(e)}")
             except Exception as e:
                 self.stdio.error(f"Check data path settings failed on {ip}: {str(e)}")
                 self.report.add_fail(f"ip:{ip}, data_path_settings, Exception: {str(e)}")
