@@ -18,6 +18,7 @@
 
 from src.handler.checker.check_task import TaskBase
 
+
 class DataPathSettings(TaskBase):
     def init(self, context, report):
         super().init(context, report)
