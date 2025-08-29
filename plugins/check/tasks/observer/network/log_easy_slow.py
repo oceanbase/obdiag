@@ -39,7 +39,7 @@ class LogEasySlowTask(TaskBase):
 
                 # Check observer.log for "EASY SLOW" occurrences
                 log_file_path = "{0}/log/observer.log".format(home_path)
-                check_cmd = "grep -c 'EASY SLOW' {0} 2>/dev/null || echo '0'".format(log_file_path)
+                check_cmd = "grep -c 'EASY SLOW' {0} 2>/dev/null".format(log_file_path)
 
                 result = ssh_client.exec_cmd(check_cmd).strip()
                 self.stdio.verbose("Found {0} 'EASY SLOW' occurrences in {1} on {2}".format(result, log_file_path, ssh_client.get_name()))
