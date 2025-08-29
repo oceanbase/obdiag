@@ -128,7 +128,7 @@ class IndexDDLErrorScene(RcaScene):
             )
             event_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             self.verbose("event_data is{0}".format(event_data))
-            if event_data is None or len(event_data) == 0 :
+            if event_data is None or len(event_data) == 0:
                 record.add_record("gather rootservice.log  by {0}".format(self.trace_id))
                 # rs
                 self.verbose("event_data is None")
