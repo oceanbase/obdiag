@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -56,7 +56,8 @@ class Base(SafeStdio):
             else:
                 if self.step["type"] == "sql":
                     handler = StepSQLHandler(self.context, self.step, self.cluster, self.task_variable_dict, self.env, self.db_connector)
-                    handler.execute()
+                    data = handler.execute()
+                    return data
                 else:
                     self.stdio.error("the type not support: {0}".format(self.step["type"]))
         except Exception as e:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -45,7 +45,7 @@ select * from oceanbase.GV$OB_PARAMETERS  where name="max_stale_time_for_weak_co
                 default = "5s"
                 value = max_stale_time_for_weak_consistency_one.get("VALUE")
                 if value.lower() != default:
-                    self.report.warning("tenant_id: {0} max_stale_time_for_weak_consistency: {1} is not default value: {2}".format(tenant_id, value, default))
+                    self.report.add_warning("tenant_id: {0} max_stale_time_for_weak_consistency: {1} is not default value: {2}".format(tenant_id, value, default))
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
             return self.report.add_fail("execute error {0}".format(e))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -18,11 +18,20 @@
 import os
 import re
 import socket
+import signal
+import threading
+import time
 from src.common.ssh_client.docker_client import DockerClient
 from src.common.ssh_client.kubernetes_client import KubernetesClient
 from src.common.ssh_client.local_client import LocalClient
 from src.common.ssh_client.remote_client import RemoteClient
 from src.common.stdio import SafeStdio
+
+
+class TimeoutException(Exception):
+    """Timeout exception"""
+
+    pass
 
 
 class SshClient(SafeStdio):
@@ -41,6 +50,10 @@ class SshClient(SafeStdio):
         self.ssh_type = node.get("ssh_type") or "remote"
         self.client = None
         self.init()
+        if self.context is not None:
+            self.cmd_exec_timeout = int(self.context.inner_config.get("obdiag", {}).get("ssh_client", {}).get("cmd_exec_timeout", 180))
+        else:
+            self.cmd_exec_timeout = 180
 
     def local_ip(self):
         local_ip_list = []
@@ -80,9 +93,52 @@ class SshClient(SafeStdio):
                 self.stdio.error("init ssh client error: {}".format(e))
             raise Exception("init ssh client error: {}".format(e))
 
-    def exec_cmd(self, cmd):
+    def _exec_cmd_with_timeout(self, cmd, timeout=None):
+        """Execute command with timeout detection"""
+        if timeout is None:
+            timeout = self.cmd_exec_timeout
+
+        result = [None]
+        exception = [None]
+
+        def target():
+            try:
+                result[0] = self.client.exec_cmd(cmd)
+            except Exception as e:
+                exception[0] = e
+
+        thread = threading.Thread(target=target)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout)
+
+        if thread.is_alive():
+            # Thread is still running, indicating timeout
+            if self.stdio is not None:
+                self.stdio.error("Command execution timeout after {} seconds: {}".format(timeout, cmd))
+            raise TimeoutException("node: {} Command execution timeout after {} seconds: {}".format(self.get_name(), timeout, cmd))
+
+        if exception[0] is not None:
+            raise exception[0]
+        if isinstance(result[0], str):
+            return result[0].strip()
+
+    def exec_cmd(self, cmd, timeout=None):
+        """
+        Execute command with timeout detection
+
+        Args:
+            cmd: Command to execute
+            timeout: Timeout in seconds, default 3 minutes
+
+        Returns:
+            Command execution result
+
+        Raises:
+            TimeoutException: Raised when command execution times out
+        """
         self.__cmd_filter(cmd)
-        return self.client.exec_cmd(cmd).strip()
+        return self._exec_cmd_with_timeout(cmd, timeout)
 
     def download(self, remote_path, local_path):
         self.stdio.verbose("download file: {} to {}".format(remote_path, local_path))

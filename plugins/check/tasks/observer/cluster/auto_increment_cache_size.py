@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -44,6 +44,8 @@ class AutoIncrementCacheSize(TaskBase):
                 default_value = auto_increment_cache_size_data[0].get("default_value") or auto_increment_cache_size_data[0].get("DEFAULT_VALUE")
                 if default_value is None:
                     default_value = 1000000
+                auto_increment_cache_size_value = int(auto_increment_cache_size_value)
+                default_value = int(default_value)
                 if auto_increment_cache_size_value != default_value:
                     self.report.add_warning("tenant_id: {2} auto_increment_cache_size is {0}, default value is {1}".format(auto_increment_cache_size_value, default_value, tenant_id))
                 max_value = auto_increment_cache_size_data[0].get("MAX_VALUE")

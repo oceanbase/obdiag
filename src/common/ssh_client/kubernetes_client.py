@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -67,7 +67,7 @@ class KubernetesClient(SsherClient):
         exec_command = ['/bin/sh', '-c', f'cd {dir}; tar cf - {bname}']
 
         with TemporaryFile() as tar_buffer:
-            exec_stream = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False)
+            exec_stream = stream(self.client.connect_get_namespaced_pod_exec, pod_name, namespace, command=exec_command, stderr=True, stdin=True, stdout=True, tty=False, _preload_content=False, container=container_name)
             # Copy file to stream
             try:
                 reader = WSFileManager(exec_stream)

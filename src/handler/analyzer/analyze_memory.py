@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -554,7 +554,9 @@ class AnalyzeMemoryHandler(object):
         ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         if self.version >= '4.3':
             grep_cmd = 'grep -n "memory_dump.*statistics" ' + file_full_path
-        elif self.version >= '4.0' and self.version < '4.3':
+        elif self.version >= '4.2.5.3' and self.version < '4.3':
+            grep_cmd = 'grep -n "Run print tenant memory usage task" ' + file_full_path
+        elif self.version >= '4.0' and self.version < '4.2.5.3':
             grep_cmd = 'grep -n "runTimerTask.*MemDumpTimer" ' + file_full_path
         else:
             grep_cmd = 'grep -n "Run print tenant memstore usage task" ' + file_full_path
@@ -615,8 +617,13 @@ class AnalyzeMemoryHandler(object):
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
                                     memory_dict[memory_print_time] = dict()
-                            elif self.version > '4.0' and self.version < '4.3':
+                            elif self.version > '4.0' and self.version < '4.2.5.3':
                                 if 'runTimerTask' in line and 'MemDumpTimer' in line:
+                                    time_str = self.__get_time_from_ob_log_line(line)
+                                    memory_print_time = time_str.split('.')[0]
+                                    memory_dict[memory_print_time] = dict()
+                            elif self.version >= '4.2.5.3' and self.version < '4.3':
+                                if 'Run print tenant memory usage task' in line:
                                     time_str = self.__get_time_from_ob_log_line(line)
                                     memory_print_time = time_str.split('.')[0]
                                     memory_dict[memory_print_time] = dict()
@@ -731,7 +738,7 @@ class AnalyzeMemoryHandler(object):
                                     mod_info['mod_used_bytes'] = mod_used_bytes
                                     mod_info['mod_used_block_cnt'] = mod_used_block_cnt
                                     mod_info['mod_avg_used_bytes'] = mod_avg_used_bytes
-                                    if self.version > '4.0':
+                                    if self.version > '4.0' and self.version < '4.3':
                                         mod_info['mod_block_cnt'] = mod_block_cnt
                                         mod_info['mod_chunk_cnt'] = mod_chunk_cnt
                                     if 'mod_info' in ctx_info:

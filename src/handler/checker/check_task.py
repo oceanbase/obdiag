@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -53,7 +53,6 @@ class Task:
             steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
             self.stdio.verbose("Unadapted by version. SKIP")
-            self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:

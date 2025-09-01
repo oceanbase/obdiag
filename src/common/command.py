@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -244,6 +244,59 @@ def get_observer_version(context):
     if observer_version == "":
         raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     return observer_version
+
+
+def get_observer_commit_id(context):
+    """
+    get observer commit id
+    """
+    stdio = context.stdio
+    observer_commit_id = ""
+    try:
+        stdio.verbose("get observer commit id, by sql")
+        obcluster = context.cluster_config
+        # by sql
+        observer_commit_id = get_observer_commit_id_by_sql(context, obcluster)
+        return observer_commit_id
+    except Exception as e:
+        try:
+            stdio.verbose("get observer commit id, by sql fail. by ssh")
+            nodes = context.cluster_config.get("servers")
+            if len(nodes) > 0:
+                sshclient = SshClient(context, nodes[0])
+                ob_install_dir = nodes[0].get("home_path")
+                observer_commit_id = get_observer_commit_id_by_ssh(sshclient, ob_install_dir, stdio)
+                return observer_commit_id
+        except Exception as e:
+            raise Exception("get observer commit id fail. Please check conf about observer's node or obconnector's info.")
+    if observer_commit_id == "":
+        raise Exception("get observer commit id fail. Please check conf about observer's node or obconnector's info.")
+
+
+def get_observer_commit_id_by_sql(context, obcluster):
+
+    sql = "select build_version from oceanbase.__all_server;"
+    ob_connector = OBConnector(context=context, ip=obcluster.get("db_host"), port=obcluster.get("db_port"), username=obcluster.get("tenant_sys").get("user"), password=obcluster.get("tenant_sys").get("password"), timeout=100)
+    ob_version_info = ob_connector.execute_sql(sql)
+    return ob_version_info[0][0]
+
+
+def get_observer_commit_id_by_ssh(ssh_client, ob_install_dir, stdio):
+    cmd = "{ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+    ob_version_info = ssh_client.exec_cmd(cmd)
+    stdio.verbose("get observer version, run cmd = [{0}] ".format(cmd))
+    if ob_version_info is not None:
+        ob_version = re.findall(r'[(]OceanBase.(.+?)[)]', ob_version_info)
+        if len(ob_version) > 0:
+            result = re.sub(r'[a-zA-Z]', '', ob_version[0])
+            return result.strip()
+        else:
+            cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+            ob_version_info = ssh_client.exec_cmd(cmd)
+            stdio.verbose("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
+            if "REVISION" not in ob_version_info:
+                raise Exception("Please check conf about observer,{0}".format(ob_version_info))
+            return ob_version_info
 
 
 # Please prioritize using get_observer_version

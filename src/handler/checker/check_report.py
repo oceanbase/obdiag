@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -29,7 +29,7 @@ import xmltodict
 import json
 from io import open
 
-from src.common.command import get_obproxy_version, get_observer_version
+from src.common.command import get_obproxy_version, get_observer_version, get_observer_commit_id
 from src.handler.checker.check_exception import CheckException
 from src.telemetry.telemetry import telemetry
 from jinja2 import Template
@@ -123,7 +123,7 @@ class CheckReport:
             if len(task.all()) != 0:
                 allInfoMap[task.name] = task.all()
             if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
-                allInfoMap[task.name] = "all pass"
+                allInfoMap[task.name] = ["all pass"]
 
         allMap["fail"] = failMap
         allMap["critical"] = criticalMap
@@ -177,10 +177,13 @@ class CheckReport:
                 observer_version = get_observer_version(self.context)
                 if observer_version:
                     fp.write("observer version: {0}\n".format(observer_version))
-                elif self.report_target == "obproxy":
-                    obproxy_version = get_obproxy_version(self.context)
-                    if obproxy_version:
-                        fp.write("obproxy version: {0}\n".format(obproxy_version))
+                observer_version_commit_id = get_observer_commit_id(self.context)
+                if observer_version_commit_id:
+                    fp.write("observer commit id: {0}\n".format(observer_version_commit_id))
+            elif self.report_target == "obproxy":
+                obproxy_version = get_obproxy_version(self.context)
+                if obproxy_version:
+                    fp.write("obproxy version: {0}\n".format(obproxy_version))
 
             if len(report_fail_tb._rows) != 0:
                 self.stdio.verbose(report_fail_tb)
@@ -305,12 +308,14 @@ class CheckReport:
                                 <th>obdiag Version</th>
                                 <th>OB Cluster Ip</th>
                                 <th>OB Version</th>
+                                <th>OB commit_id</th>
                             </tr>
                             <tr>
                                 <td>{{ report_time }}</td>
                                 <td>{{ obdiag_version }}</td>
                                 <td>{{ ob_cluster_ip }}</td>
                                 <td>{{ ob_version }}</td>
+                                <td>{{ ob_commit_id }}</td>
                             </tr>
                         </table>
                     </section>
@@ -363,10 +368,13 @@ class CheckReport:
             fp.write(template_head.render(report_title=report_title_str) + "\n")
             template_report_info_table = Template(html_template_report_info_table)
             cluster_ips = ""
+            ob_commit_id = get_observer_commit_id(self.context)
             for server in self.context.cluster_config["servers"]:
                 cluster_ips += server["ip"]
                 cluster_ips += ";"
-            fp.write(template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_version=self.context.cluster_config["version"]) + "\n")
+            fp.write(
+                template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_commit_id=ob_commit_id, ob_version=self.context.cluster_config["version"]) + "\n"
+            )
 
             if len(fail_map_html) != 0:
                 rendered_fail_map_html = template_table.render(task_name="Fail Tasks Report", tasks=fail_map_html)

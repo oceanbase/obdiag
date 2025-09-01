@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -118,6 +118,7 @@ class BaseCommand(object):
         self.parser = AllowUndefinedOptionParser(add_help_option=True)
         self.parser.add_option('-h', '--help', action='callback', callback=self._show_help, help='Show help and exit.')
         self.parser.add_option('-v', '--verbose', action='callback', callback=self._set_verbose, help='Activate verbose output.')
+        self.parser.add_option('--config_password', type="string", help='config password')
         self.parser.add_option('--inner_config', action='callback', type="str", callback=self._inner_config_change, help='change inner config. ')
 
     def _set_verbose(self, *args, **kwargs):
@@ -274,6 +275,7 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.verbose('opts: %s' % self.opts)
             custom_config_env_list = Util.get_option(self.opts, 'config')
             config_path = os.path.expanduser('~/.obdiag/config.yml')
+            config_password = Util.get_option(self.opts, 'config_password')
             if custom_config_env_list is None:
                 custom_config = Util.get_option(self.opts, 'c')
                 if custom_config:
@@ -282,7 +284,7 @@ class ObdiagOriginCommand(BaseCommand):
                     else:
                         ROOT_IO.error('The option you provided with -c: {0} is not exist.'.format(custom_config))
                         return
-            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list)
+            obdiag = ObdiagHome(stdio=ROOT_IO, config_path=config_path, inner_config_change_map=self.inner_config_change_map, custom_config_env_list=custom_config_env_list, config_password=config_password)
             ROOT_IO.print('obdiag version: {}'.format(OBDIAG_VERSION))
             obdiag.set_options(self.opts)
             obdiag.set_cmds(self.cmds)
@@ -310,7 +312,12 @@ class ObdiagOriginCommand(BaseCommand):
 
                 ret.set_command(self.prev_cmd + " " + args_to_str(self.args))
                 ROOT_IO.set_silent(False)
-                ROOT_IO.print(ret.get_result())
+                # get silent_type
+                silent_type = self.inner_config_change_map.get("obdiag", {}).get("logger", {}).get("silent_type", None)
+                if silent_type == "md":
+                    ROOT_IO.print(ret.get_result_md())
+                else:
+                    ROOT_IO.print(ret.get_result())
                 ROOT_IO.set_silent(True)
             if self.has_trace:
                 ROOT_IO.print('Trace ID: %s' % self.trace_id)
@@ -769,6 +776,25 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
         return obdiag.gather_function('gather_dbms_xplan', self.opts)
 
 
+class ObdiagGatherCoreCommand(ObdiagOriginCommand):
+    def __init__(self):
+        super(ObdiagGatherCoreCommand, self).__init__('core', 'Gather core diagnostic information')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes before to now. format: <n><m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagGatherCoreCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_function('gather_core', self.opts)
+
+
 class ObdiagDisplaySceneListCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1202,6 +1228,23 @@ class ObdiagUpdateCommand(ObdiagOriginCommand):
         return obdiag.update(self.opts)
 
 
+class ObdiagToolCryptoConfigCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolCryptoConfigCommand, self).__init__('crypto_config', 'obdiag tool crypto. Crypto the config.yaml of obdiag file')
+        self.parser.add_option('--key', type='string', help="the key to encrypt or decrypt")
+        self.parser.add_option('--file', type='string', help="the file path to encrypt or decrypt")
+        self.parser.add_option('--encrypted_file', type='string', help="the file path to encrypt")
+
+    def init(self, cmd, args):
+        super(ObdiagToolCryptoConfigCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_crypto_config(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1222,6 +1265,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherParameterCommand())
         self.register_command(ObdiagGatherVariableCommand())
         self.register_command(ObdiagGatherDBMSXPLANHandler())
+        self.register_command(ObdiagGatherCoreCommand())
 
 
 class ObdiagDisplayCommand(MajorCommand):
@@ -1278,6 +1322,12 @@ class ObdiagCheckCommand(MajorCommand):
         self.register_command(ObdiagCheckListCommand())
 
 
+class ToolCommand(MajorCommand):
+    def __init__(self):
+        super(ToolCommand, self).__init__('tool', 'obdiag tool')
+        self.register_command(ObdiagToolCryptoConfigCommand())
+
+
 class MainCommand(MajorCommand):
 
     def __init__(self):
@@ -1290,5 +1340,6 @@ class MainCommand(MajorCommand):
         self.register_command(ObdiagRCACommand())
         self.register_command(ObdiagConfigCommand())
         self.register_command(ObdiagUpdateCommand())
+        self.register_command(ToolCommand())
         self.parser.version = get_obdiag_version()
         self.parser._add_version_option()

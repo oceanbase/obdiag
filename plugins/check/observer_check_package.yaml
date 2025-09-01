@@ -36,6 +36,78 @@ sysbench_free:
     - sysbench.sysbench_test_tenant_log_disk_size
     - sysbench.sysbench_test_tenant_primary_zone
 
+k8s_basic:
+  info_en: "Collection of basic inspection tasks for OceanBase deployed on Kubernetes"
+  info_cn: "Kubernetes 中部署的 OceanBase 集群基础巡检"
+  tasks:
+    - bugs.*
+    - err_code.*
+    - clog.*
+    - ls.*
+    - log.log_size
+    - disk.data_disk_full
+    - disk.disk_full
+    - disk.disk_hole
+    - disk.clog_abnormal_file
+    - disk.sstable_abnormal_file
+    - table.information_schema_tables_two_data
+    - tenant.tenant_min_resource
+    - tenant.writing_throttling_trigger_percentage
+    - cluster.auto_increment_cache_size
+    - cluster.datafile_next
+    - cluster.deadlocks
+    - cluster.freeze_trigger_percentage
+    - cluster.global_indexes_too_much
+    - cluster.logons_check
+    - cluster.ls_nu
+    - cluster.major
+    - cluster.memory_chunk_cache_size
+    - cluster.memory_limit_percentage
+    - cluster.memstore_limit_percentage
+    - cluster.mod_too_large
+    - cluster.no_leader
+    - cluster.no_leader
+    - cluster.ob_enable_plan_cache_bad_version
+    - cluster.observer_not_active
+    - cluster.optimizer_better_inlist_costing_parmmeter
+    - cluster.part_trans_action_max
+    - cluster.resource_limit_max_session_num
+    - cluster.server_permanent_offline_time
+    - cluster.session_limit
+    - cluster.sys_log_level
+    - cluster.sys_obcon_health
+    - cluster.table_history_too_many
+    - cluster.task_opt_stat_gather_fail
+    - cluster.tenant_locks
+    - cluster.tenant_number
+    - cluster.upgrade_finished
+    - cluster.upper_trans_version
+    - cluster.zone_not_active
+    - cluster.core_file_find
+    - cluster.data_path_settings
+
+k8s_performance:
+  info_en: "Collection of performance inspection tasks for OceanBase deployed on Kubernetes"
+  info_cn: "Kubernetes 中部署的 OceanBase 集群性能巡检"
+  tasks:
+    - cluster.autoinc_cache_refresh_interval
+    - cluster.clog_sync_time_warn_threshold
+    - cluster.cpu_quota_concurrency
+    - cluster.default_compress_func
+    - cluster.enable_lock_priority
+    - cluster.large_query_threshold
+    - cluster.memstore_usage
+    - cluster.ob_enable_prepared_statement
+    - cluster.syslog_io_bandwidth_limit
+    - cluster.task_opt_stat
+    - cluster.trace_log_slow_query_watermark
+    - cpu.oversold
+    - disk.disk_iops
+    - table.macroblock_utilization_rate_table
+    - tenant.macroblock_utilization_rate_tenant
+    - tenant.max_stale_time_for_weak_consistency
+    - tenant.tenant_threshold
+
 filter:
   info_en: "Inspection that needs to be ignored"
   info_cn: "需要忽略的检查"

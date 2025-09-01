@@ -19,6 +19,9 @@ English | [中文版](README-CN.md)
     <a href="https://www.oceanbase.com/docs/obdiag-cn">
         <img alt="Chinese doc" src="https://img.shields.io/badge/文档-简体中文-blue" />
     </a>
+    <a href="https://deepwiki.com/oceanbase/obdiag">
+        <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" />
+    </a>
 </p>
 
 # OceanBase Diagnostic Tool (obdiag)
@@ -91,7 +94,8 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.3.0|2025.04| 2025.04.18 |<ul><li> obdiag check supports python script </li></ul>|
 |3.4.0|2025.05| 2025.05.15 |<ul><li> obdiag rca supports OMS obcdc </li></ul>|
 |3.5.0|2024.06| 2025.06.20 |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
-|3.6.0|2024.07| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Support MCP </li></ul>|
+|3.6.0|2024.07| 2025.07.31 |<ul><li> Add obdiag tool </li><li> Support MCP </li></ul>|
+|3.7.0|2024.08| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI for obdiag </li></ul>|
 
 # Support

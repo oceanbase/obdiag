@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -52,7 +52,7 @@ class MountDiskFull(TaskBase):
                         continue
                     mount_point = parts[5]
                     usage = int(parts[4].replace("%", ""))
-                    if usage > 90:
+                    if usage > 91:
                         self.report.add_critical("node: {0} mount point: {1} disk usage: {2}%, over 90%".format(ssh_client.get_name(), mount_point, usage))
                     elif usage > 80:
                         self.report.add_warning("node: {0} mount point: {1} disk usage: {2}%, over 80%".format(ssh_client.get_name(), mount_point, usage))

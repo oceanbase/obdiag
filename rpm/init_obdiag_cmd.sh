@@ -5,7 +5,7 @@ _obdiag_completion() {
 
     case "${COMP_CWORD}" in
         1)
-            type_list="--version display-trace config gather display analyze check rca update"
+            type_list="--version display-trace config gather display analyze check rca update tool"
             COMPREPLY=($(compgen -W "${type_list}" -- "${cur_word}"))
             ;;
         2)
@@ -15,7 +15,7 @@ _obdiag_completion() {
                     ;;
                 gather)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump parameter variable dbms_xplan"
+                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump parameter variable dbms_xplan core"
                     elif [ "${COMP_WORDS[2]}" = "scene" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="list run"
                     fi
@@ -38,6 +38,9 @@ _obdiag_completion() {
                     ;;
                 rca)
                     type_list="list run"
+                    ;;
+                tool)
+                    type_list="crypto_config"
                     ;;
                 *)
                     type_list=""

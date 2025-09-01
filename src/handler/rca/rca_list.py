@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -56,6 +56,9 @@ class RcaScenesListHandler:
 
         for scene_name, scene in scene_list.items():
             scene_info = scene.get_scene_info()
+            if "example" in scene_info:
+                scene_info_list[scene_name] = {"name": scene_name, "command": "{0}".format(scene_info.get("example") or "obdiag rca run --scene={0}".format(scene_name)), "info_en": scene_info["info_en"], "info_cn": scene_info["info_cn"]}
+                continue
             scene_info_list[scene_name] = {"name": scene_name, "command": "obdiag rca run --scene={0}".format(scene_name), "info_en": scene_info["info_en"], "info_cn": scene_info["info_cn"]}
         return scene_info_list, scene_list
 

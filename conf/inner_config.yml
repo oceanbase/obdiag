@@ -17,6 +17,7 @@ obdiag:
     silent: false
   ssh_client:
     remote_client_sudo: 0
+    cmd_exec_timeout: 180
 analyze:
   thread_nums: 3
 check:

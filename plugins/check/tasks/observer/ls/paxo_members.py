@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -63,7 +63,7 @@ class PaxosMembersTask(TaskBase):
                 PAXOS_MEMBER_LIST = row.get('PAXOS_MEMBER_LIST')
                 for ls in ls_data:
                     if ls not in PAXOS_MEMBER_LIST:
-                        self.report.add_fail(f"tenant_id:{tenant_id} ls:{ls} is not in paxos_member_list")
+                        self.report.add_critical(f"tenant_id:{tenant_id} ls:{ls} is not in paxos_member_list:{PAXOS_MEMBER_LIST}")
 
         except Exception as e:
             self.report.add_fail(f"Paxos members query failed: {str(e)}")

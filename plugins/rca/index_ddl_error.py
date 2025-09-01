@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -128,7 +128,7 @@ class IndexDDLErrorScene(RcaScene):
             )
             event_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             self.verbose("event_data is{0}".format(event_data))
-            if event_data is None:
+            if event_data is None or len(event_data) == 0:
                 record.add_record("gather rootservice.log  by {0}".format(self.trace_id))
                 # rs
                 self.verbose("event_data is None")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -62,7 +62,11 @@ GROUP BY
                 parameters_default_value = parameters_data_one.get("default_value")
                 parameters_tenant_ids = parameters_data_one.get("tenant_ids")
                 if parameters_tenant_ids is None:
-                    if parameters_default_value is None:
+                    if parameters_default_value:
+                        pass
+                    else:
+                        continue
+                    if parameters_value == parameters_default_value:
                         continue
                     report_str = "the {0} value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
                 else:

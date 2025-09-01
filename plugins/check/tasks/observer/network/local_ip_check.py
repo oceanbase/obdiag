@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -29,7 +29,6 @@ class LocalIPCheck(TaskBase):
             if super().check_ob_version_min("4.0.0.0"):
                 pass
             else:
-                self.report.add_warning("Unadapted by version. SKIP")
                 return
         else:
             self.report.add_warning("Unable to determine observer version")
