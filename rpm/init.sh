@@ -53,6 +53,21 @@ find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} + 
 
 \cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
 
+# Also copy plugins to root user's .obdiag directory
+if [ "$CURRENT_USER_ID" -eq 0 ]; then
+    # Running as root directly, ensure access to /root/.obdiag
+    mkdir -p /root/.obdiag
+    \cp -rf ${WORK_DIR}/plugins/* /root/.obdiag/
+    chown -R root:root /root/.obdiag
+elif [ "$IS_SUDO_EXECUTED" -eq 1 ]; then
+    # Executed via sudo, attempt to copy to root directory
+    mkdir -p /root/.obdiag
+    \cp -rf ${WORK_DIR}/plugins/* /root/.obdiag/
+    chown -R root:root /root/.obdiag
+else
+    echo "Warning: Not running as root or with sudo privileges, cannot copy to /root/.obdiag"
+fi
+
 bashrc_file=~/.bashrc
 if [ -e "$bashrc_file" ]; then
   ALIAS_OBDIAG_EXIST=$(grep "alias obdiag='sh" ~/.bashrc | head -n 1)
