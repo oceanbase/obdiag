@@ -21,6 +21,7 @@ from collections import defaultdict
 from src.handler.checker.check_task import TaskBase
 from src.common.tool import StringUtils
 
+
 class TenantLocalityConsistencyCheck(TaskBase):
     def init(self, context, report):
         super().init(context, report)
@@ -34,23 +35,23 @@ class TenantLocalityConsistencyCheck(TaskBase):
         """
         if not locality:
             return 0
-        
+
         total_replicas = 0
-        
+
         # Match FULL{1}@zone or F{1}@zone format (with replica count)
         replica_count_pattern = r'\b(FULL|F)\{(\d+)\}@'
         replica_count_matches = re.findall(replica_count_pattern, locality, re.IGNORECASE)
-        
+
         for match in replica_count_matches:
             count = int(match[1])
             total_replicas += count
-        
+
         # Match FULL@zone or F@zone format (without replica count, default to 1)
         simple_pattern = r'\b(FULL|F)(?!\{)@'
         simple_matches = re.findall(simple_pattern, locality, re.IGNORECASE)
-        
+
         total_replicas += len(simple_matches)
-        
+
         return total_replicas
 
     def execute(self):
@@ -92,7 +93,7 @@ class TenantLocalityConsistencyCheck(TaskBase):
                 tenant_name = tenant['TENANT_NAME']
                 locality = tenant['LOCALITY']
                 status = tenant['STATUS']
-                
+
                 self.stdio.verbose(f"Checking tenant: {tenant_name} (ID: {tenant_id})")
                 self.stdio.verbose(f"Tenant locality: {locality}, status: {status}")
 
@@ -100,20 +101,16 @@ class TenantLocalityConsistencyCheck(TaskBase):
                 actual_logs = log_by_tenant.get(tenant_id, [])
 
                 if not actual_logs:
-                    self.report.add_critical(
-                        f"Tenant {tenant_name} (ID: {tenant_id}) has no log streams, tenant may be unavailable"
-                    )
+                    self.report.add_critical(f"Tenant {tenant_name} (ID: {tenant_id}) has no log streams, tenant may be unavailable")
                     continue
 
                 # Check if all log streams have consistent PAXOS_REPLICA_NUM
                 replica_nums = set()
                 for log in actual_logs:
                     replica_nums.add(log['PAXOS_REPLICA_NUM'])
-                
+
                 if len(replica_nums) > 1:
-                    self.report.add_critical(
-                        f"Tenant {tenant_name} (ID: {tenant_id}) has inconsistent PAXOS_REPLICA_NUM across log streams: {replica_nums}"
-                    )
+                    self.report.add_critical(f"Tenant {tenant_name} (ID: {tenant_id}) has inconsistent PAXOS_REPLICA_NUM across log streams: {replica_nums}")
                     continue
 
                 actual_replicas = list(replica_nums)[0]
@@ -121,18 +118,12 @@ class TenantLocalityConsistencyCheck(TaskBase):
 
                 # Check if LOCALITY replica count matches log stream replica count
                 if actual_replicas != expected_replicas:
-                    self.report.add_warning(
-                        f"Tenant {tenant_name} (ID: {tenant_id}) locality replica count ({expected_replicas}) "
-                        f"does not match log stream member count ({actual_replicas}), tenant status abnormal, "
-                        f"tenant may be unavailable"
-                    )
+                    self.report.add_warning(f"Tenant {tenant_name} (ID: {tenant_id}) locality replica count ({expected_replicas}) " f"does not match log stream member count ({actual_replicas}), tenant status abnormal, " f"tenant may be unavailable")
 
                 # Check if there is a LEADER
                 has_leader = any(log['ROLE'] == 'LEADER' for log in actual_logs)
                 if not has_leader:
-                    self.report.add_critical(
-                        f"Tenant {tenant_name} (ID: {tenant_id}) has no LEADER in log streams, tenant is unavailable"
-                    )
+                    self.report.add_critical(f"Tenant {tenant_name} (ID: {tenant_id}) has no LEADER in log streams, tenant is unavailable")
                 else:
                     self.stdio.verbose(f"Tenant {tenant_name} has LEADER in log streams")
 
@@ -147,6 +138,7 @@ class TenantLocalityConsistencyCheck(TaskBase):
             "name": "tenant_locality_consistency_check",
             "info": "Check tenant locality consistency with log stream member count to ensure tenant availability. issue #1048",
         }
+
 
 # Register the task
 tenant_locality_consistency_check = TenantLocalityConsistencyCheck()
