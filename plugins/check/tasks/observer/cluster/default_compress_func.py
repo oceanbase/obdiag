@@ -28,6 +28,8 @@ class DefaultCompressFunc(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             default_compress_func_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_PARAMETERS where Name=\"default_compress_func\";").fetchall()
             for default_compress_func_one in default_compress_func_data:
                 default_compress_func_value = default_compress_func_one.get("VALUE")

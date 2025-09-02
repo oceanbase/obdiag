@@ -45,11 +45,11 @@ class ObserverPort(TaskBase):
                 return
             for server_data in servers_data:
                 # test SVR_PORT
-                err_info = ssh_client.exec_cmd("echo | nc -v {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
+                err_info = ssh_client.exec_cmd("echo | nc -v  -w 5 {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
                 if err_info.strip() != "" and "Connection refused" in err_info:
                     self.report.add_critical("node: {0}. can not conn {1}:{2} ".format(ssh_client.get_name(), server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
                 # test SQL_PORT
-                err_info = ssh_client.exec_cmd("echo | nc -v {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
+                err_info = ssh_client.exec_cmd("echo | nc -v  -w 5 {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
                 if err_info.strip() != "" and "Connection refused" in err_info:
                     self.report.add_critical("node: {0}. can not conn {1}:{2} ".format(ssh_client.get_name(), server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
         except Exception as e:
