@@ -28,6 +28,8 @@ class LogSize(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             log_size_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * FROM oceanbase.GV$OB_PARAMETERS where name=\"max_syslog_file_count\";").fetchall()
             if len(log_size_data) < 1:
                 return self.report.add_fail("get log_size data error")

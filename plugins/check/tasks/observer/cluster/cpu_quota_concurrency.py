@@ -28,6 +28,8 @@ class CpuQuotaConcurrency(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             cpu_quota_concurrency_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_PARAMETERS where Name=\"cpu_quota_concurrency\";").fetchall()
 
             for cpu_quota_concurrency_one in cpu_quota_concurrency_data:
