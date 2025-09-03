@@ -138,6 +138,12 @@ class GatherPlanMonitorHandler(object):
                 tenant_id = trace[10]
                 svr_ip = trace[12]
                 svr_port = trace[13]
+                params_value = trace[14]
+
+                # 如果params_value不为空，说明是PS模式的SQL，需要填充参数
+                if params_value:
+                    sql = StringUtils.fill_sql_with_params(sql, params_value, self.stdio)
+                    user_sql = sql
                 self.stdio.verbose("TraceID : %s " % trace_id)
                 self.stdio.verbose("SQL : %s " % sql)
                 self.stdio.verbose("SVR_IP : %s " % svr_ip)
