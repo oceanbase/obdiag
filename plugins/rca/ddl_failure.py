@@ -94,7 +94,7 @@ class DDLFailureScene(RcaScene):
         sql_result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
         self.verbose("query sql: {0}\nsql result: {1}".format(sql, sql_result))
         if len(sql_result) <= 0:
-            raise RCAInitException("table not found, query sql: {0}".format(sql))
+            raise RCAInitException("Record not found, query sql: {0}".format(sql))
         else:
             if sql_result[0]["index_type"] > 0 or sql_result[0]["data_table_id"] == 0:
                 pass

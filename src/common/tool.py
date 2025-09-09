@@ -1489,6 +1489,76 @@ class StringUtils(object):
         characters = string.ascii_letters + string.digits  # a-zA-Z0-9
         return ''.join(random.choices(characters, k=length))
 
+    @staticmethod
+    def fill_sql_with_params(sql, params_value, stdio):
+        """
+        将参数值填充到带有占位符的SQL中
+
+        Args:
+            sql (str): 带有占位符(?)的SQL语句
+            params_value (str): 逗号分隔的参数值字符串
+            stdio: 标准输入输出对象
+
+        Returns:
+            str: 填充了参数值的完整SQL语句
+        """
+        if not params_value or not sql:
+            return sql
+
+        try:
+            # Parse parameters
+            params = []
+            current_param = ""
+            in_quotes = False
+            quote_char = None
+
+            for char in params_value:
+                if char in ["'", '"']:
+                    if not in_quotes:
+                        in_quotes = True
+                        quote_char = char
+                        current_param += char
+                    elif char == quote_char:
+                        in_quotes = False
+                        quote_char = None
+                        current_param += char
+                    else:
+                        current_param += char
+                elif char == ',' and not in_quotes:
+                    # Remove leading/trailing spaces
+                    param = current_param.strip()
+                    params.append(param)
+                    current_param = ""
+                else:
+                    current_param += char
+
+            # Process the last parameter
+            if current_param:
+                param = current_param.strip()
+                params.append(param)
+
+            # Replace placeholders in SQL
+            result_sql = sql
+            for param in params:
+                # Find the first ? and replace
+                pos = result_sql.find('?')
+                if pos != -1:
+                    result_sql = result_sql[:pos] + str(param) + result_sql[pos + 1 :]
+                else:
+                    # If the parameter count does not match, record a warning and stop
+                    stdio.warn(f"Parameter count mismatch: SQL has more placeholders than parameters. SQL: {sql}, Params: {params_value}")
+                    break
+
+            stdio.verbose(f"Original SQL: {sql}")
+            stdio.verbose(f"Params: {params_value}")
+            stdio.verbose(f"Filled SQL: {result_sql}")
+
+            return result_sql
+
+        except Exception as e:
+            stdio.warn(f"Failed to fill SQL with parameters: {e}")
+            return sql
+
 
 class Cursor(SafeStdio):
 

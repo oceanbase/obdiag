@@ -59,7 +59,8 @@ sql_dict.set_value(
     tenant_id,
     version() mysql_version,
     svr_ip,
-    svr_port
+    svr_port,
+    params_value
     from oceanbase.##REPLACE_SQL_AUDIT_TABLE_NAME##
     where query_sql != '' and is_inner_sql=0 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
     ''',
@@ -83,7 +84,8 @@ sql_dict.set_value(
     tenant_id,
     banner oracle_version, 
     svr_ip, 
-    svr_port 
+    svr_port,
+    params_value 
     from sys.##REPLACE_SQL_AUDIT_TABLE_NAME##, V$VERSION
     where length(query_sql)>4 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc) where rownum < 2
     ''',
