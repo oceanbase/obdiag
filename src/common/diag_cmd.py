@@ -868,6 +868,7 @@ class ObdiagAnalyzeQueueCommand(ObdiagOriginCommand):
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--tenant', type='string', help="Specify tenantname ")
         self.parser.add_option('--queue', type='int', help="quene size ", default=50)
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
         super(ObdiagAnalyzeQueueCommand, self).init(cmd, args)
