@@ -30,7 +30,6 @@ from tabulate import tabulate
 
 
 class GatherTableDumpHandler(SafeStdio):
-
     def __init__(self, context, store_dir="./obdiag_gather_report", is_inner=False):
         self.context = context
         self.stdio = context.stdio
@@ -48,6 +47,12 @@ class GatherTableDumpHandler(SafeStdio):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
+
+    def _clean_identifier(self, identifier):
+
+        if identifier:
+            return identifier.replace('`', '')
+        return identifier
 
     def init(self):
         try:
@@ -85,6 +90,10 @@ class GatherTableDumpHandler(SafeStdio):
                 self.tenant_name = self.context.get_variable("gather_tenant_name")
             else:
                 self.tenant_name = self.__extract_string(user)
+
+            self.database = self._clean_identifier(self.database)
+            self.table = self._clean_identifier(self.table)
+
             self.ob_connector = OBConnector(
                 context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), timeout=100
             )
