@@ -91,7 +91,8 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 |3.4.0|2025.05| 2025.05.15 |<ul><li> obdiag rca 支持 OMS obcdc 通用问题根因分析 </li><li> 新增 obdiag gather dbms_xplan </li></ul>|
 |3.5.0|2024.06| 2025.06.20 |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
 |3.6.0|2024.07| 2025.07.31 |<ul><li> 新增 obdiag tool 功能 </li><li> 支持 MCP </li></ul>|
-|3.7.0|2024.08| - |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
+|3.7.0|2024.08| 2025.09.09 |<ul><li> obdiag-mcp 新增 pip 安装方式(pip install obdiag-mcp) </li><li> 巡检场景扩展 </li></ul>|
+|3.8.0|2024.09| - |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI 化探索 </li></ul>|
 
 # 支持
