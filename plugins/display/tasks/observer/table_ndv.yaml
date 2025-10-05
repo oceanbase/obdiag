@@ -6,12 +6,14 @@ task:
     steps:
       - type: sql
         sql: "select
-          s.OWNER,s.TABLE_NAME,s.COLUMN_NAME,s.NUM_DISTINCT as ndv,s.NUM_NULLS,s.LAST_ANALYZED,(case c.data_type
+          s.CON_ID as tenant_id, t2.tenant_name, s.OWNER as database_name, s.TABLE_NAME, s.COLUMN_NAME, s.NUM_DISTINCT as ndv, s.NUM_NULLS, s.LAST_ANALYZED,
+          (case c.data_type
           when 22 then 'VARCHAR2' when 17 then 'DATE' when 15 then 'NUMBER' when 38 then 'TIMESTAMP' when 30 then 'CLOB/BLOB' when 23 then 'CHAR' when 42 then 'FLOAT' when 39 then 'RAW' when 44 then 'NCHAR' when 43 then 'NVARCHAR2' else c.data_type end) AS COLUMN_TYPE
-          from  oceanbase.CDB_TAB_COL_STATISTICS s
+          from oceanbase.CDB_TAB_COL_STATISTICS s
           inner join oceanbase.CDB_OB_DATABASES d on s.OWNER=d.DATABASE_NAME and s.CON_ID=d.TENANT_ID
           inner join oceanbase.__all_virtual_table t on s.TABLE_NAME=t.TABLE_NAME and s.CON_ID=t.tenant_id
           inner join oceanbase.__all_virtual_column c on t.table_id = c.table_id and c.COLUMN_NAME=s.COLUMN_NAME
+          inner join oceanbase.__all_tenant t2 on s.CON_ID=t2.tenant_id
           where s.table_name = upper('#{table_name}')
           and s.OWNER=upper('#{database_name}');"
         global: true
