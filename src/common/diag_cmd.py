@@ -1093,7 +1093,7 @@ class ObdiagCheckListCommand(ObdiagOriginCommand):
         super(ObdiagCheckListCommand, self).__init__('list', 'check list')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
-        # self.parser.add_option('--all', action="append", type='string', help='env of scene')
+        self.parser.add_option('--all', action='store_true', help='show all task amd all cases details including task info')
 
     def init(self, cmd, args):
         super(ObdiagCheckListCommand, self).init(cmd, args)
