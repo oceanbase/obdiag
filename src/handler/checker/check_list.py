@@ -91,7 +91,7 @@ class CheckListHandler:
                         continue
                     self.stdio.print("\n\n")
                     self.stdio.print("tasks of {0}:".format(target))
-                    result_map[target]["tasks"]=get_task_list[target]
+                    result_map[target]["tasks"] = get_task_list[target]
                     for task_name in result_map[target]["tasks"]:
                         self.stdio.print("name: {0}\ninfo: {1}\n".format(task_name, get_task_list[target][task_name]))
 
