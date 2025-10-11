@@ -129,10 +129,18 @@ class CheckHandler:
     def handle(self):
         try:
             package_name = None
-            if self.check_target_type == "obproxy" and Util.get_option(self.options, 'obproxy_cases'):
-                package_name = Util.get_option(self.options, 'obproxy_cases')
-            if self.check_target_type == "observer" and Util.get_option(self.options, 'cases'):
-                package_name = Util.get_option(self.options, 'cases')
+            input_tasks = None
+            # when use "*_tasks" , not use package_name
+            if self.check_target_type == "obproxy":
+                if Util.get_option(self.options, 'obproxy_tasks'):
+                    input_tasks = Util.get_option(self.options, 'obproxy_tasks')
+                if Util.get_option(self.options, 'obproxy_cases'):
+                    package_name = Util.get_option(self.options, 'obproxy_cases')
+            if self.check_target_type == "observer":
+                if Util.get_option(self.options, 'observer_tasks'):
+                    input_tasks = Util.get_option(self.options, 'observer_tasks')
+                if Util.get_option(self.options, 'cases'):
+                    package_name = Util.get_option(self.options, 'cases')
             if Util.get_option(self.options, 'cases') == "build_before" and self.check_target_type == "obproxy":
                 self.stdio.print("when cases is build_before, not check obproxy")
                 return
@@ -151,7 +159,23 @@ class CheckHandler:
             self.stdio.verbose("export_report_path is " + self.export_report_path)
             # get package's by package_name
             self.tasks = {}
-            if package_name:
+            if input_tasks:
+                input_tasks = input_tasks.replace(" ", "")
+                input_tasks = input_tasks.split(";")
+                self.get_all_tasks()
+                end_tasks = {}
+                for package_task in input_tasks:
+                    if package_task in self.tasks:
+                        end_tasks[package_task] = self.tasks[package_task]
+                    for task_name, value in self.tasks.items():
+                        if re.match(package_task, task_name):
+                            end_tasks[task_name] = self.tasks[task_name]
+                if len(end_tasks) == 0:
+                    raise CheckException("no cases is check by *_tasks".format(input_tasks))
+                self.tasks = end_tasks
+                self.stdio.verbose("input_tasks is {0}".format(input_tasks))
+
+            elif package_name:
                 self.stdio.verbose("package_name is {0}".format(package_name))
                 package_tasks_by_name = self.get_package_tasks(package_name)
                 self.get_all_tasks()
