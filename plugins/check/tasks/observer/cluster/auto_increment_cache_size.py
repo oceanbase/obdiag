@@ -15,7 +15,7 @@
 @file: auto_increment_cache_size.py
 @desc:
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,6 +28,10 @@ class AutoIncrementCacheSize(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             auto_increment_cache_size_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * from oceanbase.`CDB_OB_SYS_VARIABLES` where name= \"auto_increment_cache_size\";").fetchall()
             if len(auto_increment_cache_size_data) < 1:
                 return self.report.add_fail("get auto_increment_cache_size data error")
