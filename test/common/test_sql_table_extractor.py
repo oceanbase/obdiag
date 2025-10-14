@@ -13,7 +13,7 @@
 """
 @time: 2025/2/19
 @file: test_sql_table_extractor.py
-@desc: 
+@desc:
 """
 
 import unittest
