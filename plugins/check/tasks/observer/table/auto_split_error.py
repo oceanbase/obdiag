@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/01/15
+@time: 2025/10/15
 @file: auto_split_error.py
 @desc: Check tables with auto split enabled in the cluster and verify if their partition data size is smaller than the split threshold
 """
