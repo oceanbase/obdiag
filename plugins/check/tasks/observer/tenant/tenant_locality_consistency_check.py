@@ -58,7 +58,10 @@ class TenantLocalityConsistencyCheck(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("Database connection is not available.")
-
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             self.stdio.verbose("Starting tenant locality consistency check...")
 
             # Query tenant information

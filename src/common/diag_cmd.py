@@ -1071,6 +1071,8 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
         super(ObdiagCheckRunCommand, self).__init__('run', 'check OceanBase cluster')
         self.parser.add_option('--cases', type='string', help="check observer's cases on package_file")
         self.parser.add_option('--obproxy_cases', type='string', help="check obproxy's cases on package_file")
+        self.parser.add_option('--observer_tasks', type='string', help="select observer_tasks. when select 'observer_tasks', ignore 'cases'")
+        self.parser.add_option('--obproxy_tasks', type='string', help="select obproxy_tasks. when select 'obproxy_tasks', ignore 'obproxy_cases'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
         self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
@@ -1093,7 +1095,7 @@ class ObdiagCheckListCommand(ObdiagOriginCommand):
         super(ObdiagCheckListCommand, self).__init__('list', 'check list')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
-        # self.parser.add_option('--all', action="append", type='string', help='env of scene')
+        self.parser.add_option('--all', action='store_true', help='show all task amd all cases details including task info')
 
     def init(self, cmd, args):
         super(ObdiagCheckListCommand, self).init(cmd, args)
