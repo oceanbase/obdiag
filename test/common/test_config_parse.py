@@ -13,7 +13,7 @@
 """
 @time: 2024/8/6
 @file: test_config_parse.py
-@desc: 
+@desc:
 """
 
 import unittest
