@@ -757,21 +757,21 @@ class GatherPlanMonitorHandler(object):
 
     def sql_audit_by_trace_id_limit1_sql(self):
         main_version = int(self.ob_version.split('.')[0])
-        
+
         if main_version >= 4:
             params_value_replacement = "params_value"
         else:
             params_value_replacement = "null as params_value"
-        
+
         if self.tenant_mode == 'mysql':
             sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql"))
         else:
             sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle"))
-        
+
         sql = sql.replace("##REPLACE_TRACE_ID##", self.trace_id)
         sql = sql.replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
         sql = sql.replace("##OB_VERSION_PARAMS_VALUE##", params_value_replacement)
-        
+
         return sql
 
     def select_sql_audit_by_trace_id_limit1(self):
