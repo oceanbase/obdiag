@@ -2,13 +2,21 @@ info_en: "[processlist_stat]"
 info_cn: "[processlist 实时会话信息汇总]"
 command: obdiag display scene run --scene=observer.processlist_stat
 task:
-  - version: "[3.0.0.0,*]"
+  - version: "[4.0.0.0,*]"
     steps:
       - type: sql
         sql: "select tenant,user,svr_ip,ifnull(sql_id,''),avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,sql_id order by count(*) desc limit 10; "
         global: true 
       - type: sql
         sql: "select tenant,user,svr_ip,substr(info,1,40) as  q_sql,avg(retry_cnt),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,substr(info,1,40) order by count(*) desc limit 10; "
+        global: true 
+  - version: "[3.0.0.0,3.9.9.9]"
+    steps:
+      - type: sql
+        sql: "select tenant,user,svr_ip,ifnull(sql_id,''),avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,sql_id order by count(*) desc limit 10; "
+        global: true 
+      - type: sql
+        sql: "select tenant,user,svr_ip,substr(info,1,40) as  q_sql,avg(time),max(time),count(*),id from oceanbase.__all_virtual_processlist where tenant<>'sys' and sql_id<>'' group by user,svr_ip,substr(info,1,40) order by count(*) desc limit 10; "
         global: true 
   - version: "[*,2.9.9.9]"
     steps:

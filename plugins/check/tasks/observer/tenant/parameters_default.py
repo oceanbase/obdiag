@@ -31,7 +31,10 @@ class ParametersDefault(TaskBase):
                 return self.report.add_critical("can't build obcluster connection")
             # check version 4.2.2.0 ≤ obversion < 4.3.0.0 or 4.3.1.0≤ obversion
             obversion = get_observer_version(self.context)
-            if (super().check_ob_version_min("4.2.2.0") or obversion == "4.2.2.0") and StringUtils.compare_versions_greater("4.3.0.0", obversion):
+            # Check if version is lower than 4.0
+            if StringUtils.compare_versions_greater("4.0.0.0", obversion):
+                return self.report.add_warning("This task is not supported in OceanBase version {0} (versions below 4.0 are not supported)".format(obversion))
+            elif (super().check_ob_version_min("4.2.2.0") or obversion == "4.2.2.0") and StringUtils.compare_versions_greater("4.3.0.0", obversion):
                 pass
             elif super().check_ob_version_min("4.3.1.0"):
                 pass

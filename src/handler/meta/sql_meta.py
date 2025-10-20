@@ -60,7 +60,7 @@ sql_dict.set_value(
     version() mysql_version,
     svr_ip,
     svr_port,
-    params_value
+    ##OB_VERSION_PARAMS_VALUE##
     from oceanbase.##REPLACE_SQL_AUDIT_TABLE_NAME##
     where query_sql != '' and is_inner_sql=0 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
     ''',
@@ -85,7 +85,7 @@ sql_dict.set_value(
     banner oracle_version, 
     svr_ip, 
     svr_port,
-    params_value 
+    ##OB_VERSION_PARAMS_VALUE## 
     from sys.##REPLACE_SQL_AUDIT_TABLE_NAME##, V$VERSION
     where length(query_sql)>4 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc) where rownum < 2
     ''',

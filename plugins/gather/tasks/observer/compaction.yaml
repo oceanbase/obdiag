@@ -62,9 +62,6 @@ task:
         sql: "select * from oceanbase.__all_virtual_sys_task_status;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_virtual_partition_compaction_progress;"
-        global: true
-      - type: sql
         sql: "select * from oceanbase.__all_freeze_schema_version where schema_version = -1;"
         global: true
       - type: sql
