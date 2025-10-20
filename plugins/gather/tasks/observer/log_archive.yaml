@@ -35,7 +35,7 @@ task:
         sql: "select * from oceanbase.CDB_OB_BACKUP_ARCHIVELOG;"
         global: true
       - type: sql
-        sql: "select * from __all_virtual_sys_task_status where comment like '%backup%';"
+        sql: "select * from oceanbase.__all_virtual_sys_task_status where comment like '%backup%';"
         global: true
       - type: sql
         sql: "select * from oceanbase.__all_virtual_pg_backup_log_archive_status order by log_archive_cur_ts limit 10;"
@@ -50,7 +50,7 @@ task:
         sql: "select count(*) ,DATE_FORMAT(gmt_create, '%Y-%c-%d')  as date from oceanbase.__all_virtual_ddl_operation where ddl_stmt_str !='' group by date order by date limit 10;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > now() - interval 1 day order by gmt_create desc;"
         global: true
       - type: sql
         sql: "(select table_id, partition_idx from oceanbase.__all_virtual_election_info group by table_id, partition_idx) except (select table_id, partition_idx from oceanbase.__all_virtual_election_info where role = 1);"
