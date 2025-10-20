@@ -82,7 +82,7 @@ class Telemetry:
                     for data_one in data:
                         data_one["SVR_IP"] = ip_mix_by_sha256(data_one["SVR_IP"])
                 elif version.startswith("3."):
-                    cursor = self.cluster_conn.execute_sql_return_cursor_dictionary("select *from oceanbase.gv$unit u, oceanbase.__all_virtual_server_stat s where s.svr_ip=u.svr_ip and s.svr_port=u.svr_port")
+                    cursor = self.cluster_conn.execute_sql_return_cursor_dictionary("select * from oceanbase.gv$unit u, oceanbase.__all_virtual_server_stat s where s.svr_ip=u.svr_ip and s.svr_port=u.svr_port")
                     columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
