@@ -57,7 +57,7 @@ class EnableLockPriority(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "enable_lock_priority", "info": "After enabling, the activation of enable_lock_priority can also affect the performance of ddl/dml in daily use. Do not open it unless there is a need for lock free structural changes. issue#890"}
+        return {"name": "enable_lock_priority", "info": "After enabling, the activation of enable_lock_priority can also affect the performance of ddl/dml in daily use. Do not open it unless there is a need for lock free structural changes. issue #890"}
 
 
 enable_lock_priority = EnableLockPriority()

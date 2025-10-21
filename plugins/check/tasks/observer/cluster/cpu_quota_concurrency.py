@@ -52,7 +52,7 @@ class CpuQuotaConcurrency(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "cpu_quota_concurrency", "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4. issue#738"}
+        return {"name": "cpu_quota_concurrency", "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4. issue #738"}
 
 
 cpu_quota_concurrency = CpuQuotaConcurrency()

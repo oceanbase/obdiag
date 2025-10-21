@@ -81,7 +81,7 @@ class UpgradeFinished(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "upgrade_finished", "info": "check obcluster upgrade if finished. issue #759"}
+        return {"name": "upgrade_finished", "info": "Check if OceanBase cluster upgrade is completed and verify version consistency. issue #759"}
 
 
 upgrade_finished = UpgradeFinished()

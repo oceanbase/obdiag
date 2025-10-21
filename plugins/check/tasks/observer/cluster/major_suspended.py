@@ -12,7 +12,7 @@
 
 """
 @time: 2025/07/16
-@file: maojor_suspended.py
+@file: major_suspended.py
 @desc: Check for suspended major compaction in OceanBase cluster
 """
 from src.common.tool import StringUtils
@@ -60,9 +60,9 @@ class MajorSuspendedTask(TaskBase):
 
     def get_task_info(self):
         return {
-            "name": "maojor_suspended",
+            "name": "major_suspended",
             "info": "Check for manually suspended major compaction in OceanBase cluster. issue #1015",
         }
 
 
-maojor_suspended = MajorSuspendedTask()
+major_suspended = MajorSuspendedTask()
