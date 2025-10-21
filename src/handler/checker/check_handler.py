@@ -171,7 +171,7 @@ class CheckHandler:
                         if re.match(package_task, task_name):
                             end_tasks[task_name] = self.tasks[task_name]
                 if len(end_tasks) == 0:
-                    raise CheckException("no cases is check by *_tasks".format(input_tasks))
+                    raise CheckException("no cases is check by *_tasks: {0}".format(input_tasks))
                 self.tasks = end_tasks
                 self.stdio.verbose("input_tasks is {0}".format(input_tasks))
 

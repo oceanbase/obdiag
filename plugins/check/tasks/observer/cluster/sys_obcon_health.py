@@ -37,7 +37,7 @@ class SysObconHealth(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "sys_obcon_health", "info": "Check if the cluster is connected by connecting to the sys tenant. issue#872"}
+        return {"name": "sys_obcon_health", "info": "Check if the cluster is connected by connecting to the sys tenant. issue #872"}
 
 
 sys_obcon_health = SysObconHealth()
