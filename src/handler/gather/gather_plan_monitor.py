@@ -231,7 +231,7 @@ class GatherPlanMonitorHandler(object):
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
-                self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
+                self.stdio.error("The data queried with the specified trace_id {0} from {1} is empty. Please verify if this trace_id has expired.".format(self.trace_id, self.sql_audit_name))
 
             if resp["skip"]:
                 return
