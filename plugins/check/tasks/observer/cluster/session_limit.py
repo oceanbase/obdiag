@@ -28,10 +28,9 @@ class SessionLimit(TaskBase):
         super().init(context, report)
         observer_version = self.observer_version
         if observer_version is None or len(observer_version.strip()) == 0:
-            raise CheckException("observer version is None. Please check the NODES conf.")
+            return
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            self.stdio.error("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
-            raise CheckException("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
+            return
 
     def execute(self):
         try:
@@ -55,7 +54,7 @@ class SessionLimit(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "session_count", "info": "retrieve connection information for the tenant"}
+        return {"name": "session_count", "info": "Check tenant session count and alert when exceeds 5000 threshold. issue #963"}
 
 
 session_limit = SessionLimit()

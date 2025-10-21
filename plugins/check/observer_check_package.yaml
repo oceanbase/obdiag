@@ -59,7 +59,7 @@ k8s_basic:
     - cluster.freeze_trigger_percentage
     - cluster.global_indexes_too_much
     - cluster.logons_check
-    - cluster.ls_nu
+    - cluster.ls_number
     - cluster.major
     - cluster.memory_chunk_cache_size
     - cluster.memory_limit_percentage
