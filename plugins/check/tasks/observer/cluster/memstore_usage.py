@@ -64,7 +64,7 @@ class MemstoreUsage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memstore_useage", "info": "check memstore usage"}
+        return {"name": "memstore_useage", "info": "Check memstore usage and alert when utilization rate exceeds 50%. issue #963"}
 
 
 memstore_usage = MemstoreUsage()

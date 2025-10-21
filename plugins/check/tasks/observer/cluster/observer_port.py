@@ -61,7 +61,7 @@ class ObserverPort(TaskBase):
             self.report.add_fail("node:{1} execute error {0}".format(node.get("ip"), e).strip())
 
     def get_task_info(self):
-        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue#845"}
+        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue #845"}
 
 
 observer_port = ObserverPort()
