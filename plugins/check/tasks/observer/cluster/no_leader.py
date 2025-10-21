@@ -26,9 +26,10 @@ class NoLeader(TaskBase):
         super().init(context, report)
         observer_version = self.observer_version
         if observer_version is None or len(observer_version.strip()) == 0:
-            return 
+            return
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            return 
+            return
+
     def execute(self):
         try:
             if self.ob_connector is None:

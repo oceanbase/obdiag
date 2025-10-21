@@ -30,6 +30,7 @@ class TenantLocks(TaskBase):
             return
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
             return
+
     def execute(self):
         try:
             if self.ob_connector is None:
