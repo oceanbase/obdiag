@@ -186,6 +186,7 @@ html_dict.set_value(
       $('td').each(function() {
         var $td = $(this);
         var text = $td.text().trim();
+        var htmlContent = $td.html().trim();
         
         // 检查是否包含SQL语句（简单的判断条件）
         if (text.length > 50 && (text.toLowerCase().includes('select') || text.toLowerCase().includes('insert') || text.toLowerCase().includes('update') || text.toLowerCase().includes('delete'))) {
@@ -209,9 +210,15 @@ html_dict.set_value(
             if ($text.hasClass('expanded')) {
               $text.removeClass('expanded');
               $btn.text('展开');
+              $text.text(text);
             } else {
               $text.addClass('expanded');
               $btn.text('收缩');
+              if (htmlContent.includes('<br>')) {
+                $text.html(htmlContent);
+              } else {
+                $text.text(text);
+              }
             }
           });
           
@@ -222,7 +229,11 @@ html_dict.set_value(
             
             // 创建临时textarea来复制文本
             var textarea = document.createElement('textarea');
-            textarea.value = text;
+            if (htmlContent.includes('<br>')) {
+              textarea.value = htmlContent.replace(/<br\s*\/?>/gi, '\\n').replace(/&nbsp;/g, ' ');
+            } else {
+              textarea.value = text;
+            }
             document.body.appendChild(textarea);
             textarea.select();
             
@@ -509,6 +520,7 @@ html_dict.set_value(
       $('td').each(function() {
         var $td = $(this);
         var text = $td.text().trim();
+        var htmlContent = $td.html().trim();
         
         // 检查是否包含SQL语句（简单的判断条件）
         if (text.length > 50 && (text.toLowerCase().includes('select') || text.toLowerCase().includes('insert') || text.toLowerCase().includes('update') || text.toLowerCase().includes('delete'))) {
@@ -532,9 +544,15 @@ html_dict.set_value(
             if ($text.hasClass('expanded')) {
               $text.removeClass('expanded');
               $btn.text('展开');
+              $text.text(text);
             } else {
               $text.addClass('expanded');
               $btn.text('收缩');
+              if (htmlContent.includes('<br>')) {
+                $text.html(htmlContent);
+              } else {
+                $text.text(text);
+              }
             }
           });
           
@@ -545,7 +563,11 @@ html_dict.set_value(
             
             // 创建临时textarea来复制文本
             var textarea = document.createElement('textarea');
-            textarea.value = text;
+            if (htmlContent.includes('<br>')) {
+              textarea.value = htmlContent.replace(/<br\s*\/?>/gi, '\\n').replace(/&nbsp;/g, ' ');
+            } else {
+              textarea.value = text;
+            }
             document.body.appendChild(textarea);
             textarea.select();
             
