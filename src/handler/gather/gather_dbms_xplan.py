@@ -241,7 +241,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.stdio.print(summary_tuples)
 
     def __get_sql_audit_from_trace_id(self):
-        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit")
+        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit").replace("##OB_VERSION_PARAMS_VALUE##", "params_value")
         audit_result = self.ob_connector.execute_sql(sql)
         if len(audit_result) > 0:
             trace = audit_result[0]
