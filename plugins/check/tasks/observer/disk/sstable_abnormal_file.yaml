@@ -1,5 +1,5 @@
 
-info: "Check if there are files in the clog folder that do not belong to the observer"
+info: "Check if there are files in the sstable folder that do not belong to the observer"
 task:
   - version: "[4.0.0.0,*]"
     steps:
