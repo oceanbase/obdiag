@@ -25,14 +25,13 @@ class TenantLocks(TaskBase):
 
     def init(self, context, report):
         super().init(context, report)
-        observer_version = self.observer_version
-        if observer_version is None or len(observer_version.strip()) == 0:
-            return
-        if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            return
 
     def execute(self):
         try:
+            if self.observer_version is None or len(self.observer_version.strip()) == 0:
+                return
+            if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
+                return
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
             sql = '''
