@@ -34,7 +34,8 @@ class CheckSystemLanguage(TaskBase):
             try:
                 # check $LANG is en_US.UTF-8
                 # cmd = f"echo $LANG | grep 'en_US.UTF-8'"
-                cmd = f"""bash -l -c "echo \$LANG" | grep -iP 'en_US.utf(-|)8'"""
+                # cmd = f"""bash -l -c "echo \$LANG" | grep -iP 'en_US.utf(-|)8'"""
+                cmd = f"""bash -l -c 'locale|grep -P "LANG=en(_|-)US.UTF(_|-|)8"'"""
                 self.stdio.verbose(f"Executing on {ip}: {cmd}")
                 system_language_check = ssher.exec_cmd(cmd).strip()
                 if not system_language_check:
