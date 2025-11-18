@@ -145,3 +145,4 @@ class TenantLocalityConsistencyCheck(TaskBase):
 
 # Register the task
 tenant_locality_consistency_check = TenantLocalityConsistencyCheck()
+
