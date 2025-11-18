@@ -34,7 +34,7 @@ class CgroupVersionTask(TaskBase):
 
                 # Check cgroup version
                 cgroup_version = self._check_cgroup_version(ssh_client)
-                
+
                 if cgroup_version is None:
                     self.stdio.warn("node: {0} failed to determine cgroup version".format(ssh_client.get_name()))
                     continue
@@ -63,7 +63,7 @@ class CgroupVersionTask(TaskBase):
             cmd1 = '[ -f /sys/fs/cgroup/cgroup.controllers ] && echo "v2" || echo "not_v2"'
             result1 = ssh_client.exec_cmd(cmd1).strip()
             self.stdio.verbose("check /sys/fs/cgroup/cgroup.controllers: {0}".format(result1))
-            
+
             if result1 == "v2":
                 return "v2"
 
@@ -71,7 +71,7 @@ class CgroupVersionTask(TaskBase):
             cmd2 = '[ -d /sys/fs/cgroup/unified ] && echo "v2" || echo "not_v2"'
             result2 = ssh_client.exec_cmd(cmd2).strip()
             self.stdio.verbose("check /sys/fs/cgroup/unified: {0}".format(result2))
-            
+
             if result2 == "v2":
                 return "v2"
 
@@ -80,7 +80,7 @@ class CgroupVersionTask(TaskBase):
             cmd3 = '[ -f /sys/fs/cgroup/systemd/cgroup.controllers ] && echo "v2" || echo "not_v2"'
             result3 = ssh_client.exec_cmd(cmd3).strip()
             self.stdio.verbose("check /sys/fs/cgroup/systemd/cgroup.controllers: {0}".format(result3))
-            
+
             if result3 == "v2":
                 return "v2"
 
@@ -89,7 +89,7 @@ class CgroupVersionTask(TaskBase):
             cmd4 = 'cat /proc/cgroups 2>/dev/null | wc -l'
             result4 = ssh_client.exec_cmd(cmd4).strip()
             self.stdio.verbose("check /proc/cgroups line count: {0}".format(result4))
-            
+
             if result4 and result4.isdigit():
                 line_count = int(result4)
                 # v1 typically has multiple controllers (more than 1 line including header)
@@ -102,7 +102,7 @@ class CgroupVersionTask(TaskBase):
             cmd5 = '[ -d /sys/fs/cgroup/cpu ] && [ -d /sys/fs/cgroup/memory ] && echo "v1" || echo "not_v1"'
             result5 = ssh_client.exec_cmd(cmd5).strip()
             self.stdio.verbose("check /sys/fs/cgroup/cpu and memory directories: {0}".format(result5))
-            
+
             if result5 == "v1":
                 return "v1"
 
@@ -122,4 +122,3 @@ class CgroupVersionTask(TaskBase):
 
 
 cgroup_version = CgroupVersionTask()
-

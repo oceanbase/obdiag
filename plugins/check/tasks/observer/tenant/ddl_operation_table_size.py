@@ -27,7 +27,7 @@ class DdlOperationTableSizeTask(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
-            
+
             if not super().check_ob_version_min("4.0.0.0"):
                 return self.report.add_warning("this version: {0} is not support this task".format(self.observer_version))
 
@@ -44,10 +44,10 @@ class DdlOperationTableSizeTask(TaskBase):
                 HAVING 
                     COUNT(*) > 10000000
             """
-            
+
             self.stdio.verbose("Querying tenants with __all_ddl_operation table record count > 10 million")
             results = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-            
+
             if results is None or len(results) == 0:
                 self.stdio.verbose("No tenants found with __all_ddl_operation table record count > 10 million")
                 return
@@ -61,7 +61,7 @@ class DdlOperationTableSizeTask(TaskBase):
                     oceanbase.__all_tenant
             """
             tenant_info_results = self.ob_connector.execute_sql_return_cursor_dictionary(tenant_info_sql).fetchall()
-            
+
             tenant_name_dict = {}
             if tenant_info_results:
                 for row in tenant_info_results:
@@ -80,13 +80,11 @@ class DdlOperationTableSizeTask(TaskBase):
 
                 tenant_id = int(tenant_id)
                 record_count = int(record_count)
-                
+
                 # Get tenant name
                 tenant_name = tenant_name_dict.get(tenant_id, "tenant_id_{0}".format(tenant_id))
 
-                self.stdio.verbose("Tenant {0} (ID: {1}) has {2} records in __all_ddl_operation table".format(
-                    tenant_name, tenant_id, record_count
-                ))
+                self.stdio.verbose("Tenant {0} (ID: {1}) has {2} records in __all_ddl_operation table".format(tenant_name, tenant_id, record_count))
 
                 # Report warning if record count > 10 million
                 if record_count > 10000000:
@@ -94,9 +92,7 @@ class DdlOperationTableSizeTask(TaskBase):
                         "Tenant {0} (ID: {1}) internal table __all_ddl_operation has {2} records, exceeding 10 million. "
                         "Please pay attention. In some scenarios, such as using this tenant's backup for database physical recovery, "
                         "you may need to increase the parameter internal_sql_execute_timeout. "
-                        "Reference: https://ask.oceanbase.com/t/topic/35629018".format(
-                            tenant_name, tenant_id, record_count
-                        )
+                        "Reference: https://ask.oceanbase.com/t/topic/35629018".format(tenant_name, tenant_id, record_count)
                     )
 
         except Exception as e:
@@ -111,4 +107,3 @@ class DdlOperationTableSizeTask(TaskBase):
 
 
 ddl_operation_table_size = DdlOperationTableSizeTask()
-

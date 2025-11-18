@@ -29,7 +29,7 @@ class TenantMemoryTabletCountTask(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
-            
+
             if not super().check_ob_version_min("4.0.0.0"):
                 return self.report.add_warning("this version: {0} is not support this task".format(self.observer_version))
 
@@ -61,10 +61,10 @@ class TenantMemoryTabletCountTask(TaskBase):
                     (u.tenant_id > 1000 OR u.tenant_id = 1)
                     AND u.MEMORY_SIZE > 0
             """
-            
+
             self.stdio.verbose("Querying tenant memory specification from gv$ob_units")
             memory_size_results = self.ob_connector.execute_sql_return_cursor_dictionary(sql_memory_size).fetchall()
-            
+
             if memory_size_results is None or len(memory_size_results) == 0:
                 self.stdio.verbose("No tenant memory specification data found")
                 return
@@ -83,10 +83,10 @@ class TenantMemoryTabletCountTask(TaskBase):
                 GROUP BY 
                     tenant_id, svr_ip
             """
-            
+
             self.stdio.verbose("Querying tenant memory usage from __all_virtual_memory_info")
             memory_usage_results = self.ob_connector.execute_sql_return_cursor_dictionary(sql_memory_usage).fetchall()
-            
+
             # Create a dictionary for quick lookup of memory usage
             memory_usage_dict = {}
             if memory_usage_results:
@@ -94,10 +94,7 @@ class TenantMemoryTabletCountTask(TaskBase):
                     tenant_id = usage_row.get("tenant_id") or usage_row.get("TENANT_ID")
                     svr_ip = usage_row.get("svr_ip") or usage_row.get("SVR_IP")
                     key = "{0}_{1}".format(tenant_id, svr_ip)
-                    memory_usage_dict[key] = {
-                        "hold_gb": usage_row.get("memory_hold_gb") or usage_row.get("MEMORY_HOLD_GB") or 0,
-                        "used_gb": usage_row.get("memory_used_gb") or usage_row.get("MEMORY_USED_GB") or 0
-                    }
+                    memory_usage_dict[key] = {"hold_gb": usage_row.get("memory_hold_gb") or usage_row.get("MEMORY_HOLD_GB") or 0, "used_gb": usage_row.get("memory_used_gb") or usage_row.get("MEMORY_USED_GB") or 0}
 
             # Check each tenant's memory usage
             for row in memory_size_results:
@@ -113,24 +110,19 @@ class TenantMemoryTabletCountTask(TaskBase):
                 key = "{0}_{1}".format(tenant_id, svr_ip)
                 memory_hold_gb = memory_usage_dict.get(key, {}).get("hold_gb", 0)
                 memory_used_gb = memory_usage_dict.get(key, {}).get("used_gb", 0)
-                
+
                 # Use hold_gb as it represents the actual memory held by the tenant
                 memory_usage_gb = memory_hold_gb if memory_hold_gb > 0 else memory_used_gb
 
                 if memory_size_gb > 0:
                     usage_percentage = (Decimal(str(memory_usage_gb)) / Decimal(str(memory_size_gb))) * 100
-                    
-                    self.stdio.verbose("Tenant {0} (ID: {1}) on {2}: memory_usage={3}GB, memory_size={4}GB, usage_percentage={5}%".format(
-                        tenant_name, tenant_id, svr_ip, memory_usage_gb, memory_size_gb, round(float(usage_percentage), 2)
-                    ))
+
+                    self.stdio.verbose("Tenant {0} (ID: {1}) on {2}: memory_usage={3}GB, memory_size={4}GB, usage_percentage={5}%".format(tenant_name, tenant_id, svr_ip, memory_usage_gb, memory_size_gb, round(float(usage_percentage), 2)))
 
                     if usage_percentage > 90:
                         self.report.add_warning(
                             "Tenant {0} (ID: {1}) on {2}: memory usage is {3}%, which exceeds 90%. "
-                            "Memory usage: {4}GB, Memory specification: {5}GB".format(
-                                tenant_name, tenant_id, svr_ip, round(float(usage_percentage), 2),
-                                memory_usage_gb, memory_size_gb
-                            )
+                            "Memory usage: {4}GB, Memory specification: {5}GB".format(tenant_name, tenant_id, svr_ip, round(float(usage_percentage), 2), memory_usage_gb, memory_size_gb)
                         )
 
         except Exception as e:
@@ -152,10 +144,10 @@ class TenantMemoryTabletCountTask(TaskBase):
                 GROUP BY 
                     svr_ip, svr_port
             """
-            
+
             self.stdio.verbose("Querying tablet count per observer")
             results = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-            
+
             if results is None or len(results) == 0:
                 self.stdio.verbose("No tablet count data found")
                 return
@@ -176,17 +168,12 @@ class TenantMemoryTabletCountTask(TaskBase):
                 tablet_count = int(tablet_count)
                 usage_percentage = (Decimal(str(tablet_count)) / Decimal(str(max_tablet_count))) * 100
 
-                self.stdio.verbose("Observer {0}:{1} has {2} tablets, usage percentage: {3}%".format(
-                    svr_ip, svr_port, tablet_count, round(float(usage_percentage), 2)
-                ))
+                self.stdio.verbose("Observer {0}:{1} has {2} tablets, usage percentage: {3}%".format(svr_ip, svr_port, tablet_count, round(float(usage_percentage), 2)))
 
                 if tablet_count > threshold_tablet_count:
                     self.report.add_warning(
                         "Observer {0}:{1} has {2} tablets, which exceeds 90% threshold ({3} tablets). "
-                        "Current usage: {4}%. Recommended maximum: {5} tablets per observer".format(
-                            svr_ip, svr_port, tablet_count, threshold_tablet_count,
-                            round(float(usage_percentage), 2), max_tablet_count
-                        )
+                        "Current usage: {4}%. Recommended maximum: {5} tablets per observer".format(svr_ip, svr_port, tablet_count, threshold_tablet_count, round(float(usage_percentage), 2), max_tablet_count)
                     )
 
         except Exception as e:
@@ -201,4 +188,3 @@ class TenantMemoryTabletCountTask(TaskBase):
 
 
 tenant_memory_tablet_count = TenantMemoryTabletCountTask()
-

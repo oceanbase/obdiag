@@ -66,11 +66,7 @@ class OldVersionTask(TaskBase):
                         break
 
                 if is_deprecated:
-                    self.report.add_warning(
-                        "obproxy version {0} on {1} is not recommended, please upgrade to the obproxy".format(
-                            obproxy_version, ssh_client.get_name()
-                        )
-                    )
+                    self.report.add_warning("obproxy version {0} on {1} is not recommended, please upgrade to the obproxy".format(obproxy_version, ssh_client.get_name()))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
@@ -85,9 +81,7 @@ class OldVersionTask(TaskBase):
                 return None
 
             # Try to get version using the same method as get_obproxy_version
-            cmd = "export LD_LIBRARY_PATH={0}/lib && {0}/bin/obproxy --version 2>&1 | grep \"obproxy (\" | awk '{{print $3}}'".format(
-                home_path
-            )
+            cmd = "export LD_LIBRARY_PATH={0}/lib && {0}/bin/obproxy --version 2>&1 | grep \"obproxy (\" | awk '{{print $3}}'".format(home_path)
             result = ssh_client.exec_cmd(cmd).strip()
             self.stdio.verbose("get obproxy version, run cmd = [{0}], result = [{1}]".format(cmd, result))
 
@@ -131,4 +125,3 @@ class OldVersionTask(TaskBase):
 
 
 old_version = OldVersionTask()
-
