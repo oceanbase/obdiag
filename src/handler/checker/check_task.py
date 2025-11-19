@@ -172,14 +172,17 @@ class TaskBase:
             password=self.ob_cluster.get("tenant_sys").get("password"),
             timeout=10000,
         )
-        try:
-            self.obproxy_version = get_obproxy_version(self.context)
-        except Exception as e:
-            self.stdio.error("get obproxy_version fail: {0}".format(e))
-        try:
-            self.obproxy_full_version = get_obproxy_full_version(self.context)
-        except Exception as e:
-            self.stdio.error("get obproxy_full_version fail: {0}".format(e))
+        if self.obproxy_nodes is None:
+            self.stdio.print("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
+        else:
+            try:
+                self.obproxy_version = get_obproxy_version(self.context)
+            except Exception as e:
+                self.stdio.error("get obproxy_version fail: {0}".format(e))
+            try:
+                self.obproxy_full_version = get_obproxy_full_version(self.context)
+            except Exception as e:
+                self.stdio.error("get obproxy_full_version fail: {0}".format(e))
 
     def check_ob_version_min(self, min_version: str):
         if self.observer_version is None:
