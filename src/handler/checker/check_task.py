@@ -17,7 +17,7 @@
 """
 import threading
 
-from src.common.command import get_observer_version
+from src.common.command import get_observer_version, get_obproxy_version, get_obproxy_full_version
 from src.common.ob_connector import OBConnector
 from src.common.ssh_client.ssh import SshClient
 from src.handler.checker.check_exception import StepResultFailException, StepExecuteFailException, StepResultFalseException, TaskException
@@ -116,6 +116,7 @@ class TaskBase:
         self.ob_connector = None
         self.store_dir = None
         self.obproxy_version = None
+        self.obproxy_full_version = None
         self.observer_version = None
         self.report = None
         self.obproxy_nodes = []
@@ -171,6 +172,14 @@ class TaskBase:
             password=self.ob_cluster.get("tenant_sys").get("password"),
             timeout=10000,
         )
+        try:
+            self.obproxy_version = get_obproxy_version(self.context)
+        except Exception as e:
+            self.stdio.error("get obproxy_version fail: {0}".format(e))
+        try:
+            self.obproxy_full_version = get_obproxy_full_version(self.context)
+        except Exception as e:
+            self.stdio.error("get obproxy_full_version fail: {0}".format(e))
 
     def check_ob_version_min(self, min_version: str):
         if self.observer_version is None:
