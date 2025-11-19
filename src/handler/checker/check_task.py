@@ -172,7 +172,7 @@ class TaskBase:
             password=self.ob_cluster.get("tenant_sys").get("password"),
             timeout=10000,
         )
-        if self.obproxy_nodes is None:
+        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
             self.stdio.print("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
         else:
             try:
