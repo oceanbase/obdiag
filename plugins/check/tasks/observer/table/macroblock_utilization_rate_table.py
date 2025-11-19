@@ -79,7 +79,7 @@ class MacroblockUtilizationRateTable(TaskBase):
 
             all_table = []
 
-            for row in result:
+            for row in result[0]:
                 tenant_name = row.get("tenant_name") or row.get("TENANT_NAME")
                 database_name = row.get("database_name") or row.get("DATABASE_NAME")
                 table_name = row.get("table_name") or row.get("TABLE_NAME")
