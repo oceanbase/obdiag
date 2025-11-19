@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - 372-qulei
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
