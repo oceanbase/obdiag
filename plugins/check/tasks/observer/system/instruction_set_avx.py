@@ -52,13 +52,8 @@ class InstructionSetAvxTask(TaskBase):
                 if "avx" not in cpu_flags:
                     if self.observer_version:
                         # for self.observer_version exist
-                        # check if observer version is greater than 4.0.0.0
-                        if super().check_ob_version_min("4.0.0.0"):
-                            self.report.add_critical(
-                                "CPU on {0} does not support AVX instruction set. if you want to use observer, please upgrade the observer version to '4.2.5.6 or later' or '4.3.5.4 or later' or '4.4.1.0 or later'".format(ssh_client.get_name())
-                            )
-
-                        elif self._should_check_avx():
+                        # check if current version requires AVX instruction set
+                        if self._should_check_avx():
                             self.report.add_critical(
                                 "CPU on {0} does not support AVX instruction set. if you want to use observer, please upgrade the observer version to '4.2.5.6 or later' or '4.3.5.4 or later' or '4.4.1.0 or later'".format(ssh_client.get_name())
                             )
