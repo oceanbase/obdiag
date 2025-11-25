@@ -70,7 +70,7 @@ class TenantThreshold(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "tenant_threshold", "info": "check tenant threshold. issue #963"}
+        return {"name": "tenant_threshold", "info": "Check tenant thread utilization rate and alert when exceeds 95% threshold. issue #963"}
 
 
 tenant_threshold = TenantThreshold()

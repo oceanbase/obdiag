@@ -17,6 +17,7 @@
 """
 from decimal import Decimal
 
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,7 +29,12 @@ class DataDiskFull(TaskBase):
     def execute(self):
         try:
             if self.ob_connector is None:
-                return self.report.add_critical("can't build obcluster connection")
+                return None
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
+
             sql = '''
                 select /*+ READ_CONSISTENCY(WEAK)*/ svr_ip,ROUND(total_size/1024/1024/1024, 2) as total_size, ROUND(free_size/1024/1024/1024, 2) as free_size ,ROUND(allocated_size/1024/1024/1024, 2) as allocated_size from oceanbase.__all_virtual_disk_stat
             '''
@@ -48,7 +54,7 @@ class DataDiskFull(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "data_disk_full", "info": "retrieve connection information for the tenant. issue #963"}
+        return {"name": "data_disk_full", "info": "Check data disk usage and alert when usage exceeds 85% threshold. issue #963"}
 
 
 data_disk_full = DataDiskFull()

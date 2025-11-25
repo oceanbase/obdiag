@@ -25,15 +25,13 @@ class TenantLocks(TaskBase):
 
     def init(self, context, report):
         super().init(context, report)
-        observer_version = self.observer_version
-        if observer_version is None or len(observer_version.strip()) == 0:
-            raise CheckException("observer version is None. Please check the NODES conf.")
-        if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            self.stdio.error("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
-            raise CheckException("observer version is {0}, which is less than 4.0.0.0.".format(observer_version))
 
     def execute(self):
         try:
+            if self.observer_version is None or len(self.observer_version.strip()) == 0:
+                return
+            if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
+                return
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
             sql = '''
@@ -54,7 +52,7 @@ class TenantLocks(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "tennat_locks", "info": "retrieve locks information for the tenant. issue #963"}
+        return {"name": "tennat_locks", "info": "Check tenant lock wait count and alert when exceeds 5000 threshold. issue #963"}
 
 
 tenant_locks = TenantLocks()

@@ -32,9 +32,6 @@ task:
         sql: "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_failover_info;"
-        global: true
-      - type: sql
         sql: "select * from oceanbase.__all_freeze_schema_version ;"
         global: true
       - type: sql
@@ -56,7 +53,7 @@ task:
         sql: "select * from oceanbase.__all_virtual_meta_table where is_restore != 0;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_core_table where table_name like '%schema_status%'';"
+        sql: "select * from oceanbase.__all_core_table where table_name like '%schema_status%';"
         global: true
       - type: sql
         sql: "SELECT TENANT_ID, COUNT(*)  FROM oceanbase.__ALL_VIRTUAL_META_TABLE  WHERE ROLE = 2  GROUP BY TENANT_ID;"

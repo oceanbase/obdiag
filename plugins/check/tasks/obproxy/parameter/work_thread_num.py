@@ -15,7 +15,7 @@
 @file: work_thread_num.py
 @desc: Check obproxy work_thread_num parameter value
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -25,6 +25,14 @@ class WorkThreadNumTask(TaskBase):
 
     def execute(self):
         try:
+            if self.obproxy_version:
+                pass
+            else:
+                return None
+            if StringUtils.compare_versions_greater(self.obproxy_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             # Get obproxy work_thread_num parameter
             results = super().get_obproxy_parameter("work_thread_num")
 

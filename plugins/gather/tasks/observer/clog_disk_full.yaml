@@ -44,9 +44,6 @@ task:
         sql: "select * from oceanbase.__all_virtual_tenant_memstore_info where (active_memstore_used > major_freeze_trigger) or (total_memstore_used > memstore_limit);"
         global: true
       - type: sql
-        sql: "select t.tenant_name, t1.database_name, round(sum(t2.data_size)/1024/1024/1024,2) as data_size_gb, round(sum(t2.required_size)/1024/1024/1024,2) as required_size_gb from oceanbase.dba_ob_tenants t,cdb_ob_table_locations t1,cdb_ob_tablet_replicas t2 where t.tenant_id=t1.tenant_id and t1.svr_ip=t2.svr_ip and t1.tenant_id=t2.tenant_id and t1.ls_id=t2.ls_id and t1.tablet_id=t2.tablet_id and t1.role='leader' group by t.tenant_name, t1.database_name order by data_size_gb desc;"
-        global: true
-      - type: sql
         sql: "select svr_ip,total_size / 1024 / 1024 / 1024 total_G,free_size / 1024 / 1024 / 1024 free_G,(total_size - free_size) / 1024 / 1024 / 1024 used_G,(total_size - free_size) / total_size used_percentage FROM oceanbase.__all_virtual_disk_stat;  "
         global: true
       - type: log

@@ -12,10 +12,10 @@
 
 """
 @time: 2025/07/16
-@file: maojor_suspended.py
+@file: major_suspended.py
 @desc: Check for suspended major compaction in OceanBase cluster
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,7 +28,10 @@ class MajorSuspendedTask(TaskBase):
             if self.ob_connector is None:
                 self.report.add_fail("Database connection is not available")
                 return
-
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             # Query for suspended major compaction
             sql = "SELECT TENANT_ID, IS_SUSPENDED FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE IS_SUSPENDED = 'YES'"
 
@@ -57,9 +60,9 @@ class MajorSuspendedTask(TaskBase):
 
     def get_task_info(self):
         return {
-            "name": "maojor_suspended",
+            "name": "major_suspended",
             "info": "Check for manually suspended major compaction in OceanBase cluster. issue #1015",
         }
 
 
-maojor_suspended = MajorSuspendedTask()
+major_suspended = MajorSuspendedTask()

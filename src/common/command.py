@@ -363,6 +363,43 @@ def get_obproxy_version(context):
             return obproxy_version_info
 
 
+def get_obproxy_full_version(context):
+    """
+    get obproxy full version info (e.g., "OceanBase 4.3.5.0 3.el8")
+    :param context: context object
+    :return: full version string in parentheses
+    """
+    stdio = context.stdio
+    obproxy_nodes = context.obproxy_config.get("servers")
+    if len(obproxy_nodes) < 1:
+        raise Exception("obproxy_nodes is not exist. get_obproxy_full_version fail")
+    obproxy_install_dir = obproxy_nodes[0]["home_path"]
+    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+    ssh_client = SshClient(context, obproxy_nodes[0])
+    obproxy_version_info = ssh_client.exec_cmd(cmd)
+    stdio.verbose("get obproxy full version, run cmd = [{0}] ".format(cmd))
+    if obproxy_version_info is not None:
+        # Match pattern: obproxy (OceanBase 4.3.5.0 3.el8)
+        pattern = r"obproxy\s*\((.+?)\)"
+        match = re.search(pattern, obproxy_version_info)
+        if match:
+            return match.group(1).strip()
+        else:
+            # Try with LD_LIBRARY_PATH if first attempt fails
+            cmd = "export LD_LIBRARY_PATH={obproxy_install_dir}/lib && {obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+            obproxy_version_info = ssh_client.exec_cmd(cmd)
+            stdio.verbose("get obproxy full version with LD_LIBRARY_PATH, cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
+            if "REVISION" not in obproxy_version_info:
+                raise Exception("Please check conf about proxy,{0}".format(obproxy_version_info))
+            match = re.search(pattern, obproxy_version_info)
+            if match:
+                return match.group(1).strip()
+            else:
+                raise Exception("Failed to parse obproxy full version from output: {0}".format(obproxy_version_info))
+    else:
+        raise Exception("Failed to get obproxy version info")
+
+
 # Only applicable to the community version
 # Please prioritize using get_observer_version
 def get_observer_version_by_sql(context, ob_cluster):

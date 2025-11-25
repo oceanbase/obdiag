@@ -94,7 +94,6 @@ class GatherDBMSXPLANHandler(SafeStdio):
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
                 if not self.context.get_variable("gather_user"):
-                    self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
                     return False
                 user = self.context.get_variable("gather_user")
             if self.context.get_variable("gather_password", None):
@@ -171,6 +170,9 @@ class GatherDBMSXPLANHandler(SafeStdio):
     def execute(self):
         try:
             self.version = get_observer_version(self.context)
+            if StringUtils.compare_versions_lower(self.version, "4.2.5.0"):
+                self.stdio.error("DBMS_XPLAN feature requires OceanBase version >= 4.2.5.0. Current version: {0} is not supported.".format(self.version))
+                return False
             raw_query_sql = self.__get_sql_audit_from_trace_id()
             if raw_query_sql:
                 self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.tenant_user, password=self.tenant_password, timeout=100, database=self.db_name)
@@ -241,7 +243,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.stdio.print(summary_tuples)
 
     def __get_sql_audit_from_trace_id(self):
-        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit")
+        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit").replace("##OB_VERSION_PARAMS_VALUE##", "params_value")
         audit_result = self.ob_connector.execute_sql(sql)
         if len(audit_result) > 0:
             trace = audit_result[0]

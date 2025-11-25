@@ -63,7 +63,7 @@ class MountDiskFull(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "mount_disk_full", "info": "Check the disk usage of each mounting point on the host. issue#611"}
+        return {"name": "mount_disk_full", "info": "Check the disk usage of each mounting point on the host. issue #611"}
 
 
 mount_disk_full = MountDiskFull()

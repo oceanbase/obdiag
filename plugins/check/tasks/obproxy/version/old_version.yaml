@@ -1,9 +1,0 @@
-info: 'Check obproxy version . Some versions of obproxy are not recommended'
-task:
-  - steps:
-    - type: ssh
-      ssh: "export LD_LIBRARY_PATH=#{remote_home_path}/lib && #{remote_home_path}/bin/obproxy --version 2>&1 | grep \"obproxy (\" | awk '{print $3}'"
-      result:
-        set_value: obproxy_version
-        verify: '[[ ! "${obproxy_version}" == "4.0"* ]] && [[ ! "${obproxy_version}" == "4.1"* ]] && [[ ! "${obproxy_version}" == "4.2"* ]] && [[ ! "${obproxy_version}" == "4.3.0"* ]] &&  [[ ! "${obproxy_version}" == "3"* ]] && [[ ! "${obproxy_version}" == "4.3.1"* ]]'
-        err_msg: '#{obproxy_version} is not recommended, please upgrade to the obproxy'

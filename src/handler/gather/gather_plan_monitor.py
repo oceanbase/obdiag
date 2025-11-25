@@ -138,7 +138,12 @@ class GatherPlanMonitorHandler(object):
                 tenant_id = trace[10]
                 svr_ip = trace[12]
                 svr_port = trace[13]
-                params_value = trace[14]
+                params_value = None
+                try:
+                    params_value = trace[14]
+                except IndexError:
+                    # OB 3.x
+                    self.stdio.verbose("OceanBase version is 3.x, params_value column is not available.")
 
                 # 如果params_value不为空，说明是PS模式的SQL，需要填充参数
                 if params_value:
@@ -226,7 +231,7 @@ class GatherPlanMonitorHandler(object):
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
-                self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
+                self.stdio.error("The data queried with the specified trace_id {0} from {1} is empty. Please verify if this trace_id has expired.".format(self.trace_id, self.sql_audit_name))
 
             if resp["skip"]:
                 return
@@ -694,9 +699,8 @@ class GatherPlanMonitorHandler(object):
             for row in data:
                 ob_version = row[1]
 
-            version_pattern = r'(?:OceanBase(_CE)?\s+)?(\d+\.\d+\.\d+\.\d+)'
+            version_pattern = r'(?:OceanBase(_CE)?\s+)?(\d+\.\d+\.\d+(?:\.\d+)?)'
             matched_version = re.search(version_pattern, ob_version)
-
             if matched_version:
                 version = matched_version.group(2)
                 self.ob_version = version
@@ -752,10 +756,22 @@ class GatherPlanMonitorHandler(object):
         shutil.copytree(source_path, target_path)
 
     def sql_audit_by_trace_id_limit1_sql(self):
-        if self.tenant_mode == 'mysql':
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+        main_version = int(self.ob_version.split('.')[0])
+
+        if main_version >= 4:
+            params_value_replacement = "params_value"
         else:
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+            params_value_replacement = "null as params_value"
+
+        if self.tenant_mode == 'mysql':
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql"))
+        else:
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle"))
+
+        sql = sql.replace("##REPLACE_TRACE_ID##", self.trace_id)
+        sql = sql.replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+        sql = sql.replace("##OB_VERSION_PARAMS_VALUE##", params_value_replacement)
+
         return sql
 
     def select_sql_audit_by_trace_id_limit1(self):

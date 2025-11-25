@@ -50,7 +50,7 @@ class LogSize(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "log_size", "info": "check obcluster max_syslog_file_count is 0 or over 100"}
+        return {"name": "log_size", "info": "Check max_syslog_file_count parameter and alert when not set to 0 or over 100. issue #963"}
 
 
 log_size = LogSize()

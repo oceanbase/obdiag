@@ -15,7 +15,7 @@
 @file: observer_port.py
 @desc:
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,6 +28,10 @@ class ObserverPort(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             # get all server sql port and rpc port
             servers_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.DBA_OB_SERVERS;").fetchall()
             for node in self.observer_nodes:
@@ -57,7 +61,7 @@ class ObserverPort(TaskBase):
             self.report.add_fail("node:{1} execute error {0}".format(node.get("ip"), e).strip())
 
     def get_task_info(self):
-        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue#845"}
+        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue #845"}
 
 
 observer_port = ObserverPort()
