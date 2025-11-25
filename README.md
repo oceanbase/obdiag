@@ -97,7 +97,7 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.6.0|2024.07| 2025.07.31 |<ul><li> Add obdiag tool </li><li> Support MCP </li></ul>|
 |3.7.0|2024.08| 2025.09.09 |<ul><li> Support pip install obdiag-mcp </li><li> Check Scenario Expansion </li></ul>|
 |3.7.1|2024.09| 2025.10.22 |<ul><li> Check Scenario Expansion </li></ul>|
-|3.7.2|2024.10| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
+|3.7.2|2024.10| - |<ul><li> Check Scenario Expansion </li></ul>|
 |4.0.0|2025.12| - |<ul><li> AI for obdiag </li></ul>|
 
 # Support
