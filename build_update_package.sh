@@ -2,7 +2,7 @@
 echo "Start packaging plugins"
 cd plugins && tar -cvf data.tar *
 a=$(sha256sum data.tar | awk '{print $1}')
-echo "obdiag_version: \"3.7.1\"" > version.yaml
+echo "obdiag_version: \"3.7.2\"" > version.yaml
 echo "remote_tar_sha: \"$a\"" >> version.yaml
 cp -rf version.yaml ../
 cp -rf data.tar ../
