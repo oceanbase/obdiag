@@ -997,6 +997,7 @@ class ObdiagAnalyzeIndexSpaceCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagAnalyzeIndexSpaceCommand, self).__init__('index_space', 'Analyze the space of existing or non-existent index and estimate it through the columns included in the index')
         self.parser.add_option('--tenant_name', type='string', help="tenant name")
+        self.parser.add_option('--database', type='string', help="database name")
         self.parser.add_option('--table_name', type='string', help="table name")
         self.parser.add_option('--index_name', type='string', help="specify the index name if an index already exists in the table")
         self.parser.add_option('--column_names', type='string', help="specify the column names of index that have not been created yet;eg:--column_names=c1,c2,c3")
