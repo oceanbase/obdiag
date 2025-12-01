@@ -81,8 +81,7 @@ class IoPerformanceHandler:
                 return None
 
             # Get the disk device name
-            cmd = 'device=$(df -P {0} | awk \'NR==2{{print $1}}\') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done'.format(
-                log_dir_path)
+            cmd = 'device=$(df -P {0} | awk \'NR==2{{print $1}}\') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done'.format(log_dir_path)
             self.stdio.verbose("Executing: {0}".format(cmd))
             disk_device = ssh_client.exec_cmd(cmd).strip()
             # Extract device name (e.g., /dev/sda -> sda)
@@ -228,11 +227,7 @@ class IoPerformanceHandler:
                 # Check if tsar is installed
                 if not self._check_tsar_installed(ssh_client):
                     self.stdio.error("tsar is not installed on node {0}. Please install tsar first.".format(ip))
-                    all_results.append({
-                        "node": ip,
-                        "status": "failed",
-                        "error": "tsar not installed"
-                    })
+                    all_results.append({"node": ip, "status": "failed", "error": "tsar not installed"})
                     continue
 
                 # Get disk device
@@ -240,11 +235,7 @@ class IoPerformanceHandler:
                     disk_device = self._get_disk_device(node, disk)
                     if not disk_device:
                         self.stdio.error("Failed to get disk device for {0} on node {1}".format(disk, ip))
-                        all_results.append({
-                            "node": ip,
-                            "status": "failed",
-                            "error": "Failed to get disk device"
-                        })
+                        all_results.append({"node": ip, "status": "failed", "error": "Failed to get disk device"})
                         continue
                     self.stdio.verbose("Detected disk device: {0}".format(disk_device))
                 else:
@@ -256,22 +247,14 @@ class IoPerformanceHandler:
 
                 if not tsar_output:
                     self.stdio.error("Failed to collect tsar data on node {0}".format(ip))
-                    all_results.append({
-                        "node": ip,
-                        "status": "failed",
-                        "error": "Failed to collect tsar data"
-                    })
+                    all_results.append({"node": ip, "status": "failed", "error": "Failed to collect tsar data"})
                     continue
 
                 # Parse await values
                 await_values = self._parse_tsar_output(tsar_output)
                 if not await_values:
                     self.stdio.warn("No await values found in tsar output on node {0}".format(ip))
-                    all_results.append({
-                        "node": ip,
-                        "status": "warning",
-                        "error": "No await values found"
-                    })
+                    all_results.append({"node": ip, "status": "warning", "error": "No await values found"})
                     continue
 
                 # Analyze await values
@@ -284,7 +267,7 @@ class IoPerformanceHandler:
                     "total_samples": total_count,
                     "high_await_count": high_count,
                     "max_await_ms": round(max_await, 2),
-                    "await_values": await_values[:10]  # Show first 10 values
+                    "await_values": await_values[:10],  # Show first 10 values
                 }
                 all_results.append(result)
 
@@ -292,13 +275,10 @@ class IoPerformanceHandler:
                 self.stdio.print("Results for node {0}:".format(ip))
                 self.stdio.print("  Disk device: {0}".format(disk_device))
                 self.stdio.print("  Total samples: {0}".format(total_count))
-                self.stdio.print("  Samples with await > 10ms: {0} ({1}%)".format(
-                    high_count, round(high_count * 100.0 / total_count, 1) if total_count > 0 else 0
-                ))
+                self.stdio.print("  Samples with await > 10ms: {0} ({1}%)".format(high_count, round(high_count * 100.0 / total_count, 1) if total_count > 0 else 0))
                 self.stdio.print("  Max await: {0} ms".format(round(max_await, 2)))
                 if has_issue:
-                    self.stdio.print(
-                        "  Status: CRITICAL - Disk IO performance issue detected (await frequently > 10ms)")
+                    self.stdio.print("  Status: CRITICAL - Disk IO performance issue detected (await frequently > 10ms)")
                 else:
                     self.stdio.print("  Status: NORMAL - Disk IO performance is acceptable")
 
@@ -309,9 +289,7 @@ class IoPerformanceHandler:
             if issue_nodes:
                 self.stdio.print("  CRITICAL: {0} node(s) have disk IO performance issues".format(len(issue_nodes)))
                 for r in issue_nodes:
-                    self.stdio.print("    - {0} (disk: {1}, max await: {2}ms)".format(
-                        r["node"], r["disk_device"], r["max_await_ms"]
-                    ))
+                    self.stdio.print("    - {0} (disk: {1}, max await: {2}ms)".format(r["node"], r["disk_device"], r["max_await_ms"]))
             else:
                 self.stdio.print("  All nodes have normal disk IO performance")
 
@@ -319,6 +297,4 @@ class IoPerformanceHandler:
 
         except Exception as e:
             self.stdio.error("IO performance inspection failed: {0}".format(e))
-            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE,
-                                error_data="IO performance inspection failed: {0}".format(e))
-
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="IO performance inspection failed: {0}".format(e))
