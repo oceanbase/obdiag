@@ -39,7 +39,7 @@ class SplitScheduleError(RcaScene):
             -4723: "OB_MAPPING_BETWEEN_TABLET_AND_LS_NOT_EXIST: tablet may be deleted during scheduling",
             -5146: "OB_UNKNOWN_PARTITION: tablet may be deleted during scheduling",
             -4767: "OB_LS_NOT_LEADER",
-            -4023: "OB_EAGAIN: retry needed, may indicate partition key sampling issue"
+            -4023: "OB_EAGAIN: retry needed, may indicate partition key sampling issue",
         }
 
     def init(self, context):
@@ -94,8 +94,7 @@ class SplitScheduleError(RcaScene):
         rs_svr_port = error_record.get('rs_svr_port')
         value2 = error_record.get('value2', '')
 
-        self.record.add_record("Analyzing error record at {0} from RS node {1}:{2}".format(
-            gmt_create, rs_svr_ip, rs_svr_port))
+        self.record.add_record("Analyzing error record at {0} from RS node {1}:{2}".format(gmt_create, rs_svr_ip, rs_svr_port))
 
         # Parse task_list from value2
         # Format: (tenant_id,tablet_id,ret_code)(tenant_id,tablet_id,ret_code)...
@@ -141,18 +140,15 @@ class SplitScheduleError(RcaScene):
 
         return task_tuples
 
-    def __analyze_error_code(self, ret_code: int, tasks: List[Tuple[int, int]],
-                             gmt_create, rs_svr_ip: str, rs_svr_port: int):
+    def __analyze_error_code(self, ret_code: int, tasks: List[Tuple[int, int]], gmt_create, rs_svr_ip: str, rs_svr_port: int):
         """Analyze tasks with specific error code"""
         error_msg = self.error_code_meanings.get(ret_code, "Unknown error code")
-        self.record.add_record("Error code {0}: {1}, affecting {2} tablets".format(
-            ret_code, error_msg, len(tasks)))
+        self.record.add_record("Error code {0}: {1}, affecting {2} tablets".format(ret_code, error_msg, len(tasks)))
 
         # Check if error code is ignorable
         if ret_code in self.ignorable_error_codes:
             self.record.add_record("Error code {0} is ignorable, system will retry automatically".format(ret_code))
-            self.record.add_suggest("Error code {0} ({1}) can be ignored. The system will retry automatically.".format(
-                ret_code, error_msg))
+            self.record.add_suggest("Error code {0} ({1}) can be ignored. The system will retry automatically.".format(ret_code, error_msg))
             return
 
         # Handle -4023 (OB_EAGAIN) specially
@@ -162,8 +158,7 @@ class SplitScheduleError(RcaScene):
             # Handle other error codes
             self.__handle_other_error_codes(ret_code, tasks, gmt_create, rs_svr_ip, rs_svr_port)
 
-    def __handle_eagain_error(self, tasks: List[Tuple[int, int]], gmt_create,
-                              rs_svr_ip: str, rs_svr_port: int):
+    def __handle_eagain_error(self, tasks: List[Tuple[int, int]], gmt_create, rs_svr_ip: str, rs_svr_port: int):
         """Handle -4023 (OB_EAGAIN) error code"""
         self.record.add_record("Handling -4023 (OB_EAGAIN) error code")
 
@@ -178,17 +173,13 @@ class SplitScheduleError(RcaScene):
                 reorganize_history = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
                 if len(reorganize_history) > 0:
                     self.record.add_record("Tablet {0} successfully split after retry".format(tablet_id))
-                    self.record.add_suggest(
-                        "Tablet {0} in tenant {1} has been successfully split. No further action needed.".format(
-                            tablet_id, tenant_id))
+                    self.record.add_suggest("Tablet {0} in tenant {1} has been successfully split. No further action needed.".format(tablet_id, tenant_id))
                     continue
             except Exception as e:
                 self.verbose("Failed to query reorganize history: {0}".format(e))
 
             # Step 2: Check observer logs for partition key sampling issues
-            self.record.add_record(
-                "Tablet {0} still failed after retry, checking logs for partition key sampling issues".format(
-                    tablet_id))
+            self.record.add_record("Tablet {0} still failed after retry, checking logs for partition key sampling issues".format(tablet_id))
 
             # Find RS node
             rs_node = self.__find_rs_node(rs_svr_ip, rs_svr_port)
@@ -200,8 +191,7 @@ class SplitScheduleError(RcaScene):
             self.__grep_observer_logs_for_sampling_error(rs_node, tablet_id, gmt_create)
 
             # Step 3: Check for other error codes in event history
-            sql = "select * from __all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' and value2 like '%{0}%'".format(
-                tablet_id)
+            sql = "select * from __all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' and value2 like '%{0}%'".format(tablet_id)
             self.verbose("Execute SQL: {0}".format(sql))
 
             try:
@@ -211,15 +201,12 @@ class SplitScheduleError(RcaScene):
                     other_tasks = self.__parse_task_list(other_value2)
                     for other_tenant_id, other_tablet_id, other_ret_code in other_tasks:
                         if other_tablet_id == tablet_id and other_ret_code != -4023:
-                            self.record.add_record("Found other error code {0} for tablet {1} in tenant {2}".format(
-                                other_ret_code, tablet_id, tenant_id))
-                            self.__handle_other_error_codes(other_ret_code, [(tenant_id, tablet_id)],
-                                                            other_error.get('gmt_create'), rs_svr_ip, rs_svr_port)
+                            self.record.add_record("Found other error code {0} for tablet {1} in tenant {2}".format(other_ret_code, tablet_id, tenant_id))
+                            self.__handle_other_error_codes(other_ret_code, [(tenant_id, tablet_id)], other_error.get('gmt_create'), rs_svr_ip, rs_svr_port)
             except Exception as e:
                 self.verbose("Failed to query other errors: {0}".format(e))
 
-    def __handle_other_error_codes(self, ret_code: int, tasks: List[Tuple[int, int]],
-                                   gmt_create, rs_svr_ip: str, rs_svr_port: int):
+    def __handle_other_error_codes(self, ret_code: int, tasks: List[Tuple[int, int]], gmt_create, rs_svr_ip: str, rs_svr_port: int):
         """Handle other error codes (not -4023 and not ignorable)"""
         self.record.add_record("Handling error code {0} for detailed diagnosis".format(ret_code))
 
@@ -230,19 +217,16 @@ class SplitScheduleError(RcaScene):
             return
 
         for tenant_id, tablet_id in tasks:
-            self.record.add_record("Diagnosing error code {0} for tablet {1} in tenant {2}".format(
-                ret_code, tablet_id, tenant_id))
+            self.record.add_record("Diagnosing error code {0} for tablet {1} in tenant {2}".format(ret_code, tablet_id, tenant_id))
 
             # Step 1: Get table_id from tablet_id
-            sql = "select table_id from __all_virtual_tablet_to_table_history where tablet_id = {0} and tenant_id = {1}".format(
-                tablet_id, tenant_id)
+            sql = "select table_id from __all_virtual_tablet_to_table_history where tablet_id = {0} and tenant_id = {1}".format(tablet_id, tenant_id)
             self.verbose("Execute SQL: {0}".format(sql))
 
             try:
                 table_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
                 if len(table_data) == 0:
-                    self.record.add_record("Cannot find table_id for tablet {0} in tenant {1}".format(
-                        tablet_id, tenant_id))
+                    self.record.add_record("Cannot find table_id for tablet {0} in tenant {1}".format(tablet_id, tenant_id))
                     continue
 
                 table_id = table_data[0]['table_id']
@@ -257,8 +241,7 @@ class SplitScheduleError(RcaScene):
                     continue
 
                 table_name = table_name_data[0]['table_name']
-                self.record.add_record("Tablet {0} belongs to table {1} (table_id: {2})".format(
-                    tablet_id, table_name, table_id))
+                self.record.add_record("Tablet {0} belongs to table {1} (table_id: {2})".format(tablet_id, table_name, table_id))
 
                 # Step 3: Grep observer logs for partition_auto_split
                 self.__grep_observer_logs_for_split_error(rs_node, tablet_id, gmt_create)
@@ -268,8 +251,7 @@ class SplitScheduleError(RcaScene):
 
             except Exception as e:
                 self.verbose("Failed to get table information: {0}".format(e))
-                self.record.add_record("Failed to get table information for tablet {0}: {1}".format(
-                    tablet_id, str(e)))
+                self.record.add_record("Failed to get table information for tablet {0}: {1}".format(tablet_id, str(e)))
 
     def __find_rs_node(self, rs_svr_ip: str, rs_svr_port: int):
         """Find RS node from observer_nodes"""
@@ -356,8 +338,7 @@ class SplitScheduleError(RcaScene):
 
     def __grep_rootservice_logs_for_alter_table(self, rs_node, table_name: str, gmt_create):
         """Grep rootservice logs for alter_table operations"""
-        self.record.add_record("Grepping rootservice logs for alter_table operations for table {0} around {1}".format(
-            table_name, gmt_create))
+        self.record.add_record("Grepping rootservice logs for alter_table operations for table {0} around {1}".format(table_name, gmt_create))
 
         try:
             # Calculate time range (gmt_create ± 5 minutes)
@@ -436,8 +417,7 @@ class SplitScheduleError(RcaScene):
                 trace_logs = self.gather_log.execute(save_path="rootservice_logs_trace_{0}".format(trace_id))
 
                 if len(trace_logs) > 0:
-                    self.record.add_record("Found {0} log entries for trace_id {1}".format(
-                        len(trace_logs), trace_id))
+                    self.record.add_record("Found {0} log entries for trace_id {1}".format(len(trace_logs), trace_id))
 
         except Exception as e:
             self.verbose("Failed to extract and grep trace_id: {0}".format(e))
@@ -452,4 +432,3 @@ class SplitScheduleError(RcaScene):
 
 
 split_schedule_error = SplitScheduleError()
-

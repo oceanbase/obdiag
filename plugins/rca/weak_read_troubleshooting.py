@@ -48,10 +48,8 @@ class WeakReadTroubleshooting(RcaScene):
         if observer_version is None or len(observer_version.strip()) == 0:
             raise RCAInitException("observer version is None. Please check the NODES conf.")
         if not (observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(observer_version, "4.0.0.0")):
-            self.stdio.error(
-                "observer version is {0}, which is less than {1}.".format(observer_version, min_supported_version))
-            raise RCAInitException(
-                "observer version is {0}, which is less than {1}.".format(observer_version, min_supported_version))
+            self.stdio.error("observer version is {0}, which is less than {1}.".format(observer_version, min_supported_version))
+            raise RCAInitException("observer version is {0}, which is less than {1}.".format(observer_version, min_supported_version))
         if self.ob_connector is None:
             raise RCAInitException("ob_connector is None. Please check the NODES conf.")
         self.work_path = context.get_variable('store_dir')
@@ -70,8 +68,7 @@ class WeakReadTroubleshooting(RcaScene):
             # If not specified, check all tenants
             self.tenant_id = None
 
-        self.record.add_record(
-            "Starting weak read troubleshooting. tenant_id: {0}".format(self.tenant_id if self.tenant_id else "all"))
+        self.record.add_record("Starting weak read troubleshooting. tenant_id: {0}".format(self.tenant_id if self.tenant_id else "all"))
 
     def execute(self):
         try:
@@ -110,8 +107,7 @@ class WeakReadTroubleshooting(RcaScene):
         try:
             # Check __all_virtual_ls_info for weak_read_scn
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(
-                    self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
             else:
                 sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn from oceanbase.__all_virtual_ls_info"
 
@@ -138,14 +134,8 @@ class WeakReadTroubleshooting(RcaScene):
                 # Check for zero or invalid weak_read_scn first
                 if not weak_read_scn or weak_read_scn == "0" or weak_read_scn == 0:
                     issues_found = True
-                    self.record.add_record(
-                        "WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn is zero or invalid: {4}".format(
-                            tenant_id, ls_id, svr_ip, svr_port, weak_read_scn
-                        )
-                    )
-                    self.record.add_suggest(
-                        "Weak read SCN is zero or invalid. This indicates weak read timestamp is not ready. Check log disk space and replica sync status."
-                    )
+                    self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn is zero or invalid: {4}".format(tenant_id, ls_id, svr_ip, svr_port, weak_read_scn))
+                    self.record.add_suggest("Weak read SCN is zero or invalid. This indicates weak read timestamp is not ready. Check log disk space and replica sync status.")
                     continue
 
                 # Check if weak_read_scn is significantly behind readable_scn
@@ -157,14 +147,8 @@ class WeakReadTroubleshooting(RcaScene):
 
                         if lag > 1000000:  # Significant lag threshold
                             issues_found = True
-                            self.record.add_record(
-                                "WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn={4}, readable_scn={5}, lag={6}".format(
-                                    tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, lag
-                                )
-                            )
-                            self.record.add_suggest(
-                                "Weak read SCN is significantly behind readable SCN. This may cause weak read timestamp not ready issues."
-                            )
+                            self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn={4}, readable_scn={5}, lag={6}".format(tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, lag))
+                            self.record.add_suggest("Weak read SCN is significantly behind readable SCN. This may cause weak read timestamp not ready issues.")
                     except (ValueError, TypeError) as e:
                         self.verbose("Error parsing SCN values: {0}".format(e))
                         pass
@@ -189,8 +173,7 @@ class WeakReadTroubleshooting(RcaScene):
             # Check weak read service time (table may not exist in all versions)
             try:
                 if self.tenant_id:
-                    sql = "select tenant_id, svr_ip, svr_port, weak_read_service_time from oceanbase.__all_virtual_weak_read_service_stat where tenant_id={0}".format(
-                        self.tenant_id)
+                    sql = "select tenant_id, svr_ip, svr_port, weak_read_service_time from oceanbase.__all_virtual_weak_read_service_stat where tenant_id={0}".format(self.tenant_id)
                 else:
                     sql = "select tenant_id, svr_ip, svr_port, weak_read_service_time from oceanbase.__all_virtual_weak_read_service_stat"
 
@@ -212,27 +195,19 @@ class WeakReadTroubleshooting(RcaScene):
                                 service_time_val = float(service_time)
                                 # If service time is too high (e.g., > 1 second), it indicates lag
                                 if service_time_val > 1.0:
-                                    self.record.add_record(
-                                        "WARNING: tenant_id={0}, svr_ip={1}:{2}, weak_read_service_time={3}s (high latency detected)".format(
-                                            tenant_id, svr_ip, svr_port, service_time_val
-                                        )
-                                    )
-                                    self.record.add_suggest(
-                                        "Weak read service time is high, indicating potential lag. Check network and disk IO performance."
-                                    )
+                                    self.record.add_record("WARNING: tenant_id={0}, svr_ip={1}:{2}, weak_read_service_time={3}s (high latency detected)".format(tenant_id, svr_ip, svr_port, service_time_val))
+                                    self.record.add_suggest("Weak read service time is high, indicating potential lag. Check network and disk IO performance.")
                             except (ValueError, TypeError):
                                 pass
                 else:
-                    self.record.add_record(
-                        "No weak read service statistics found (table may not exist in this version)")
+                    self.record.add_record("No weak read service statistics found (table may not exist in this version)")
             except Exception as e:
                 self.record.add_record("Weak read service statistics table not available: {0}".format(str(e)))
                 self.verbose("Table __all_virtual_weak_read_service_stat may not exist in this version")
 
             # Check weak read lag by comparing weak_read_scn and readable_scn
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, (readable_scn - weak_read_scn) as lag from oceanbase.__all_virtual_ls_info where tenant_id={0} and weak_read_scn > 0 and readable_scn > 0".format(
-                    self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, (readable_scn - weak_read_scn) as lag from oceanbase.__all_virtual_ls_info where tenant_id={0} and weak_read_scn > 0 and readable_scn > 0".format(self.tenant_id)
             else:
                 sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, (readable_scn - weak_read_scn) as lag from oceanbase.__all_virtual_ls_info where weak_read_scn > 0 and readable_scn > 0"
 
@@ -252,20 +227,13 @@ class WeakReadTroubleshooting(RcaScene):
                             if lag_val > 1000000:  # Significant lag threshold
                                 high_lag_count += 1
                                 if high_lag_count <= 5:  # Show first 5
-                                    self.record.add_record(
-                                        "WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn lag={4}".format(
-                                            ls_info.get("tenant_id"), ls_info.get("ls_id"),
-                                            ls_info.get("svr_ip"), ls_info.get("svr_port"), lag_val
-                                        )
-                                    )
+                                    self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn lag={4}".format(ls_info.get("tenant_id"), ls_info.get("ls_id"), ls_info.get("svr_ip"), ls_info.get("svr_port"), lag_val))
                         except (ValueError, TypeError):
                             pass
 
                 if high_lag_count > 0:
-                    self.record.add_record(
-                        "Found {0} log streams with significant weak read lag".format(high_lag_count))
-                    self.record.add_suggest(
-                        "Weak read SCN is significantly behind readable SCN, indicating lag. Check replica sync status and network connectivity.")
+                    self.record.add_record("Found {0} log streams with significant weak read lag".format(high_lag_count))
+                    self.record.add_suggest("Weak read SCN is significantly behind readable SCN, indicating lag. Check replica sync status and network connectivity.")
                 else:
                     self.record.add_record("No significant weak read lag detected")
             else:
@@ -304,19 +272,11 @@ class WeakReadTroubleshooting(RcaScene):
 
                 if value.lower() != default_value.lower():
                     issues_found = True
-                    self.record.add_record(
-                        "WARNING: tenant_id={0}, svr_ip={1}:{2}, max_stale_time_for_weak_consistency={3} (default is {4})".format(
-                            tenant_id, svr_ip, svr_port, value, default_value
-                        )
-                    )
-                    self.record.add_suggest(
-                        "max_stale_time_for_weak_consistency is not set to default value {0}. This may affect weak read behavior.".format(
-                            default_value)
-                    )
+                    self.record.add_record("WARNING: tenant_id={0}, svr_ip={1}:{2}, max_stale_time_for_weak_consistency={3} (default is {4})".format(tenant_id, svr_ip, svr_port, value, default_value))
+                    self.record.add_suggest("max_stale_time_for_weak_consistency is not set to default value {0}. This may affect weak read behavior.".format(default_value))
 
             if not issues_found:
-                self.record.add_record(
-                    "max_stale_time_for_weak_consistency is configured correctly (default: {0})".format(default_value))
+                self.record.add_record("max_stale_time_for_weak_consistency is configured correctly (default: {0})".format(default_value))
 
         except Exception as e:
             self.record.add_record("Error checking max_stale_time config: {0}".format(str(e)))
@@ -340,8 +300,7 @@ class WeakReadTroubleshooting(RcaScene):
 
             if logs_name and len(logs_name) > 0:
                 self.record.add_record("Found weak read timeout related logs: {0}".format(len(logs_name)))
-                self.record.add_suggest(
-                    "Review the collected logs for weak read timeout errors. Check network connectivity and replica availability.")
+                self.record.add_suggest("Review the collected logs for weak read timeout errors. Check network connectivity and replica availability.")
                 for log_name in logs_name:
                     self.record.add_record("Log file: {0}".format(log_name))
             else:
@@ -368,10 +327,8 @@ class WeakReadTroubleshooting(RcaScene):
             logs_name = self.gather_log.execute(save_path=log_path)
 
             if logs_name and len(logs_name) > 0:
-                self.record.add_record(
-                    "WARNING: Found log disk space warnings in logs: {0} files".format(len(logs_name)))
-                self.record.add_suggest(
-                    "Log disk space is almost full. This may cause weak read timestamp generation issues. Please free up disk space.")
+                self.record.add_record("WARNING: Found log disk space warnings in logs: {0} files".format(len(logs_name)))
+                self.record.add_suggest("Log disk space is almost full. This may cause weak read timestamp generation issues. Please free up disk space.")
                 for log_name in logs_name:
                     self.record.add_record("Log file: {0}".format(log_name))
             else:
@@ -407,8 +364,7 @@ class WeakReadTroubleshooting(RcaScene):
 
             # Check replica availability
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, role, replica_type, in_sync from oceanbase.__all_virtual_ls_replica where tenant_id={0}".format(
-                    self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, role, replica_type, in_sync from oceanbase.__all_virtual_ls_replica where tenant_id={0}".format(self.tenant_id)
             else:
                 sql = "select tenant_id, ls_id, svr_ip, svr_port, role, replica_type, in_sync from oceanbase.__all_virtual_ls_replica"
 
@@ -425,11 +381,7 @@ class WeakReadTroubleshooting(RcaScene):
                     self.record.add_record("WARNING: Found {0} replicas not in sync".format(len(out_of_sync)))
                     for replica in out_of_sync[:5]:  # Show first 5
                         self.record.add_record(
-                            "tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, role={4}, in_sync={5}".format(
-                                replica.get("tenant_id"), replica.get("ls_id"),
-                                replica.get("svr_ip"), replica.get("svr_port"),
-                                replica.get("role"), replica.get("in_sync")
-                            )
+                            "tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, role={4}, in_sync={5}".format(replica.get("tenant_id"), replica.get("ls_id"), replica.get("svr_ip"), replica.get("svr_port"), replica.get("role"), replica.get("in_sync"))
                         )
                     self.record.add_suggest("Some replicas are not in sync, which may affect weak read consistency.")
                 else:
@@ -455,8 +407,7 @@ class WeakReadTroubleshooting(RcaScene):
             logs_name = self.gather_log.execute(save_path=work_path_weak_read)
 
             if logs_name and len(logs_name) > 0:
-                self.record.add_record(
-                    "Gathered weak read related logs: {0} files in {1}".format(len(logs_name), work_path_weak_read))
+                self.record.add_record("Gathered weak read related logs: {0} files in {1}".format(len(logs_name), work_path_weak_read))
                 for log_name in logs_name[:5]:  # Show first 5 log files
                     self.record.add_record("  - {0}".format(log_name))
             else:
@@ -490,4 +441,3 @@ class WeakReadTroubleshooting(RcaScene):
 
 
 weak_read_troubleshooting = WeakReadTroubleshooting()
-
