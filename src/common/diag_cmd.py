@@ -1249,6 +1249,24 @@ class ObdiagToolCryptoConfigCommand(ObdiagOriginCommand):
         return obdiag.tool_crypto_config(self.opts)
 
 
+class ObdiagToolIoPerformanceCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolIoPerformanceCommand, self).__init__('io_performance', 'obdiag tool io_performance. Check disk IO performance (await) using tsar')
+        self.parser.add_option('--disk', type='string', help="disk device name (e.g., sda, sdb) or 'clog' or 'data' to auto-detect")
+        self.parser.add_option('--date', type='string', help="date for historical data collection (format: YYYYMMDD, e.g., 20250808)")
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagToolIoPerformanceCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_io_performance(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1330,6 +1348,7 @@ class ToolCommand(MajorCommand):
     def __init__(self):
         super(ToolCommand, self).__init__('tool', 'obdiag tool')
         self.register_command(ObdiagToolCryptoConfigCommand())
+        self.register_command(ObdiagToolIoPerformanceCommand())
 
 
 class MainCommand(MajorCommand):
