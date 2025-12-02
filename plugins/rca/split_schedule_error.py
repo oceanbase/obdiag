@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/12/01
+@time: 2025/01/XX
 @file: split_schedule_error.py
 @desc: Diagnose partition auto-split schedule errors
 """
@@ -63,7 +63,7 @@ class SplitScheduleError(RcaScene):
 
             # Query recent split schedule errors
             self.record.add_record("Start checking partition auto-split schedule errors")
-            sql = "select * from __all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' order by gmt_create desc limit 10"
+            sql = "select * from oceanbase.__all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' order by gmt_create desc limit 10"
             self.verbose("Execute SQL: {0}".format(sql))
 
             split_errors = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
@@ -166,7 +166,7 @@ class SplitScheduleError(RcaScene):
             self.record.add_record("Checking tablet {0} in tenant {1}".format(tablet_id, tenant_id))
 
             # Step 1: Check if tablet successfully split after retry
-            sql = "select * from __all_virtual_tablet_reorganize_history where src_tablet_id = {0}".format(tablet_id)
+            sql = "select * from oceanbase.__all_virtual_tablet_reorganize_history where src_tablet_id = {0}".format(tablet_id)
             self.verbose("Execute SQL: {0}".format(sql))
 
             try:
@@ -191,7 +191,7 @@ class SplitScheduleError(RcaScene):
             self.__grep_observer_logs_for_sampling_error(rs_node, tablet_id, gmt_create)
 
             # Step 3: Check for other error codes in event history
-            sql = "select * from __all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' and value2 like '%{0}%'".format(tablet_id)
+            sql = "select * from oceanbase.__all_rootservice_event_history where module = 'ddl scheduler' and event = 'schedule split task' and value2 like '%{0}%'".format(tablet_id)
             self.verbose("Execute SQL: {0}".format(sql))
 
             try:
@@ -220,7 +220,7 @@ class SplitScheduleError(RcaScene):
             self.record.add_record("Diagnosing error code {0} for tablet {1} in tenant {2}".format(ret_code, tablet_id, tenant_id))
 
             # Step 1: Get table_id from tablet_id
-            sql = "select table_id from __all_virtual_tablet_to_table_history where tablet_id = {0} and tenant_id = {1}".format(tablet_id, tenant_id)
+            sql = "select table_id from oceanbase.__all_virtual_tablet_to_table_history where tablet_id = {0} and tenant_id = {1}".format(tablet_id, tenant_id)
             self.verbose("Execute SQL: {0}".format(sql))
 
             try:
@@ -232,7 +232,7 @@ class SplitScheduleError(RcaScene):
                 table_id = table_data[0]['table_id']
 
                 # Step 2: Get table_name from table_id
-                sql = "select table_name from __all_virtual_table where table_id = {0}".format(table_id)
+                sql = "select table_name from oceanbase.__all_virtual_table where table_id = {0}".format(table_id)
                 self.verbose("Execute SQL: {0}".format(sql))
 
                 table_name_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
