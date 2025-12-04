@@ -101,6 +101,13 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
             self.oms_component_id = kwargs.get('oms_component_id', None)
+            self.recent_count = kwargs.get('recent_count', 0)
+            if self.recent_count is None:
+                self.recent_count = 0
+            try:
+                self.recent_count = int(self.recent_count)
+            except (ValueError, TypeError):
+                self.recent_count = 0
             self.__check_option()
             # build config dict for gather log on node
             self.gather_log_conf_dict = {
@@ -114,6 +121,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "file_number_limit": self.file_number_limit,
                 "file_size_limit": self.file_size_limit,
                 "oms_component_id": self.oms_component_id,
+                "recent_count": self.recent_count,
             }
 
         except Exception as e:
@@ -417,6 +425,15 @@ class GatherLogOnNode:
         else:
             self.search_version = 2
         self.stdio.verbose("search_version: {0}".format(self.search_version))
+        # Get recent_count from config, default is 0
+        self.recent_count = self.config.get("recent_count", 0)
+        if self.recent_count is None:
+            self.recent_count = 0
+        try:
+            self.recent_count = int(self.recent_count)
+        except (ValueError, TypeError):
+            self.recent_count = 0
+        self.stdio.verbose("recent_count: {0}".format(self.recent_count))
         self.gather_tuple = {"node": "", "success": "Fail", "info": "", "file_size": 0, "file_path": ""}
 
     def get_result(self):
@@ -558,19 +575,69 @@ class GatherLogOnNode:
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
-                # Use search_version to determine which method to use
-                if self.search_version == 1:
-                    self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list (search_version=1)".format(self.ssh_client.get_ip()))
-                    log_name_list = self.__get_logfile_name_list(self.from_time_str, self.to_time_str, self.log_path, logs_name)
+                # If recent_count > 0, skip time filtering and get all log files, then filter by recent_count
+                if self.recent_count > 0:
+                    self.stdio.verbose("recent_count is {0}, skipping time filtering (from/to/since will be ignored)".format(self.recent_count))
+                    log_name_list = self.__get_all_logfile_name_list(logs_name)
+                    # Apply recent_count filter
+                    if len(log_name_list) > self.recent_count:
+                        log_name_list = self.__filter_by_recent_count(log_name_list)
+                    return log_name_list
                 else:
-                    self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list_v2 (search_version={1})".format(self.ssh_client.get_ip(), self.search_version))
-                    log_name_list = self.__get_logfile_name_list_v2(self.from_time_str, self.to_time_str, self.log_path, logs_name)
-                return log_name_list
+                    # Normal time filtering when recent_count is 0
+                    # Use search_version to determine which method to use
+                    if self.search_version == 1:
+                        self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list (search_version=1)".format(self.ssh_client.get_ip()))
+                        log_name_list = self.__get_logfile_name_list(self.from_time_str, self.to_time_str, self.log_path, logs_name)
+                    else:
+                        self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list_v2 (search_version={1})".format(self.ssh_client.get_ip(), self.search_version))
+                        log_name_list = self.__get_logfile_name_list_v2(self.from_time_str, self.to_time_str, self.log_path, logs_name)
+                    return log_name_list
             else:
                 self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
                 return []
         except Exception as e:
             raise Exception("gather_log_on_node {0} find logs failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+
+    def __get_all_logfile_name_list(self, log_files):
+        """
+        Get all log file names without time filtering.
+        Used when recent_count > 0 to get all files first, then filter by recent_count.
+        """
+        log_name_list = []
+
+        # Handle OMS special case
+        if self.target == "oms":
+            formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "log.gz" not in file_name or formatted_time in file_name:
+                    log_name_list.append(file_name)
+            return log_name_list
+
+        # Handle OMS_CDC special case
+        if self.target == "oms_cdc":
+            self.stdio.warn("oms_cdc not support get log file name list, return all 'libobcdc.log*' log file name list")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "libobcdc.log" in file_name:
+                    log_name_list.append(file_name)
+            return log_name_list
+
+        # For observer and obproxy, return all log files
+        for file_name in log_files.split('\n'):
+            file_name = file_name.strip()
+            if file_name == "":
+                self.stdio.verbose("existing file name is empty")
+                continue
+            log_name_list.append(file_name)
+
+        self.stdio.verbose("get all log file name list (no time filtering), found {0} files".format(len(log_name_list)))
+        return log_name_list
 
     def __get_logfile_name_list(self, from_time_str, to_time_str, log_dir, log_files):
         # oms get all log file name list, the log size is so small
@@ -681,6 +748,60 @@ class GatherLogOnNode:
             self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
         return log_name_list
 
+    def __filter_by_recent_count(self, log_name_list):
+        """
+        Filter log files to keep only the most recent N files based on timestamp in filename.
+        Files without timestamp (current log files) are treated as newest and included first.
+        """
+        if self.recent_count <= 0 or len(log_name_list) <= self.recent_count:
+            return log_name_list
+
+        self.stdio.verbose("recent_count is {0}, filtering to keep only the most recent {0} files from {1} files".format(self.recent_count, len(log_name_list)))
+
+        # Separate files with timestamps and current log files (no timestamp)
+        files_with_timestamp = []  # List of (file_name, timestamp_datetime)
+        current_log_files = []  # List of file_name (no timestamp, current log files)
+
+        for file_name in log_name_list:
+            timestamp_match = re.search(r'\.(\d{17})(?:\.|$)', file_name)
+            if timestamp_match:
+                # File has timestamp
+                timestamp_str = timestamp_match.group(1)
+                try:
+                    year = int(timestamp_str[0:4])
+                    month = int(timestamp_str[4:6])
+                    day = int(timestamp_str[6:8])
+                    hour = int(timestamp_str[8:10])
+                    minute = int(timestamp_str[10:12])
+                    second = int(timestamp_str[12:14])
+                    microsecond = int(timestamp_str[14:17]) * 1000
+                    file_time_dt = datetime.datetime(year, month, day, hour, minute, second, microsecond)
+                    files_with_timestamp.append((file_name, file_time_dt))
+                except (ValueError, IndexError):
+                    # Invalid timestamp, treat as current log file
+                    current_log_files.append(file_name)
+            else:
+                # File has no timestamp, treat as current log file (newest)
+                current_log_files.append(file_name)
+
+        # Sort files with timestamp by time (newest first)
+        files_with_timestamp.sort(key=lambda x: x[1], reverse=True)
+
+        # Build final list: current log files first (newest), then most recent timestamped files
+        filtered_list = []
+        # Add current log files first (they are the newest)
+        filtered_list.extend(current_log_files)
+        # Add most recent timestamped files
+        remaining_slots = self.recent_count - len(current_log_files)
+        if remaining_slots > 0:
+            filtered_list.extend([file_name for file_name, _ in files_with_timestamp[:remaining_slots]])
+        else:
+            # If current log files already exceed recent_count, only keep them
+            filtered_list = current_log_files[: self.recent_count]
+
+        self.stdio.verbose("After filtering by recent_count={0}, kept {1} files: {2}".format(self.recent_count, len(filtered_list), filtered_list))
+        return filtered_list
+
     def __get_logfile_name_list_v2(self, from_time_str, to_time_str, log_dir, log_files):
         """
         Get log file name list by parsing timestamp from filename only (not from file content).
@@ -781,6 +902,8 @@ class GatherLogOnNode:
                 self.stdio.error("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
                 self.stdio.verbose(traceback.format_exc())
                 continue
+
+        # Note: recent_count filtering is now handled in __find_logs_name for both search_version methods
 
         if len(log_name_list) > 0:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}], wait for the next step".format(log_name_list, self.ssh_client.get_ip()))

@@ -470,6 +470,7 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
+        self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--redact', type='string', help='desensitization options', default='')
@@ -664,6 +665,7 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
