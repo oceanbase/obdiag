@@ -123,11 +123,11 @@ class SQLErr(SafeStdio):
             if not self.db_conn:
                 self.stdio.error("Failed to build database connection information from env parameters. Please provide --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
-            
+
             if not StringUtils.validate_db_info(self.db_conn):
                 self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
-            
+
             trace_id = self.env.get("trace_id")
             if trace_id:
                 self.trace_id = self.env.get("trace_id")
