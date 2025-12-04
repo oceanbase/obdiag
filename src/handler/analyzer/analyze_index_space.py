@@ -46,6 +46,7 @@ class AnalyzeIndexSpaceHandler(object):
         self.ob_version = get_observer_version(self.context)
         self.sys_connector = None
         self.tenant_id = None
+        self.database_id = None
         self.table_id = None
         self.index_id = None
         self.column_names = []
@@ -59,6 +60,7 @@ class AnalyzeIndexSpaceHandler(object):
         self.ob_cluster = ob_cluster
         self.sys_connector = OBConnector(context=self.context, ip=ob_cluster.get("db_host"), port=ob_cluster.get("db_port"), username=ob_cluster.get("tenant_sys").get("user"), password=ob_cluster.get("tenant_sys").get("password"), timeout=100)
         tenant_name = Util.get_option(options, 'tenant_name')
+        database_name = Util.get_option(options, 'database')
         table_name = Util.get_option(options, 'table_name')
         index_name = Util.get_option(options, 'index_name')
         column_names = Util.get_option(options, 'column_names')
@@ -69,13 +71,36 @@ class AnalyzeIndexSpaceHandler(object):
         self.tenant_id = tenant_data[0][0]
         if self.tenant_id is None:
             raise Exception("can not find tenant id by tenant name: {0}. Please check the tenant name.".format(tenant_name))
+        # get database id if database_name is provided
+        if database_name is not None:
+            database_id_data = self.sys_connector.execute_sql("select database_id from oceanbase.__all_virtual_database where database_name = '{0}' and tenant_id = '{1}';".format(database_name, self.tenant_id))
+            if len(database_id_data) == 0:
+                raise Exception("can not find database id by database name: {0}. Please check the database name.".format(database_name))
+            self.database_id = database_id_data[0][0]
+            if self.database_id is None:
+                raise Exception("can not find database id by database name: {0}. Please check the database name.".format(database_name))
+            self.stdio.verbose("database_id is {0}".format(self.database_id))
         # get table id
-        table_id_data = self.sys_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}';".format(table_name, self.tenant_id))
+        if database_name is not None:
+            table_id_data = self.sys_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}' and database_id = '{2}';".format(table_name, self.tenant_id, self.database_id))
+        else:
+            table_id_data = self.sys_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name = '{0}' and tenant_id = '{1}';".format(table_name, self.tenant_id))
         if len(table_id_data) == 0:
-            raise Exception("can not find table id by table name: {0}. Please check the table name.".format(table_name))
+            if database_name is not None:
+                raise Exception("can not find table id by table name: {0} and database name: {1}. Please check the table name and database name.".format(table_name, database_name))
+            else:
+                raise Exception("can not find table id by table name: {0}. Please check the table name.".format(table_name))
+        elif len(table_id_data) > 1:
+            if database_name is not None:
+                raise Exception("table name is {0}, tenant is {1}, database is {2}. but find more than one table id. Please check the table name and database name.".format(table_name, tenant_name, database_name))
+            else:
+                raise Exception("table name is {0}, tenant is {1}. but find more than one table id. Please add --database parameter to specify the database name.".format(table_name, tenant_name))
         self.table_id = table_id_data[0][0]
         if self.table_id is None:
-            raise Exception("can not find table id by table name: {0}. Please check the table name.".format(table_name))
+            if database_name is not None:
+                raise Exception("can not find table id by table name: {0} and database name: {1}. Please check the table name and database name.".format(table_name, database_name))
+            else:
+                raise Exception("can not find table id by table name: {0}. Please check the table name.".format(table_name))
         # get index id
         if index_name is not None:
             index_id_data = self.sys_connector.execute_sql("select table_id from oceanbase.__all_virtual_table where table_name like '%{0}%' and data_table_id = '{1}' and tenant_id = '{2}';".format(index_name, self.table_id, self.tenant_id))

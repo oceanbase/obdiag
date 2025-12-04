@@ -82,8 +82,8 @@ check_error_log  "obdiag analyze parameter" &
 #check_error_log  "obdiag analyze parameter default --store_dir ./parameter"
 #echo "=================obdiag analyze parameter diff --store_dir ./parameter================="
 #check_error_log  "obdiag analyze parameter diff --store_dir ./parameter" &
-check_error_log  "obdiag analyze memory" &
-check_error_log  "obdiag analyze memory --store_dir ./memory" &
+check_error_log  "obdiag analyze memory"
+check_error_log  "obdiag analyze memory --store_dir ./memory"
 check_error_log  "obdiag analyze memory --since 1d" &
 #echo "=================obdiag analyze index_space================="
 #check_error_log  "obdiag analyze index_space"
