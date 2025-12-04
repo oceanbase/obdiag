@@ -1243,6 +1243,39 @@ class StringUtils(object):
         return env_dict
 
     @staticmethod
+    def build_db_info_from_env(env_dict, stdio=None):
+        """
+        Build db_info dictionary from env_dict containing host, port, user, password, database.
+        This replaces the old db_connect string parsing to avoid special character issues.
+        """
+        db_info = {}
+        if 'host' in env_dict:
+            db_info['host'] = env_dict['host']
+        if 'port' in env_dict:
+            try:
+                db_info['port'] = int(env_dict['port'])
+            except (ValueError, TypeError):
+                if stdio:
+                    stdio.error("Invalid port number: {0}".format(env_dict['port']))
+                return None
+        if 'user' in env_dict:
+            db_info['user'] = env_dict['user']
+        if 'password' in env_dict:
+            db_info['password'] = env_dict['password']
+        elif 'pwd' in env_dict:
+            # Support 'pwd' as alias for 'password'
+            db_info['password'] = env_dict['pwd']
+        else:
+            db_info['password'] = ''
+        if 'database' in env_dict:
+            db_info['database'] = env_dict['database']
+        elif 'db' in env_dict:
+            # Support 'db' as alias for 'database'
+            db_info['database'] = env_dict['db']
+
+        return db_info
+
+    @staticmethod
     def extract_parameters(query_template):
         # 使用正则表达式查找占位符
         pattern = re.compile(r'#\{(\w+)\}')
