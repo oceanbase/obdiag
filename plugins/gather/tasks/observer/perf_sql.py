@@ -137,8 +137,16 @@ class PerfSQL(SafeStdio):
 
     def __parse_env(self):
         if self.env:
-            cli_connection_string = self.env.get("db_connect")
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            self.db_conn = StringUtils.build_db_info_from_env(self.env, self.stdio)
+            if not self.db_conn:
+                self.stdio.error("Failed to build database connection information from env parameters. Please provide --env host=... --env port=... --env user=... --env password=... --env database=...")
+                return False
+            
+            if not StringUtils.validate_db_info(self.db_conn):
+                self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
+                return False
+            
             trace_id = self.env.get("trace_id")
             if trace_id:
                 self.trace_id = self.env.get("trace_id")
