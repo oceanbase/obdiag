@@ -605,7 +605,7 @@ class GatherLogOnNode:
         Used when recent_count > 0 to get all files first, then filter by recent_count.
         """
         log_name_list = []
-        
+
         # Handle OMS special case
         if self.target == "oms":
             formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
@@ -616,7 +616,7 @@ class GatherLogOnNode:
                 if "log.gz" not in file_name or formatted_time in file_name:
                     log_name_list.append(file_name)
             return log_name_list
-        
+
         # Handle OMS_CDC special case
         if self.target == "oms_cdc":
             self.stdio.warn("oms_cdc not support get log file name list, return all 'libobcdc.log*' log file name list")
@@ -627,7 +627,7 @@ class GatherLogOnNode:
                 if "libobcdc.log" in file_name:
                     log_name_list.append(file_name)
             return log_name_list
-        
+
         # For observer and obproxy, return all log files
         for file_name in log_files.split('\n'):
             file_name = file_name.strip()
@@ -635,7 +635,7 @@ class GatherLogOnNode:
                 self.stdio.verbose("existing file name is empty")
                 continue
             log_name_list.append(file_name)
-        
+
         self.stdio.verbose("get all log file name list (no time filtering), found {0} files".format(len(log_name_list)))
         return log_name_list
 
@@ -755,13 +755,13 @@ class GatherLogOnNode:
         """
         if self.recent_count <= 0 or len(log_name_list) <= self.recent_count:
             return log_name_list
-        
+
         self.stdio.verbose("recent_count is {0}, filtering to keep only the most recent {0} files from {1} files".format(self.recent_count, len(log_name_list)))
-        
+
         # Separate files with timestamps and current log files (no timestamp)
         files_with_timestamp = []  # List of (file_name, timestamp_datetime)
         current_log_files = []  # List of file_name (no timestamp, current log files)
-        
+
         for file_name in log_name_list:
             timestamp_match = re.search(r'\.(\d{17})(?:\.|$)', file_name)
             if timestamp_match:
@@ -783,10 +783,10 @@ class GatherLogOnNode:
             else:
                 # File has no timestamp, treat as current log file (newest)
                 current_log_files.append(file_name)
-        
+
         # Sort files with timestamp by time (newest first)
         files_with_timestamp.sort(key=lambda x: x[1], reverse=True)
-        
+
         # Build final list: current log files first (newest), then most recent timestamped files
         filtered_list = []
         # Add current log files first (they are the newest)
@@ -797,8 +797,8 @@ class GatherLogOnNode:
             filtered_list.extend([file_name for file_name, _ in files_with_timestamp[:remaining_slots]])
         else:
             # If current log files already exceed recent_count, only keep them
-            filtered_list = current_log_files[:self.recent_count]
-        
+            filtered_list = current_log_files[: self.recent_count]
+
         self.stdio.verbose("After filtering by recent_count={0}, kept {1} files: {2}".format(self.recent_count, len(filtered_list), filtered_list))
         return filtered_list
 
@@ -904,7 +904,7 @@ class GatherLogOnNode:
                 continue
 
         # Note: recent_count filtering is now handled in __find_logs_name for both search_version methods
-        
+
         if len(log_name_list) > 0:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}], wait for the next step".format(log_name_list, self.ssh_client.get_ip()))
         else:
