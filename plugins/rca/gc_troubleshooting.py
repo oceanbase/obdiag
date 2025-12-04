@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/01/XX
+@time: 2025/12/04
 @file: gc_troubleshooting.py
 @desc: Troubleshooting of GC (Garbage Collection) issues in OceanBase 4.x
 """

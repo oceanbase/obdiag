@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/01/XX
+@time: 2025/12/04
 @file: split_schedule_error.py
 @desc: Diagnose partition auto-split schedule errors
 """
