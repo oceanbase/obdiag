@@ -35,14 +35,35 @@ class Redact:
 
         # init all redact
         # import all redact module
-        self.all_redact = []
+        # Try to load from plugins directory first, then from user directory
+        self.all_redact = {}
+
+        # Try to load from plugins directory
+        plugins_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "plugins", "gather", "redact")
+        if os.path.exists(plugins_dir):
+            try:
+                self.stdio.verbose("Trying to import redact modules from plugins directory: {0}".format(plugins_dir))
+                plugins_redact = import_modules(plugins_dir, self.stdio)
+                if plugins_redact:
+                    self.all_redact.update(plugins_redact)
+                    self.stdio.verbose("Imported redact modules from plugins: {0}".format(list(plugins_redact.keys())))
+            except Exception as e:
+                self.stdio.verbose("Failed to import redact modules from plugins directory: {0}".format(str(e)))
+
+        # Try to load from user directory
         try:
-            self.stdio.print("Importing redact modules...")
-            self.all_redact = import_modules(self.module_dir, self.stdio)
-            self.stdio.verbose("Imported redact module {0}".format(self.all_redact))
+            self.stdio.verbose("Trying to import redact modules from user directory: {0}".format(self.module_dir))
+            user_redact = import_modules(self.module_dir, self.stdio)
+            if user_redact:
+                self.all_redact.update(user_redact)
+                self.stdio.verbose("Imported redact modules from user directory: {0}".format(list(user_redact.keys())))
         except Exception as e:
-            self.stdio.error(f"Error importing redact modules: {e}")
-            raise e
+            self.stdio.verbose("Failed to import redact modules from user directory: {0}".format(str(e)))
+
+        if not self.all_redact:
+            self.stdio.warn("No redact modules found in plugins or user directory")
+        else:
+            self.stdio.verbose("Total imported redact modules: {0}".format(list(self.all_redact.keys())))
 
     def check_redact(self, input_redacts):
         for input_redact in input_redacts:
@@ -51,7 +72,14 @@ class Redact:
                 raise Exception(f"Redact {input_redact} not found")
             else:
                 self.stdio.verbose(f"Redact {input_redact} found")
-                self.redacts[input_redact] = self.all_redact[input_redact]
+                redact_plugin = self.all_redact[input_redact]
+                # Set stdio for plugins that support it
+                if hasattr(redact_plugin, 'stdio'):
+                    redact_plugin.stdio = self.stdio
+                # Reset warn_count for time_jump plugin if present
+                if input_redact == "time_jump" and hasattr(redact_plugin, 'warn_count'):
+                    redact_plugin.warn_count = 0
+                self.redacts[input_redact] = redact_plugin
 
     def redact_files(self, input_redacts, files_name):
         if len(files_name) == 0:
@@ -63,6 +91,7 @@ class Redact:
         if not self.redacts or len(self.redacts) == 0:
             self.stdio.error("No redact found")
             return False
+
         # create dir to save the files after redact
         if not os.path.exists(self.output_file_dir):
             os.makedirs(self.output_file_dir)
@@ -85,6 +114,7 @@ class Redact:
                 file_queue.append(file_thread)
         for file_thread in file_queue:
             file_thread.join()
+
         # tar the dir by node
         subfolders = [f for f in os.listdir(self.output_file_dir) if os.path.isdir(os.path.join(self.output_file_dir, f))]
         for subfolder in subfolders:
@@ -108,12 +138,26 @@ class Redact:
             log_content = ""
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
+
+            # Read file content
             with open(input_file, 'r', encoding='utf-8', errors='ignore') as file:
                 log_content = file.read()
-            for redact in self.redacts:
-                log_content = self.redacts[redact].redact(log_content)
+
+            # Apply all redact plugins in sequence
+            # Pass output_file_path as keyword argument for plugins that support it (like time_jump)
+            for redact_name in self.redacts:
+                redact_plugin = self.redacts[redact_name]
+                # Try to call with output_file_path parameter (plugins that don't support it will ignore it)
+                try:
+                    log_content = redact_plugin.redact(log_content, output_file_path=output_file)
+                except TypeError:
+                    # If plugin doesn't support output_file_path parameter, call without it
+                    log_content = redact_plugin.redact(log_content)
+
+            # Write output file
             with open(output_file, 'w', encoding='utf-8', errors='ignore') as file:
                 file.write(log_content)
+
         except Exception as e:
             self.stdio.error(f"Error redact file {input_file}: {e}")
         finally:
