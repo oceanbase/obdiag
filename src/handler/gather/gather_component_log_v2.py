@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2024/12/XX
+@time: 2024/12/04
 @file: gather_component_log_v2.py
 @desc: Refactored log gathering system with abstract interface pattern
 """
