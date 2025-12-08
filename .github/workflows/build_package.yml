@@ -39,7 +39,7 @@ jobs:
           /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
           source activate obdiag
           pip3 install -r requirements3.txt
-          bash dev_helper.sh pack
+          make pack
 
       - name: "Upload rpm"
         uses: actions/upload-artifact@v4
