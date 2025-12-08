@@ -13,7 +13,7 @@
 """
 @time: 2025/12/08
 @file: obdiag_executor.py
-@desc: OBDiag command executor for AI Assistant
+@desc: obdiag command executor for AI Assistant
 """
 
 import os
@@ -23,9 +23,9 @@ from typing import Dict, List, Optional, Any
 
 
 class ObdiagExecutor:
-    """OBDiag command executor for programmatic execution"""
+    """obdiag command executor for programmatic execution"""
 
-    # Supported OBDiag commands and their descriptions
+    # Supported obdiag commands and their descriptions
     SUPPORTED_COMMANDS = {
         "gather_log": {
             "command": "obdiag gather log",
@@ -142,10 +142,10 @@ class ObdiagExecutor:
 
     def __init__(self, config_path: str = None):
         """
-        Initialize OBDiag executor
+        Initialize obdiag executor
 
         Args:
-            config_path: Path to OBDiag configuration file
+            config_path: Path to obdiag configuration file
         """
         self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
 
@@ -185,7 +185,7 @@ class ObdiagExecutor:
 
     def build_command(self, tool_name: str, arguments: Dict[str, str]) -> str:
         """
-        Build OBDiag command string from tool name and arguments
+        Build obdiag command string from tool name and arguments
 
         Args:
             tool_name: Name of the tool to execute
@@ -214,7 +214,7 @@ class ObdiagExecutor:
 
     def execute(self, tool_name: str, arguments: Dict[str, str], timeout: int = 300) -> Dict[str, Any]:
         """
-        Execute an OBDiag command
+        Execute an obdiag command
 
         Args:
             tool_name: Name of the tool to execute

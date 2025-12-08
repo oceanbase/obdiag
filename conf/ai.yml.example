@@ -1,4 +1,4 @@
-# OBDiag AI Assistant Configuration Example
+# obdiag AI Assistant Configuration Example
 # 
 # Usage: Copy this file to ~/.obdiag/ai.yml and modify as needed
 #   cp conf/ai.yml.example ~/.obdiag/ai.yml
@@ -40,10 +40,10 @@ llm:
   # If left empty, uses the default built-in system prompt
   # You can customize this to change how the AI responds
   # system_prompt: |
-  #   You are OBDiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
+  #   You are obdiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
   #   
   #   Your capabilities include:
-  #   1. Executing OBDiag diagnostic commands (gather logs, analyze, check health, RCA)
+  #   1. Executing obdiag diagnostic commands (gather logs, analyze, check health, RCA)
   #   2. Analyzing diagnostic results and providing insights
   #   3. Recommending diagnostic steps based on user descriptions
   #   4. Explaining OceanBase concepts and troubleshooting procedures

@@ -53,7 +53,7 @@ class AiAssistantHandler:
 
     WELCOME_MESSAGE = """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║                    OBDiag AI Assistant                                   ║
+║                    obdiag AI Assistant                                   ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║                                                                          ║
 ║  Welcome! I'm your AI assistant for OceanBase diagnostics.               ║
@@ -118,7 +118,7 @@ class AiAssistantHandler:
                 "show_welcome": True,
                 "show_beta_warning": True,
                 "clear_screen": True,
-                "prompt": "OBDiag AI> ",
+                "prompt": "obdiag AI> ",
             },
         }
 
@@ -363,7 +363,7 @@ Available diagnostic tools:
 
             # Interactive loop
             ui_config = config["ui"]
-            prompt = ui_config.get("prompt", "OBDiag AI> ")
+            prompt = ui_config.get("prompt", "obdiag AI> ")
 
             while True:
                 try:

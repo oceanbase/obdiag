@@ -30,14 +30,14 @@ from src.handler.ai.mcp_client import MCPClientManager
 
 class ObdiagAIClient:
     """
-    OpenAI API client for OBDiag AI Assistant.
+    OpenAI API client for obdiag AI Assistant.
     Supports tool calling via MCP (multiple servers) or built-in executor.
     """
 
-    SYSTEM_PROMPT = """You are OBDiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
+    SYSTEM_PROMPT = """You are obdiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
 
 Your capabilities include:
-1. Executing OBDiag diagnostic commands (gather logs, analyze, check health, RCA)
+1. Executing obdiag diagnostic commands (gather logs, analyze, check health, RCA)
 2. Analyzing diagnostic results and providing insights
 3. Recommending diagnostic steps based on user descriptions
 4. Explaining OceanBase concepts and troubleshooting procedures
@@ -75,7 +75,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             api_key: OpenAI API key
             base_url: Optional custom API base URL
             model: Model name to use
-            config_path: Path to OBDiag config file (for built-in executor)
+            config_path: Path to obdiag config file (for built-in executor)
             use_mcp: Whether to use MCP client (requires obdiag_mcp package)
             mcp_servers: MCP servers configuration dict
                 {
