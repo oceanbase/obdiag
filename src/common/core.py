@@ -272,6 +272,7 @@ class ObdiagHome(object):
                     store_dir=Util.get_option(options, 'store_dir'),
                     temp_dir=Util.get_option(options, 'temp_dir'),
                     redact=Util.get_option(options, 'redact'),
+                    recent_count=Util.get_option(options, 'recent_count'),
                 )
                 return handler.handle()
             elif function_type == 'gather_awr':
@@ -322,6 +323,7 @@ class ObdiagHome(object):
                         store_dir=Util.get_option(options, 'store_dir'),
                         temp_dir=Util.get_option(options, 'temp_dir'),
                         redact=Util.get_option(options, 'redact'),
+                        recent_count=Util.get_option(options, 'recent_count'),
                     )
                     handler_observer_log.handle()
                 except Exception as e:
@@ -338,6 +340,7 @@ class ObdiagHome(object):
                         store_dir=Util.get_option(options, 'store_dir'),
                         temp_dir="/tmp",
                         redact=Util.get_option(options, 'redact'),
+                        recent_count=Util.get_option(options, 'recent_count'),
                     )
                     return handler_obproxy.handle()
                 except Exception as e:
@@ -391,6 +394,7 @@ class ObdiagHome(object):
                 store_dir=Util.get_option(options, 'store_dir'),
                 temp_dir="/tmp",
                 redact=Util.get_option(options, 'redact'),
+                recent_count=Util.get_option(options, 'recent_count'),
             )
             return handler.handle()
 
