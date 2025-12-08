@@ -135,7 +135,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
     def _convert_servers_config(self, mcp_servers: Dict[str, Dict]) -> Dict[str, Dict]:
         """
         Convert MCP servers config from JSON format to internal format
-        
+
         Input format (compatible with Cursor's mcp.json):
             {
                 "server_name": {
@@ -146,7 +146,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
                     "headers": {...}   # optional, for http
                 }
             }
-        
+
         Output format:
             {
                 "server_name": {
@@ -160,7 +160,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
         result = {}
         for name, config in mcp_servers.items():
             server_config = {}
-            
+
             if "url" in config:
                 # HTTP transport
                 server_config["transport"] = "http"
@@ -177,9 +177,9 @@ When a tool execution fails, explain the error and suggest alternatives."""
             else:
                 # Skip invalid config
                 continue
-            
+
             result[name] = server_config
-        
+
         return result
 
     def _get_tools(self) -> List[Dict]:
@@ -189,7 +189,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 return self.mcp_client.get_tools_for_openai()
             except Exception:
                 pass
-        
+
         if self.executor:
             return self.executor.get_available_tools()
         return []

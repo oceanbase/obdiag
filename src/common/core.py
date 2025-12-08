@@ -600,6 +600,7 @@ class ObdiagHome(object):
         else:
             self.set_offline_context('tool_ai_assistant', 'tool_ai_assistant')
             from src.handler.ai.ai_assistant_handler import AiAssistantHandler
+
             handler = AiAssistantHandler(self.context)
             return handler.handle()
 

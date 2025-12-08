@@ -29,6 +29,7 @@ from src.common.result_type import ObdiagResult
 try:
     from rich.console import Console
     from rich.markdown import Markdown
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -79,7 +80,7 @@ class AiAssistantHandler:
         self.options = context.options
         self.ai_client = None
         self.conversation_history: List[Dict] = []
-        
+
         # Initialize Rich console for Markdown rendering
         if RICH_AVAILABLE:
             self.console = Console()
@@ -89,17 +90,12 @@ class AiAssistantHandler:
     def _load_config(self) -> Dict:
         """
         Load AI assistant configuration from ~/.obdiag/ai.yml
-        
+
         Config file path: ~/.obdiag/ai.yml
         """
         # Default MCP servers configuration
-        default_mcp_servers = {
-            "obdiag": {
-                "command": "obdiag-mcp",
-                "args": ["stdio"]
-            }
-        }
-        
+        default_mcp_servers = {"obdiag": {"command": "obdiag-mcp", "args": ["stdio"]}}
+
         # Default configuration
         default_config = {
             "llm": {
@@ -125,7 +121,7 @@ class AiAssistantHandler:
         # Try to load config from ~/.obdiag/ai.yml
         ai_config = {}
         config_path = self.AI_CONFIG_PATH
-        
+
         if os.path.exists(config_path):
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
@@ -140,14 +136,14 @@ class AiAssistantHandler:
         # Merge with user configuration
         llm_config = {**default_config["llm"], **ai_config.get("llm", {})}
         ui_config = {**default_config["ui"], **ai_config.get("ui", {})}
-        
+
         # Handle MCP configuration
         mcp_config = {**default_config["mcp"]}
         user_mcp_config = ai_config.get("mcp", {})
-        
+
         if "enabled" in user_mcp_config:
             mcp_config["enabled"] = user_mcp_config["enabled"]
-        
+
         # Parse MCP servers - supports JSON string format
         if "servers" in user_mcp_config:
             servers_value = user_mcp_config["servers"]
@@ -179,10 +175,7 @@ class AiAssistantHandler:
         # Check API key
         api_key = llm_config.get("api_key") or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError(
-                "OpenAI API key is required. "
-                "Please set OPENAI_API_KEY environment variable or configure it in ~/.obdiag/ai.yml"
-            )
+            raise ValueError("OpenAI API key is required. " "Please set OPENAI_API_KEY environment variable or configure it in ~/.obdiag/ai.yml")
 
         # Get base URL
         base_url = llm_config.get("base_url") or os.getenv("OPENAI_BASE_URL") or None
@@ -217,7 +210,7 @@ class AiAssistantHandler:
     def _render_markdown(self, text: str):
         """
         Render text as Markdown in terminal
-        
+
         Args:
             text: The text to render (may contain Markdown formatting)
         """
@@ -304,13 +297,13 @@ Available diagnostic tools:
                 # Get connected servers info
                 connected_servers = self.ai_client.mcp_client.get_connected_servers()
                 servers_info = self.ai_client.mcp_client.get_server_info()
-                
+
                 print(f"🔌 MCP Servers ({len(connected_servers)} connected):")
                 for server_name in connected_servers:
                     info = servers_info.get(server_name, {})
                     version = info.get("version", "unknown")
                     print(f"   • {server_name} (v{version})")
-                
+
                 # List all tools
                 tools = self.ai_client.mcp_client.list_tools()
                 print(f"\n📦 Loaded {len(tools)} tools via MCP protocol:")
@@ -398,7 +391,7 @@ Available diagnostic tools:
                     try:
                         response = self.ai_client.chat(user_input, self.conversation_history)
                         print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
-                        
+
                         # Render response as Markdown
                         self._render_markdown(response)
                         print("")  # New line after response
@@ -433,4 +426,3 @@ Available diagnostic tools:
                     self.ai_client.close()
                 except Exception:
                     pass
-

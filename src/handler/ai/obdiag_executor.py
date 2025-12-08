@@ -285,4 +285,3 @@ class ObdiagExecutor:
             List of tool names
         """
         return list(self.SUPPORTED_COMMANDS.keys())
-
