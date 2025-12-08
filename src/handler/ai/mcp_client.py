@@ -359,7 +359,7 @@ class MCPClientManager:
                 server.start()
                 self.servers[name] = server
             except Exception as e:
-                print(f"Warning: Failed to start MCP server '{name}': {e}")
+                self.stdio.print(f"Warning: Failed to start MCP server '{name}': {e}")
 
         # Build tools map
         self._build_tools_map()

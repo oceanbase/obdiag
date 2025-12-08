@@ -298,25 +298,25 @@ Available diagnostic tools:
                 connected_servers = self.ai_client.mcp_client.get_connected_servers()
                 servers_info = self.ai_client.mcp_client.get_server_info()
 
-                print(f"🔌 MCP Servers ({len(connected_servers)} connected):")
+                self.stdio.print(f"🔌 MCP Servers ({len(connected_servers)} connected):")
                 for server_name in connected_servers:
                     info = servers_info.get(server_name, {})
                     version = info.get("version", "unknown")
-                    print(f"   • {server_name} (v{version})")
+                    self.stdio.print(f"   • {server_name} (v{version})")
 
                 # List all tools
                 tools = self.ai_client.mcp_client.list_tools()
-                print(f"\n📦 Loaded {len(tools)} tools via MCP protocol:")
+                self.stdio.print(f"\n📦 Loaded {len(tools)} tools via MCP protocol:")
                 for tool in tools:
                     tool_name = tool.get("name", "")
-                    print(f"   • {tool_name}")
-                print("")
+                    self.stdio.print(f"   • {tool_name}")
+                self.stdio.print("")
             elif self.ai_client and self.ai_client.executor:
                 tools = self.ai_client.executor.list_tools()
-                print(f"📦 Loaded {len(tools)} tools via built-in executor:")
+                self.stdio.print(f"📦 Loaded {len(tools)} tools via built-in executor:")
                 for tool_name in tools:
-                    print(f"   • {tool_name}")
-                print("")
+                    self.stdio.print(f"   • {tool_name}")
+                self.stdio.print("")
         except Exception as e:
             self.stdio.verbose(f"Failed to show loaded tools: {e}")
 
@@ -368,14 +368,14 @@ Available diagnostic tools:
 
                     # Handle special commands
                     if user_input.lower() in ["exit", "quit", "q"]:
-                        print("\nGoodbye! Have a nice day!\n")
+                        self.stdio.print("\nGoodbye! Have a nice day!\n")
                         break
                     elif user_input.lower() in ["help", "?"]:
                         self._show_help()
                         continue
                     elif user_input.lower() == "clear":
                         self.conversation_history = []
-                        print("Conversation history cleared.\n")
+                        self.stdio.print("Conversation history cleared.\n")
                         continue
                     elif user_input.lower() == "history":
                         self._show_history()
@@ -385,16 +385,16 @@ Available diagnostic tools:
                         continue
 
                     # Process user input with AI
-                    print("")  # New line
-                    print("Thinking...", end="", flush=True)
+                    self.stdio.print("")  # New line
+                    self.stdio.print("Thinking...", end="", flush=True)
 
                     try:
                         response = self.ai_client.chat(user_input, self.conversation_history)
-                        print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
+                        self.stdio.print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
 
                         # Render response as Markdown
                         self._render_markdown(response)
-                        print("")  # New line after response
+                        self.stdio.print("")  # New line after response
 
                         # Update conversation history
                         self.conversation_history.append({"role": "user", "content": user_input})
@@ -405,13 +405,13 @@ Available diagnostic tools:
                             self.conversation_history = self.conversation_history[-20:]
 
                     except Exception as e:
-                        print(f"\rError: {str(e)}\n")
+                        self.stdio.print(f"\rError: {str(e)}\n")
                         self.stdio.error(f"Failed to get AI response: {str(e)}")
 
                 except KeyboardInterrupt:
-                    print("\n\nInterrupted. Type 'exit' to quit.\n")
+                    self.stdio.print("\n\nInterrupted. Type 'exit' to quit.\n")
                 except EOFError:
-                    print("\n\nGoodbye!\n")
+                    self.stdio.print("\n\nGoodbye!\n")
                     break
 
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"message": "AI assistant session ended"})

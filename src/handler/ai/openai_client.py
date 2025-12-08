@@ -119,11 +119,11 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 try:
                     self.mcp_client.start()
                     if not self.mcp_client.is_connected():
-                        print("Warning: No MCP server connected, using built-in executor")
+                        self.stdio.print("Warning: No MCP server connected, using built-in executor")
                         self.mcp_client = None
                         self.executor = ObdiagExecutor(config_path)
                 except Exception as e:
-                    print(f"Warning: MCP client failed to start ({e}), using built-in executor")
+                    self.stdio.print(f"Warning: MCP client failed to start ({e}), using built-in executor")
                     self.mcp_client = None
                     self.executor = ObdiagExecutor(config_path)
             else:
