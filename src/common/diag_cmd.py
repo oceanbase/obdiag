@@ -727,6 +727,9 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--svr_ip', type='string', help='The IP address of the observer to be sampled. (need 4.3.5.0 or higher)')
+        self.parser.add_option('--svr_port', type='string', help='The port of the observer to be sampled. (need 4.3.5.0 or higher)')
+        self.parser.add_option('--tenant_id', type='string', help='The tenant ID to be sampled. (need 4.3.5.0 or higher)')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
