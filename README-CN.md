@@ -47,7 +47,7 @@ sh /opt/oceanbase-diagnostic-tool/init.sh
 源码安装需要在python >= 3.11的环境下进行
 
 ```shell
-./dev_helper.sh init
+make init
 source ~/.bashrc
 ```
 
@@ -121,7 +121,7 @@ git clone https://github.com/your_username/your_repo_here.git
 3. 通过 black 工具统一格式化你的代码 🎨
 
 ```bash
-./dev_helper.sh format
+make format
 ```
 
 4. 提交你的改动：完成优化后，利用Git提交你的修改。
