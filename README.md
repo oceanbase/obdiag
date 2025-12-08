@@ -47,7 +47,7 @@ sh /opt/oceanbase-diagnostic-tool/init.sh
 To install obdiag on Python >= 3.11, run these commands:
 
 ```shell
-./dev_helper.sh init
+make init
 source ~/.bashrc
 ```
 
@@ -127,7 +127,7 @@ git clone https://github.com/your_username/your_repo_here.git
 3. Format your code with black tool 🎨
 
 ```bash
-./dev_helper.sh format
+make format
 ```
 
 4. Commit Your Changes: Once you've made your enhancements, commit them using Git.
