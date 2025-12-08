@@ -14,6 +14,7 @@ function check_error_log {
   else
     echo "1" >> pass_case.txt
   fi
+  rm -rf obdiag* check_report
 }
 compare_versions_greater() {
     local v1=$1
