@@ -1,0 +1,116 @@
+# OBDiag AI Assistant Configuration Example
+# 
+# Usage: Copy this file to ~/.obdiag/ai.yml and modify as needed
+#   cp conf/ai.yml.example ~/.obdiag/ai.yml
+#
+# For MCP support, please install obdiag_mcp package:
+#   pip install obdiag_mcp
+
+# LLM Configuration
+llm:
+  # API type: openai or other OpenAI-compatible services
+  api_type: openai
+  
+  # API Key (can also use OPENAI_API_KEY environment variable)
+  # If left empty, will try to read from OPENAI_API_KEY env var
+  api_key: ""
+  
+  # API Base URL (optional, for custom API endpoints)
+  # If left empty, will try to read from OPENAI_BASE_URL env var
+  # Examples:
+  #   - OpenAI official: https://api.openai.com/v1
+  #   - Azure OpenAI: https://your-resource.openai.azure.com/openai/deployments/your-deployment
+  #   - Custom endpoint: https://your-api-server.com/v1
+  base_url: ""
+  
+  # Model name
+  # Examples: gpt-4, gpt-3.5-turbo, gpt-4-turbo, qwen-plus, etc.
+  model: gpt-4
+  
+  # Temperature (controls output randomness, 0-2)
+  # Lower values (e.g., 0.2) make output more deterministic
+  # Higher values (e.g., 1.0) make output more creative
+  temperature: 0.7
+  
+  # Maximum tokens in response
+  max_tokens: 2000
+  
+  # System prompt for the AI assistant (optional)
+  # Defines the AI's role and behavior
+  # If left empty, uses the default built-in system prompt
+  # You can customize this to change how the AI responds
+  # system_prompt: |
+  #   You are OBDiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
+  #   
+  #   Your capabilities include:
+  #   1. Executing OBDiag diagnostic commands (gather logs, analyze, check health, RCA)
+  #   2. Analyzing diagnostic results and providing insights
+  #   3. Recommending diagnostic steps based on user descriptions
+  #   4. Explaining OceanBase concepts and troubleshooting procedures
+  #   
+  #   When users describe problems or ask for diagnostics:
+  #   1. First understand what they need
+  #   2. Use the appropriate diagnostic tools
+  #   3. Analyze the results
+  #   4. Provide clear explanations and recommendations
+  #   
+  #   Important guidelines:
+  #   - Always confirm before executing potentially long-running operations
+  #   - Provide clear, actionable insights from diagnostic results
+  #   - Respond in the same language as the user's question
+  #   - Format output clearly with proper structure
+  #   
+  #   When a tool execution fails, explain the error and suggest alternatives.
+  system_prompt: ""
+
+# MCP (Model Context Protocol) Servers Configuration
+# Uses JSON format for easy copy-paste from other MCP configurations (e.g., Cursor's mcp.json)
+mcp:
+  # Whether to enable MCP
+  enabled: true
+  
+  # MCP servers configuration in JSON format
+  # Format is compatible with Cursor's mcp.json
+  # 
+  # Supported transport types:
+  #   - stdio: command line process
+  #     - command: executable command
+  #     - args: command arguments (array)
+  #     - env: environment variables (object, optional)
+  #   - http: HTTP endpoint
+  #     - url: server URL
+  #     - headers: HTTP headers (object, optional)
+  #
+  # Example with multiple servers:
+  # servers: |
+  #   {
+  #     "obdiag": {
+  #       "command": "obdiag-mcp",
+  #       "args": ["stdio"]
+  #     },
+  #     "obdiag_http": {
+  #       "url": "http://127.0.0.1:8000/mcp"
+  #     }
+  #   }
+  #
+  servers: |
+    {
+      "obdiag": {
+        "command": "obdiag-mcp",
+        "args": ["stdio"]
+      }
+    }
+
+# UI Configuration
+ui:
+  # Show welcome message on startup
+  show_welcome: true
+  
+  # Show beta warning on startup
+  show_beta_warning: true
+  
+  # Clear screen when entering interactive mode
+  clear_screen: true
+  
+  # Prompt string displayed before user input
+  prompt: "obdiag AI> "
