@@ -59,7 +59,6 @@ check_error_log  "obdiag check run -c ./config.yml" &
 check_error_log  "obdiag check run --cases=ad" &
 check_error_log  "obdiag check run --cases=column_storage_poc" &
 check_error_log  "obdiag check run --cases=build_before"
-rm -rf check*
 #echo "=================obdiag check run --cases=sysbench_run================="
 #check_error_log  "obdiag check run --cases=sysbench_run"
 #echo "=================obdiag check run --cases=sysbench_free================="
@@ -72,7 +71,6 @@ check_error_log  "obdiag analyze log --scope rootservice"
 check_error_log  "obdiag analyze log --grep observer"
 check_error_log  "obdiag analyze log --store_dir ./log"
 check_error_log  "obdiag analyze log --log_level INFO"
-rm -rf log
 #check_error_log  "obdiag analyze log --temp_dir ./log" &
 #echo "=================obdiag analyze flt_trace================="
 #check_error_log  "obdiag analyze flt_trace"
@@ -86,8 +84,7 @@ check_error_log  "obdiag analyze parameter" &
 #check_error_log  "obdiag analyze parameter diff --store_dir ./parameter" &
 check_error_log  "obdiag analyze memory"
 check_error_log  "obdiag analyze memory --store_dir ./memory"
-check_error_log  "obdiag analyze memory --since 1d"
-rm -rf memory
+check_error_log  "obdiag analyze memory --since 1d" &
 #echo "=================obdiag analyze index_space================="
 #check_error_log  "obdiag analyze index_space"
 #echo "=================obdiag analyze queue --tenant sys================="
@@ -111,8 +108,7 @@ check_error_log  "obdiag gather log" &
 check_error_log  "obdiag gather log --since 1d" &
 check_error_log  "obdiag gather log --scope all" &
 check_error_log  "obdiag gather log --grep observer" &
-check_error_log  "obdiag gather log --store_dir ./test"
-rm -rf obdiag*
+check_error_log  "obdiag gather log --store_dir ./test" &
 #echo "=================obdiag gather sysstat================="
 #check_error_log  "obdiag gather sysstat"
 #echo "=================obdiag gather sysstat --store_dir ./sysstat================="
