@@ -20,15 +20,13 @@ import json
 from typing import Dict, List, Optional, Any, Generator
 from openai import OpenAI
 
-
-from src.handler.ai.obdiag_executor import ObdiagExecutor
 from src.handler.ai.mcp_client import MCPClientManager
 
 
 class ObdiagAIClient:
     """
     OpenAI API client for obdiag AI Assistant.
-    Supports tool calling via MCP (multiple servers) or built-in executor.
+    Supports tool calling via MCP protocol.
     """
 
     SYSTEM_PROMPT = """You are obdiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
@@ -73,8 +71,8 @@ When a tool execution fails, explain the error and suggest alternatives."""
             api_key: OpenAI API key
             base_url: Optional custom API base URL
             model: Model name to use
-            config_path: Path to obdiag config file (for built-in executor)
-            use_mcp: Whether to use MCP client (requires obdiag_mcp package)
+            config_path: Path to obdiag config file (unused, kept for compatibility)
+            use_mcp: Whether to use MCP client (unused, kept for compatibility)
             mcp_servers: MCP servers configuration dict
                 {
                     "server_name": {
@@ -94,7 +92,6 @@ When a tool execution fails, explain the error and suggest alternatives."""
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.use_mcp = use_mcp
         # Use custom system prompt if provided, otherwise use default
         self.system_prompt = system_prompt if system_prompt else self.SYSTEM_PROMPT
 
@@ -104,11 +101,10 @@ When a tool execution fails, explain the error and suggest alternatives."""
             client_kwargs["base_url"] = base_url
         self.client = OpenAI(**client_kwargs)
 
-        # Initialize tool executor
+        # Initialize MCP client
         self.mcp_client: Optional[MCPClientManager] = None
-        self.executor: Optional[ObdiagExecutor] = None
 
-        if use_mcp and mcp_servers:
+        if mcp_servers:
             # Convert servers config to internal format
             servers_config = self._convert_servers_config(mcp_servers)
             if servers_config:
@@ -116,18 +112,10 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 try:
                     self.mcp_client.start()
                     if not self.mcp_client.is_connected():
-                        self.stdio.print("Warning: No MCP server connected, using built-in executor")
-                        self.mcp_client = None
-                        self.executor = ObdiagExecutor(config_path)
+                        self.stdio.warn("Warning: No MCP server connected, tools will not be available")
                 except Exception as e:
-                    self.stdio.print(f"Warning: MCP client failed to start ({e}), using built-in executor")
+                    self.stdio.warn("Warning: MCP client failed to start ({0})".format(e))
                     self.mcp_client = None
-                    self.executor = ObdiagExecutor(config_path)
-            else:
-                self.executor = ObdiagExecutor(config_path)
-        else:
-            # Use built-in executor
-            self.executor = ObdiagExecutor(config_path)
 
     def _convert_servers_config(self, mcp_servers: Dict[str, Dict]) -> Dict[str, Dict]:
         """
@@ -180,20 +168,17 @@ When a tool execution fails, explain the error and suggest alternatives."""
         return result
 
     def _get_tools(self) -> List[Dict]:
-        """Get available tools for function calling"""
+        """Get available tools for function calling via MCP"""
         if self.mcp_client and self.mcp_client.is_connected():
             try:
                 return self.mcp_client.get_tools_for_openai()
             except Exception:
                 pass
-
-        if self.executor:
-            return self.executor.get_available_tools()
         return []
 
     def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """
-        Execute a tool and return the result
+        Execute a tool via MCP and return the result
 
         Args:
             tool_name: Name of the tool to execute
@@ -202,7 +187,6 @@ When a tool execution fails, explain the error and suggest alternatives."""
         Returns:
             Tool execution result as string
         """
-        # Try MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
                 result = self.mcp_client.call_tool(tool_name, arguments)
@@ -219,23 +203,11 @@ When a tool execution fails, explain the error and suggest alternatives."""
                         return "\n".join(texts) if texts else str(content)
                     return "Tool executed successfully but returned no content."
                 else:
-                    return f"Tool execution failed: {result.get('error', 'Unknown error')}"
+                    return "Tool execution failed: {0}".format(result.get('error', 'Unknown error'))
             except Exception as e:
-                return f"MCP tool execution error: {str(e)}"
+                return "MCP tool execution error: {0}".format(str(e))
 
-        # Fallback to built-in executor
-        if self.executor:
-            result = self.executor.execute(tool_name, arguments)
-            if result.get("success"):
-                output = result.get("stdout", "")
-                if result.get("stderr"):
-                    output += f"\nWarnings/Errors:\n{result['stderr']}"
-                return output if output else "Command executed successfully."
-            else:
-                error_msg = result.get("stderr", "Unknown error")
-                return f"Command execution failed: {error_msg}"
-
-        return "No executor available"
+        return "No MCP server connected. Please check MCP configuration."
 
     def chat(self, user_message: str, conversation_history: Optional[List[Dict]] = None) -> str:
         """

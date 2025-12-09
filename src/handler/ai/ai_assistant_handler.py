@@ -293,33 +293,29 @@ Available diagnostic tools:
     def _show_loaded_tools(self):
         """Show loaded MCP tools information"""
         try:
-            # Check if using MCP
             if self.ai_client and self.ai_client.mcp_client and self.ai_client.mcp_client.is_connected():
                 # Get connected servers info
                 connected_servers = self.ai_client.mcp_client.get_connected_servers()
                 servers_info = self.ai_client.mcp_client.get_server_info()
 
-                self.stdio.print(f"🔌 MCP Servers ({len(connected_servers)} connected):")
+                self.stdio.print("🔌 MCP Servers ({0} connected):".format(len(connected_servers)))
                 for server_name in connected_servers:
                     info = servers_info.get(server_name, {})
                     version = info.get("version", "unknown")
-                    self.stdio.print(f"   • {server_name} (v{version})")
+                    self.stdio.print("   • {0} (v{1})".format(server_name, version))
 
                 # List all tools
                 tools = self.ai_client.mcp_client.list_tools()
-                self.stdio.print(f"\n📦 Loaded {len(tools)} tools via MCP protocol:")
+                self.stdio.print("\n📦 Loaded {0} tools via MCP protocol:".format(len(tools)))
                 for tool in tools:
                     tool_name = tool.get("name", "")
-                    self.stdio.print(f"   • {tool_name}")
+                    self.stdio.print("   • {0}".format(tool_name))
                 self.stdio.print("")
-            elif self.ai_client and self.ai_client.executor:
-                tools = self.ai_client.executor.list_tools()
-                self.stdio.print(f"📦 Loaded {len(tools)} tools via built-in executor:")
-                for tool_name in tools:
-                    self.stdio.print(f"   • {tool_name}")
+            else:
+                self.stdio.warn("⚠️  No MCP server connected. Tools will not be available.")
                 self.stdio.print("")
         except Exception as e:
-            self.stdio.verbose(f"Failed to show loaded tools: {e}")
+            self.stdio.verbose("Failed to show loaded tools: {0}".format(e))
 
     def _show_history(self):
         """Show conversation history"""
