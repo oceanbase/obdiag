@@ -99,7 +99,7 @@ class GatherAshReportHandler(SafeStdio):
     def execute(self):
         try:
             # Check if version supports new parameters (4.3.5.0 and higher)
-            if StringUtils.compare_versions_greater(self.ob_version, "4.3.4.0"):
+            if StringUtils.compare_versions_greater(self.ob_version, "4.3.5.0")or self.ob_version == "4.3.5.0":
                 # 4.3.5.0+ supports 9 parameters: BTIME, ETIME, SQL_ID, TRACE_ID, WAIT_CLASS, REPORT_TYPE, SVR_IP, SVR_PORT, TENANT_ID
                 ash_report_arg = (self.from_time_str, self.to_time_str, self.sql_id, self.trace_id, self.wait_class, self.report_type, self.svr_ip, self.svr_port, self.tenant_id)
             else:
@@ -238,7 +238,7 @@ class GatherAshReportHandler(SafeStdio):
             self.tenant_id = None
 
         # Check version for new parameters
-        if (self.svr_ip or self.svr_port or self.tenant_id) and not StringUtils.compare_versions_greater(self.ob_version, "4.3.4.0"):
+        if (self.svr_ip or self.svr_port or self.tenant_id) and not (StringUtils.compare_versions_greater(self.ob_version, "4.3.4.0") or self.ob_version == "4.3.5.0"):
             self.stdio.warn("observer version: {0}, svr_ip/svr_port/tenant_id parameters are only supported in version 4.3.5.0 or higher. These parameters will be ignored.".format(self.ob_version))
             self.svr_ip = None
             self.svr_port = None
