@@ -59,6 +59,7 @@ check_error_log  "obdiag check run -c ./config.yml" &
 check_error_log  "obdiag check run --cases=ad" &
 check_error_log  "obdiag check run --cases=column_storage_poc" &
 check_error_log  "obdiag check run --cases=build_before"
+wait
 rm -rf check_report
 #echo "=================obdiag check run --cases=sysbench_run================="
 #check_error_log  "obdiag check run --cases=sysbench_run"
@@ -85,11 +86,12 @@ check_error_log  "obdiag analyze parameter" &
 #check_error_log  "obdiag analyze parameter diff --store_dir ./parameter" &
 check_error_log  "obdiag analyze memory"
 check_error_log  "obdiag analyze memory --store_dir ./memory"
-check_error_log  "obdiag analyze memory --since 1d"
+check_error_log  "obdiag analyze memory --since 1d" 
 #echo "=================obdiag analyze index_space================="
 #check_error_log  "obdiag analyze index_space"
 #echo "=================obdiag analyze queue --tenant sys================="
 #check_error_log  "obdiag analyze queue --tenant sys" &
+wait
 rm -rf obdiag_*
 check_error_log  "obdiag display list" &
 check_error_log  "obdiag display scene list" &
@@ -110,7 +112,7 @@ check_error_log  "obdiag gather log" &
 check_error_log  "obdiag gather log --since 1d" &
 check_error_log  "obdiag gather log --scope all" &
 check_error_log  "obdiag gather log --grep observer" &
-check_error_log  "obdiag gather log --store_dir ./test"
+check_error_log  "obdiag gather log --store_dir ./test" 
 #echo "=================obdiag gather sysstat================="
 #check_error_log  "obdiag gather sysstat"
 #echo "=================obdiag gather sysstat --store_dir ./sysstat================="
@@ -131,6 +133,7 @@ check_error_log  "obdiag gather log --store_dir ./test"
 #check_error_log  "obdiag gather all --scope observer"
 #echo "=================obdiag gather all --grep rootservice================="
 #check_error_log  "obdiag gather all --grep rootservice" &
+wait
 rm -rf obdiag_*
 check_error_log  "obdiag gather scene" &
 check_error_log  "obdiag gather scene list" &
@@ -148,10 +151,13 @@ check_error_log  "obdiag gather scene run --scene=observer.recovery" &
 check_error_log  "obdiag gather scene run --scene=observer.restart"
 check_error_log  "obdiag gather scene run --scene=observer.rootservice_switch"
 #check_error_log  "obdiag gather scene run --scene=observer.unknown" &
-check_error_log  "obdiag gather scene run --scene=observer.base" &
+check_error_log  "obdiag gather scene run --scene=observer.base" 
 #check_error_log  "obdiag gather ash" &
 #check_error_log  "obdiag gather ash --report_type TEXT" &
 #check_error_log  "obdiag gather ash --store_dir ./ash" &
+wait
+rm -rf obdiag_*
+
 check_error_log  "obdiag rca list"
 echo "=================obdiag rca run================="
 obdiag rca run --scene=replay_hold
