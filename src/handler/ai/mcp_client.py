@@ -331,7 +331,7 @@ class MCPClientManager:
     Tools from all connected servers are merged and prefixed with server name.
     """
 
-    def __init__(self, servers_config: Optional[Dict[str, Dict]] = None):
+    def __init__(self,context, servers_config: Optional[Dict[str, Dict]] = None):
         """
         Initialize MCP client manager
 
@@ -347,6 +347,8 @@ class MCPClientManager:
                     }
                 }
         """
+        self.context = context
+        self.stdio = context.stdio
         self.servers_config = servers_config or {}
         self.servers: Dict[str, MCPServer] = {}
         self._tools_map: Dict[str, str] = {}  # tool_name -> server_name

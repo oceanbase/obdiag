@@ -192,6 +192,7 @@ class AiAssistantHandler:
 
         # Initialize AI client
         self.ai_client = ObdiagAIClient(
+            context=self.context,
             api_key=api_key,
             base_url=base_url,
             model=llm_config.get("model", "gpt-4"),

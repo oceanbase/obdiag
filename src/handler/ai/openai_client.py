@@ -18,11 +18,8 @@
 
 import json
 from typing import Dict, List, Optional, Any, Generator
+from openai import OpenAI
 
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
 
 from src.handler.ai.obdiag_executor import ObdiagExecutor
 from src.handler.ai.mcp_client import MCPClientManager
@@ -58,6 +55,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
 
     def __init__(
         self,
+        context,
         api_key: str,
         base_url: Optional[str] = None,
         model: str = "gpt-4",
@@ -90,9 +88,8 @@ When a tool execution fails, explain the error and suggest alternatives."""
             max_tokens: Maximum tokens in response
             system_prompt: Custom system prompt (uses default if not provided)
         """
-        if OpenAI is None:
-            raise ImportError("openai package is required. Install with: pip install openai")
-
+        self.context = context
+        self.stdio = context.stdio
         self.api_key = api_key
         self.model = model
         self.temperature = temperature
@@ -115,7 +112,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             # Convert servers config to internal format
             servers_config = self._convert_servers_config(mcp_servers)
             if servers_config:
-                self.mcp_client = MCPClientManager(servers_config)
+                self.mcp_client = MCPClientManager(self.context,servers_config)
                 try:
                     self.mcp_client.start()
                     if not self.mcp_client.is_connected():

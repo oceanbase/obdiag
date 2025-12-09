@@ -42,7 +42,7 @@ plotly==5.24.1
 
 # AI Assistant
 openai>=1.0.0
-obdiag-mcp>=0.0.3
+obdiag-mcp
 rich>=13.0.0
 
 # Build tools (not runtime)
