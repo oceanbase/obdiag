@@ -383,13 +383,11 @@ Available diagnostic tools:
 
                     # Process user input with AI
                     self.stdio.print("")  # New line
-                    self.stdio.print(
-                        "Thinking...",
-                        end="",
-                    )
+                    self.stdio.start_loading("Thinking...", end="")
 
                     try:
                         response = self.ai_client.chat(user_input, self.conversation_history)
+                        self.stdio.stop_loading("succeed")
                         self.stdio.print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
 
                         # Render response as Markdown
