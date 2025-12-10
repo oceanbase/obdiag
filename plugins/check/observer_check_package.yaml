@@ -114,6 +114,7 @@ deep:
   tasks:
     - table.macroblock_utilization_rate_table
     - tenant.macroblock_utilization_rate_tenant
+    - archive.archive_continuous_error
 
 filter:
   info_en: "Inspection that needs to be ignored"
@@ -123,4 +124,5 @@ filter:
     - column_storage.*
     - table.macroblock_utilization_rate_table
     - tenant.macroblock_utilization_rate_tenant
+    - archive.archive_continuous_error
 
