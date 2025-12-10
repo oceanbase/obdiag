@@ -52,7 +52,7 @@ mkdir -p ${OBDIAG_HOME}/display
 find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} + 2>/dev/null
 
 \cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
-\cp -rf ${WORK_DIR}/conf/ai.yml.example ${OBDIAG_HOME}/ai.yml
+\cp -rf ${WORK_DIR}/conf/ai.yml.example ${OBDIAG_HOME}/ai.yml.example
 
 bashrc_file=~/.bashrc
 if [ -e "$bashrc_file" ]; then
