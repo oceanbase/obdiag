@@ -51,11 +51,8 @@ class SchemaLeakScene(RcaScene):
                 raise RCAInitException("observer version is None. Please check the NODES conf.")
 
             # Require OceanBase 4.0.0.0 or higher
-            if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version,
-                                                                                               "4.0.0.0")):
-                raise RCAInitException(
-                    "observer version is {0}, which is less than 4.0.0.0. This RCA scene only supports OceanBase 4.x".format(
-                        self.observer_version))
+            if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
+                raise RCAInitException("observer version is {0}, which is less than 4.0.0.0. This RCA scene only supports OceanBase 4.x".format(self.observer_version))
 
             if self.ob_connector is None:
                 raise RCAInitException("ob_connector is None. Please check the NODES conf.")
@@ -98,11 +95,9 @@ class SchemaLeakScene(RcaScene):
             # Step 5: Generate summary and suggestions
             if not schema_leak_detected and not session_leak_detected and not memory_issue_detected:
                 self.record.add_record("No obvious schema or session leak detected.")
-                self.record.add_suggest(
-                    "Current system appears healthy. If you still suspect a leak, please check application connection pool settings and ensure connections are properly closed.")
+                self.record.add_suggest("Current system appears healthy. If you still suspect a leak, please check application connection pool settings and ensure connections are properly closed.")
             else:
-                self.record.add_suggest(
-                    "Please review the diagnostic files in {0} for detailed analysis.".format(self.work_path))
+                self.record.add_suggest("Please review the diagnostic files in {0} for detailed analysis.".format(self.work_path))
 
         except RCANotNeedExecuteException as e:
             self.verbose("RCA not needed: {0}".format(str(e)))
@@ -157,13 +152,11 @@ class SchemaLeakScene(RcaScene):
                 total_ref_cnt = int(slot.get('TOTAL_REF_CNT', 0))
                 if total_ref_cnt > self.schema_slot_ref_threshold:
                     high_ref_slots.append(slot)
-                    self.verbose("High reference count slot found: tenant_id={0}, slot_id={1}, ref_cnt={2}".format(
-                        slot.get('TENANT_ID'), slot.get('SLOT_ID'), total_ref_cnt))
+                    self.verbose("High reference count slot found: tenant_id={0}, slot_id={1}, ref_cnt={2}".format(slot.get('TENANT_ID'), slot.get('SLOT_ID'), total_ref_cnt))
 
             if high_ref_slots:
                 leak_detected = True
-                self.record.add_record("WARNING: Found {0} schema slots with high reference count (>{1})".format(
-                    len(high_ref_slots), self.schema_slot_ref_threshold))
+                self.record.add_record("WARNING: Found {0} schema slots with high reference count (>{1})".format(len(high_ref_slots), self.schema_slot_ref_threshold))
                 self._save_to_file("high_ref_schema_slots.json", high_ref_slots)
 
                 # Provide suggestions
@@ -202,8 +195,7 @@ class SchemaLeakScene(RcaScene):
             fragmentation_data = cursor.fetchall()
 
             if fragmentation_data:
-                self.record.add_record(
-                    "Schema version fragmentation detected in {0} tenants".format(len(fragmentation_data)))
+                self.record.add_record("Schema version fragmentation detected in {0} tenants".format(len(fragmentation_data)))
                 self._save_to_file("schema_fragmentation.json", fragmentation_data)
                 self.record.add_suggest(
                     "Schema version fragmentation found. Too many schema versions being held may indicate:\n"
@@ -276,8 +268,7 @@ class SchemaLeakScene(RcaScene):
 
             if idle_sessions:
                 leak_detected = True
-                self.record.add_record("WARNING: Found {0} idle sessions (idle > {1} seconds)".format(
-                    len(idle_sessions), self.session_idle_threshold_seconds))
+                self.record.add_record("WARNING: Found {0} idle sessions (idle > {1} seconds)".format(len(idle_sessions), self.session_idle_threshold_seconds))
                 self._save_to_file("idle_sessions.json", idle_sessions)
 
                 # Group by host for analysis
@@ -297,8 +288,7 @@ class SchemaLeakScene(RcaScene):
 
             if long_running_sessions:
                 leak_detected = True
-                self.record.add_record(
-                    "WARNING: Found {0} long-running sessions (> 1 hour)".format(len(long_running_sessions)))
+                self.record.add_record("WARNING: Found {0} long-running sessions (> 1 hour)".format(len(long_running_sessions)))
                 self._save_to_file("long_running_sessions.json", long_running_sessions)
                 self.record.add_suggest(
                     "Long-running sessions detected. This may cause:\n"
@@ -339,11 +329,7 @@ class SchemaLeakScene(RcaScene):
                 # Warn if single host has too many connections
                 if sorted_hosts[0][1] > 100:
                     self.record.add_suggest(
-                        "Host {0} has {1} connections. This may indicate:\n"
-                        "1. Connection pool misconfiguration\n"
-                        "2. Connection leak in application\n"
-                        "3. Missing connection close in application code".format(
-                            sorted_hosts[0][0], sorted_hosts[0][1])
+                        "Host {0} has {1} connections. This may indicate:\n" "1. Connection pool misconfiguration\n" "2. Connection leak in application\n" "3. Missing connection close in application code".format(sorted_hosts[0][0], sorted_hosts[0][1])
                     )
 
         except Exception as e:
@@ -392,8 +378,7 @@ class SchemaLeakScene(RcaScene):
                     hold_mb = float(mem.get('HOLD_MB', 0))
                     if hold_mb > 1024:  # > 1GB
                         issue_detected = True
-                        self.record.add_record("WARNING: High schema memory usage: {0} - {1} MB on {2}:{3}".format(
-                            mem.get('MOD_NAME'), hold_mb, mem.get('SVR_IP'), mem.get('SVR_PORT')))
+                        self.record.add_record("WARNING: High schema memory usage: {0} - {1} MB on {2}:{3}".format(mem.get('MOD_NAME'), hold_mb, mem.get('SVR_IP'), mem.get('SVR_PORT')))
 
                 if issue_detected:
                     self.record.add_suggest(
@@ -460,8 +445,7 @@ class SchemaLeakScene(RcaScene):
             self._save_to_file("timeout_parameters.json", timeout_params)
 
             if timeout_params:
-                self.record.add_record(
-                    "Timeout parameters collected. Review these settings if session leaks are suspected.")
+                self.record.add_record("Timeout parameters collected. Review these settings if session leaks are suspected.")
 
             # Collect schema history info (for understanding schema change frequency)
             try:
@@ -499,10 +483,9 @@ class SchemaLeakScene(RcaScene):
         return {
             "name": "schema_leak",
             "info_en": "Diagnose schema or session leak issues. Checks schema slot usage, session status, and schema-related memory consumption.",
-            "info_cn": "诊断 schema 或 session 泄露问题。检查 schema slot 使用情况、session 状态和 schema 相关内存消耗。"
+            "info_cn": "诊断 schema 或 session 泄露问题。检查 schema slot 使用情况、session 状态和 schema 相关内存消耗。",
         }
 
 
 # Register the scene
 schema_leak = SchemaLeakScene()
-
