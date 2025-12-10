@@ -108,7 +108,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             # Convert servers config to internal format
             servers_config = self._convert_servers_config(mcp_servers)
             if servers_config:
-                self.mcp_client = MCPClientManager(self.context, servers_config)
+                self.mcp_client = MCPClientManager(servers_config=servers_config, context=self.context)
                 try:
                     self.mcp_client.start()
                     if not self.mcp_client.is_connected():
