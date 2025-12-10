@@ -33,10 +33,7 @@ class ArchiveContinuousError(TaskBase):
             ssh_client = node.get("ssher")
             if ssh_client is None:
                 with lock:
-                    results["failures"].append({
-                        "node": node.get("ip", "unknown"),
-                        "error": "ssh client is None"
-                    })
+                    results["failures"].append({"node": node.get("ip", "unknown"), "error": "ssh client is None"})
                 return
 
             node_name = ssh_client.get_name()
@@ -57,25 +54,17 @@ class ArchiveContinuousError(TaskBase):
             if result:
                 # Found the error keyword in log files
                 matched_files = result.split('\n')
-                self.stdio.verbose("Found archive error in {0} log files on node {1}".format(
-                    len(matched_files), node_name))
+                self.stdio.verbose("Found archive error in {0} log files on node {1}".format(len(matched_files), node_name))
 
                 with lock:
-                    results["found_errors"].append({
-                        "node": node_name,
-                        "files": matched_files
-                    })
+                    results["found_errors"].append({"node": node_name, "files": matched_files})
             else:
                 self.stdio.verbose("No archive error found on node {0}".format(node_name))
 
         except Exception as e:
-            self.stdio.warn("Failed to search logs on node {0}: {1}".format(
-                node.get("ip", "unknown"), e))
+            self.stdio.warn("Failed to search logs on node {0}: {1}".format(node.get("ip", "unknown"), e))
             with lock:
-                results["failures"].append({
-                    "node": node.get("ip", "unknown"),
-                    "error": str(e)
-                })
+                results["failures"].append({"node": node.get("ip", "unknown"), "error": str(e)})
 
     def execute(self):
         try:
@@ -89,19 +78,13 @@ class ArchiveContinuousError(TaskBase):
             error_keyword = "pay ATTENTION!! archive continuous encounter error more than 15"
 
             # Shared results container with thread lock
-            results = {
-                "found_errors": [],
-                "failures": []
-            }
+            results = {"found_errors": [], "failures": []}
             lock = threading.Lock()
 
             # Create threads for each node
             threads = []
             for node in self.observer_nodes:
-                thread = threading.Thread(
-                    target=self._check_node,
-                    args=(node, error_keyword, results, lock)
-                )
+                thread = threading.Thread(target=self._check_node, args=(node, error_keyword, results, lock))
                 thread.daemon = True
                 threads.append(thread)
 
@@ -131,13 +114,9 @@ class ArchiveContinuousError(TaskBase):
                         "This indicates archive has encountered continuous errors. "
                         "Please check archive destination connectivity and storage. "
                         "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000003272139. "
-                        "Log files: {1}".format(
-                            error["node"],
-                            ", ".join(error["files"][:3])  # Show at most 3 files
-                        )
+                        "Log files: {1}".format(error["node"], ", ".join(error["files"][:3]))  # Show at most 3 files
                     )
-                self.stdio.verbose("Archive continuous error check completed, found issues on {0} nodes".format(
-                    len(results["found_errors"])))
+                self.stdio.verbose("Archive continuous error check completed, found issues on {0} nodes".format(len(results["found_errors"])))
             else:
                 self.stdio.verbose("Archive continuous error check completed, no issues found")
 
@@ -149,8 +128,8 @@ class ArchiveContinuousError(TaskBase):
         return {
             "name": "archive_continuous_error",
             "info": "Check for 'pay ATTENTION!! archive continuous encounter error more than 15' in observer logs. "
-                    "This error indicates archive has encountered continuous errors more than 15 times. "
-                    "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000003272139. issue #991",
+            "This error indicates archive has encountered continuous errors more than 15 times. "
+            "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000003272139. issue #991",
         }
 
 
