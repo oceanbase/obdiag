@@ -18,22 +18,38 @@
 
 import json
 import os
+import shlex
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 import yaml
 
-from src.handler.ai.obdiag_executor import ObdiagExecutor
-
 
 class MCPServer:
     """Built-in MCP server for obdiag tools"""
 
+    # Supported obdiag commands mapping: tool_name -> obdiag command
+    SUPPORTED_COMMANDS = {
+        "gather_log": "obdiag gather log",
+        "gather_plan_monitor": "obdiag gather plan_monitor",
+        "gather_sysstat": "obdiag gather sysstat",
+        "gather_perf": "obdiag gather perf",
+        "gather_obproxy_log": "obdiag gather obproxy_log",
+        "gather_ash": "obdiag gather ash",
+        "gather_awr": "obdiag gather awr",
+        "analyze_log": "obdiag analyze log",
+        "check": "obdiag check run",
+        "check_list": "obdiag check list",
+        "rca_run": "obdiag rca run",
+        "rca_list": "obdiag rca list",
+        "tool_io_performance": "obdiag tool io_performance",
+    }
+
     def __init__(self, config_path: Optional[str] = None):
-        self.config_path = config_path
-        self.executor = ObdiagExecutor(config_path=config_path)
+        self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
         self.tools = self._register_tools()
         self.initialized = False
 
@@ -183,9 +199,114 @@ class MCPServer:
         if tool_name == "generate_config":
             return self._generate_config(arguments)
 
-        result = self.executor.execute_tool(tool_name, arguments)
+        # Execute obdiag command
+        result = self._execute_obdiag_command(tool_name, arguments)
 
-        return {"content": [{"type": "text", "text": result.get("stdout", "")}], "isError": not result.get("success", False)}
+        output = result.get("stdout", "")
+        if result.get("stderr"):
+            output += "\n" + result.get("stderr", "")
+
+        return {"content": [{"type": "text", "text": output}], "isError": not result.get("success", False)}
+
+    def _build_obdiag_command(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+        """
+        Build obdiag command string from tool name and arguments
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Dictionary of argument name-value pairs
+
+        Returns:
+            Complete command string
+        """
+        if tool_name not in self.SUPPORTED_COMMANDS:
+            raise ValueError("Unsupported tool: {0}".format(tool_name))
+
+        cmd_parts = [self.SUPPORTED_COMMANDS[tool_name]]
+
+        # Add config path
+        if self.config_path and os.path.exists(self.config_path):
+            cmd_parts.append("-c {0}".format(shlex.quote(self.config_path)))
+
+        # Get valid parameters for this tool from registered tools
+        tool_schema = next((t for t in self.tools if t["name"] == tool_name), None)
+        valid_params = set()
+        if tool_schema:
+            valid_params = set(tool_schema.get("inputSchema", {}).get("properties", {}).keys())
+
+        # Add arguments
+        for arg_name, arg_value in arguments.items():
+            if arg_value is None:
+                continue
+            # Only add parameters that are defined in the tool schema
+            if valid_params and arg_name not in valid_params:
+                continue
+
+            # Handle different argument types
+            if isinstance(arg_value, list):
+                # For array arguments like grep keywords
+                for item in arg_value:
+                    safe_value = shlex.quote(str(item))
+                    cmd_parts.append("--{0} {1}".format(arg_name, safe_value))
+            elif isinstance(arg_value, bool):
+                if arg_value:
+                    cmd_parts.append("--{0}".format(arg_name))
+            else:
+                safe_value = shlex.quote(str(arg_value))
+                cmd_parts.append("--{0} {1}".format(arg_name, safe_value))
+
+        return " ".join(cmd_parts)
+
+    def _execute_obdiag_command(self, tool_name: str, arguments: Dict[str, Any], timeout: int = 300) -> Dict[str, Any]:
+        """
+        Execute obdiag command via subprocess
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Dictionary of argument name-value pairs
+            timeout: Command timeout in seconds
+
+        Returns:
+            Dictionary containing execution result
+        """
+        try:
+            # Build command
+            command = self._build_obdiag_command(tool_name, arguments)
+
+            # Execute command
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=os.environ.copy(),
+            )
+
+            return {
+                "success": result.returncode == 0,
+                "command": command,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "return_code": result.returncode,
+            }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "command": command if 'command' in locals() else tool_name,
+                "stdout": "",
+                "stderr": "Command timed out after {0} seconds".format(timeout),
+                "return_code": -1,
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "command": command if 'command' in locals() else tool_name,
+                "stdout": "",
+                "stderr": str(e),
+                "return_code": -1,
+            }
 
     def _generate_config(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Generate obdiag configuration file"""
