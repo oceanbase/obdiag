@@ -2,9 +2,6 @@
 # 
 # Usage: Copy this file to ~/.obdiag/ai.yml and modify as needed
 #   cp conf/ai.yml.example ~/.obdiag/ai.yml
-#
-# For MCP support, please install obdiag_mcp package:
-#   pip install obdiag_mcp
 
 # LLM Configuration
 llm:
@@ -63,43 +60,30 @@ llm:
   #   When a tool execution fails, explain the error and suggest alternatives.
   system_prompt: ""
 
-# MCP (Model Context Protocol) Servers Configuration
-# Uses JSON format for easy copy-paste from other MCP configurations (e.g., Cursor's mcp.json)
+# MCP (Model Context Protocol) Configuration
+# obdiag has a built-in MCP server, no external configuration needed by default.
+# You can optionally configure external MCP servers here.
 mcp:
-  # Whether to enable MCP
+  # Whether to enable MCP tools
   enabled: true
   
-  # MCP servers configuration in JSON format
-  # Format is compatible with Cursor's mcp.json
+  # External MCP servers configuration (optional)
+  # By default, obdiag uses its built-in MCP server.
+  # Only configure this if you want to use external MCP servers.
   # 
-  # Supported transport types:
-  #   - stdio: command line process
-  #     - command: executable command
-  #     - args: command arguments (array)
-  #     - env: environment variables (object, optional)
-  #   - http: HTTP endpoint
-  #     - url: server URL
-  #     - headers: HTTP headers (object, optional)
-  #
-  # Example with multiple servers:
+  # Format is compatible with Cursor's mcp.json:
   # servers: |
   #   {
-  #     "obdiag": {
-  #       "command": "obdiag-mcp",
+  #     "external_server": {
+  #       "command": "some-mcp-command",
   #       "args": ["stdio"]
   #     },
-  #     "obdiag_http": {
+  #     "http_server": {
   #       "url": "http://127.0.0.1:8000/mcp"
   #     }
   #   }
   #
-  servers: |
-    {
-      "obdiag": {
-        "command": "obdiag-mcp",
-        "args": ["stdio"]
-      }
-    }
+  servers: ""
 
 # UI Configuration
 ui:

@@ -93,10 +93,7 @@ class AiAssistantHandler:
 
         Config file path: ~/.obdiag/ai.yml
         """
-        # Default MCP servers configuration
-        default_mcp_servers = {"obdiag": {"command": "obdiag-mcp", "args": ["stdio"]}}
-
-        # Default configuration
+        # Default configuration - no external MCP servers, use built-in server
         default_config = {
             "llm": {
                 "api_type": "openai",
@@ -108,7 +105,7 @@ class AiAssistantHandler:
             },
             "mcp": {
                 "enabled": True,
-                "servers": default_mcp_servers,
+                "servers": {},  # Empty means use built-in MCP server
             },
             "ui": {
                 "show_welcome": True,
@@ -130,8 +127,7 @@ class AiAssistantHandler:
             except Exception as e:
                 self.stdio.warn(f"Failed to load AI config from {config_path}: {e}")
         else:
-            self.stdio.warn(f"AI config file not found: {config_path}")
-            self.stdio.warn("Using default configuration. Please create ~/.obdiag/ai.yml for custom settings.")
+            self.stdio.verbose(f"AI config file not found: {config_path}, using defaults")
 
         # Merge with user configuration
         llm_config = {**default_config["llm"], **ai_config.get("llm", {})}
@@ -145,21 +141,22 @@ class AiAssistantHandler:
             mcp_config["enabled"] = user_mcp_config["enabled"]
 
         # Parse MCP servers - supports JSON string format
+        # Empty or missing servers means use built-in MCP server
         if "servers" in user_mcp_config:
             servers_value = user_mcp_config["servers"]
-            if isinstance(servers_value, str):
-                # JSON string format
+            if isinstance(servers_value, str) and servers_value.strip():
+                # JSON string format (non-empty)
                 try:
-                    mcp_config["servers"] = json.loads(servers_value)
+                    parsed = json.loads(servers_value)
+                    if parsed:  # Only use if non-empty
+                        mcp_config["servers"] = parsed
                 except json.JSONDecodeError as e:
-                    self.stdio.warn(f"Failed to parse MCP servers JSON: {e}")
-                    mcp_config["servers"] = default_mcp_servers
-            elif isinstance(servers_value, dict):
-                # Direct dict format
+                    self.stdio.warn(f"Failed to parse MCP servers JSON: {e}, using built-in server")
+                    mcp_config["servers"] = {}
+            elif isinstance(servers_value, dict) and servers_value:
+                # Direct dict format (non-empty)
                 mcp_config["servers"] = servers_value
-            else:
-                self.stdio.warn("Invalid MCP servers format, using default")
-                mcp_config["servers"] = default_mcp_servers
+            # else: keep empty dict to use built-in server
 
         return {
             "llm": llm_config,

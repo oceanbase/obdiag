@@ -228,6 +228,10 @@ class MCPServer:
         if self.config_path and os.path.exists(self.config_path):
             cmd_parts.append("-c {0}".format(shlex.quote(self.config_path)))
 
+        # Enable silent mode for JSON output (integration mode)
+        cmd_parts.append("--inner_config")
+        cmd_parts.append("obdiag.logger.silent=True")
+
         # Get valid parameters for this tool from registered tools
         tool_schema = next((t for t in self.tools if t["name"] == tool_name), None)
         valid_params = set()

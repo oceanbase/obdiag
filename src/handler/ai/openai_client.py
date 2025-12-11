@@ -17,10 +17,12 @@
 """
 
 import json
+import os
 from typing import Dict, List, Optional, Any, Generator
 from openai import OpenAI
 
 from src.handler.ai.mcp_client import MCPClientManager
+from src.handler.ai.mcp_server import MCPServer
 
 
 class ObdiagAIClient:
@@ -101,21 +103,32 @@ When a tool execution fails, explain the error and suggest alternatives."""
             client_kwargs["base_url"] = base_url
         self.client = OpenAI(**client_kwargs)
 
-        # Initialize MCP client
+        # Initialize MCP - use built-in server by default, or external servers if configured
         self.mcp_client: Optional[MCPClientManager] = None
+        self.builtin_mcp_server: Optional[MCPServer] = None
+        self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
 
         if mcp_servers:
-            # Convert servers config to internal format
+            # Use external MCP servers
             servers_config = self._convert_servers_config(mcp_servers)
             if servers_config:
                 self.mcp_client = MCPClientManager(servers_config=servers_config, context=self.context)
                 try:
                     self.mcp_client.start()
                     if not self.mcp_client.is_connected():
-                        self.stdio.warn("Warning: No MCP server connected, tools will not be available")
+                        self.stdio.warn("Warning: No external MCP server connected, falling back to built-in server")
+                        self.mcp_client = None
                 except Exception as e:
-                    self.stdio.warn("Warning: MCP client failed to start ({0})".format(e))
+                    self.stdio.warn("Warning: External MCP client failed to start ({0}), falling back to built-in server".format(e))
                     self.mcp_client = None
+
+        # If no external MCP client, use built-in MCP server
+        if self.mcp_client is None:
+            try:
+                self.builtin_mcp_server = MCPServer(config_path=self.config_path)
+                self.stdio.verbose("Using built-in MCP server")
+            except Exception as e:
+                self.stdio.warn("Warning: Failed to initialize built-in MCP server: {0}".format(e))
 
     def _convert_servers_config(self, mcp_servers: Dict[str, Dict]) -> Dict[str, Dict]:
         """
@@ -168,17 +181,37 @@ When a tool execution fails, explain the error and suggest alternatives."""
         return result
 
     def _get_tools(self) -> List[Dict]:
-        """Get available tools for function calling via MCP"""
+        """Get available tools for function calling"""
+        # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
                 return self.mcp_client.get_tools_for_openai()
             except Exception:
                 pass
+
+        # Fall back to built-in MCP server
+        if self.builtin_mcp_server:
+            try:
+                tools = self.builtin_mcp_server.tools
+                return [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": tool.get("name", ""),
+                            "description": tool.get("description", ""),
+                            "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
+                        },
+                    }
+                    for tool in tools
+                ]
+            except Exception:
+                pass
+
         return []
 
     def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """
-        Execute a tool via MCP and return the result
+        Execute a tool and return the result
 
         Args:
             tool_name: Name of the tool to execute
@@ -187,27 +220,58 @@ When a tool execution fails, explain the error and suggest alternatives."""
         Returns:
             Tool execution result as string
         """
+        # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
                 result = self.mcp_client.call_tool(tool_name, arguments)
-                if result.get("success"):
-                    content = result.get("content", [])
-                    if content:
-                        # Extract text content from MCP response
-                        texts = []
-                        for item in content:
-                            if isinstance(item, dict) and item.get("type") == "text":
-                                texts.append(item.get("text", ""))
-                            elif isinstance(item, str):
-                                texts.append(item)
-                        return "\n".join(texts) if texts else str(content)
-                    return "Tool executed successfully but returned no content."
-                else:
-                    return "Tool execution failed: {0}".format(result.get('error', 'Unknown error'))
+                return self._extract_tool_result(result)
             except Exception as e:
                 return "MCP tool execution error: {0}".format(str(e))
 
-        return "No MCP server connected. Please check MCP configuration."
+        # Fall back to built-in MCP server
+        if self.builtin_mcp_server:
+            try:
+                result = self.builtin_mcp_server._call_tool(tool_name, arguments)
+                return self._extract_tool_result_from_builtin(result)
+            except Exception as e:
+                return "Built-in tool execution error: {0}".format(str(e))
+
+        return "No MCP server available. Please check configuration."
+
+    def _extract_tool_result(self, result: Dict) -> str:
+        """Extract text content from MCP client result"""
+        if result.get("success"):
+            content = result.get("content", [])
+            if content:
+                texts = []
+                for item in content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        texts.append(item.get("text", ""))
+                    elif isinstance(item, str):
+                        texts.append(item)
+                return "\n".join(texts) if texts else str(content)
+            return "Tool executed successfully but returned no content."
+        else:
+            return "Tool execution failed: {0}".format(result.get('error', 'Unknown error'))
+
+    def _extract_tool_result_from_builtin(self, result: Dict) -> str:
+        """Extract text content from built-in MCP server result"""
+        content = result.get("content", [])
+        is_error = result.get("isError", False)
+
+        if content:
+            texts = []
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    texts.append(item.get("text", ""))
+                elif isinstance(item, str):
+                    texts.append(item)
+            result_text = "\n".join(texts) if texts else str(content)
+            if is_error:
+                return "Tool execution failed: {0}".format(result_text)
+            return result_text
+
+        return "Tool executed but returned no content."
 
     def chat(self, user_message: str, conversation_history: Optional[List[Dict]] = None) -> str:
         """

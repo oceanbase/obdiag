@@ -63,17 +63,6 @@ find $SRC_DIR -name "obdiag"
 \cp -rf $BUILD_DIR/SOURCES/obdiag_backup.sh ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/plugins ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/
 
-# Copy obdiag-mcp executable if exists (for AI assistant MCP support)
-mkdir -p ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/bin
-OBDIAG_MCP_PATH=$(which obdiag-mcp 2>/dev/null || echo "")
-if [ -n "$OBDIAG_MCP_PATH" ] && [ -f "$OBDIAG_MCP_PATH" ]; then
-    \cp -rf $OBDIAG_MCP_PATH ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/bin/
-    echo "obdiag-mcp copied to RPM package"
-else
-    echo "Warning: obdiag-mcp not found, AI assistant MCP feature will not be available"
-fi
-
-
 %files
 %defattr(-,root,root,0777)
 /opt/oceanbase-diagnostic-tool/*
@@ -85,13 +74,6 @@ find /opt/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
 ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /opt/oceanbase-diagnostic-tool/obdiag
 
-# Create symbolic link for obdiag-mcp if exists (for AI assistant MCP support)
-if [ -f /opt/oceanbase-diagnostic-tool/bin/obdiag-mcp ]; then
-    chmod +x /opt/oceanbase-diagnostic-tool/bin/obdiag-mcp
-    ln -sf /opt/oceanbase-diagnostic-tool/bin/obdiag-mcp /usr/bin/obdiag-mcp
-    echo "obdiag-mcp installed for AI assistant MCP support"
-fi
-
 cp -rf /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
 /opt/oceanbase-diagnostic-tool/obdiag_backup.sh
 /opt/oceanbase-diagnostic-tool/init.sh
@@ -101,4 +83,3 @@ echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 %preun
 # Clean up symbolic links before uninstall
 rm -f /usr/bin/obdiag 2>/dev/null || true
-rm -f /usr/bin/obdiag-mcp 2>/dev/null || true
