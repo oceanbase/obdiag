@@ -56,9 +56,7 @@ class TransactionWaitTimeoutScene(RcaScene):
 
         self.error_msg = self.input_parameters.get("error_msg")
         if not self.error_msg:
-            raise RCANotNeedExecuteException(
-                'error_msg is empty. Please provide error_msg by --env error_msg="Shared lock conflict" or --env error_msg="Lock wait timeout exceeded"'
-            )
+            raise RCANotNeedExecuteException('error_msg is empty. Please provide error_msg by --env error_msg="Shared lock conflict" or --env error_msg="Lock wait timeout exceeded"')
 
         if "Shared lock conflict" in self.error_msg:
             self.record.add_record("Error type: Shared lock conflict (-6004)")
@@ -67,15 +65,10 @@ class TransactionWaitTimeoutScene(RcaScene):
             self.record.add_record("Error type: Lock wait timeout exceeded (-6003)")
             self.error_msg_type = "Lock wait timeout exceeded"
         else:
-            raise RCANotNeedExecuteException(
-                'error_msg should contain "Shared lock conflict" or "Lock wait timeout exceeded"'
-            )
+            raise RCANotNeedExecuteException('error_msg should contain "Shared lock conflict" or "Lock wait timeout exceeded"')
 
         # Suggest using lock_conflict scene
-        self.stdio.warn(
-            "[TransactionWaitTimeoutScene] NOTE: This scene is integrated into 'lock_conflict'. "
-            "You can also use: obdiag rca run --scene=lock_conflict --env error_msg='{0}'".format(self.error_msg)
-        )
+        self.stdio.warn("[TransactionWaitTimeoutScene] NOTE: This scene is integrated into 'lock_conflict'. " "You can also use: obdiag rca run --scene=lock_conflict --env error_msg='{0}'".format(self.error_msg))
 
     def verbose(self, info):
         self.stdio.verbose("[TransactionWaitTimeoutScene] {0}".format(info))
@@ -188,9 +181,7 @@ class TransactionWaitTimeoutScene(RcaScene):
                 "To resolve: "
                 "1) Wait for the transaction to complete; "
                 "2) Kill the blocking session; "
-                "3) Use 'obdiag rca run --scene=transaction_not_ending --env tx_id={0}' for further analysis.".format(
-                    self.conflict_tx_id_value
-                )
+                "3) Use 'obdiag rca run --scene=transaction_not_ending --env tx_id={0}' for further analysis.".format(self.conflict_tx_id_value)
             )
         else:
             self.record.add_record("Could not extract conflict_tx_id from logs")

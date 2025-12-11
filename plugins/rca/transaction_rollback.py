@@ -72,10 +72,7 @@ class TransactionRollbackScene(RcaScene):
 
             if logs_name is None or len(logs_name) <= 0:
                 self.record.add_record("No log found about 'trans is killed'")
-                self.record.add_suggest(
-                    "No 'trans is killed' log found. The transaction rollback may be caused by other reasons. "
-                    "Please check 'sending error packet' logs for more details."
-                )
+                self.record.add_suggest("No 'trans is killed' log found. The transaction rollback may be caused by other reasons. " "Please check 'sending error packet' logs for more details.")
                 return
 
             self.record.add_record("Found 'trans is killed' logs in {0}".format(work_path_trans_is_killed))
@@ -116,10 +113,7 @@ class TransactionRollbackScene(RcaScene):
 
             # Provide final suggestion based on findings
             if not leader_switch_found and not timeout_found:
-                self.record.add_suggest(
-                    "Could not determine the exact reason for transaction rollback. "
-                    "Please check the transaction logs and contact OceanBase community for further analysis."
-                )
+                self.record.add_suggest("Could not determine the exact reason for transaction rollback. " "Please check the transaction logs and contact OceanBase community for further analysis.")
 
         except Exception as e:
             raise RCAExecuteException("TransactionRollbackScene execute error: {0}".format(e))
@@ -179,17 +173,10 @@ class TransactionRollbackScene(RcaScene):
                                     log_datetime = datetime.datetime.strptime(log_time_str[:26], '%Y-%m-%d %H:%M:%S.%f')
 
                                     if expired_datetime <= log_datetime:
-                                        self.record.add_record(
-                                            "trans_expired_time ({0}) <= log_time ({1})".format(
-                                                expired_datetime, log_datetime
-                                            )
-                                        )
+                                        self.record.add_record("trans_expired_time ({0}) <= log_time ({1})".format(expired_datetime, log_datetime))
                                         self.rollback_reason = "timeout"
                                         self.record.add_suggest(
-                                            "Transaction was killed due to TIMEOUT. "
-                                            "The transaction expired before completion. "
-                                            "Please check and adjust transaction timeout settings: "
-                                            "ob_trx_timeout, ob_query_timeout, ob_trx_idle_timeout."
+                                            "Transaction was killed due to TIMEOUT. " "The transaction expired before completion. " "Please check and adjust transaction timeout settings: " "ob_trx_timeout, ob_query_timeout, ob_trx_idle_timeout."
                                         )
                                         return True
             except Exception as e:
@@ -219,18 +206,10 @@ class TransactionRollbackScene(RcaScene):
 
             if error_found:
                 self.record.add_record("Found ERROR in election logs")
-                self.record.add_suggest(
-                    "Election errors detected. The leader switch may have been caused by "
-                    "abnormal conditions (network issues, disk problems, etc.). "
-                    "Please check election logs in {0} for details.".format(work_path_election)
-                )
+                self.record.add_suggest("Election errors detected. The leader switch may have been caused by " "abnormal conditions (network issues, disk problems, etc.). " "Please check election logs in {0} for details.".format(work_path_election))
             else:
                 self.record.add_record("No ERROR found in election logs")
-                self.record.add_suggest(
-                    "No election errors found. The leader switch may have been triggered by "
-                    "RS scheduling (auto leader rebalancing). "
-                    "Please check if auto_leader_switch is enabled."
-                )
+                self.record.add_suggest("No election errors found. The leader switch may have been triggered by " "RS scheduling (auto leader rebalancing). " "Please check if auto_leader_switch is enabled.")
 
     def get_scene_info(self):
         return {

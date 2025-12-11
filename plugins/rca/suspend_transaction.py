@@ -53,10 +53,7 @@ class SuspendTransactionScene(RcaScene):
         self.tx_id = self.input_parameters.get("tx_id")
 
         if not self.tenant_name and not self.tx_id:
-            raise RCAInitException(
-                "Please provide tenant_name or tx_id. "
-                "Example: --env tenant_name=test_tenant or --env tx_id=12345"
-            )
+            raise RCAInitException("Please provide tenant_name or tx_id. " "Example: --env tenant_name=test_tenant or --env tx_id=12345")
 
     def verbose(self, info):
         self.stdio.verbose("[SuspendTransactionScene] {0}".format(info))
@@ -86,7 +83,9 @@ class SuspendTransactionScene(RcaScene):
         AND a.tenant_name='{0}' 
         AND t.ROLE = 'LEADER' 
         AND t.ACTION <> 'START';
-        """.format(self.tenant_name)
+        """.format(
+            self.tenant_name
+        )
 
         self.verbose("Checking for suspended transactions: {0}".format(sql))
         try:
@@ -130,10 +129,7 @@ class SuspendTransactionScene(RcaScene):
 
         # If none of the above, provide general suggestion
         self.record.add_record("Could not determine specific cause for suspended transactions")
-        self.record.add_suggest(
-            "Suspended transactions detected but no common cause found. "
-            "Please contact OceanBase community for further analysis."
-        )
+        self.record.add_suggest("Suspended transactions detected but no common cause found. " "Please contact OceanBase community for further analysis.")
 
     def _analyze_specific_transaction(self):
         """Analyze a specific transaction by tx_id"""
@@ -158,9 +154,7 @@ class SuspendTransactionScene(RcaScene):
             ls_id = row.get("LS_ID") or row.get("ls_id")
             svr_ip = row.get("SVR_IP") or row.get("svr_ip")
 
-            self.record.add_record(
-                "Participant: state={0}, action={1}, ls_id={2}, svr_ip={3}".format(state, action, ls_id, svr_ip)
-            )
+            self.record.add_record("Participant: state={0}, action={1}, ls_id={2}, svr_ip={3}".format(state, action, ls_id, svr_ip))
 
         # Gather and analyze transaction logs
         self._analyze_commit_phase_logs()
@@ -172,7 +166,9 @@ class SuspendTransactionScene(RcaScene):
         WHERE a.tenant_id=t.tenant_id AND t.tenant_name='{0}' 
         GROUP BY a.ls_id 
         HAVING count(CASE WHEN a.role = 'LEADER' THEN 1 END)=0;
-        """.format(self.tenant_name)
+        """.format(
+            self.tenant_name
+        )
 
         self.verbose("Checking for no_leader: {0}".format(sql))
         try:
@@ -185,10 +181,7 @@ class SuspendTransactionScene(RcaScene):
         if len(no_leader_ls) > 0:
             ls_ids = [str(row['ls_id']) for row in no_leader_ls]
             self.record.add_record("Found log streams without leader: {0}".format(", ".join(ls_ids)))
-            self.record.add_suggest(
-                "CRITICAL: Log stream(s) {0} have no leader! "
-                "This is a serious issue. Please contact OceanBase community immediately.".format(", ".join(ls_ids))
-            )
+            self.record.add_suggest("CRITICAL: Log stream(s) {0} have no leader! " "This is a serious issue. Please contact OceanBase community immediately.".format(", ".join(ls_ids)))
             return True
 
         self.verbose("All log streams have leaders")
@@ -207,7 +200,9 @@ class SuspendTransactionScene(RcaScene):
         FROM oceanbase.__all_virtual_tenant_memstore_info m
         INNER JOIN oceanbase.__all_tenant t ON t.tenant_id = m.tenant_id
         WHERE t.tenant_name = '{0}';
-        """.format(self.tenant_name)
+        """.format(
+            self.tenant_name
+        )
 
         self.verbose("Checking memstore: {0}".format(sql))
         try:
@@ -222,14 +217,8 @@ class SuspendTransactionScene(RcaScene):
             memstore_use_ratio = row['memstore_use_ratio']
 
             if memstore_use_ratio >= 1:
-                self.record.add_record(
-                    "Memstore full on {0}: usage ratio = {1}".format(svr_ip, memstore_use_ratio)
-                )
-                self.record.add_suggest(
-                    "Memstore is full on {0} (usage: {1}). "
-                    "Try expanding tenant memory. "
-                    "If that doesn't work, consider restarting the observer.".format(svr_ip, memstore_use_ratio)
-                )
+                self.record.add_record("Memstore full on {0}: usage ratio = {1}".format(svr_ip, memstore_use_ratio))
+                self.record.add_suggest("Memstore is full on {0} (usage: {1}). " "Try expanding tenant memory. " "If that doesn't work, consider restarting the observer.".format(svr_ip, memstore_use_ratio))
                 return True
 
         return False
@@ -256,10 +245,7 @@ class SuspendTransactionScene(RcaScene):
 
             if data_ratio >= 0.9:
                 self.record.add_record("Data disk full on {0}: usage ratio = {1}".format(svr_ip, data_ratio))
-                self.record.add_suggest(
-                    "Data disk is nearly full on {0} (usage: {1}). "
-                    "Please expand data disk capacity.".format(svr_ip, data_ratio)
-                )
+                self.record.add_suggest("Data disk is nearly full on {0} (usage: {1}). " "Please expand data disk capacity.".format(svr_ip, data_ratio))
                 return True
 
         return False
@@ -270,7 +256,9 @@ class SuspendTransactionScene(RcaScene):
         SELECT t.tenant_name, a.svr_ip, round(a.LOG_DISK_IN_USE/a.LOG_DISK_SIZE, 2) as clog_disk_ratio 
         FROM oceanbase.gv$ob_units a, oceanbase.__all_tenant t 
         WHERE a.tenant_id=t.tenant_id AND t.tenant_name='{0}';
-        """.format(self.tenant_name)
+        """.format(
+            self.tenant_name
+        )
 
         self.verbose("Checking clog disk: {0}".format(sql))
         try:
@@ -285,14 +273,8 @@ class SuspendTransactionScene(RcaScene):
             clog_disk_ratio = row['clog_disk_ratio']
 
             if clog_disk_ratio >= 0.85:
-                self.record.add_record(
-                    "Clog disk nearly full on {0}: usage ratio = {1}".format(svr_ip, clog_disk_ratio)
-                )
-                self.record.add_suggest(
-                    "Clog disk is nearly full on {0} (usage: {1}). "
-                    "Try expanding clog disk. "
-                    "If that doesn't work, run 'obdiag rca run --scene=clog_disk_full'.".format(svr_ip, clog_disk_ratio)
-                )
+                self.record.add_record("Clog disk nearly full on {0}: usage ratio = {1}".format(svr_ip, clog_disk_ratio))
+                self.record.add_suggest("Clog disk is nearly full on {0} (usage: {1}). " "Try expanding clog disk. " "If that doesn't work, run 'obdiag rca run --scene=clog_disk_full'.".format(svr_ip, clog_disk_ratio))
                 return True
 
         return False
@@ -308,7 +290,9 @@ class SuspendTransactionScene(RcaScene):
         FROM oceanbase.__all_virtual_replay_stat b, oceanbase.__all_tenant a
         WHERE b.tenant_id=a.tenant_id AND a.tenant_name='{0}' AND role='FOLLOWER'
         ORDER BY b.ls_id;
-        """.format(self.tenant_name)
+        """.format(
+            self.tenant_name
+        )
 
         self.verbose("Checking replay delay: {0}".format(sql))
         try:
@@ -324,14 +308,8 @@ class SuspendTransactionScene(RcaScene):
             replay_delay_minutes = row['replay_delay_minutes']
 
             if replay_delay_minutes and replay_delay_minutes >= 3:
-                self.record.add_record(
-                    "Replay delay on {0} ls_id={1}: delay = {2} minutes".format(svr_ip, ls_id, replay_delay_minutes)
-                )
-                self.record.add_suggest(
-                    "Clog replay is delayed on {0} ls_id={1} by {2} minutes. "
-                    "Try expanding tenant specifications. "
-                    "If that doesn't work, contact OceanBase community.".format(svr_ip, ls_id, replay_delay_minutes)
-                )
+                self.record.add_record("Replay delay on {0} ls_id={1}: delay = {2} minutes".format(svr_ip, ls_id, replay_delay_minutes))
+                self.record.add_suggest("Clog replay is delayed on {0} ls_id={1} by {2} minutes. " "Try expanding tenant specifications. " "If that doesn't work, contact OceanBase community.".format(svr_ip, ls_id, replay_delay_minutes))
                 return True
 
         return False
@@ -349,7 +327,9 @@ class SuspendTransactionScene(RcaScene):
             AND t.ROLE = 'LEADER'
             AND t.STATE <> 'ACTIVE'
             LIMIT 1;
-            """.format(self.tenant_name)
+            """.format(
+                self.tenant_name
+            )
 
             try:
                 tx_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
@@ -386,10 +366,7 @@ class SuspendTransactionScene(RcaScene):
                         sub_state_flag = int(sub_state_match.group(1))
                         if sub_state_flag & 0x4:
                             self.record.add_record("Transaction is waiting for GTS (sub_state & 0x4 = 1)")
-                            self.record.add_suggest(
-                                "Transaction is waiting for GTS. "
-                                "Check if ls_id=1 has a leader (GTS service requires ls_id=1 leader)."
-                            )
+                            self.record.add_suggest("Transaction is waiting for GTS. " "Check if ls_id=1 has a leader (GTS service requires ls_id=1 leader).")
 
                     # Check busy_cbs_.get_size() (clog callback stuck)
                     busy_cbs_match = re.search(r'busy_cbs_\.get_size\(\):(\d+)', content)
@@ -397,25 +374,17 @@ class SuspendTransactionScene(RcaScene):
                         busy_cbs_size = int(busy_cbs_match.group(1))
                         if busy_cbs_size > 0:
                             self.record.add_record("Clog callback stuck (busy_cbs_.get_size() = {0})".format(busy_cbs_size))
-                            self.record.add_suggest(
-                                "Clog callback is stuck. This indicates majority replicas may have issues "
-                                "(disk full, network failure, or OOM). Check replica status."
-                            )
+                            self.record.add_suggest("Clog callback is stuck. This indicates majority replicas may have issues " "(disk full, network failure, or OOM). Check replica status.")
 
                     # Check for unresponded participant
                     if "unresponded participant" in content:
                         self.record.add_record("Found 'unresponded participant' - coordinator waiting for participant response")
-                        self.record.add_suggest(
-                            "Coordinator is waiting for participant response. "
-                            "Check participant status and network connectivity."
-                        )
+                        self.record.add_suggest("Coordinator is waiting for participant response. " "Check participant status and network connectivity.")
 
                     # Check for post trans errors
                     if "post trans" in content.lower() and ("fail" in content.lower() or "error" in content.lower()):
                         self.record.add_record("Found RPC errors during transaction")
-                        self.record.add_suggest(
-                            "RPC errors detected during transaction. Check network status."
-                        )
+                        self.record.add_suggest("RPC errors detected during transaction. Check network status.")
 
             except Exception as e:
                 self.verbose("Error analyzing log file {0}: {1}".format(log_file, e))

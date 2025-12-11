@@ -72,11 +72,7 @@ class TransactionDisconnectionScene(RcaScene):
 
             if logs_name is None or len(logs_name) <= 0:
                 self.record.add_record("No 'session is kill' logs found")
-                self.record.add_suggest(
-                    "No 'session is kill' logs found. The disconnection may have occurred "
-                    "for other reasons (network issues, client-side timeout, etc.). "
-                    "Please check network connectivity and client configuration."
-                )
+                self.record.add_suggest("No 'session is kill' logs found. The disconnection may have occurred " "for other reasons (network issues, client-side timeout, etc.). " "Please check network connectivity and client configuration.")
                 return
 
             # Step 3: Extract session IDs and analyze
@@ -125,10 +121,7 @@ class TransactionDisconnectionScene(RcaScene):
                 self.gather_log.execute(save_path=work_path_session_id)
                 self.record.add_record("Session {0} logs gathered to {1}".format(sessid, work_path_session_id))
 
-            self.record.add_suggest(
-                "Session disconnection logs gathered. Please check the log files in {0}. "
-                "Common causes: ob_trx_idle_timeout or ob_trx_timeout exceeded.".format(work_path_session_killed_log)
-            )
+            self.record.add_suggest("Session disconnection logs gathered. Please check the log files in {0}. " "Common causes: ob_trx_idle_timeout or ob_trx_timeout exceeded.".format(work_path_session_killed_log))
 
         except Exception as e:
             raise RCAExecuteException("TransactionDisconnectionScene execute error: {0}".format(e))
@@ -154,9 +147,7 @@ class TransactionDisconnectionScene(RcaScene):
             # Check tenant-level variables if tenant_id is provided
             if self.tenant_id:
                 for var in ['ob_trx_idle_timeout', 'ob_trx_timeout', 'ob_query_timeout']:
-                    sql = "SELECT * FROM oceanbase.CDB_OB_SYS_VARIABLES WHERE tenant_id={0} AND NAME='{1}'".format(
-                        self.tenant_id, var
-                    )
+                    sql = "SELECT * FROM oceanbase.CDB_OB_SYS_VARIABLES WHERE tenant_id={0} AND NAME='{1}'".format(self.tenant_id, var)
                     try:
                         result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
                         if result and len(result) > 0:
@@ -185,20 +176,12 @@ class TransactionDisconnectionScene(RcaScene):
         # Check for idle timeout
         if "ob_trx_idle_timeout" in log_line.lower() or "idle" in log_line.lower():
             self.record.add_record("Session may have been killed due to idle timeout")
-            self.record.add_suggest(
-                "Session was killed due to ob_trx_idle_timeout. "
-                "The transaction was idle for too long. "
-                "Consider increasing ob_trx_idle_timeout if this is expected behavior."
-            )
+            self.record.add_suggest("Session was killed due to ob_trx_idle_timeout. " "The transaction was idle for too long. " "Consider increasing ob_trx_idle_timeout if this is expected behavior.")
 
         # Check for transaction timeout
         if "ob_trx_timeout" in log_line.lower() or "trx_timeout" in log_line.lower():
             self.record.add_record("Session may have been killed due to transaction timeout")
-            self.record.add_suggest(
-                "Session was killed due to ob_trx_timeout. "
-                "The transaction took too long to complete. "
-                "Consider optimizing the transaction or increasing ob_trx_timeout."
-            )
+            self.record.add_suggest("Session was killed due to ob_trx_timeout. " "The transaction took too long to complete. " "Consider optimizing the transaction or increasing ob_trx_timeout.")
 
         # Check state information
         match = re.search(r'state=(\d+)', log_line)

@@ -14,7 +14,7 @@
 @time: 2024/07/29
 @file: lock_conflict_scene.py
 @desc: Root cause analysis for lock conflict issues.
-       Supports: 
+       Supports:
        - GV$OB_LOCKS based analysis (4.2+)
        - __all_virtual_lock_wait_stat based analysis (older versions)
        - Log-based analysis for "Shared lock conflict" and "Lock wait timeout exceeded"
@@ -56,9 +56,7 @@ class LockConflictScene(RcaScene):
             # Get tenant_id if provided
             if self.input_parameters.get("tenant_name") is not None:
                 tenant_name = self.input_parameters.get("tenant_name")
-                tenant_data = self.ob_connector.execute_sql(
-                    "SELECT tenant_id FROM oceanbase.__all_tenant WHERE tenant_name = '{0}';".format(tenant_name)
-                )
+                tenant_data = self.ob_connector.execute_sql("SELECT tenant_id FROM oceanbase.__all_tenant WHERE tenant_name = '{0}';".format(tenant_name))
                 if len(tenant_data) == 0:
                     raise RCAInitException("Cannot find tenant id by tenant name: {0}".format(tenant_name))
                 self.tenant_id = tenant_data[0][0]
@@ -97,10 +95,7 @@ class LockConflictScene(RcaScene):
             self._analyze_lock_wait_timeout(first_record)
         else:
             first_record.add_record("error_msg does not contain known lock error patterns")
-            first_record.add_suggest(
-                "Please provide error_msg containing 'Shared lock conflict' or 'Lock wait timeout exceeded'. "
-                "Or run without error_msg parameter for general lock conflict analysis."
-            )
+            first_record.add_suggest("Please provide error_msg containing 'Shared lock conflict' or 'Lock wait timeout exceeded'. " "Or run without error_msg parameter for general lock conflict analysis.")
 
         self.Result.records.append(first_record)
 
@@ -191,9 +186,7 @@ class LockConflictScene(RcaScene):
                 "This transaction is not completing. "
                 "Options: 1) Wait for the transaction to complete; "
                 "2) Kill the blocking session; "
-                "3) Use 'obdiag rca run --scene=transaction_not_ending --env tx_id={0}' for further analysis.".format(
-                    conflict_tx_id_value
-                )
+                "3) Use 'obdiag rca run --scene=transaction_not_ending --env tx_id={0}' for further analysis.".format(conflict_tx_id_value)
             )
         else:
             record.add_record("Could not extract conflict_tx_id from logs")
@@ -238,9 +231,7 @@ class LockConflictScene(RcaScene):
 
                 # Get holding lock session ID
                 holding_lock_session_id = trans_id
-                cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary(
-                    'SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID="{0}" AND SESSION_ID<>0;'.format(trans_id)
-                )
+                cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID="{0}" AND SESSION_ID<>0;'.format(trans_id))
                 holding_lock_session_id_datas = cursor_by_trans_id.fetchall()
 
                 if len(holding_lock_session_id_datas) > 0:
@@ -255,17 +246,13 @@ class LockConflictScene(RcaScene):
                 wait_lock_trans_id = OB_LOCKS_data["TRANS_ID"]
                 trans_record.add_record("Waiting lock trans_id: {0}".format(wait_lock_trans_id))
 
-                cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary(
-                    'SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID="{0}" AND SESSION_ID<>0;'.format(wait_lock_trans_id)
-                )
+                cursor_by_trans_id = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID="{0}" AND SESSION_ID<>0;'.format(wait_lock_trans_id))
                 wait_lock_session_datas = cursor_by_trans_id.fetchall()
 
                 wait_lock_session_id = "not found"
                 if len(wait_lock_session_datas) == 0:
                     trans_record.add_record("Waiting session not found")
-                    trans_record.add_suggest(
-                        "Waiting session not found. You can kill holding_lock_session_id: {0}".format(holding_lock_session_id)
-                    )
+                    trans_record.add_suggest("Waiting session not found. You can kill holding_lock_session_id: {0}".format(holding_lock_session_id))
                     continue
 
                 wait_lock_session_id = wait_lock_session_datas[0].get("SESSION_ID")
@@ -273,18 +260,12 @@ class LockConflictScene(RcaScene):
 
                 # Check SQL_AUDIT for holding lock SQL
                 sql_info = "not available"
-                cursor_check_switch = self.ob_connector.execute_sql_return_cursor_dictionary(
-                    "SHOW PARAMETERS LIKE '%enable_sql_audit%';"
-                )
+                cursor_check_switch = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE '%enable_sql_audit%';")
                 audit_switch_value = cursor_check_switch.fetchone().get("value")
 
                 if audit_switch_value.strip().upper() == "TRUE":
-                    holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
-                        'SELECT * FROM oceanbase.gv$OB_SQL_AUDIT WHERE tx_id!=0 AND SID="{0}";'.format(holding_lock_session_id)
-                    )
-                    trans_record.add_record(
-                        'Executed: SELECT * FROM oceanbase.gv$OB_SQL_AUDIT WHERE SID="{0}"'.format(holding_lock_session_id)
-                    )
+                    holding_lock_sql_info_cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.gv$OB_SQL_AUDIT WHERE tx_id!=0 AND SID="{0}";'.format(holding_lock_session_id))
+                    trans_record.add_record('Executed: SELECT * FROM oceanbase.gv$OB_SQL_AUDIT WHERE SID="{0}"'.format(holding_lock_session_id))
                     holding_lock_sql_info = holding_lock_sql_info_cursor.fetchall()
 
                     if len(holding_lock_sql_info) == 0:
@@ -302,9 +283,7 @@ class LockConflictScene(RcaScene):
                 trans_record.add_suggest(
                     "Lock conflict detected. "
                     "Holding lock session: {0}; Waiting session: {1}; SQL info: {2}. "
-                    "To resolve: kill one of the sessions or wait for the holding transaction to complete.".format(
-                        holding_lock_session_id, wait_lock_session_id, sql_info
-                    )
+                    "To resolve: kill one of the sessions or wait for the holding transaction to complete.".format(holding_lock_session_id, wait_lock_session_id, sql_info)
                 )
 
             except Exception as e:
@@ -315,9 +294,7 @@ class LockConflictScene(RcaScene):
         """Analysis using __all_virtual_lock_wait_stat for older versions"""
         first_record = RCA_ResultRecord(self.stdio)
 
-        cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.__all_virtual_lock_wait_stat ORDER BY try_lock_times LIMIT 50;"
-        )
+        cursor = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.__all_virtual_lock_wait_stat ORDER BY try_lock_times LIMIT 50;")
         virtual_lock_wait_stat_datas = cursor.fetchall()
 
         if len(virtual_lock_wait_stat_datas) == 0:
@@ -337,11 +314,7 @@ class LockConflictScene(RcaScene):
 
             trans_record.add_record("Block data: {0}".format(trans_lock_data))
             trans_record.add_record("Block session_id: {0}".format(trans_id))
-            trans_record.add_suggest(
-                "Lock conflict session ID: {0}. "
-                "To resolve: kill this session to rollback the blocking transaction. "
-                "WARNING: This will rollback the transaction!".format(trans_lock_data.get("block_session_id"))
-            )
+            trans_record.add_suggest("Lock conflict session ID: {0}. " "To resolve: kill this session to rollback the blocking transaction. " "WARNING: This will rollback the transaction!".format(trans_lock_data.get("block_session_id")))
 
     def get_scene_info(self):
         return {

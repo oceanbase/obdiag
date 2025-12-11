@@ -101,9 +101,7 @@ class TransactionExecuteTimeoutScene(RcaScene):
         self.record.add_record("tenant_id is {0}".format(self.tenant_id))
 
         # Get ob_query_timeout
-        ob_query_timeout_cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.CDB_OB_SYS_VARIABLES WHERE tenant_id='{0}' AND NAME='ob_query_timeout';".format(self.tenant_id)
-        )
+        ob_query_timeout_cursor = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.CDB_OB_SYS_VARIABLES WHERE tenant_id='{0}' AND NAME='ob_query_timeout';".format(self.tenant_id))
         ob_query_timeout_data = ob_query_timeout_cursor.fetchall()
         if len(ob_query_timeout_data) == 0:
             raise RCAInitException("ob_query_timeout not found. Please check the tenant_id.")
@@ -178,16 +176,10 @@ class TransactionExecuteTimeoutScene(RcaScene):
 
         if time_diff >= int(ob_query_timeout or 0):
             self.record.add_record("timeout_timestamp - cur_query_start_time >= ob_query_timeout")
-            self.record.add_suggest(
-                "The timeout duration matches ob_query_timeout setting. This is expected behavior. "
-                "If you need longer query time, please adjust ob_query_timeout."
-            )
+            self.record.add_suggest("The timeout duration matches ob_query_timeout setting. This is expected behavior. " "If you need longer query time, please adjust ob_query_timeout.")
         else:
             self.record.add_record("timeout_timestamp - cur_query_start_time < ob_query_timeout")
-            self.record.add_suggest(
-                "The timeout occurred before ob_query_timeout was reached. This is unexpected. "
-                "Please contact OceanBase community for further analysis."
-            )
+            self.record.add_suggest("The timeout occurred before ob_query_timeout was reached. This is unexpected. " "Please contact OceanBase community for further analysis.")
 
     def execute_transaction(self):
         """Analyze transaction timeout"""
@@ -227,14 +219,8 @@ class TransactionExecuteTimeoutScene(RcaScene):
                                     match_tenant_id = re.search(r'tenant=\{id:(\d+)', line)
                                     if match_tenant_id:
                                         tenant_id = match_tenant_id.group(1)
-                                        self.record.add_record(
-                                            "Found queue backlog: tenant_id={0}, total_size={1}".format(tenant_id, total_size)
-                                        )
-                                        self.record.add_suggest(
-                                            "Tenant {0} has queue backlog (total_size={1}). "
-                                            "This may cause request delays and timeouts. "
-                                            "Consider increasing tenant worker resources.".format(tenant_id, total_size)
-                                        )
+                                        self.record.add_record("Found queue backlog: tenant_id={0}, total_size={1}".format(tenant_id, total_size))
+                                        self.record.add_suggest("Tenant {0} has queue backlog (total_size={1}). " "This may cause request delays and timeouts. " "Consider increasing tenant worker resources.".format(tenant_id, total_size))
                                         return
             except Exception as e:
                 self.verbose("Error reading log file {0}: {1}".format(log_name, e))
@@ -262,13 +248,7 @@ class TransactionExecuteTimeoutScene(RcaScene):
 
                 if count > 10:  # Significant number of retries
                     self.record.add_record("Found {0} occurrences of error -{1}: {2}".format(count, error_code, description))
-                    self.record.add_suggest(
-                        "Error -{0} ({1}) occurred {2} times. "
-                        "Frequent retries due to this error may cause timeout. "
-                        "Please check location cache freshness and leader distribution.".format(
-                            error_code, description, count
-                        )
-                    )
+                    self.record.add_suggest("Error -{0} ({1}) occurred {2} times. " "Frequent retries due to this error may cause timeout. " "Please check location cache freshness and leader distribution.".format(error_code, description, count))
 
     def _check_retry_errors_in_log(self, content):
         """Check for retry errors in specific log content"""
@@ -287,9 +267,7 @@ class TransactionExecuteTimeoutScene(RcaScene):
 
         if logs_name and len(logs_name) > 0:
             self.record.add_record("Found lock conflict logs")
-            self.record.add_suggest(
-                "Lock conflicts detected. Use 'obdiag rca run --scene=lock_conflict' for detailed analysis."
-            )
+            self.record.add_suggest("Lock conflicts detected. Use 'obdiag rca run --scene=lock_conflict' for detailed analysis.")
 
         # Provide general suggestions
         self.record.add_suggest(

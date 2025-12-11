@@ -70,14 +70,10 @@ class TransactionOtherErrorScene(RcaScene):
 
         if self.error_code not in ERROR_CODE_MAP:
             supported_codes = ", ".join(ERROR_CODE_MAP.keys())
-            raise RCANotNeedExecuteException(
-                "error_code {0} is not supported. Supported error codes: {1}".format(self.error_code, supported_codes)
-            )
+            raise RCANotNeedExecuteException("error_code {0} is not supported. Supported error codes: {1}".format(self.error_code, supported_codes))
 
         self.error_info = ERROR_CODE_MAP[self.error_code]
-        self.record.add_record("error_code: {0}, type: {1}, msg: {2}".format(
-            self.error_code, self.error_info["type"], self.error_info["msg"]
-        ))
+        self.record.add_record("error_code: {0}, type: {1}, msg: {2}".format(self.error_code, self.error_info["type"], self.error_info["msg"]))
 
     def verbose(self, info):
         self.stdio.verbose("[TransactionOtherErrorScene] {0}".format(info))
@@ -108,15 +104,9 @@ class TransactionOtherErrorScene(RcaScene):
         self.record.add_record("Handling memory error: {0}".format(self.error_code))
 
         if self.error_code == "-4013":
-            self.record.add_suggest(
-                "Error -4013: No memory or reach tenant memory limit. "
-                "This is an OS-level memory issue. Please check system memory usage."
-            )
+            self.record.add_suggest("Error -4013: No memory or reach tenant memory limit. " "This is an OS-level memory issue. Please check system memory usage.")
         elif self.error_code == "-4030":
-            self.record.add_suggest(
-                "Error -4030: Over tenant memory limits. "
-                "Please expand tenant memory or check for memory leaks."
-            )
+            self.record.add_suggest("Error -4030: Over tenant memory limits. " "Please expand tenant memory or check for memory leaks.")
 
         # Gather MEMORY logs
         work_path_memory = self.work_path + "/MEMORY_logs"
@@ -125,9 +115,7 @@ class TransactionOtherErrorScene(RcaScene):
 
         if logs_name and len(logs_name) > 0:
             self.record.add_record("Memory logs gathered to: {0}".format(work_path_memory))
-            self.record.add_suggest(
-                "Please check memory logs in {0} for memory usage during the error time.".format(work_path_memory)
-            )
+            self.record.add_suggest("Please check memory logs in {0} for memory usage during the error time.".format(work_path_memory))
         else:
             self.record.add_record("No MEMORY logs found")
 
@@ -148,11 +136,7 @@ class TransactionOtherErrorScene(RcaScene):
                 self.record.add_record("Current memory usage: {0}".format(memory_data))
                 for row in memory_data:
                     if row.get("usage_percent", 0) > 90:
-                        self.record.add_suggest(
-                            "Tenant {0} on {1} has high memory usage: {2}%".format(
-                                row.get("tenant_id"), row.get("svr_ip"), row.get("usage_percent")
-                            )
-                        )
+                        self.record.add_suggest("Tenant {0} on {1} has high memory usage: {2}%".format(row.get("tenant_id"), row.get("svr_ip"), row.get("usage_percent")))
         except Exception as e:
             self.verbose("Failed to check memory status: {0}".format(e))
 
@@ -160,12 +144,7 @@ class TransactionOtherErrorScene(RcaScene):
         """Handle RPC related errors (-4121, -4122, -4124)"""
         self.record.add_record("Handling RPC error: {0}".format(self.error_code))
 
-        self.record.add_suggest(
-            "RPC errors ({0}: {1}) are most likely caused by network issues. "
-            "Please use 'tsar' to check network conditions during the error time.".format(
-                self.error_code, self.error_info["msg"]
-            )
-        )
+        self.record.add_suggest("RPC errors ({0}: {1}) are most likely caused by network issues. " "Please use 'tsar' to check network conditions during the error time.".format(self.error_code, self.error_info["msg"]))
 
         # Gather EASY SLOW logs
         work_path_easy_slow = self.work_path + "/EASY_SLOW"
@@ -185,14 +164,9 @@ class TransactionOtherErrorScene(RcaScene):
             self.record.add_record("Found {0} EASY SLOW log entries".format(easy_slow_count))
 
             if easy_slow_count >= 1000:
-                self.record.add_suggest(
-                    "EASY SLOW log count over 1000! This indicates serious network latency issues."
-                )
+                self.record.add_suggest("EASY SLOW log count over 1000! This indicates serious network latency issues.")
             elif easy_slow_count > 0:
-                self.record.add_suggest(
-                    "Found EASY SLOW logs indicating network latency. "
-                    "Please check network conditions and logs in {0}".format(work_path_easy_slow)
-                )
+                self.record.add_suggest("Found EASY SLOW logs indicating network latency. " "Please check network conditions and logs in {0}".format(work_path_easy_slow))
         else:
             self.record.add_record("No EASY SLOW logs found")
 
@@ -203,24 +177,16 @@ class TransactionOtherErrorScene(RcaScene):
 
         if post_trans_logs and len(post_trans_logs) > 0:
             self.record.add_record("Found 'post trans' logs, saved to: {0}".format(work_path_post_trans))
-            self.record.add_suggest(
-                "Found transaction RPC send failures. Check logs in {0} for details.".format(work_path_post_trans)
-            )
+            self.record.add_suggest("Found transaction RPC send failures. Check logs in {0} for details.".format(work_path_post_trans))
 
     def _handle_overflow_error(self):
         """Handle size overflow error (-4019)"""
         self.record.add_record("Handling overflow error: {0}".format(self.error_code))
 
-        self.record.add_suggest(
-            "Error -4019: Size overflow. This is likely caused by a deadlock in OceanBase. "
-            "Please use 'pstack' to analyze the observer process."
-        )
+        self.record.add_suggest("Error -4019: Size overflow. This is likely caused by a deadlock in OceanBase. " "Please use 'pstack' to analyze the observer process.")
 
         # Suggest gathering pstack
-        self.record.add_suggest(
-            "To diagnose, please run: pstack <observer_pid> > pstack_output.txt "
-            "and send the output to OceanBase community for analysis."
-        )
+        self.record.add_suggest("To diagnose, please run: pstack <observer_pid> > pstack_output.txt " "and send the output to OceanBase community for analysis.")
 
     def get_scene_info(self):
         return {

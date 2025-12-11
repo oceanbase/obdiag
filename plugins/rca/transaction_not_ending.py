@@ -65,9 +65,7 @@ class TransactionNotEndingScene(RcaScene):
             if self.tx_id is not None:
                 self.record.add_record("tx_id is {0}".format(self.tx_id))
                 # Query transaction participants info
-                transaction_datas = self.ob_connector.execute_sql_return_cursor_dictionary(
-                    "SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID='{0}';".format(self.tx_id)
-                ).fetchall()
+                transaction_datas = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID='{0}';".format(self.tx_id)).fetchall()
                 self.record.add_record("transaction_data count: {0}".format(len(transaction_datas)))
                 if len(transaction_datas) > 0:
                     self.record.add_record("transaction_data: {0}".format(transaction_datas))
@@ -99,9 +97,7 @@ class TransactionNotEndingScene(RcaScene):
         """Auto detect transaction phase and analyze"""
         tx_id = self.tx_id
         # Query transaction state
-        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID='{0}';".format(tx_id)
-        ).fetchall()
+        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE TX_ID='{0}';".format(tx_id)).fetchall()
 
         if len(transaction_data) == 0:
             self.record.add_record("Transaction {0} not found in GV$OB_TRANSACTION_PARTICIPANTS, maybe already ended".format(tx_id))
@@ -141,9 +137,7 @@ class TransactionNotEndingScene(RcaScene):
             raise RCANotNeedExecuteException("tx_id is None. Please check --env tx_id=xxx")
 
         # Query transactions in ACTIVE state (non-commit phase)
-        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE STATE='ACTIVE' AND TX_ID='{0}';".format(tx_id)
-        ).fetchall()
+        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE STATE='ACTIVE' AND TX_ID='{0}';".format(tx_id)).fetchall()
 
         if len(transaction_data) > 0:
             self.record.add_record("Found {0} transaction participants in non-commit phase".format(len(transaction_data)))
@@ -160,11 +154,7 @@ class TransactionNotEndingScene(RcaScene):
                 elif action == "START" or action == 2:
                     self.record.add_record("ACTION is START, statement not continuing")
                     self.record.add_suggest(
-                        "Statement not continuing. Possible causes: "
-                        "1) Tenant queue backlog (check with dump tenant); "
-                        "2) Client not sending next statement; "
-                        "3) Deadlock between transactions. "
-                        "Please check session {0}".format(session_id)
+                        "Statement not continuing. Possible causes: " "1) Tenant queue backlog (check with dump tenant); " "2) Client not sending next statement; " "3) Deadlock between transactions. " "Please check session {0}".format(session_id)
                     )
 
             # Check for deadlock
@@ -183,9 +173,7 @@ class TransactionNotEndingScene(RcaScene):
             raise RCANotNeedExecuteException("tx_id is None. Please check --env tx_id=xxx")
 
         # Query transactions not in ACTIVE state (in commit phase)
-        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE STATE<>'ACTIVE' AND TX_ID='{0}';".format(tx_id)
-        ).fetchall()
+        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE STATE<>'ACTIVE' AND TX_ID='{0}';".format(tx_id)).fetchall()
 
         if len(transaction_data) > 0:
             self.record.add_record("Found {0} transaction participants in commit phase".format(len(transaction_data)))
@@ -229,9 +217,7 @@ class TransactionNotEndingScene(RcaScene):
     # Transaction context in replay phase does not end
     def execute_replay_phase(self):
         # Replay context: ctx_create_time = expired_time
-        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary(
-            "SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE CTX_CREATE_TIME = TX_EXPIRED_TIME;"
-        ).fetchall()
+        transaction_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS WHERE CTX_CREATE_TIME = TX_EXPIRED_TIME;").fetchall()
 
         if len(transaction_data) > 0:
             self.record.add_record("Found {0} replay phase transactions".format(len(transaction_data)))
@@ -244,18 +230,12 @@ class TransactionNotEndingScene(RcaScene):
                 svr_ip = row.get("SVR_IP") or row.get("svr_ip")
 
                 # Check log sync status
-                log_stat = self.ob_connector.execute_sql_return_cursor_dictionary(
-                    "SELECT * FROM oceanbase.__all_virtual_log_stat WHERE tenant_id={0} AND ls_id={1};".format(tenant_id, ls_id)
-                ).fetchall()
+                log_stat = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.__all_virtual_log_stat WHERE tenant_id={0} AND ls_id={1};".format(tenant_id, ls_id)).fetchall()
 
                 if len(log_stat) > 0:
                     self.record.add_record("Log stat for ls_id {0}: {1}".format(ls_id, log_stat))
 
-            self.record.add_suggest(
-                "Replay phase transaction not ending indicates follower replica is lagging. "
-                "Check __all_virtual_log_stat to see if end_lsn is falling behind. "
-                "This is often caused by slow replay or network issues."
-            )
+            self.record.add_suggest("Replay phase transaction not ending indicates follower replica is lagging. " "Check __all_virtual_log_stat to see if end_lsn is falling behind. " "This is often caused by slow replay or network issues.")
         else:
             self.record.add_record("No replay phase transaction found")
             self.record.add_suggest("No replay phase transaction found")
@@ -267,10 +247,7 @@ class TransactionNotEndingScene(RcaScene):
             deadlock_data = self.ob_connector.execute_sql_return_cursor_dictionary(deadlock_sql).fetchall()
             if len(deadlock_data) > 0:
                 self.record.add_record("Found recent deadlock events: {0}".format(len(deadlock_data)))
-                self.record.add_suggest(
-                    "Deadlock detected. Check GV$OB_DEADLOCK_EVENT_HISTORY for details. "
-                    "Reference: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000000639718"
-                )
+                self.record.add_suggest("Deadlock detected. Check GV$OB_DEADLOCK_EVENT_HISTORY for details. " "Reference: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000000639718")
         except Exception as e:
             self.verbose("Failed to check deadlock: {0}".format(e))
 
@@ -342,18 +319,12 @@ class TransactionNotEndingScene(RcaScene):
                                 busy_cbs_size = int(busy_cbs_match.group(1))
                                 if busy_cbs_size > 0:
                                     self.record.add_record("busy_cbs_.get_size() = {0}, clog callback stuck".format(busy_cbs_size))
-                                    self.record.add_suggest(
-                                        "Clog callback is stuck. This indicates majority replicas may have issues "
-                                        "(disk full, network failure, or OOM)."
-                                    )
+                                    self.record.add_suggest("Clog callback is stuck. This indicates majority replicas may have issues " "(disk full, network failure, or OOM).")
 
                             # Check for unresponded participant
                             if "unresponded participant" in content:
                                 self.record.add_record("Found 'unresponded participant' in logs")
-                                self.record.add_suggest(
-                                    "Coordinator is waiting for participant response. "
-                                    "Check participant status or network connectivity."
-                                )
+                                self.record.add_suggest("Coordinator is waiting for participant response. " "Check participant status or network connectivity.")
 
                             # Check for post trans errors
                             if "post trans" in content and ("fail" in content.lower() or "error" in content.lower()):
