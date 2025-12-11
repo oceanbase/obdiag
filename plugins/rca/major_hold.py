@@ -13,7 +13,8 @@
 """
 @time: 2024/1/2
 @file: major_hold_scene.py
-@desc:
+@desc: RCA scene for diagnosing major compaction hold issues
+       Reference: https://open.oceanbase.com/blog/14847857236
 """
 import json
 import os.path
@@ -29,9 +30,92 @@ from src.common.tool import StringUtils
 
 
 class MajorHoldScene(RcaScene):
+    """
+    RCA Scene for diagnosing major compaction hold issues.
+
+    This scene checks for:
+    1. Compaction errors (IS_ERROR='YES')
+    2. Compaction failures from diagnose info
+    3. Long-running compaction tasks
+    4. Suspended compactions
+    5. Compaction speed analysis
+    6. Duplicate index names across tables (Issue #607)
+    7. DDL task status that may block compaction
+
+    References:
+    - https://open.oceanbase.com/blog/14847857236
+    - https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000001843060
+    """
+
+    # Configurable thresholds
+    COMPACTION_TIMEOUT_MINUTES = 20  # Consider compaction stuck if running longer than this
+    SPEED_RATIO_THRESHOLD = 5  # Alert if current speed is 5x slower than previous
+
     def __init__(self):
         super().__init__()
         self.local_path = ""
+
+    def _find_observer_node(self, svr_ip, svr_port=None):
+        """
+        Find observer node by IP and optional port
+
+        Args:
+            svr_ip: Server IP address
+            svr_port: Server port (optional)
+
+        Returns:
+            Tuple of (node, ssh_client) or (None, None) if not found
+        """
+        for observer_node in self.observer_nodes:
+            if observer_node.get("ip") == svr_ip:
+                if svr_port is None or str(observer_node.get("port")) == str(svr_port):
+                    return observer_node, observer_node.get("ssher")
+        return None, None
+
+    def _save_to_file(self, filename, data, tenant_id=None):
+        """
+        Save data to file in the local path
+
+        Args:
+            filename: Base filename
+            data: Data to save (will be JSON serialized)
+            tenant_id: Optional tenant ID to include in filename
+        """
+        try:
+            if tenant_id:
+                file_path = os.path.join(self.local_path, "rca_major_hold_{0}_{1}".format(tenant_id, filename))
+            else:
+                file_path = os.path.join(self.local_path, "rca_major_hold_{0}".format(filename))
+
+            with open(file_path, "w", encoding="utf-8") as f:
+                if isinstance(data, (list, dict)):
+                    json.dump(data, f, cls=DateTimeEncoder, indent=2, ensure_ascii=False)
+                else:
+                    f.write(str(data))
+            self.stdio.verbose("Saved data to {0}".format(file_path))
+            return file_path
+        except Exception as e:
+            self.stdio.warn("Failed to save file {0}: {1}".format(filename, e))
+            return None
+
+    def _execute_sql_safe(self, sql, description=""):
+        """
+        Execute SQL safely with error handling
+
+        Args:
+            sql: SQL statement to execute
+            description: Description for logging
+
+        Returns:
+            Query results or empty list on error
+        """
+        try:
+            self.stdio.verbose("Executing SQL ({0}): {1}".format(description, sql))
+            cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+            return cursor.fetchall()
+        except Exception as e:
+            self.stdio.warn("SQL execution failed ({0}): {1}".format(description, e))
+            return []
 
     def init(self, context):
         try:
@@ -39,10 +123,15 @@ class MajorHoldScene(RcaScene):
             self.local_path = context.get_variable('store_dir')
 
             if self.observer_version is None:
-                raise Exception("obproxy version is None. Please check the NODES conf.")
+                raise Exception("observer version is None. Please check the NODES conf.")
 
             if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
                 raise Exception("observer version must be greater than 4.0.0.0. Please check the NODES conf.")
+
+            if not os.path.exists(self.local_path):
+                os.makedirs(self.local_path)
+
+            self.stdio.verbose("MajorHoldScene initialized, work_path: {0}".format(self.local_path))
 
         except Exception as e:
             raise RCAInitException("MajorHoldScene RCAInitException: {0}".format(e))
@@ -50,353 +139,761 @@ class MajorHoldScene(RcaScene):
     def execute(self):
         need_tag = False
         err_tenant_ids = []
-        self.record.add_record("check major task is error or not")
+        self.record.add_record("Starting major compaction hold diagnosis...")
+
+        # Step 1: Check for compaction errors (IS_ERROR='YES')
         try:
-            sql = 'select * from oceanbase.CDB_OB_MAJOR_COMPACTION where IS_ERROR="YES";'
-            COMPACTING_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-            if len(COMPACTING_data) == 0:
-                self.record.add_record("CDB_OB_MAJOR_COMPACTION is not exist IS_ERROR='YES'")
+            self.record.add_record("Step 1: Checking CDB_OB_MAJOR_COMPACTION for errors")
+            sql = 'SELECT * FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE IS_ERROR="YES";'
+            error_data = self._execute_sql_safe(sql, "check IS_ERROR")
+
+            if len(error_data) == 0:
+                self.record.add_record("No compaction errors found (IS_ERROR='YES')")
             else:
                 need_tag = True
-                CDB_OB_MAJOR_COMPACTION_err_tenant_ids = []
-                for data in COMPACTING_data:
-                    CDB_OB_MAJOR_COMPACTION_err_tenant_ids.append(str(data.get('TENANT_ID')))
-                self.record.add_record("CDB_OB_MAJOR_COMPACTION have IS_ERROR='YES',the tenant_ids are {0}".format(err_tenant_ids))
-                err_tenant_ids.extend(CDB_OB_MAJOR_COMPACTION_err_tenant_ids)
-            self.record.add_record("check on CDB_OB_MAJOR_COMPACTION IS_ERROR is 'YES'.\n sql:{0}".format(sql))
+                error_tenant_ids = [str(data.get('TENANT_ID')) for data in error_data]
+                self.record.add_record("Found compaction errors in tenants: {0}".format(error_tenant_ids))
+                self._save_to_file("compaction_errors.json", error_data)
+                err_tenant_ids.extend(error_tenant_ids)
         except Exception as e:
-            self.stdio.warn("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
-            raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
-        # get info form __all_virtual_compaction_diagnose_info where status=FAILED
+            self.stdio.warn("Error checking CDB_OB_MAJOR_COMPACTION: {0}".format(e))
+            raise RCAExecuteException("Error checking CDB_OB_MAJOR_COMPACTION: {0}".format(e))
+
+        # Step 2: Check for suspended compactions
         try:
-            diagnose_data = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.__all_virtual_compaction_diagnose_info where status="FAILED";').fetchall()
+            self.record.add_record("Step 2: Checking for suspended compactions")
+            sql = 'SELECT * FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE IS_SUSPENDED="YES";'
+            suspended_data = self._execute_sql_safe(sql, "check IS_SUSPENDED")
+
+            if len(suspended_data) == 0:
+                self.record.add_record("No suspended compactions found")
+            else:
+                need_tag = True
+                suspended_tenant_ids = [str(data.get('TENANT_ID')) for data in suspended_data]
+                self.record.add_record("Found suspended compactions in tenants: {0}".format(suspended_tenant_ids))
+                self._save_to_file("suspended_compactions.json", suspended_data)
+                self.record.add_suggest("Suspended compaction detected. To resume, execute: ALTER SYSTEM RESUME MERGE TENANT = tenant_name;")
+                err_tenant_ids.extend(suspended_tenant_ids)
+        except Exception as e:
+            self.stdio.warn("Error checking suspended compactions: {0}".format(e))
+
+        # Step 3: Check diagnose info for failures
+        try:
+            self.record.add_record("Step 3: Checking __all_virtual_compaction_diagnose_info for failures")
+            sql = 'SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE status="FAILED";'
+            diagnose_data = self._execute_sql_safe(sql, "check diagnose_info FAILED")
+
             if len(diagnose_data) == 0:
-                self.record.add_record('__all_virtual_compaction_diagnose_info is not exist status="FAILED";')
+                self.record.add_record("No failed compaction tasks in diagnose info")
             else:
                 need_tag = True
-                __all_virtual_compaction_diagnose_info_err_tenant_ids = []
-                for data in diagnose_data:
-                    __all_virtual_compaction_diagnose_info_err_tenant_ids.append(str(data.get("tenant_id")))
-                self.record.add_record("__all_virtual_compaction_diagnose_info have status='FAILED',the tenant is {0}".format(__all_virtual_compaction_diagnose_info_err_tenant_ids))
-                err_tenant_ids.extend(__all_virtual_compaction_diagnose_info_err_tenant_ids)
+                diagnose_tenant_ids = list(set([str(data.get("tenant_id")) for data in diagnose_data]))
+                self.record.add_record("Found failed compaction tasks in tenants: {0}".format(diagnose_tenant_ids))
+                self._save_to_file("diagnose_info_failed.json", diagnose_data)
+                err_tenant_ids.extend(diagnose_tenant_ids)
         except Exception as e:
-            self.stdio.error("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
-            raise RCAExecuteException("MajorHoldScene execute CDB_OB_MAJOR_COMPACTION panic:  {0}".format(e))
-        # GV$OB_COMPACTION_PROGRESS表中，根据上一次合并记录中的data_size/(estimated_finish_time-start_time)与当前合并版本记录中(data_size-unfinished_data_size)/(当前时间-start_time)相比，如果差距过大（当前合并比上一次合并慢很多，以5倍为指标）
+            self.stdio.warn("Error checking diagnose info: {0}".format(e))
+            raise RCAExecuteException("Error checking diagnose info: {0}".format(e))
+
+        # Step 4: Check for long-running compaction tasks
         try:
-            running_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_COMPACTION_PROGRESS where  STATUS <> 'FINISH'  and START_TIME <= NOW() - INTERVAL 20 minute GROUP BY COMPACTION_SCN DESC;").fetchall()
+            self.record.add_record("Step 4: Checking for long-running compaction tasks (>{0} minutes)".format(self.COMPACTION_TIMEOUT_MINUTES))
+            sql = """
+                SELECT * FROM oceanbase.GV$OB_COMPACTION_PROGRESS 
+                WHERE STATUS <> 'FINISH' 
+                AND START_TIME <= NOW() - INTERVAL {0} MINUTE 
+                ORDER BY TENANT_ID, SVR_IP;
+            """.format(
+                self.COMPACTION_TIMEOUT_MINUTES
+            )
+            running_data = self._execute_sql_safe(sql, "check long-running tasks")
+
             if len(running_data) == 0:
-                self.record.add_record("No merge tasks that have not ended beyond the expected time")
+                self.record.add_record("No long-running compaction tasks found")
             else:
-                time_out_merge_err_tenant_ids = []
                 need_tag = True
-                for data in running_data:
-                    time_out_merge_err_tenant_ids.append(str(data.get("TENANT_ID")))
-                self.record.add_record("merge tasks that have not ended beyond the expected time,the tenant_id is {0}".format(time_out_merge_err_tenant_ids))
-                self.stdio.verbose("merge tasks that have not ended beyond the expected time,the tenant_id is {0}".format(time_out_merge_err_tenant_ids))
-                err_tenant_ids.extend(time_out_merge_err_tenant_ids)
+                timeout_tenant_ids = list(set([str(data.get("TENANT_ID")) for data in running_data]))
+                self.record.add_record("Found long-running compaction tasks in tenants: {0}".format(timeout_tenant_ids))
+                self._save_to_file("long_running_tasks.json", running_data)
+                err_tenant_ids.extend(timeout_tenant_ids)
         except Exception as e:
-            self.stdio.error("MajorHoldScene execute GV$OB_COMPACTION_PROGRESS panic:  {0}".format(e))
-            raise RCAExecuteException("MajorHoldScene execute GV$OB_COMPACTION_PROGRESS panic:  {0}".format(e))
-        if not need_tag:
-            self.record.add_suggest("major merge abnormal situation not need execute")
+            self.stdio.warn("Error checking long-running tasks: {0}".format(e))
+            raise RCAExecuteException("Error checking GV$OB_COMPACTION_PROGRESS: {0}".format(e))
 
-            raise RCANotNeedExecuteException("MajorHoldScene not need execute")
-        else:
-            err_tenant_ids = list(set(err_tenant_ids))
-            self.record.add_suggest("some tenants need execute MajorHoldScene. :{0}".format(err_tenant_ids))
-        self.stdio.verbose("On CDB_OB_MAJOR_COMPACTION")
-
-        # execute record need more
-        for err_tenant_id in err_tenant_ids:
-            tenant_record = RCA_ResultRecord(self.stdio)
-            first_record_records = self.record.records.copy()
-            tenant_record.records.extend(first_record_records)
-            self.stdio.verbose("tenant_id is {0}".format(err_tenant_id))
-            tenant_record.add_record("tenant_id is {0}".format(err_tenant_id))
-            # 1
-            try:
-                tenant_record.add_record("step:1 get CDB_OB_MAJOR_COMPACTION data")
-                cursor = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID= "{0}" AND (IS_ERROR = "NO" OR IS_SUSPENDED = "NO");'.format(err_tenant_id))
-                OB_MAJOR_COMPACTION_data = cursor.fetchall()
-                if len(OB_MAJOR_COMPACTION_data) == 0:
-                    tenant_record.add_record("on CDB_OB_MAJOR_COMPACTION where status='COMPACTING'; " "result:{0} , need not next step".format(str(OB_MAJOR_COMPACTION_data)))
-                else:
-                    tenant_record.add_record("on CDB_OB_MAJOR_COMPACTION where status='COMPACTING';" "result:{0}".format(str(OB_MAJOR_COMPACTION_data)))
-            except Exception as e:
-                tenant_record.add_record("#1 on CDB_OB_MAJOR_COMPACTION get data failed")
-                self.stdio.warn("MajorHoldScene execute exception: {0}".format(e))
-                pass
-            # 2
-            try:
-                tenant_record.add_record("step:2&3 get __all_virtual_compaction_diagnose_info and check the diagnose type")
-                compaction_diagnose_info = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE status="FAILED";').fetchall()
-                if len(compaction_diagnose_info) == 0:
-                    tenant_record.add_record("on __all_virtual_compaction_diagnose_info no data status=FAILED")
-                else:
-                    tenant_record.add_record("on __all_virtual_compaction_diagnose_info;" "result:{0}".format(str(compaction_diagnose_info)))
-                    for COMPACTING_data in compaction_diagnose_info:
-                        self.diagnose_info_switch(COMPACTING_data, tenant_record)
-            except Exception as e:
-                tenant_record.add_record("#2&3 on __all_virtual_compaction_diagnose_info get data failed")
-                self.stdio.warn("#2&3 MajorHoldScene execute exception: {0}".format(e))
-                pass
-            # 4
-            try:
-                tenant_record.add_record("step:4 get GV$OB_COMPACTION_PROGRESS whit tenant_id:{0}".format(err_tenant_id))
-                global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0].get("GLOBAL_BROADCAST_SCN")
-                tenant_record.add_record("global_broadcast_scn is {0}".format(global_broadcast_scn))
-                last_scn = self.ob_connector.execute_sql_return_cursor_dictionary("select LAST_SCN from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(err_tenant_id)).fetchall()[0]["LAST_SCN"]
-                tenant_record.add_record("last_scn is {0}".format(last_scn))
-                sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(err_tenant_id, global_broadcast_scn)
-                OB_COMPACTION_PROGRESS_data_global_broadcast_scn = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_global_broadcast_scn.txt".format(self.local_path, err_tenant_id)
-                with open(file_name, "w") as f:
-                    f.write(str(OB_COMPACTION_PROGRESS_data_global_broadcast_scn))
-                tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_global_broadcast_scn save on {1}".format(err_tenant_id, file_name))
-                sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and COMPACTION_SCN='{1}';".format(err_tenant_id, last_scn)
-                OB_COMPACTION_PROGRESS_data_last_scn = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_PROGRESS_data_last_scn.txt".format(self.local_path, err_tenant_id)
-                with open(file_name, "w") as f:
-                    f.write(str(OB_COMPACTION_PROGRESS_data_last_scn))
-                tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id, file_name))
-                sql = "select * from oceanbase.GV$OB_COMPACTION_PROGRESS where TENANT_ID='{0}' and STATUS<>'FINISH';".format(err_tenant_id, global_broadcast_scn)
-                finish_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                if len(finish_data) == 0:
-                    tenant_record.add_record("sql:{0},len of result is 0;result:{1}".format(sql, finish_data))
-                    sql = "select * from oceanbase.DBA_OB_TABLET_REPLICAS where TENANT_ID='{0}' and LS_ID=1".format(err_tenant_id)
-                    svrs = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                    svr_ip = svrs[0].get("SVR_IP")
-                    svr_port = svrs[0].get("SVR_PORT")
-                    node = None
-                    ssh_client = None
-                    for observer_node in self.observer_nodes:
-                        if observer_node["ip"] == svr_ip and observer_node["port"] == svr_port:
-                            node = observer_node
-                            ssh_client = observer_node["ssher"]
-                    if node == None:
-                        self.stdio.error("can not find ls_svr by TENANT_ID:{2} ip:{0},port:{1}".format(svr_ip, svr_port, err_tenant_id))
-                        break
-                    log_name = "/tmp/major_hold_scene_4_major_merge_progress_checker_{0}.log".format(err_tenant_id)
-                    ssh_client.exec_cmd('grep "major_merge_progress_checker" {0}/log/rootservice.log* | grep T{1} -m500 >{2}'.format(node.get("home_path"), err_tenant_id, log_name))
-                    ssh_client.download(log_name, self.local_path)
-                    tenant_record.add_record("download {0} to {1}".format(log_name, self.local_path))
-                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-            except Exception as e:
-                self.stdio.error("MajorHoldScene execute 4 exception: {0}".format(e))
-                raise RCAExecuteException("MajorHoldScene execute 4 exception: {0}".format(e))
-
-            # 5
-            try:
-                tenant_record.add_record("step:5 get OB_COMPACTION_SUGGESTIONS")
-                cursor = self.ob_connector.execute_sql_return_cursor_dictionary('select * from oceanbase.GV$OB_COMPACTION_SUGGESTIONS where tenant_id="{0}";'.format(err_tenant_id))
-                OB_COMPACTION_SUGGESTIONS_data = cursor.fetchall()
-                OB_COMPACTION_SUGGESTIONS_info = json.dumps(OB_COMPACTION_SUGGESTIONS_data, cls=DateTimeEncoder)
-                file_name = "{0}/rca_major_hold_{1}_OB_COMPACTION_SUGGESTIONS_info.txt".format(self.local_path, err_tenant_id)
-                with open(file_name, "w") as f:
-                    f.write(str(OB_COMPACTION_SUGGESTIONS_info))
-                tenant_record.add_record("tenant_id:{0} OB_COMPACTION_PROGRESS_data_last_scn save on {1}".format(err_tenant_id, file_name))
-
-            except Exception as e:
-                self.stdio.warn("MajorHoldScene execute 5 exception: {0}".format(e))
-            # 6
-            try:
-                self.stdio.verbose("step:6 get dmesg by dmesg -T")
-                if not os.path.exists(self.local_path + "/dmesg"):
-                    os.makedirs(self.local_path + "/dmesg_log")
-                # all node execute
-                for observer_node in self.observer_nodes:
-                    ssh_client = observer_node["ssher"]
-                    ssh_client.exec_cmd("dmesg -T > /tmp/dmesg_{0}.log".format(ssh_client.get_name()))
-                    local_file_path = os.path.join(os.path.join(self.local_path, "dmesg_log"), "dmesg_{0}.log".format(ssh_client.get_name()))
-                    ssh_client.download("/tmp/dmesg_{0}.log".format(ssh_client.get_name()), local_file_path)
-                    tenant_record.add_record("download /tmp/dmesg_{0}.log to {1}".format(ssh_client.get_name(), local_file_path))
-            except Exception as e:
-                self.stdio.warn("MajorHoldScene execute 6 get dmesg exception: {0}".format(e))
-            tenant_record.add_suggest("send the {0} to the oceanbase community".format(self.local_path))
-            self.Result.records.append(tenant_record)
-
-    def get_info__all_virtual_compaction_diagnose_info(self, tenant_record):
+        # Step 5: Check compaction speed (compare current vs last)
         try:
-            COMPACTING_datas = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE IS_ERROR = 'NO' OR IS_SUSPENDED = 'NO';").fetchall()
-            if len(COMPACTING_datas) == 0:
-                tenant_record.add_record("sql:select * from oceanbase.__all_virtual_compaction_diagnose_info; no data")
-                return
-            else:
-                tenant_record.add_record("sql:select * from oceanbase.__all_virtual_compaction_diagnose_info where status=COMPACTING; " "result:{0}".format(str(COMPACTING_datas)))
+            self.record.add_record("Step 5: Analyzing compaction speed")
+            self._check_compaction_speed()
         except Exception as e:
-            raise RCAExecuteException("MajorHoldScene execute get_info__all_virtual_compaction_diagnose_info exception: {0}".format(e))
+            self.stdio.warn("Error analyzing compaction speed: {0}".format(e))
 
-    def diagnose_info_switch(self, sql_data, tenant_record):
+        if not need_tag:
+            self.record.add_suggest("No major compaction issues detected")
+            raise RCANotNeedExecuteException("MajorHoldScene not need execute - no issues found")
+
+        err_tenant_ids = list(set(err_tenant_ids))
+        self.record.add_record("Tenants requiring detailed diagnosis: {0}".format(err_tenant_ids))
+
+        # Detailed diagnosis for each tenant
+        for err_tenant_id in err_tenant_ids:
+            self._diagnose_tenant(err_tenant_id)
+
+    def _check_compaction_speed(self):
+        """
+        Check compaction speed by comparing current vs last compaction
+        """
+        sql = """
+            SELECT 
+                TENANT_ID,
+                SVR_IP,
+                SVR_PORT,
+                COMPACTION_SCN,
+                STATUS,
+                DATA_SIZE,
+                UNFINISHED_DATA_SIZE,
+                TIMESTAMPDIFF(SECOND, START_TIME, NOW()) as ELAPSED_SECONDS,
+                START_TIME,
+                ESTIMATED_FINISH_TIME
+            FROM oceanbase.GV$OB_COMPACTION_PROGRESS 
+            WHERE STATUS <> 'FINISH'
+            ORDER BY TENANT_ID, SVR_IP;
+        """
+        current_data = self._execute_sql_safe(sql, "current compaction progress")
+
+        if current_data:
+            self._save_to_file("current_compaction_progress.json", current_data)
+
+            for item in current_data:
+                tenant_id = item.get("TENANT_ID")
+                data_size = item.get("DATA_SIZE", 0) or 0
+                unfinished = item.get("UNFINISHED_DATA_SIZE", 0) or 0
+                elapsed = item.get("ELAPSED_SECONDS", 0) or 0
+
+                if elapsed > 0 and data_size > 0:
+                    processed = data_size - unfinished
+                    speed_mbps = (processed / 1024 / 1024) / elapsed if elapsed > 0 else 0
+                    progress_pct = (processed / data_size * 100) if data_size > 0 else 0
+
+                    self.record.add_record("Tenant {0} on {1}:{2}: Progress {3:.1f}%, Speed {4:.2f} MB/s, Elapsed {5}s".format(tenant_id, item.get("SVR_IP"), item.get("SVR_PORT"), progress_pct, speed_mbps, elapsed))
+
+                    # Alert if speed is very low
+                    if speed_mbps < 1 and elapsed > 600:  # < 1MB/s after 10 minutes
+                        self.record.add_suggest("Very slow compaction detected for tenant {0} ({1:.2f} MB/s). " "Check disk I/O, memory pressure, or DAG scheduler status.".format(tenant_id, speed_mbps))
+
+    def _diagnose_tenant(self, err_tenant_id):
+        """
+        Perform detailed diagnosis for a specific tenant
+        """
+        tenant_record = RCA_ResultRecord(self.stdio)
+        first_record_records = self.record.records.copy()
+        tenant_record.records.extend(first_record_records)
+
+        self.stdio.verbose("Starting detailed diagnosis for tenant_id: {0}".format(err_tenant_id))
+        tenant_record.add_record("=== Detailed diagnosis for tenant_id: {0} ===".format(err_tenant_id))
+
+        # 1. Get compaction status
+        try:
+            tenant_record.add_record("Step 1: Getting CDB_OB_MAJOR_COMPACTION status")
+            sql = 'SELECT * FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID="{0}";'.format(err_tenant_id)
+            compaction_data = self._execute_sql_safe(sql, "tenant compaction status")
+
+            if compaction_data:
+                self._save_to_file("compaction_status.json", compaction_data, err_tenant_id)
+                tenant_record.add_record("Compaction status: {0}".format(json.dumps(compaction_data, cls=DateTimeEncoder)))
+        except Exception as e:
+            tenant_record.add_record("Failed to get compaction status: {0}".format(e))
+
+        # 2. Get and analyze diagnose info
+        try:
+            tenant_record.add_record("Step 2: Analyzing diagnose info")
+            sql = 'SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE tenant_id="{0}";'.format(err_tenant_id)
+            diagnose_data = self._execute_sql_safe(sql, "tenant diagnose info")
+
+            if diagnose_data:
+                self._save_to_file("diagnose_info.json", diagnose_data, err_tenant_id)
+                for data in diagnose_data:
+                    if data.get("status") == "FAILED":
+                        self._analyze_diagnose_info(data, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to analyze diagnose info: {0}".format(e))
+
+        # 3. Get compaction progress details
+        try:
+            tenant_record.add_record("Step 3: Getting compaction progress details")
+
+            # Get global broadcast SCN
+            sql = "SELECT GLOBAL_BROADCAST_SCN, LAST_SCN FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID='{0}';".format(err_tenant_id)
+            scn_data = self._execute_sql_safe(sql, "get SCN")
+
+            if scn_data:
+                global_broadcast_scn = scn_data[0].get("GLOBAL_BROADCAST_SCN")
+                last_scn = scn_data[0].get("LAST_SCN")
+                tenant_record.add_record("GLOBAL_BROADCAST_SCN: {0}, LAST_SCN: {1}".format(global_broadcast_scn, last_scn))
+
+                # Get progress for current compaction
+                sql = "SELECT * FROM oceanbase.GV$OB_COMPACTION_PROGRESS WHERE TENANT_ID='{0}' AND COMPACTION_SCN='{1}';".format(err_tenant_id, global_broadcast_scn)
+                progress_data = self._execute_sql_safe(sql, "current progress")
+                if progress_data:
+                    self._save_to_file("progress_current.json", progress_data, err_tenant_id)
+
+                # Get progress for last compaction (for comparison)
+                sql = "SELECT * FROM oceanbase.GV$OB_COMPACTION_PROGRESS WHERE TENANT_ID='{0}' AND COMPACTION_SCN='{1}';".format(err_tenant_id, last_scn)
+                last_progress_data = self._execute_sql_safe(sql, "last progress")
+                if last_progress_data:
+                    self._save_to_file("progress_last.json", last_progress_data, err_tenant_id)
+        except Exception as e:
+            tenant_record.add_record("Failed to get progress details: {0}".format(e))
+
+        # 4. Get compaction history
+        try:
+            tenant_record.add_record("Step 4: Getting compaction history")
+            sql = """
+                SELECT * FROM oceanbase.GV$OB_TABLET_COMPACTION_HISTORY 
+                WHERE TENANT_ID='{0}' 
+                ORDER BY START_TIME DESC 
+                LIMIT 100;
+            """.format(
+                err_tenant_id
+            )
+            history_data = self._execute_sql_safe(sql, "compaction history")
+            if history_data:
+                self._save_to_file("compaction_history.json", history_data, err_tenant_id)
+                tenant_record.add_record("Saved {0} compaction history records".format(len(history_data)))
+        except Exception as e:
+            tenant_record.add_record("Failed to get compaction history: {0}".format(e))
+
+        # 5. Get compaction suggestions
+        try:
+            tenant_record.add_record("Step 5: Getting compaction suggestions")
+            sql = 'SELECT * FROM oceanbase.GV$OB_COMPACTION_SUGGESTIONS WHERE tenant_id="{0}";'.format(err_tenant_id)
+            suggestions_data = self._execute_sql_safe(sql, "compaction suggestions")
+            if suggestions_data:
+                self._save_to_file("compaction_suggestions.json", suggestions_data, err_tenant_id)
+                tenant_record.add_record("Found {0} compaction suggestions".format(len(suggestions_data)))
+                for sug in suggestions_data:
+                    tenant_record.add_record("Suggestion: {0}".format(sug.get("SUGGESTION", "N/A")))
+        except Exception as e:
+            tenant_record.add_record("Failed to get suggestions: {0}".format(e))
+
+        # 6. Get DAG scheduler status
+        try:
+            tenant_record.add_record("Step 6: Getting DAG scheduler status")
+            sql = "SELECT * FROM oceanbase.__all_virtual_dag_scheduler WHERE tenant_id='{0}';".format(err_tenant_id)
+            dag_data = self._execute_sql_safe(sql, "DAG scheduler")
+            if dag_data:
+                self._save_to_file("dag_scheduler.json", dag_data, err_tenant_id)
+                tenant_record.add_record("DAG scheduler info collected")
+        except Exception as e:
+            tenant_record.add_record("Failed to get DAG scheduler status: {0}".format(e))
+
+        # 7. Get DAG task status
+        try:
+            tenant_record.add_record("Step 7: Getting DAG task status")
+            sql = "SELECT * FROM oceanbase.__all_virtual_dag WHERE tenant_id='{0}' LIMIT 100;".format(err_tenant_id)
+            dag_task_data = self._execute_sql_safe(sql, "DAG tasks")
+            if dag_task_data:
+                self._save_to_file("dag_tasks.json", dag_task_data, err_tenant_id)
+                tenant_record.add_record("Found {0} DAG tasks".format(len(dag_task_data)))
+        except Exception as e:
+            tenant_record.add_record("Failed to get DAG task status: {0}".format(e))
+
+        # 8. Collect dmesg logs from all nodes
+        try:
+            tenant_record.add_record("Step 8: Collecting dmesg logs")
+            self._collect_dmesg_logs(tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to collect dmesg logs: {0}".format(e))
+
+        # 9. Collect relevant observer logs
+        try:
+            tenant_record.add_record("Step 9: Collecting relevant observer logs")
+            self._collect_observer_logs(err_tenant_id, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to collect observer logs: {0}".format(e))
+
+        # 10. Check for duplicate index names (Issue #607)
+        try:
+            tenant_record.add_record("Step 10: Checking for duplicate index names")
+            self._check_duplicate_index_names(err_tenant_id, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to check duplicate index names: {0}".format(e))
+
+        # 11. Check for DDL task status
+        try:
+            tenant_record.add_record("Step 11: Checking DDL task status")
+            self._check_ddl_task_status(err_tenant_id, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to check DDL task status: {0}".format(e))
+
+        tenant_record.add_suggest("Please review diagnostic files in {0} for detailed analysis".format(self.local_path))
+        self.Result.records.append(tenant_record)
+
+    def _analyze_diagnose_info(self, sql_data, tenant_record):
+        """
+        Analyze diagnose info and provide specific suggestions
+        """
         svr_ip = sql_data.get("svr_ip")
         svr_port = sql_data.get("svr_port")
         tenant_id = sql_data.get("tenant_id")
         ls_id = sql_data.get("ls_id")
-        table_id = sql_data.get("table_id")
+        tablet_id = sql_data.get("tablet_id")
         create_time = sql_data.get("create_time")
-        diagnose_info = sql_data.get("diagnose_info")
-        tenant_record.add_record("diagnose_info:{0}".format(diagnose_info))
+        diagnose_info = sql_data.get("diagnose_info", "")
+
+        tenant_record.add_record("Analyzing diagnose_info: {0}".format(diagnose_info[:200] if diagnose_info else "N/A"))
+
+        # Handle different diagnose types
         if "schedule medium failed" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is 'schedule medium failed'")
-            node = None
-            ssh_client = None
-            for observer_node in self.observer_nodes:
-                if svr_ip == observer_node.get("ip"):
-                    node = observer_node
-                    ssh_client = observer_node["ssher"]
-            if node is None:
-                raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
+            self._handle_schedule_medium_failed(svr_ip, svr_port, tenant_id, create_time, tenant_record)
 
-            log_name = "/tmp/rca_major_hold_schedule_medium_failed_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
-            tenant_record.add_record("diagnose_info type is 'schedule medium failed'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            ssh_client.exec_cmd('grep "schedule_medium_failed" {1}/log/observer.log* |grep -P  "\[\d+\]" -m 1 -o >{0}'.format(log_name, node.get("home_path")))
-            local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
-            ssh_client.download(log_name, local_file_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
-            ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-            return
         elif "error_no=" in diagnose_info and "error_trace=" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is error_no")
-            err_no = re.search(r'error_no=([^,]+)', diagnose_info).group(1)
-            err_trace = re.search(r'error_trace=([^,]+)', diagnose_info).group(1)
-            global_broadcast_scn = self.ob_connector.execute_sql("select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(tenant_id))[0][3]
-            compaction_scn = self.ob_connector.execute_sql("select * from oceanbase.__all_virtual_tablet_meta_table where tablet_id='{0}' and tenant_id='{1}';".format(table_id, tenant_id))[0][7]
-            if compaction_scn > global_broadcast_scn:
-                tenant_record.add_record(
-                    "diagnose_info type is error_no. error_no: {0}, err_trace: {1} , table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn>global_broadcast_scn".format(
-                        err_no,
-                        err_trace,
-                        table_id,
-                        tenant_id,
-                        compaction_scn,
-                        global_broadcast_scn,
-                    )
-                )
-                return
-            else:
-                tenant_record.add_record(
-                    "diagnose_info type is error_no. error_no: {0}, err_trace:{1}, table_id:{2}, tenant_id:{3}, compaction_scn: {4}, global_broadcast_scn: {5}. compaction_scn<global_broadcast_scn".format(
-                        err_no,
-                        err_trace,
-                        table_id,
-                        tenant_id,
-                        compaction_scn,
-                        global_broadcast_scn,
-                    )
-                )
-                node = None
-                ssh_client = None
-                for observer_node in self.observer_nodes:
-                    if svr_ip == observer_node.get("ip"):
-                        node = observer_node
-                        ssh_client = observer_node["ssher"]
-                if node is None:
-                    raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
+            self._handle_error_no(sql_data, tenant_record)
 
-                log_name = "/tmp/rca_error_no_{1}_{2}_{0}.txt".format(tenant_id, svr_ip, svr_port)
-                ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* >{2}'.format(err_trace, node.get("home_path"), log_name))
-                local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
-                ssh_client.download(log_name, local_file_path)
-                tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
-                ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-            node = None
-            ssh_client = None
-            for observer_node in self.observer_nodes:
-                if svr_ip == observer_node.get("ip"):
-                    node = observer_node
-                    ssh_client = observer_node["ssher"]
-            if node is None:
-                raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-            tenant_record.add_record("diagnose_info type is 'error_no'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            ssh_client.exec_cmd('cat observer.log* |grep "{1}" > /tmp/{0}'.format(log_name, err_trace))
+        elif "weak read ts is not ready" in diagnose_info:
+            self._handle_weak_read_not_ready(tenant_id, ls_id, tenant_record)
+
+        elif "memtable can not create dag successfully" in diagnose_info:
+            self._handle_memtable_dag_failure(sql_data, tenant_record)
+
+        elif "medium wait for freeze" in diagnose_info or "major wait for freeze" in diagnose_info:
+            self._handle_wait_for_freeze(svr_ip, svr_port, tenant_id, tenant_record)
+
+        elif "major not schedule for long time" in diagnose_info:
+            self._handle_major_not_scheduled(sql_data, tenant_record)
+
+        elif "tablet has been deleted" in diagnose_info:
+            tenant_record.add_record("Tablet {0} has been deleted, this is expected during DDL operations".format(tablet_id))
+            tenant_record.add_suggest("Tablet deletion detected. If DDL is in progress, this is normal. Otherwise, check for unexpected tablet drops.")
+
+        elif "table not exist" in diagnose_info:
+            tenant_record.add_record("Table associated with tablet {0} does not exist".format(tablet_id))
+            tenant_record.add_suggest("Table not exist error. The table may have been dropped during compaction.")
+
+        elif "log disk space is almost full" in diagnose_info:
+            tenant_record.add_record("Log disk space is almost full!")
+            tenant_record.add_suggest(
+                "CRITICAL: Log disk space is almost full. Actions:\n" "1. Check log disk usage: SELECT * FROM GV$OB_SERVERS;\n" "2. Clean up old logs or expand disk capacity\n" "3. Check for stuck transactions that prevent log recycling"
+            )
+
+        elif "index table is invalid" in diagnose_info:
+            tenant_record.add_record("Index table is invalid for tablet {0}".format(tablet_id))
+            tenant_record.add_suggest("Invalid index detected. Consider rebuilding the index.")
+
+        else:
+            tenant_record.add_record("Unknown diagnose_info type: {0}".format(diagnose_info[:100] if diagnose_info else "empty"))
+
+    def _handle_schedule_medium_failed(self, svr_ip, svr_port, tenant_id, create_time, tenant_record):
+        """Handle 'schedule medium failed' diagnose type"""
+        tenant_record.add_record("Diagnose type: schedule medium failed")
+
+        node, ssh_client = self._find_observer_node(svr_ip, svr_port)
+        if node is None:
+            tenant_record.add_record("Cannot find observer node for {0}:{1}".format(svr_ip, svr_port))
+            return
+
+        log_name = "/tmp/rca_schedule_medium_failed_{0}_{1}_{2}.txt".format(tenant_id, svr_ip, svr_port)
+        try:
+            ssh_client.exec_cmd('grep "schedule_medium_failed" {0}/log/observer.log* | grep -P "\\[\\d+\\]" -m 1 -o > {1}'.format(node.get("home_path"), log_name))
             local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
             ssh_client.download(log_name, local_file_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
+            tenant_record.add_record("Downloaded schedule_medium_failed logs to {0}".format(local_file_path))
             ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-            return
-        elif "weak read ts is not ready" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is weak read ts is not ready.")
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_ls_info where tenant_id='{0}' and ls_id='{1}';".format(tenant_id, ls_id))
-            all_virtual_ls_info_data = cursor.fetchall()
-            self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
-            tenant_record.add_record("sql:" + "select * from oceanbase.__all_virtual_ls_info where tenant_id='{0}' and ls_id='{1}';".format(tenant_id, ls_id) + "result:{0}".format(str(self.all_virtual_ls_info)))
-            # gather log about the value of weak_read_scn+1 and "generate_weak_read_timestamp_" and "log disk space is almost full"
-            work_path_weak_read_ts_is_not_ready = self.local_path + "/weak_read_ts_is_not_ready"
-            # weak_read_scn
-            weak_read_scn = all_virtual_ls_info_data.get("weak_read_scn") or "not find"
-            tenant_record.add_record("weak_read_scn is to {0}".format(weak_read_scn))
-            if weak_read_scn != "not find":
+        except Exception as e:
+            tenant_record.add_record("Failed to collect schedule_medium_failed logs: {0}".format(e))
+
+        tenant_record.add_suggest("Schedule medium failed. Possible causes:\n" "1. Memory pressure - check tenant memory usage\n" "2. DAG scheduler overloaded - check __all_virtual_dag_scheduler\n" "3. Disk I/O bottleneck - check disk throughput")
+
+    def _handle_error_no(self, sql_data, tenant_record):
+        """Handle 'error_no' diagnose type"""
+        diagnose_info = sql_data.get("diagnose_info", "")
+        svr_ip = sql_data.get("svr_ip")
+        svr_port = sql_data.get("svr_port")
+        tenant_id = sql_data.get("tenant_id")
+        tablet_id = sql_data.get("tablet_id")
+
+        tenant_record.add_record("Diagnose type: error_no")
+
+        try:
+            err_no_match = re.search(r'error_no=([^,\s]+)', diagnose_info)
+            err_trace_match = re.search(r'error_trace=([^,\s]+)', diagnose_info)
+
+            err_no = err_no_match.group(1) if err_no_match else "unknown"
+            err_trace = err_trace_match.group(1) if err_trace_match else "unknown"
+
+            tenant_record.add_record("Error number: {0}, Error trace: {1}".format(err_no, err_trace))
+
+            # Get SCN information for comparison
+            sql = "SELECT GLOBAL_BROADCAST_SCN FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID='{0}';".format(tenant_id)
+            scn_data = self._execute_sql_safe(sql, "get broadcast SCN")
+
+            if scn_data:
+                global_broadcast_scn = scn_data[0].get("GLOBAL_BROADCAST_SCN")
+
+                sql = "SELECT snapshot_version FROM oceanbase.__all_virtual_tablet_meta_table WHERE tablet_id='{0}' AND tenant_id='{1}';".format(tablet_id, tenant_id)
+                tablet_data = self._execute_sql_safe(sql, "get tablet snapshot")
+
+                if tablet_data:
+                    compaction_scn = tablet_data[0].get("snapshot_version", 0)
+                    tenant_record.add_record("Tablet compaction_scn: {0}, global_broadcast_scn: {1}".format(compaction_scn, global_broadcast_scn))
+
+            # Collect error trace logs
+            node, ssh_client = self._find_observer_node(svr_ip, svr_port)
+            if node and err_trace != "unknown":
+                log_name = "/tmp/rca_error_trace_{0}_{1}_{2}.txt".format(tenant_id, svr_ip, svr_port)
+                try:
+                    ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* > {2}'.format(err_trace, node.get("home_path"), log_name))
+                    local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+                    ssh_client.download(log_name, local_file_path)
+                    tenant_record.add_record("Downloaded error trace logs to {0}".format(local_file_path))
+                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
+                except Exception as e:
+                    tenant_record.add_record("Failed to collect error trace logs: {0}".format(e))
+
+        except Exception as e:
+            tenant_record.add_record("Failed to parse error_no: {0}".format(e))
+
+        tenant_record.add_suggest("Compaction error occurred. Check the error trace in observer logs for root cause.")
+
+    def _handle_weak_read_not_ready(self, tenant_id, ls_id, tenant_record):
+        """Handle 'weak read ts is not ready' diagnose type"""
+        tenant_record.add_record("Diagnose type: weak read ts is not ready")
+
+        # Get LS info
+        sql = "SELECT * FROM oceanbase.__all_virtual_ls_info WHERE tenant_id='{0}' AND ls_id='{1}';".format(tenant_id, ls_id)
+        ls_info = self._execute_sql_safe(sql, "get LS info")
+
+        if ls_info:
+            self._save_to_file("ls_info.json", ls_info, tenant_id)
+            weak_read_scn = ls_info[0].get("weak_read_scn") if ls_info else None
+            tenant_record.add_record("weak_read_scn: {0}".format(weak_read_scn))
+
+            # Collect relevant logs
+            work_path = os.path.join(self.local_path, "weak_read_ts_not_ready")
+            if not os.path.exists(work_path):
+                os.makedirs(work_path)
+
+            if weak_read_scn:
                 self.gather_log.grep(str(int(weak_read_scn) + 1))
             self.gather_log.grep("generate_weak_read_timestamp_")
             self.gather_log.grep("log disk space is almost full")
-            self.gather_log.execute(save_path=work_path_weak_read_ts_is_not_ready)
-            tenant_record.add_record("weak_read_scn gather log save in {0}. grep list: {1},".format(work_path_weak_read_ts_is_not_ready, self.gather_log.greps_key))
-            return
-        elif "memtable can not create dag successfully" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is memtable can not create dag successfully.")
-            global_broadcast_scn = self.ob_connector.execute_sql("select * from oceanbase.CDB_OB_MAJOR_COMPACTION where TENANT_ID='{0}';".format(tenant_id))[0][3]
-            compaction_scn = self.ob_connector.execute_sql("select * from oceanbase.__all_virtual_tablet_meta_table where tablet_id='{0}' and tenant_id='{1}';".format(table_id, tenant_id))[0][7]
-            if compaction_scn > global_broadcast_scn:
-                tenant_record.add_record(
-                    "diagnose_info type is memtable can not create dag successfully.   table_id:{0}, tenant_id:{1}, compaction_scn: {2}, global_broadcast_scn: {3}. compaction_scn>global_broadcast_scn".format(
-                        table_id, tenant_id, compaction_scn, global_broadcast_scn
-                    )
-                )
-                return
-            else:
-                cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(svr_ip, svr_port, tenant_id))
-                columns = [column[0] for column in cursor.description]
-                all_virtual_ls_info_data = cursor.fetchall()
-                self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
-                tenant_record.add_record("sql:" + "select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(svr_ip, svr_port, tenant_id) + "result:{0}".format(str(self.all_virtual_ls_info)))
+            self.gather_log.execute(save_path=work_path)
+            tenant_record.add_record("Gathered weak read related logs to {0}".format(work_path))
 
-            return
-        elif "medium wait for freeze" in diagnose_info or "major wait for freeze" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is medium wait for freeze or major wait for freeze.")
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(svr_ip, svr_port, tenant_id))
-            columns = [column[0] for column in cursor.description]
-            all_virtual_ls_info_data = cursor.fetchall()
-            self.all_virtual_ls_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
-            tenant_record.add_record("sql:" + "select * from oceanbase.__all_virtual_dag_scheduler where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}';".format(svr_ip, svr_port, tenant_id) + "result:{0}".format(str(self.all_virtual_ls_info)))
-            return
-        elif "major not schedule for long time" in diagnose_info:
-            tenant_record.add_record("diagnose_info type is major not schedule for long time")
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary(
-                "select * from oceanbase.__all_virtual_tablet_compaction_info where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}' and ls_id='{3}' and tablet_id='{4}';".format(svr_ip, svr_port, tenant_id, ls_id, table_id)
-            )
-            columns = [column[0] for column in cursor.description]
-            all_virtual_ls_info_data = cursor.fetchall()
-            all_virtual_tablet_compaction_info = json.dumps(all_virtual_ls_info_data, cls=DateTimeEncoder)
-            tenant_record.add_record(
-                "sql:"
-                + "select * from oceanbase.__all_virtual_tablet_compaction_info where svr_ip='{0}' and svr_port='{1}' and tenant_id='{2}' and ls_id='{3}' and tablet_id='{4}';".format(svr_ip, svr_port, tenant_id, ls_id, table_id)
-                + "result:{0}".format(str(all_virtual_tablet_compaction_info))
-            )
-            node = None
-            ssh_client = None
-            for observer_node in self.observer_nodes:
-                if svr_ip == observer_node.get("ip"):
-                    node = observer_node
-                    ssh_client = observer_node["ssher"]
-            if node is None:
-                raise RCAExecuteException("can not find observer node by ip:{0}, port:{1}".format(svr_ip, svr_port))
-            log_name = "/tmp/rca_major_hold_major_not_schedule_for_long_time_{1}_{2}_{0}.txt".format(create_time, svr_ip, svr_port)
-            tenant_record.add_record("diagnose_info type is 'major not schedule for long time'. time is {0},observer is {1}:{2},the log is {3}".format(create_time, svr_ip, svr_port, log_name))
-            thread_id = ssh_client.exec_cmd('cat {0}/log/observer.log* |grep "MediumLoo" -m 1 |grep -P  "\[\d+\]" -m 1 -o | grep -oP "\d+"'.format(node["home_path"], tenant_id)).strip()
-            ssh_client.exec_cmd('cat {0}/log/observer.log | grep "{1}" -m 100> {2}'.format(node["home_path"], thread_id, log_name))
-            local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
-            ssh_client.download(log_name, local_file_path)
-            tenant_record.add_record("download {0} to {1}".format(log_name, local_file_path))
-            ssh_client.exec_cmd("rm -rf {0}".format(log_name))
+        tenant_record.add_suggest(
+            "Weak read timestamp not ready. Possible causes:\n"
+            "1. Log replay is lagging - check __all_virtual_replay_stat\n"
+            "2. Network issues between replicas\n"
+            "3. Disk I/O bottleneck affecting log synchronization\n"
+            "4. Check if log disk is almost full"
+        )
 
+    def _handle_memtable_dag_failure(self, sql_data, tenant_record):
+        """Handle 'memtable can not create dag successfully' diagnose type"""
+        svr_ip = sql_data.get("svr_ip")
+        svr_port = sql_data.get("svr_port")
+        tenant_id = sql_data.get("tenant_id")
+
+        tenant_record.add_record("Diagnose type: memtable can not create dag successfully")
+
+        # Get DAG scheduler status
+        sql = "SELECT * FROM oceanbase.__all_virtual_dag_scheduler WHERE svr_ip='{0}' AND svr_port='{1}' AND tenant_id='{2}';".format(svr_ip, svr_port, tenant_id)
+        dag_data = self._execute_sql_safe(sql, "get DAG scheduler")
+
+        if dag_data:
+            self._save_to_file("dag_scheduler_detail.json", dag_data, tenant_id)
+            tenant_record.add_record("DAG scheduler status collected")
+
+        tenant_record.add_suggest(
+            "Memtable cannot create DAG. Possible causes:\n"
+            "1. DAG scheduler queue is full - check __all_virtual_dag_scheduler\n"
+            "2. Too many concurrent compaction tasks\n"
+            "3. System resource exhaustion (CPU/memory)\n"
+            "Consider adjusting: compaction_dag_thread_num, compaction_dag_net_thread_num"
+        )
+
+    def _handle_wait_for_freeze(self, svr_ip, svr_port, tenant_id, tenant_record):
+        """Handle 'wait for freeze' diagnose type"""
+        tenant_record.add_record("Diagnose type: medium/major wait for freeze")
+
+        # Get DAG scheduler and freeze info
+        sql = "SELECT * FROM oceanbase.__all_virtual_dag_scheduler WHERE svr_ip='{0}' AND svr_port='{1}' AND tenant_id='{2}';".format(svr_ip, svr_port, tenant_id)
+        dag_data = self._execute_sql_safe(sql, "get DAG scheduler")
+
+        if dag_data:
+            self._save_to_file("dag_scheduler_freeze.json", dag_data, tenant_id)
+
+        # Check minor freeze info
+        sql = "SELECT * FROM oceanbase.__all_virtual_minor_freeze_info WHERE tenant_id='{0}';".format(tenant_id)
+        freeze_data = self._execute_sql_safe(sql, "get minor freeze info")
+
+        if freeze_data:
+            self._save_to_file("minor_freeze_info.json", freeze_data, tenant_id)
+            tenant_record.add_record("Minor freeze info collected")
+
+        tenant_record.add_suggest("Compaction waiting for freeze. Possible causes:\n" "1. Active memtable freeze is slow - check memstore usage\n" "2. High write pressure preventing freeze\n" "3. Check __all_virtual_minor_freeze_info for freeze status")
+
+    def _handle_major_not_scheduled(self, sql_data, tenant_record):
+        """Handle 'major not schedule for long time' diagnose type"""
+        svr_ip = sql_data.get("svr_ip")
+        svr_port = sql_data.get("svr_port")
+        tenant_id = sql_data.get("tenant_id")
+        ls_id = sql_data.get("ls_id")
+        tablet_id = sql_data.get("tablet_id")
+        create_time = sql_data.get("create_time")
+
+        tenant_record.add_record("Diagnose type: major not schedule for long time")
+
+        # Get tablet compaction info
+        sql = """
+            SELECT * FROM oceanbase.__all_virtual_tablet_compaction_info 
+            WHERE svr_ip='{0}' AND svr_port='{1}' AND tenant_id='{2}' AND ls_id='{3}' AND tablet_id='{4}';
+        """.format(
+            svr_ip, svr_port, tenant_id, ls_id, tablet_id
+        )
+        compaction_info = self._execute_sql_safe(sql, "get tablet compaction info")
+
+        if compaction_info:
+            self._save_to_file("tablet_compaction_info.json", compaction_info, tenant_id)
+            tenant_record.add_record("Tablet compaction info collected")
+
+        # Collect MediumLoop logs
+        node, ssh_client = self._find_observer_node(svr_ip, svr_port)
+        if node:
+            log_name = "/tmp/rca_major_not_scheduled_{0}_{1}_{2}.txt".format(tenant_id, svr_ip, svr_port)
+            try:
+                # Get thread ID for MediumLoop
+                thread_id = ssh_client.exec_cmd('grep "MediumLoo" {0}/log/observer.log* -m 1 | grep -P "\\[\\d+\\]" -m 1 -o | grep -oP "\\d+"'.format(node.get("home_path"))).strip()
+
+                if thread_id:
+                    ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log -m 100 > {2}'.format(thread_id, node.get("home_path"), log_name))
+                    local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
+                    ssh_client.download(log_name, local_file_path)
+                    tenant_record.add_record("Downloaded MediumLoop logs to {0}".format(local_file_path))
+                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
+            except Exception as e:
+                tenant_record.add_record("Failed to collect MediumLoop logs: {0}".format(e))
+
+        tenant_record.add_suggest(
+            "Major compaction not scheduled for long time. Possible causes:\n" "1. Medium compaction prerequisites not met\n" "2. Tablet has pending minor compactions\n" "3. Check __all_virtual_tablet_compaction_info for tablet status"
+        )
+
+    def _check_duplicate_index_names(self, tenant_id, tenant_record):
+        """
+        Check for duplicate index names across different tables.
+        Reference: https://github.com/oceanbase/obdiag/issues/607
+        https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000001843060
+
+        This issue can cause compaction hold and DDL failures.
+        """
+        tenant_record.add_record("Checking for duplicate index names that may cause compaction hold...")
+
+        # Query to find duplicate index names across different tables
+        sql = """
+            SELECT 
+                INDEX_NAME,
+                COUNT(DISTINCT TABLE_NAME) as TABLE_COUNT,
+                GROUP_CONCAT(DISTINCT TABLE_NAME SEPARATOR ', ') as TABLES,
+                GROUP_CONCAT(DISTINCT CONCAT(TABLE_NAME, '.', INDEX_NAME) SEPARATOR ', ') as FULL_INDEX_NAMES
+            FROM oceanbase.CDB_INDEXES 
+            WHERE TENANT_ID = '{0}'
+              AND INDEX_TYPE != 'LOB'
+              AND INDEX_NAME NOT LIKE '%_RECYCLE_%'
+            GROUP BY INDEX_NAME
+            HAVING COUNT(DISTINCT TABLE_NAME) > 1
+            ORDER BY TABLE_COUNT DESC
+            LIMIT 50;
+        """.format(
+            tenant_id
+        )
+
+        duplicate_indexes = self._execute_sql_safe(sql, "check duplicate index names")
+
+        if duplicate_indexes:
+            self._save_to_file("duplicate_index_names.json", duplicate_indexes, tenant_id)
+            tenant_record.add_record("WARNING: Found {0} duplicate index names across different tables!".format(len(duplicate_indexes)))
+
+            for idx in duplicate_indexes:
+                index_name = idx.get("INDEX_NAME", "N/A")
+                tables = idx.get("TABLES", "N/A")
+                table_count = idx.get("TABLE_COUNT", 0)
+                tenant_record.add_record("Duplicate index '{0}' found in {1} tables: {2}".format(index_name, table_count, tables))
+
+            tenant_record.add_suggest(
+                "CRITICAL: Duplicate index names detected across different tables!\n"
+                "This is a known issue that can cause:\n"
+                "1. Major compaction stuck (cannot proceed)\n"
+                "2. DDL operations blocked\n"
+                "3. Schema inconsistency\n\n"
+                "Resolution steps:\n"
+                "1. Identify the duplicate indexes from the diagnostic file\n"
+                "2. Rename or drop the conflicting indexes:\n"
+                "   ALTER TABLE table_name RENAME INDEX old_index_name TO new_index_name;\n"
+                "   or DROP INDEX index_name ON table_name;\n"
+                "3. After fixing, trigger a new major compaction:\n"
+                "   ALTER SYSTEM MAJOR FREEZE TENANT = tenant_name;\n\n"
+                "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000001843060"
+            )
         else:
-            tenant_record.add_record("diagnose_info type is Unknown.")
+            tenant_record.add_record("No duplicate index names found across different tables")
+
+        # Also check for index status issues
+        sql = """
+            SELECT 
+                TABLE_NAME,
+                INDEX_NAME,
+                INDEX_TYPE,
+                STATUS,
+                VISIBILITY
+            FROM oceanbase.CDB_INDEXES 
+            WHERE TENANT_ID = '{0}'
+              AND STATUS != 'VALID'
+            ORDER BY TABLE_NAME
+            LIMIT 100;
+        """.format(
+            tenant_id
+        )
+
+        invalid_indexes = self._execute_sql_safe(sql, "check invalid indexes")
+
+        if invalid_indexes:
+            self._save_to_file("invalid_indexes.json", invalid_indexes, tenant_id)
+            tenant_record.add_record("Found {0} indexes with non-VALID status".format(len(invalid_indexes)))
+            for idx in invalid_indexes[:10]:  # Show first 10
+                tenant_record.add_record("Invalid index: {0}.{1} (status: {2})".format(idx.get("TABLE_NAME"), idx.get("INDEX_NAME"), idx.get("STATUS")))
+
+    def _check_ddl_task_status(self, tenant_id, tenant_record):
+        """
+        Check DDL task status that may be blocking compaction.
+        """
+        tenant_record.add_record("Checking DDL task status...")
+
+        # Check running DDL tasks
+        sql = """
+            SELECT 
+                TASK_ID,
+                DDL_TYPE,
+                STATUS,
+                TENANT_ID,
+                TABLE_ID,
+                OBJECT_ID,
+                TARGET_OBJECT_ID,
+                CREATE_TIME,
+                TRACE_ID,
+                MESSAGE
+            FROM oceanbase.__all_virtual_ddl_task_status
+            WHERE TENANT_ID = '{0}'
+            ORDER BY CREATE_TIME DESC
+            LIMIT 50;
+        """.format(
+            tenant_id
+        )
+
+        ddl_tasks = self._execute_sql_safe(sql, "get DDL task status")
+
+        if ddl_tasks:
+            self._save_to_file("ddl_task_status.json", ddl_tasks, tenant_id)
+            tenant_record.add_record("Found {0} DDL tasks".format(len(ddl_tasks)))
+
+            # Check for stuck DDL tasks
+            pending_tasks = [t for t in ddl_tasks if t.get("STATUS") in ("PREPARE", "REDEFINITION", "COPY_TABLE_DATA", "TAKE_EFFECT", "WAIT_TRANS_END")]
+            if pending_tasks:
+                tenant_record.add_record("Found {0} pending DDL tasks that may block compaction".format(len(pending_tasks)))
+                for task in pending_tasks[:5]:  # Show first 5
+                    tenant_record.add_record("Pending DDL: type={0}, status={1}, table_id={2}, trace_id={3}".format(task.get("DDL_TYPE"), task.get("STATUS"), task.get("TABLE_ID"), task.get("TRACE_ID")))
+                tenant_record.add_suggest(
+                    "Pending DDL tasks detected. These may block major compaction.\n"
+                    "1. Check if DDL is making progress: query __all_virtual_ddl_task_status periodically\n"
+                    "2. If stuck, check observer logs for DDL errors using the TRACE_ID\n"
+                    "3. Consider canceling stuck DDL: ALTER SYSTEM CANCEL DDL task_id;"
+                )
+        else:
+            tenant_record.add_record("No DDL tasks found")
+
+        # Check DDL error table
+        sql = """
+            SELECT * FROM oceanbase.__all_virtual_ddl_error_message
+            WHERE TENANT_ID = '{0}'
+            ORDER BY GMT_CREATE DESC
+            LIMIT 20;
+        """.format(
+            tenant_id
+        )
+
+        ddl_errors = self._execute_sql_safe(sql, "get DDL errors")
+
+        if ddl_errors:
+            self._save_to_file("ddl_errors.json", ddl_errors, tenant_id)
+            tenant_record.add_record("Found {0} DDL error records".format(len(ddl_errors)))
+            for err in ddl_errors[:5]:  # Show first 5
+                tenant_record.add_record("DDL error: task_id={0}, ret_code={1}, message={2}".format(err.get("TASK_ID"), err.get("RET_CODE"), str(err.get("DDL_ERROR_MESSAGE", ""))[:100]))
+
+    def _collect_dmesg_logs(self, tenant_record):
+        """Collect dmesg logs from all observer nodes"""
+        dmesg_log_path = os.path.join(self.local_path, "dmesg_log")
+        if not os.path.exists(dmesg_log_path):
+            os.makedirs(dmesg_log_path)
+
+        for observer_node in self.observer_nodes:
+            try:
+                ssh_client = observer_node.get("ssher")
+                if ssh_client is None:
+                    continue
+
+                node_name = ssh_client.get_name()
+                remote_log = "/tmp/dmesg_{0}.log".format(node_name)
+                local_log = os.path.join(dmesg_log_path, "dmesg_{0}.log".format(node_name))
+
+                ssh_client.exec_cmd("dmesg -T > {0}".format(remote_log))
+                ssh_client.download(remote_log, local_log)
+                ssh_client.exec_cmd("rm -rf {0}".format(remote_log))
+
+                tenant_record.add_record("Collected dmesg from {0}".format(node_name))
+            except Exception as e:
+                self.stdio.warn("Failed to collect dmesg from node: {0}".format(e))
+
+    def _collect_observer_logs(self, tenant_id, tenant_record):
+        """Collect relevant observer logs for the tenant"""
+        # Check if we need to collect logs based on RS location
+        try:
+            sql = "SELECT SVR_IP, SVR_PORT FROM oceanbase.DBA_OB_TABLET_REPLICAS WHERE TENANT_ID='{0}' AND LS_ID=1 LIMIT 1;".format(tenant_id)
+            rs_data = self._execute_sql_safe(sql, "get RS location")
+
+            if rs_data:
+                svr_ip = rs_data[0].get("SVR_IP")
+                svr_port = rs_data[0].get("SVR_PORT")
+
+                node, ssh_client = self._find_observer_node(svr_ip, svr_port)
+                if node:
+                    log_name = "/tmp/major_merge_progress_checker_{0}.log".format(tenant_id)
+                    local_log = os.path.join(self.local_path, "major_merge_progress_checker_{0}.log".format(tenant_id))
+
+                    ssh_client.exec_cmd('grep "major_merge_progress_checker" {0}/log/rootservice.log* | grep "T{1}" -m 500 > {2}'.format(node.get("home_path"), tenant_id, log_name))
+                    ssh_client.download(log_name, local_log)
+                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
+
+                    tenant_record.add_record("Collected major_merge_progress_checker logs")
+        except Exception as e:
+            self.stdio.warn("Failed to collect observer logs: {0}".format(e))
+
+    def get_info__all_virtual_compaction_diagnose_info(self, tenant_record):
+        """Legacy method for backward compatibility"""
+        try:
+            sql = "SELECT * FROM oceanbase.__all_virtual_compaction_diagnose_info WHERE IS_ERROR = 'NO' OR IS_SUSPENDED = 'NO';"
+            data = self._execute_sql_safe(sql, "get diagnose info")
+            if data:
+                tenant_record.add_record("Diagnose info: {0}".format(str(data)))
+        except Exception as e:
+            raise RCAExecuteException("Error getting diagnose info: {0}".format(e))
+
+    def diagnose_info_switch(self, sql_data, tenant_record):
+        """Legacy method - delegates to _analyze_diagnose_info"""
+        self._analyze_diagnose_info(sql_data, tenant_record)
 
     def get_scene_info(self):
         return {
             "name": "major_hold",
-            "info_en": "root cause analysis of major hold",
-            "info_cn": "针对卡合并场景的根因分析",
+            "info_en": "Root cause analysis for major compaction hold issues. Checks for errors, suspensions, long-running tasks, duplicate index names, DDL task status, and provides detailed diagnostics.",
+            "info_cn": "针对合并卡住场景的根因分析。检查合并错误、暂停状态、长时间运行的任务、同名索引冲突、DDL任务状态，并提供详细的诊断信息。",
         }
 
 

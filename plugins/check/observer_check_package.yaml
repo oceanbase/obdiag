@@ -108,9 +108,21 @@ k8s_performance:
     - tenant.max_stale_time_for_weak_consistency
     - tenant.tenant_threshold
 
+deep:
+  info_en: "Deep inspection tasks that may affect system performance"
+  info_cn: "可能影响系统性能的深度巡检任务"
+  tasks:
+    - table.macroblock_utilization_rate_table
+    - tenant.macroblock_utilization_rate_tenant
+    - archive.archive_continuous_error
+
 filter:
   info_en: "Inspection that needs to be ignored"
   info_cn: "需要忽略的检查"
   tasks:
     - sysbench.*
     - column_storage.*
+    - table.macroblock_utilization_rate_table
+    - tenant.macroblock_utilization_rate_tenant
+    - archive.archive_continuous_error
+
