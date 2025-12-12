@@ -29,7 +29,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          file: ./workflow_data/Dockerfile
+          file: dockerfiles/Dockerfile.release
           push: true
           tags: |
             ${{ vars.DOCKER_PUSH_BASE }}/obdiag:latest
