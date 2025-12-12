@@ -125,7 +125,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
         # If no external MCP client, use built-in MCP server
         if self.mcp_client is None:
             try:
-                self.builtin_mcp_server = MCPServer(config_path=self.config_path)
+                self.builtin_mcp_server = MCPServer(config_path=self.config_path, stdio=self.stdio)
                 self.stdio.verbose("Using built-in MCP server")
             except Exception as e:
                 self.stdio.warn("Warning: Failed to initialize built-in MCP server: {0}".format(e))

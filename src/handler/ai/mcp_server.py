@@ -48,8 +48,9 @@ class MCPServer:
         "tool_io_performance": "obdiag tool io_performance",
     }
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None, stdio=None):
         self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
+        self.stdio = stdio
         self.tools = self._register_tools()
         self.initialized = False
 
@@ -276,6 +277,8 @@ class MCPServer:
         try:
             # Build command
             command = self._build_obdiag_command(tool_name, arguments)
+            if self.stdio:
+                self.stdio.verbose("Executing obdiag command: {0}".format(command))
 
             # Execute command
             result = subprocess.run(

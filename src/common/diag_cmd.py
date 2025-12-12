@@ -1287,6 +1287,7 @@ class ObdiagToolAiAssistantCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagToolAiAssistantCommand, self).__init__('ai_assistant', 'obdiag tool ai_assistant. Interactive AI assistant for obdiag diagnostic (BETA)')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):

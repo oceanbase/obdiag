@@ -290,6 +290,7 @@ Available diagnostic tools:
     def _show_loaded_tools(self):
         """Show loaded MCP tools information"""
         try:
+            # Check external MCP client first
             if self.ai_client and self.ai_client.mcp_client and self.ai_client.mcp_client.is_connected():
                 # Get connected servers info
                 connected_servers = self.ai_client.mcp_client.get_connected_servers()
@@ -304,6 +305,17 @@ Available diagnostic tools:
                 # List all tools
                 tools = self.ai_client.mcp_client.list_tools()
                 self.stdio.print("\n📦 Loaded {0} tools via MCP protocol:".format(len(tools)))
+                for tool in tools:
+                    tool_name = tool.get("name", "")
+                    self.stdio.print("   • {0}".format(tool_name))
+                self.stdio.print("")
+            # Check built-in MCP server
+            elif self.ai_client and self.ai_client.builtin_mcp_server:
+                self.stdio.print("🔌 Using built-in MCP server")
+                
+                # List tools from built-in server
+                tools = self.ai_client.builtin_mcp_server.tools
+                self.stdio.print("\n📦 Loaded {0} tools:".format(len(tools)))
                 for tool in tools:
                     tool_name = tool.get("name", "")
                     self.stdio.print("   • {0}".format(tool_name))
