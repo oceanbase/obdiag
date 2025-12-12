@@ -95,17 +95,6 @@ class DisplaySceneHandler(SafeStdio):
     def __init_db_connector(self):
         self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100)
 
-    def __init_db_conn(self, cli_connection_string):
-        try:
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
-            if StringUtils.validate_db_info(self.db_conn):
-                self.__init_db_connector()
-            else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env db_connect={0}".format(cli_connection_string))
-                self.db_connector = self.sys_connector
-        except Exception as e:
-            self.stdio.exception("init db connector, error: {0}, please check --env option ")
-
     # execute yaml task
     def __execute_yaml_task_one(self, task_name, task_data):
         try:
@@ -226,10 +215,14 @@ class DisplaySceneHandler(SafeStdio):
         if env_option:
             env_dict = StringUtils.parse_env_display(env_option)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            if cli_connection_string != None:
-                self.__init_db_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if db_conn and StringUtils.validate_db_info(db_conn):
+                self.db_conn = db_conn
+                self.__init_db_connector()
             else:
+                self.stdio.warn("db connection information not provided or invalid, using sys_connector")
                 self.db_connector = self.sys_connector
         else:
             self.db_connector = self.sys_connector

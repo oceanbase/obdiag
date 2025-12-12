@@ -361,15 +361,25 @@ class GatherDBMSXPLANHandler(SafeStdio):
 
     def __init_db_conn(self, env):
         try:
-            env_dict = StringUtils.parse_env(env)
+            # env must be a list from parse_env_display (action="append")
+            if not isinstance(env, list):
+                self.stdio.error("Invalid env format. Please use --env key=value format, e.g., --env host=127.0.0.1 --env port=2881 --env user=test --env password=****** --env database=test")
+                return False
+
+            env_dict = StringUtils.parse_env_display(env)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            self.db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if not self.db_conn:
+                self.stdio.error("Failed to build database connection information from env parameters")
+                return False
+
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_tenant_connector()
                 return True
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'],  but provided {0}, please check the --env option".format(env_dict))
+                self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
         except Exception as e:
             self.stdio.exception("init db connector, error: {0}, please check --env option ".format(e))
