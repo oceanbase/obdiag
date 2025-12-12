@@ -312,7 +312,7 @@ Available diagnostic tools:
             # Check built-in MCP server
             elif self.ai_client and self.ai_client.builtin_mcp_server:
                 self.stdio.print("🔌 Using built-in MCP server")
-                
+
                 # List tools from built-in server
                 tools = self.ai_client.builtin_mcp_server.tools
                 self.stdio.print("\n📦 Loaded {0} tools:".format(len(tools)))
