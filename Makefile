@@ -45,7 +45,11 @@ pack: clean_rpm download_obstack
 	export OBDIAG_VERSION=$(OBDIAG_VERSION) && \
 	rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec && \
 	rpm_path=$$(find ~/rpmbuild -name "oceanbase-diagnostic-tool-*$(RELEASE)*.rpm") && \
-	echo "rpm_path: $${rpm_path}"
+	echo "rpm_path: $${rpm_path}" && \
+	cp -rf $${rpm_path} ./ && \
+	echo "rpm cp to: $$(pwd)/$$(basename $${rpm_path})"
+
+	@echo "Build RPM package success"
 
 # Build plugins update package
 build_update_package:
