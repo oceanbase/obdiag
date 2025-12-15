@@ -6,7 +6,7 @@ PROJECT_PATH := $(shell pwd)
 WORK_DIR := $(shell pwd)
 OBDIAG_HOME ?= $(HOME)/.obdiag
 RELEASE := $(shell date +%Y%m%d%H%M)
-OBDIAG_VERSION ?= 3.7.2
+OBDIAG_VERSION ?= 4.0.0
 
 # URLs for obstack downloads
 OBUTILS_AARCH64_URL := https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.aarch64.rpm
