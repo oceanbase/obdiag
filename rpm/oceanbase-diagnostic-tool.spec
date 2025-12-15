@@ -1,5 +1,5 @@
 Name: oceanbase-diagnostic-tool
-Version:3.7.2
+Version: %(echo $OBDIAG_VERSION)
 Release: %(echo $RELEASE)%{?dist}
 Summary: oceanbase diagnostic tool program
 Group: Development/Tools
@@ -26,6 +26,8 @@ VERSION="$RPM_PACKAGE_VERSION"
 cd $SRC_DIR
 pwd
 pip install -r requirements3.txt
+# Install obdiag_mcp for AI assistant MCP support
+pip install obdiag_mcp openai || echo "Warning: obdiag_mcp or openai install failed, AI assistant may not work"
 cp -f src/main.py src/obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./src/common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./src/common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
@@ -61,7 +63,6 @@ find $SRC_DIR -name "obdiag"
 \cp -rf $BUILD_DIR/SOURCES/obdiag_backup.sh ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/
 \cp -rf $BUILD_DIR/SOURCES/plugins ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool/
 
-
 %files
 %defattr(-,root,root,0777)
 /opt/oceanbase-diagnostic-tool/*
@@ -72,8 +73,13 @@ chown -R root:root /opt/oceanbase-diagnostic-tool/*
 find /opt/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
 ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /opt/oceanbase-diagnostic-tool/obdiag
+
 cp -rf /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
 /opt/oceanbase-diagnostic-tool/obdiag_backup.sh
 /opt/oceanbase-diagnostic-tool/init.sh
 echo -e 'Please execute the following command to init obdiag:\n'
 echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
+
+%preun
+# Clean up symbolic links before uninstall
+rm -f /usr/bin/obdiag 2>/dev/null || true

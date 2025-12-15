@@ -25,7 +25,7 @@ fi \
 && /opt/miniconda/envs/obdiag/bin/pip install --upgrade pip wheel
 
 COPY ./ ./
-RUN source /opt/miniconda/bin/activate obdiag && make pack
+RUN source /opt/miniconda/bin/activate obdiag && ./dev_helper.sh pack
 
 # Stage 2: Install RPM package in minimal container
 FROM registry.openanolis.cn/openanolis/anolisos:8.9

@@ -1,10 +1,12 @@
 # OceanBase Diagnostic Tool - Development Makefile
+# Converted from dev_helper.sh
 
 SHELL := /bin/bash
 PROJECT_PATH := $(shell pwd)
 WORK_DIR := $(shell pwd)
 OBDIAG_HOME ?= $(HOME)/.obdiag
 RELEASE := $(shell date +%Y%m%d%H%M)
+OBDIAG_VERSION ?= 3.7.2
 
 # URLs for obstack downloads
 OBUTILS_AARCH64_URL := https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/observer/v4.3.5_CE/oceanbase-ce-utils-4.3.5.0-100000202024123117.el7.aarch64.rpm
@@ -14,7 +16,7 @@ OBUTILS_X64_URL := https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/downl
 PYTHON_MIN_MAJOR := 3
 PYTHON_MIN_MINOR := 11
 
-.PHONY: all help pack clean init format download_obstack clean_rpm check_python install_requirements copy_files backup_obdiag
+.PHONY: all help pack clean init format download_obstack clean_rpm check_python install_requirements copy_files backup_obdiag build_update_package
 
 # Default target
 all: help
@@ -24,24 +26,40 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Targets:"
-	@echo "  pack             - Build RPM package"
-	@echo "  clean            - Clean result files (gather/analyze packs)"
-	@echo "  clean_rpm        - Clean old RPM build data"
-	@echo "  init             - Initialize development environment"
-	@echo "  format           - Format code with black"
-	@echo "  download_obstack - Download obstack tools"
-	@echo "  check_python     - Check Python version (>= 3.11)"
-	@echo "  help             - Show this help message"
+	@echo "  pack                 - Build RPM package"
+	@echo "  build_update_package - Build plugins update package (data.tar + version.yaml)"
+	@echo "  clean                - Clean result files (gather/analyze packs)"
+	@echo "  clean_rpm            - Clean old RPM build data"
+	@echo "  init                 - Initialize development environment"
+	@echo "  format               - Format code with black"
+	@echo "  download_obstack     - Download obstack tools"
+	@echo "  check_python         - Check Python version (>= 3.11)"
+	@echo "  help                 - Show this help message"
 
 # Build RPM package
+# Note: requires rpm-build package, install with: sudo yum install rpm-build -y
 pack: clean_rpm download_obstack
-	@echo "Building RPM package..."
+	@echo "Building RPM package (version: $(OBDIAG_VERSION))..."
+	@command -v rpmbuild >/dev/null 2>&1 || (echo "Error: rpmbuild not found. Please install: sudo yum install rpm-build -y" && exit 1)
 	@export RELEASE=$(RELEASE) && \
-	cat ./rpm/oceanbase-diagnostic-tool.spec && \
-	yum install rpm-build -y && \
+	export OBDIAG_VERSION=$(OBDIAG_VERSION) && \
 	rpmbuild -bb ./rpm/oceanbase-diagnostic-tool.spec && \
 	rpm_path=$$(find ~/rpmbuild -name "oceanbase-diagnostic-tool-*$(RELEASE)*.rpm") && \
 	echo "rpm_path: $${rpm_path}"
+
+# Build plugins update package
+build_update_package:
+	@echo "Building plugins update package..."
+	@cd plugins && tar -cvf data.tar *
+	@sha=$$(cd plugins && sha256sum data.tar | awk '{print $$1}') && \
+	echo "obdiag_version: \"$(OBDIAG_VERSION)\"" > version.yaml && \
+	echo "remote_tar_sha: \"$$sha\"" >> version.yaml
+	@mv plugins/data.tar ./
+	@echo ""
+	@echo "Build completed:"
+	@echo "  - data.tar      (plugins archive)"
+	@echo "  - version.yaml  (version and SHA256)"
+	@cat version.yaml
 
 # Download obstack tools
 download_obstack:
@@ -163,9 +181,10 @@ test:
 # Show current configuration
 info:
 	@echo "Project Configuration:"
-	@echo "  PROJECT_PATH: $(PROJECT_PATH)"
-	@echo "  WORK_DIR:     $(WORK_DIR)"
-	@echo "  OBDIAG_HOME:  $(OBDIAG_HOME)"
-	@echo "  RELEASE:      $(RELEASE)"
-	@echo "  Python:       $$(python3 --version 2>&1)"
+	@echo "  PROJECT_PATH:   $(PROJECT_PATH)"
+	@echo "  WORK_DIR:       $(WORK_DIR)"
+	@echo "  OBDIAG_HOME:    $(OBDIAG_HOME)"
+	@echo "  OBDIAG_VERSION: $(OBDIAG_VERSION)"
+	@echo "  RELEASE:        $(RELEASE)"
+	@echo "  Python:         $$(python3 --version 2>&1)"
 

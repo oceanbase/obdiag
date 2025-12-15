@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 venv/
+.venv/
 *.pyc
 *site-packages/
 dependencies

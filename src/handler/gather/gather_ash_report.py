@@ -238,7 +238,7 @@ class GatherAshReportHandler(SafeStdio):
             self.tenant_id = None
 
         # Check version for new parameters
-        if (self.svr_ip or self.svr_port or self.tenant_id) and not (StringUtils.compare_versions_greater(self.ob_version, "4.3.4.0") or self.ob_version == "4.3.5.0"):
+        if (self.svr_ip or self.svr_port or self.tenant_id) and not (StringUtils.compare_versions_greater(self.ob_version, "4.3.5.0") or self.ob_version == "4.3.5.0"):
             self.stdio.warn("observer version: {0}, svr_ip/svr_port/tenant_id parameters are only supported in version 4.3.5.0 or higher. These parameters will be ignored.".format(self.ob_version))
             self.svr_ip = None
             self.svr_port = None
