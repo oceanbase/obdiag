@@ -41,12 +41,7 @@ class ConfigCheckHandler:
             self.stdio.print(Fore.CYAN + "  obdiag Configuration Check" + Style.RESET_ALL)
             self.stdio.print(Fore.CYAN + "=" * 70 + Style.RESET_ALL + "\n")
 
-            results = {
-                "db_connection": None,
-                "observer_nodes": [],
-                "obproxy_nodes": [],
-                "summary": {"success": 0, "failed": 0, "skipped": 0}
-            }
+            results = {"db_connection": None, "observer_nodes": [], "obproxy_nodes": [], "summary": {"success": 0, "failed": 0, "skipped": 0}}
 
             # 1. Check database connection
             self._check_db_connection(results)
@@ -61,9 +56,7 @@ class ConfigCheckHandler:
             self._print_summary(results)
 
             if results["summary"]["failed"] > 0:
-                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, 
-                                   error_data="Configuration check found {0} failed items".format(results["summary"]["failed"]),
-                                   data=results)
+                return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="Configuration check found {0} failed items".format(results["summary"]["failed"]), data=results)
 
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=results)
 
@@ -114,20 +107,13 @@ class ConfigCheckHandler:
         # Try to connect
         try:
             self.stdio.verbose("Attempting to connect to database...")
-            ob_connector = OBConnector(
-                context=self.context,
-                ip=db_host,
-                port=int(db_port),
-                username=db_user,
-                password=db_password,
-                timeout=10
-            )
-            
+            ob_connector = OBConnector(context=self.context, ip=db_host, port=int(db_port), username=db_user, password=db_password, timeout=10)
+
             # Test connection with a simple query
             result = ob_connector.execute_sql("SELECT 1")
             if result is not None:
                 self.stdio.print("  " + Fore.GREEN + "✓ SUCCESS" + Style.RESET_ALL + " - Database connection established")
-                
+
                 # Try to get OB version
                 try:
                     version_result = ob_connector.execute_sql("SELECT OB_VERSION()")
@@ -136,7 +122,7 @@ class ConfigCheckHandler:
                         self.stdio.print("  " + Fore.GREEN + "  OceanBase Version: {0}".format(ob_version) + Style.RESET_ALL)
                 except Exception:
                     pass
-                
+
                 results["db_connection"] = {"status": "success", "host": db_host, "port": db_port}
                 results["summary"]["success"] += 1
             else:
@@ -162,9 +148,9 @@ class ConfigCheckHandler:
             self.stdio.print("")
             return
 
-        servers_config = self.cluster_config.get("servers", {})
-        nodes = servers_config.get("nodes", [])
-        global_config = servers_config.get("global", {})
+        # Note: cluster_config.get("servers") returns a list of nodes directly (already merged with global config)
+        nodes = self.cluster_config.get("servers", [])
+        global_config = {}  # Already merged in config.py
 
         if not nodes:
             self.stdio.print("  " + Fore.YELLOW + "⚠ SKIPPED" + Style.RESET_ALL + " - No observer nodes configured")
@@ -182,10 +168,7 @@ class ConfigCheckHandler:
 
         for idx, node in enumerate(nodes):
             node_config = self._merge_node_config(node, global_config)
-            thread = threading.Thread(
-                target=self._check_single_node,
-                args=(idx + 1, node_config, "observer", node_results, lock, results)
-            )
+            thread = threading.Thread(target=self._check_single_node, args=(idx + 1, node_config, "observer", node_results, lock, results))
             threads.append(thread)
             thread.start()
 
@@ -206,9 +189,9 @@ class ConfigCheckHandler:
             self.stdio.print("")
             return
 
-        servers_config = self.obproxy_config.get("servers", {})
-        nodes = servers_config.get("nodes", [])
-        global_config = servers_config.get("global", {})
+        # Note: obproxy_config.get("servers") returns a list of nodes directly (already merged with global config)
+        nodes = self.obproxy_config.get("servers", [])
+        global_config = {}  # Already merged in config.py
 
         if not nodes:
             self.stdio.print("  " + Fore.YELLOW + "⚠ SKIPPED" + Style.RESET_ALL + " - No obproxy nodes configured")
@@ -226,10 +209,7 @@ class ConfigCheckHandler:
 
         for idx, node in enumerate(nodes):
             node_config = self._merge_node_config(node, global_config)
-            thread = threading.Thread(
-                target=self._check_single_node,
-                args=(idx + 1, node_config, "obproxy", node_results, lock, results)
-            )
+            thread = threading.Thread(target=self._check_single_node, args=(idx + 1, node_config, "obproxy", node_results, lock, results))
             threads.append(thread)
             thread.start()
 
@@ -253,25 +233,21 @@ class ConfigCheckHandler:
         ssh_port = node_config.get("ssh_port", 22)
         ssh_key_file = node_config.get("ssh_key_file", "")
         home_path = node_config.get("home_path", "")
+        data_dir = node_config.get("data_dir", "")
+        redo_dir = node_config.get("redo_dir", "")
 
-        node_result = {
-            "index": idx,
-            "ip": ip,
-            "ssh_port": ssh_port,
-            "ssh_username": ssh_username,
-            "home_path": home_path,
-            "status": "unknown",
-            "error": None
-        }
+        node_result = {"index": idx, "ip": ip, "ssh_port": ssh_port, "ssh_username": ssh_username, "home_path": home_path, "status": "unknown", "error": None}
 
         # Check required fields
         missing_fields = []
+        using_default_key = False
         if not ip or ip == "unknown":
             missing_fields.append("ip")
         if not ssh_username:
             missing_fields.append("ssh_username")
+        # When both ssh_password and ssh_key_file are empty, will try default keys like ~/.ssh/id_rsa
         if not ssh_password and not ssh_key_file:
-            missing_fields.append("ssh_password or ssh_key_file")
+            using_default_key = True
 
         if missing_fields:
             msg = "Missing: {0}".format(", ".join(missing_fields))
@@ -287,27 +263,80 @@ class ConfigCheckHandler:
         # Try SSH connection
         try:
             ssh_client = SshClient(self.context, node_config)
-            
+
             # Test connection by executing a simple command
             result = ssh_client.exec_cmd("echo 'obdiag_test'")
-            
+
             if result is not None and "obdiag_test" in result:
-                node_result["status"] = "success"
-                
-                # Check home_path exists if configured
-                home_path_status = ""
-                if home_path:
-                    check_path = ssh_client.exec_cmd("test -d {0} && echo 'exists' || echo 'not_exists'".format(home_path))
-                    if check_path and "exists" in check_path:
-                        home_path_status = Fore.GREEN + " (home_path verified)" + Style.RESET_ALL
-                    else:
-                        home_path_status = Fore.YELLOW + " (home_path not found: {0})".format(home_path) + Style.RESET_ALL
+                path_check_display = []
+                path_errors = []  # Track path check errors
+
+                # For observer nodes, perform additional path checks
+                if node_type == "observer":
+                    # Check home_path/bin/observer exists
+                    if home_path:
+                        observer_bin = "{0}/bin/observer".format(home_path)
+                        check_observer = ssh_client.exec_cmd("test -f {0} && echo 'yes' || echo 'no'".format(observer_bin))
+                        if check_observer and check_observer.strip() == "yes":
+                            path_check_display.append(Fore.GREEN + "      ✓ bin/observer found" + Style.RESET_ALL)
+                        else:
+                            path_check_display.append(Fore.RED + "      ✗ bin/observer not found in {0}".format(home_path) + Style.RESET_ALL)
+                            path_errors.append("bin/observer not found")
+
+                    # Check data_dir/sstable exists
+                    if data_dir:
+                        sstable_path = "{0}/sstable".format(data_dir)
+                        check_sstable = ssh_client.exec_cmd("test -d {0} && echo 'yes' || echo 'no'".format(sstable_path))
+                        if check_sstable and check_sstable.strip() == "yes":
+                            path_check_display.append(Fore.GREEN + "      ✓ data_dir/sstable found" + Style.RESET_ALL)
+                        else:
+                            path_check_display.append(Fore.RED + "      ✗ sstable not found in {0}".format(data_dir) + Style.RESET_ALL)
+                            path_errors.append("sstable not found")
+
+                    # Check redo_dir/clog exists
+                    if redo_dir:
+                        clog_path = "{0}/clog".format(redo_dir)
+                        check_clog = ssh_client.exec_cmd("test -d {0} && echo 'yes' || echo 'no'".format(clog_path))
+                        if check_clog and check_clog.strip() == "yes":
+                            path_check_display.append(Fore.GREEN + "      ✓ redo_dir/clog found" + Style.RESET_ALL)
+                        else:
+                            path_check_display.append(Fore.RED + "      ✗ clog not found in {0}".format(redo_dir) + Style.RESET_ALL)
+                            path_errors.append("clog not found")
+                else:
+                    # For obproxy nodes, check home_path/bin/obproxy exists
+                    if home_path:
+                        obproxy_bin = "{0}/bin/obproxy".format(home_path)
+                        check_obproxy = ssh_client.exec_cmd("test -f {0} && echo 'yes' || echo 'no'".format(obproxy_bin))
+                        if check_obproxy and check_obproxy.strip() == "yes":
+                            path_check_display.append(Fore.GREEN + "      ✓ bin/obproxy found" + Style.RESET_ALL)
+                        else:
+                            path_check_display.append(Fore.RED + "      ✗ bin/obproxy not found in {0}".format(home_path) + Style.RESET_ALL)
+                            path_errors.append("bin/obproxy not found")
+
+                # Determine node status based on path check results
+                if path_errors:
+                    node_result["status"] = "failed"
+                    node_result["error"] = "; ".join(path_errors)
+                else:
+                    node_result["status"] = "success"
 
                 with lock:
                     node_results.append(node_result)
-                    results["summary"]["success"] += 1
+                    if path_errors:
+                        results["summary"]["failed"] += 1
+                    else:
+                        results["summary"]["success"] += 1
+
                     self.stdio.print("  [{0}] {1}:{2} ({3})".format(idx, ip, ssh_port, node_type))
-                    self.stdio.print("      " + Fore.GREEN + "✓ SUCCESS" + Style.RESET_ALL + " - SSH connection established" + home_path_status)
+                    ssh_msg = Fore.GREEN + "✓" + Style.RESET_ALL + " SSH connection established"
+                    if using_default_key:
+                        ssh_msg += Fore.YELLOW + " (using default SSH key)" + Style.RESET_ALL
+                    self.stdio.print("      " + ssh_msg)
+                    for check_msg in path_check_display:
+                        self.stdio.print(check_msg)
+
+                    if path_errors:
+                        self.stdio.print("      " + Fore.RED + "✗ FAILED - Path check errors found" + Style.RESET_ALL)
             else:
                 raise Exception("SSH test command failed")
 
@@ -315,12 +344,14 @@ class ConfigCheckHandler:
             error_msg = str(e)
             node_result["status"] = "failed"
             node_result["error"] = error_msg
-            
+
             with lock:
                 node_results.append(node_result)
                 results["summary"]["failed"] += 1
                 self.stdio.print("  [{0}] {1}:{2} ({3})".format(idx, ip, ssh_port, node_type))
                 self.stdio.print("      " + Fore.RED + "✗ FAILED" + Style.RESET_ALL + " - SSH connection failed")
+                if using_default_key:
+                    self.stdio.print("      " + Fore.YELLOW + "⚠ Warning: No ssh_password or ssh_key_file configured, tried default SSH key (~/.ssh/id_rsa)" + Style.RESET_ALL)
                 self.stdio.print("      " + Fore.RED + "  Error: {0}".format(error_msg[:100]) + Style.RESET_ALL)
 
     def _print_summary(self, results):
@@ -351,8 +382,7 @@ class ConfigCheckHandler:
                 self.stdio.print("  Observer Nodes:         " + Fore.RED + "{0}/{1} FAILED".format(failed_count, len(observer_nodes)) + Style.RESET_ALL)
                 for node in observer_nodes:
                     if node.get("status") == "failed":
-                        self.stdio.print("                          " + Fore.RED + "  - [{0}] {1}: {2}".format(
-                            node.get("index"), node.get("ip"), node.get("error", "Unknown error")[:50]) + Style.RESET_ALL)
+                        self.stdio.print("                          " + Fore.RED + "  - [{0}] {1}: {2}".format(node.get("index"), node.get("ip"), node.get("error", "Unknown error")[:50]) + Style.RESET_ALL)
             else:
                 self.stdio.print("  Observer Nodes:         " + Fore.GREEN + "✓ ALL {0} NODES OK".format(len(observer_nodes)) + Style.RESET_ALL)
         else:
@@ -367,8 +397,7 @@ class ConfigCheckHandler:
                 self.stdio.print("  OBProxy Nodes:          " + Fore.RED + "{0}/{1} FAILED".format(failed_count, len(obproxy_nodes)) + Style.RESET_ALL)
                 for node in obproxy_nodes:
                     if node.get("status") == "failed":
-                        self.stdio.print("                          " + Fore.RED + "  - [{0}] {1}: {2}".format(
-                            node.get("index"), node.get("ip"), node.get("error", "Unknown error")[:50]) + Style.RESET_ALL)
+                        self.stdio.print("                          " + Fore.RED + "  - [{0}] {1}: {2}".format(node.get("index"), node.get("ip"), node.get("error", "Unknown error")[:50]) + Style.RESET_ALL)
             else:
                 self.stdio.print("  OBProxy Nodes:          " + Fore.GREEN + "✓ ALL {0} NODES OK".format(len(obproxy_nodes)) + Style.RESET_ALL)
         else:
@@ -376,15 +405,12 @@ class ConfigCheckHandler:
 
         self.stdio.print("")
         self.stdio.print("-" * 70)
-        
+
         if summary["failed"] > 0:
-            self.stdio.print("  Result: " + Fore.RED + "FAILED" + Style.RESET_ALL + 
-                           " ({0} success, {1} failed, {2} skipped)".format(
-                               summary["success"], summary["failed"], summary["skipped"]))
+            self.stdio.print("  Result: " + Fore.RED + "FAILED" + Style.RESET_ALL + " ({0} success, {1} failed, {2} skipped)".format(summary["success"], summary["failed"], summary["skipped"]))
             self.stdio.print("")
             self.stdio.print(Fore.YELLOW + "  Please check your configuration file (~/.obdiag/config.yml) and fix the errors above." + Style.RESET_ALL)
         else:
-            self.stdio.print("  Result: " + Fore.GREEN + "ALL CHECKS PASSED" + Style.RESET_ALL + 
-                           " ({0} success, {1} skipped)".format(summary["success"], summary["skipped"]))
-        
+            self.stdio.print("  Result: " + Fore.GREEN + "ALL CHECKS PASSED" + Style.RESET_ALL + " ({0} success, {1} skipped)".format(summary["success"], summary["skipped"]))
+
         self.stdio.print("-" * 70 + "\n")
