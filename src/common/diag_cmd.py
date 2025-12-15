@@ -1299,6 +1299,22 @@ class ObdiagToolAiAssistantCommand(ObdiagOriginCommand):
         return obdiag.tool_ai_assistant(self.opts)
 
 
+class ObdiagToolConfigCheckCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolConfigCheckCommand, self).__init__('config_check', 'obdiag tool config_check. Check if --config parameters are valid')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options to check. Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagToolConfigCheckCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_config_check(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1382,6 +1398,7 @@ class ToolCommand(MajorCommand):
         self.register_command(ObdiagToolCryptoConfigCommand())
         self.register_command(ObdiagToolIoPerformanceCommand())
         self.register_command(ObdiagToolAiAssistantCommand())
+        self.register_command(ObdiagToolConfigCheckCommand())
 
 
 class MainCommand(MajorCommand):
