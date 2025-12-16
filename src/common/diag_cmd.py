@@ -704,7 +704,12 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
-        self.parser.add_option('--env', action="append", type='string', help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test')
+        self.parser.add_option(
+            '--env',
+            action="append",
+            type='string',
+            help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
+        )
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--skip_type', type='string', help='The types of gather to be skipped, choices=[ssh, sql]')
