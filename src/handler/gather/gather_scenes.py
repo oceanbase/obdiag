@@ -220,7 +220,7 @@ class GatherSceneHandler(SafeStdio):
         if scene_option:
             self.scene = scene_option
         if env_option:
-            env_dict = StringUtils.parse_env(env_option)
+            env_dict = StringUtils.parse_env_display(env_option)
             self.env = env_dict
             self.context.set_variable("env", self.env)
         if temp_dir_option:
