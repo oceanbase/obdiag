@@ -1,6 +1,6 @@
 info_en: "[backup problem]"
 info_cn: "[数据备份问题]"
-command: obdiag gather scene run --scene=observer.backup --env "{tenant_id=xxx}"
+command: obdiag gather scene run --scene=observer.backup --env tenant_id=xxx
 task:
   - version: "[2.0.0.0, 3.9.9.9]"
     steps:
