@@ -68,4 +68,3 @@ class EnableObProtocolV2WithClientTask(TaskBase):
 
 
 enable_ob_protocol_v2_with_client = EnableObProtocolV2WithClientTask()
-
