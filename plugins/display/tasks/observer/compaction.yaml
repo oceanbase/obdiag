@@ -1,0 +1,78 @@
+info_en: "[compaction status]"
+info_cn: "[合并状态展示]"
+command: obdiag display scene run --scene=observer.compaction
+task:
+  - version: "[4.0.0.0,*]"
+    steps:
+      # 1. View all tenants major compaction status
+      - type: sql
+        title: "Major Compaction Status (CDB_OB_MAJOR_COMPACTION)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              TENANT_ID,
+              FROZEN_SCN,
+              GLOBAL_BROADCAST_SCN,
+              LAST_SCN,
+              LAST_FINISH_TIME,
+              START_TIME,
+              STATUS,
+              IS_ERROR,
+              IS_SUSPENDED,
+              INFO
+              FROM oceanbase.CDB_OB_MAJOR_COMPACTION
+              ORDER BY TENANT_ID;"
+        global: true
+      # 2. View compaction progress
+      - type: sql
+        title: "Compaction Progress (GV$OB_COMPACTION_PROGRESS)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              TENANT_ID,
+              SVR_IP,
+              SVR_PORT,
+              ZONE,
+              COMPACTION_SCN,
+              STATUS,
+              TOTAL_TABLET_COUNT,
+              UNFINISHED_TABLET_COUNT,
+              round(DATA_SIZE/1024/1024/1024, 2) AS DATA_SIZE_GB,
+              round(UNFINISHED_DATA_SIZE/1024/1024/1024, 2) AS UNFINISHED_DATA_SIZE_GB,
+              START_TIME,
+              ESTIMATED_FINISH_TIME
+              FROM oceanbase.GV$OB_COMPACTION_PROGRESS
+              WHERE STATUS <> 'FINISH'
+              ORDER BY TENANT_ID, SVR_IP;"
+        global: true
+      # 3. View compaction diagnose info
+      - type: sql
+        title: "Compaction Diagnose Info (__all_virtual_compaction_diagnose_info)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              tenant_id,
+              svr_ip,
+              svr_port,
+              ls_id,
+              tablet_id,
+              type,
+              status,
+              create_time,
+              diagnose_info
+              FROM oceanbase.__all_virtual_compaction_diagnose_info
+              WHERE status IN ('FAILED', 'RUNNING')
+              ORDER BY tenant_id, create_time DESC
+              LIMIT 100;"
+        global: true
+      # 4. View compaction suggestions
+      - type: sql
+        title: "Compaction Suggestions (GV$OB_COMPACTION_SUGGESTIONS)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              TENANT_ID,
+              SVR_IP,
+              SVR_PORT,
+              TYPE,
+              LS_ID,
+              TABLET_ID,
+              START_TIME,
+              FINISH_TIME,
+              SUGGESTION
+              FROM oceanbase.GV$OB_COMPACTION_SUGGESTIONS
+              ORDER BY TENANT_ID, START_TIME DESC
+              LIMIT 50;"
+        global: true

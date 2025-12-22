@@ -191,6 +191,9 @@ class GatherPlanMonitorHandler(object):
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql, tenant_name)
+                # 检查表和列的collation一致性
+                self.stdio.verbose("[sql plan monitor report task] check table collation")
+                self.report_table_collation_check(user_sql, db_name)
                 # ASH 统计
                 self.stdio.verbose("[ash report task] report ash, sql: [{0}]".format(sql_ash_top_event))
                 self.report_ash_obversion4(sql_ash_top_event)
@@ -261,15 +264,25 @@ class GatherPlanMonitorHandler(object):
 
     def __init_db_conn(self, env):
         try:
-            env_dict = StringUtils.parse_env(env)
+            # env must be a list from parse_env_display (action="append")
+            if not isinstance(env, list):
+                self.stdio.error("Invalid env format. Please use --env key=value format, e.g., --env host=127.0.0.1 --env port=2881 --env user=test --env password=****** --env database=test")
+                return False
+
+            env_dict = StringUtils.parse_env_display(env)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            self.db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if not self.db_conn:
+                self.stdio.error("Failed to build database connection information from env parameters")
+                return False
+
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_db_connector()
                 return True
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'],  but provided {0}, please check the --env option".format(env_dict))
+                self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
         except Exception as e:
             self.db_connector = self.sys_connector
@@ -1220,3 +1233,142 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.warn(f"execute SQL: {sql} {str(e)}")
                 continue
         return stale_tables
+
+    def report_table_collation_check(self, sql, default_db_name):
+        """
+        Check collation consistency for all tables and columns used in the SQL.
+        When executing SQL, all tables and columns should have the same collation for better performance.
+        If collation can't keep consistent, columns will be casted.
+        """
+        try:
+            parser = SQLTableExtractor()
+            parse_tables = parser.parse(sql)
+            if not parse_tables:
+                self.stdio.verbose("No tables found in SQL, skip collation check")
+                return
+
+            collation_info = []
+            all_collations = set()
+
+            for db_name, table_name in parse_tables:
+                if not db_name:
+                    db_name = default_db_name or (self.db_conn.get("database") if self.db_conn else None)
+
+                if not db_name:
+                    self.stdio.warn(f"Database name is empty for table {table_name}, skip collation check")
+                    continue
+
+                try:
+                    # Query column collation information
+                    if self.tenant_mode == 'mysql':
+                        # For MySQL mode, use information_schema.columns
+                        collation_sql = """
+                            SELECT 
+                                TABLE_SCHEMA,
+                                TABLE_NAME,
+                                COLUMN_NAME,
+                                DATA_TYPE,
+                                COLLATION_NAME,
+                                CHARACTER_SET_NAME
+                            FROM information_schema.columns
+                            WHERE TABLE_SCHEMA = '{0}' 
+                            AND TABLE_NAME = '{1}'
+                            AND COLLATION_NAME IS NOT NULL
+                            ORDER BY COLUMN_NAME
+                        """.format(
+                            db_name.replace("'", "''"), table_name.replace("'", "''")
+                        )
+                        connector = self.db_connector
+                    else:
+                        # For Oracle mode, use CDB views or system tables via sys_connector
+                        collation_sql = """
+                            SELECT 
+                                d.database_name as TABLE_SCHEMA,
+                                t.table_name as TABLE_NAME,
+                                c.column_name as COLUMN_NAME,
+                                c.data_type as DATA_TYPE,
+                                c.collation_type as COLLATION_NAME,
+                                c.charset_type as CHARACTER_SET_NAME
+                            FROM oceanbase.__all_virtual_column c
+                            INNER JOIN oceanbase.__all_virtual_table t 
+                                ON c.tenant_id = t.tenant_id 
+                                AND c.table_id = t.table_id
+                            INNER JOIN oceanbase.__all_virtual_database d
+                                ON t.tenant_id = d.tenant_id
+                                AND t.database_id = d.database_id
+                            WHERE UPPER(d.database_name) = UPPER('{0}')
+                            AND UPPER(t.table_name) = UPPER('{1}')
+                            AND c.collation_type IS NOT NULL
+                            ORDER BY c.column_name
+                        """.format(
+                            db_name.replace("'", "''"), table_name.replace("'", "''")
+                        )
+                        connector = self.sys_connector
+
+                    result = connector.execute_sql(collation_sql)
+
+                    if result:
+                        for row in result:
+                            if self.tenant_mode == 'mysql':
+                                table_schema, table_name_col, column_name, data_type, collation_name, charset_name = row
+                            else:
+                                table_schema, table_name_col, column_name, data_type, collation_name, charset_name = row
+
+                            if collation_name:
+                                collation_info.append({'database': table_schema, 'table': table_name_col, 'column': column_name, 'data_type': data_type, 'collation': collation_name, 'charset': charset_name})
+                                all_collations.add(collation_name)
+                except Exception as e:
+                    self.stdio.warn(f"Failed to check collation for table {db_name}.{table_name}: {str(e)}")
+                    continue
+
+            # Generate report
+            if not collation_info:
+                self.stdio.verbose("No collation information found, skip collation check report")
+                return
+
+            # Check if all collations are the same
+            if len(all_collations) > 1:
+                # Collation inconsistency found
+                warning_content = "<div class='statsWarning'>"
+                warning_content += "<h4>⚠️ Collation Inconsistency Warning</h4>"
+                warning_content += "<p><strong>Issue:</strong> The SQL uses tables/columns with different collations. "
+                warning_content += "When executing SQL, all tables and columns should have the same collation for better performance. "
+                warning_content += "If collation can't keep consistent, columns will be casted, which may impact performance.</p>"
+                warning_content += "<p><strong>Found {0} different collation(s):</strong> {1}</p>".format(len(all_collations), ", ".join(sorted(all_collations)))
+
+                # Create a table showing collation details
+                warning_content += "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; margin: 10px 0;'>"
+                warning_content += "<thead><tr style='background-color: #f0f0f0;'>"
+                warning_content += "<th>Database</th><th>Table</th><th>Column</th><th>Data Type</th><th>Collation</th><th>Charset</th>"
+                warning_content += "</tr></thead><tbody>"
+
+                for info in collation_info:
+                    warning_content += "<tr>"
+                    warning_content += "<td>{0}</td>".format(info['database'])
+                    warning_content += "<td>{0}</td>".format(info['table'])
+                    warning_content += "<td>{0}</td>".format(info['column'])
+                    warning_content += "<td>{0}</td>".format(info['data_type'])
+                    warning_content += "<td><strong>{0}</strong></td>".format(info['collation'])
+                    warning_content += "<td>{0}</td>".format(info['charset'] or 'N/A')
+                    warning_content += "</tr>"
+
+                warning_content += "</tbody></table>"
+                warning_content += "<p><strong>Recommendation:</strong> Consider modifying table/column collations to be consistent for better SQL execution performance.</p>"
+                warning_content += "</div>"
+
+                self.__report(warning_content)
+                self.stdio.warn("Collation inconsistency detected: {0} different collation(s) found".format(len(all_collations)))
+            else:
+                # All collations are the same
+                info_content = "<div style='background-color: #e8f5e9; padding: 10px; margin: 10px 0; border-left: 4px solid #4caf50;'>"
+                info_content += "<h4>✓ Collation Consistency Check</h4>"
+                info_content += "<p>All tables and columns use the same collation: <strong>{0}</strong></p>".format(list(all_collations)[0])
+                info_content += "<p>This is good for SQL execution performance.</p>"
+                info_content += "</div>"
+
+                self.__report(info_content)
+                self.stdio.verbose("Collation check passed: all columns use collation {0}".format(list(all_collations)[0]))
+
+        except Exception as e:
+            self.stdio.exception("report table collation check failed: {0}".format(str(e)))
+            pass

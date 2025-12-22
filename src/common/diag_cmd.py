@@ -641,7 +641,12 @@ class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
         super(ObdiagGatherPlanMonitorCommand, self).__init__('plan_monitor', 'Gather ParalleSQL information')
         self.parser.add_option('--trace_id', type='string', help='sql trace id')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('--env', type='string', help='''env, eg: "{db_connect='-h127.0.0.1 -P2881 -utest@test -p****** -Dtest'}"''')
+        self.parser.add_option(
+            '--env',
+            action="append",
+            type='string',
+            help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
+        )
         self.parser.add_option('--skip', type='string', help="choices=[dbms_xplan]")
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
@@ -699,7 +704,12 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
-        self.parser.add_option('--env', type='string', help='env, eg: "{env1=xxx, env2=xxx}"')
+        self.parser.add_option(
+            '--env',
+            action="append",
+            type='string',
+            help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
+        )
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--skip_type', type='string', help='The types of gather to be skipped, choices=[ssh, sql]')
@@ -727,6 +737,9 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--svr_ip', type='string', help='The IP address of the observer to be sampled. (need 4.3.5.0 or higher)')
+        self.parser.add_option('--svr_port', type='string', help='The port of the observer to be sampled. (need 4.3.5.0 or higher)')
+        self.parser.add_option('--tenant_id', type='string', help='The tenant ID to be sampled. (need 4.3.5.0 or higher)')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -767,6 +780,12 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
         self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
         self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option(
+            '--env',
+            action="append",
+            type='string',
+            help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
+        )
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -1269,6 +1288,38 @@ class ObdiagToolIoPerformanceCommand(ObdiagOriginCommand):
         return obdiag.tool_io_performance(self.opts)
 
 
+class ObdiagToolAiAssistantCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolAiAssistantCommand, self).__init__('ai_assistant', 'obdiag tool ai_assistant. Interactive AI assistant for obdiag diagnostic (BETA)')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagToolAiAssistantCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_ai_assistant(self.opts)
+
+
+class ObdiagToolConfigCheckCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolConfigCheckCommand, self).__init__('config_check', 'obdiag tool config_check. Check if --config parameters are valid')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options to check. Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagToolConfigCheckCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_config_check(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1351,6 +1402,8 @@ class ToolCommand(MajorCommand):
         super(ToolCommand, self).__init__('tool', 'obdiag tool')
         self.register_command(ObdiagToolCryptoConfigCommand())
         self.register_command(ObdiagToolIoPerformanceCommand())
+        self.register_command(ObdiagToolAiAssistantCommand())
+        self.register_command(ObdiagToolConfigCheckCommand())
 
 
 class MainCommand(MajorCommand):
