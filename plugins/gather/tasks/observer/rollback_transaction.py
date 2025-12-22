@@ -67,11 +67,19 @@ class RollbackTransaction(SafeStdio):
                     {'type': 'sql', 'sql': "show variables like 'version_comment';", 'global': True},
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.DBA_OB_ZONES ORDER BY ZONE;", 'global': True},
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.DBA_OB_SERVERS ORDER BY ZONE;", 'global': True},
-                    {'type': 'sql', 'sql': "SELECT SVR_IP,SVR_PORT,ZONE,SQL_PORT,CPU_CAPACITY,CPU_CAPACITY_MAX,CPU_ASSIGNED,CPU_ASSIGNED_MAX, concat(ROUND(MEM_CAPACITY/1024/1024/1024,0), 'G') as MEM_CAPACITY, concat(ROUND(MEM_ASSIGNED/1024/1024/1024,0), 'G') as MEM_ASSIGNED, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024,0), 'G') as LOG_DISK_CAPACITY, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024,0), 'G') as LOG_DISK_ASSIGNED, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024,0), 'G') as LOG_DISK_IN_USE, concat(ROUND(DATA_DISK_CAPACITY/1024/1024/1024,0), 'G') as DATA_DISK_CAPACITY,concat(ROUND(DATA_DISK_IN_USE/1024/1024/1024,0), 'G') as DATA_DISK_IN_USE,concat(ROUND(MEMORY_LIMIT/1024/1024/1024,0), 'G') as MEMORY_LIMIT FROM oceanbase.GV$OB_SERVERS;", 'global': True},
+                    {
+                        'type': 'sql',
+                        'sql': "SELECT SVR_IP,SVR_PORT,ZONE,SQL_PORT,CPU_CAPACITY,CPU_CAPACITY_MAX,CPU_ASSIGNED,CPU_ASSIGNED_MAX, concat(ROUND(MEM_CAPACITY/1024/1024/1024,0), 'G') as MEM_CAPACITY, concat(ROUND(MEM_ASSIGNED/1024/1024/1024,0), 'G') as MEM_ASSIGNED, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024,0), 'G') as LOG_DISK_CAPACITY, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024,0), 'G') as LOG_DISK_ASSIGNED, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024,0), 'G') as LOG_DISK_IN_USE, concat(ROUND(DATA_DISK_CAPACITY/1024/1024/1024,0), 'G') as DATA_DISK_CAPACITY,concat(ROUND(DATA_DISK_IN_USE/1024/1024/1024,0), 'G') as DATA_DISK_IN_USE,concat(ROUND(MEMORY_LIMIT/1024/1024/1024,0), 'G') as MEMORY_LIMIT FROM oceanbase.GV$OB_SERVERS;",
+                        'global': True,
+                    },
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.DBA_OB_UNIT_CONFIGS;", 'global': True},
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.DBA_OB_RESOURCE_POOLS;", 'global': True},
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.DBA_OB_TENANTS;", 'global': True},
-                    {'type': 'sql', 'sql': "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;", 'global': True},
+                    {
+                        'type': 'sql',
+                        'sql': "SELECT c.TENANT_ID, e.TENANT_NAME, concat(c.NAME, ': ', d.NAME) `pool:conf`,concat(c.UNIT_COUNT, ' unit: ', d.min_cpu, 'C/', ROUND(d.MEMORY_SIZE/1024/1024/1024,0), 'G') unit_info FROM oceanbase.DBA_OB_RESOURCE_POOLS c, oceanbase.DBA_OB_UNIT_CONFIGS d, oceanbase.DBA_OB_TENANTS e WHERE c.UNIT_CONFIG_ID=d.UNIT_CONFIG_ID AND c.TENANT_ID=e.TENANT_ID AND c.TENANT_ID>1000 ORDER BY c.TENANT_ID;",
+                        'global': True,
+                    },
                     {'type': 'sql', 'sql': "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;", 'global': True},
                 ]
             else:
@@ -81,7 +89,11 @@ class RollbackTransaction(SafeStdio):
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.v$ob_cluster", 'global': True},
                     {'type': 'sql', 'sql': "SELECT * FROM oceanbase.__all_zone WHERE name='idc';", 'global': True},
                     {'type': 'sql', 'sql': "select svr_ip,zone,with_rootserver,status,block_migrate_in_time,start_service_time,stop_time,build_version from oceanbase.__all_server order by zone;", 'global': True},
-                    {'type': 'sql', 'sql': "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;", 'global': True},
+                    {
+                        'type': 'sql',
+                        'sql': "SELECT zone, concat(svr_ip, ':', svr_port) observer, cpu_capacity, cpu_total, cpu_assigned, cpu_assigned_percent, mem_capacity, mem_total, mem_assigned, mem_assigned_percent, unit_Num, round(`load`, 2) `load`, round(cpu_weight, 2) cpu_weight, round(memory_weight, 2) mem_weight, leader_count FROM oceanbase.__all_virtual_server_stat ORDER BY zone,svr_ip;",
+                        'global': True,
+                    },
                     {'type': 'sql', 'sql': "select tenant_id,tenant_name,primary_zone,compatibility_mode from oceanbase.__all_tenant;", 'global': True},
                     {'type': 'sql', 'sql': "select count(*),tenant_id,zone_list,unit_count from oceanbase.__all_resource_pool group by tenant_id,zone_list,unit_count;", 'global': True},
                 ]
@@ -113,14 +125,14 @@ class RollbackTransaction(SafeStdio):
                 step = {
                     'type': 'sql',
                     'sql': "select tenant_name, svr_ip,  memstore_limit /(1024 * 1024 * 1024) as memstore_limit_GB,  freeze_trigger /(1024 * 1024 * 1024) as freeze_trigger_GB,  memstore_used /(1024 * 1024 * 1024) as memstore_used_GB,  concat((memstore_used * 100 / memstore_limit), '%') as memstore_used_percent,  active_span /(1024 * 1024 * 1024) as active_span_GB,  freeze_cnt   from oceanbase.GV$OB_MEMSTORE memstore_info  inner join oceanbase.DBA_OB_TENANTS tenant on  memstore_info.tenant_id = tenant.tenant_id  ORDER BY tenant.tenant_name,svr_ip;",
-                    'global': True
+                    'global': True,
                 }
             else:
                 # OceanBase 3.x: Query tenant memory usage
                 step = {
                     'type': 'sql',
                     'sql': "select NOW() 'check_time',b.tenant_id,b.tenant_name, a.SVR_IP , round(sum(case when a.STAT_ID='140003' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_usage/G', round(sum(case when a.STAT_ID='140002' then a.VALUE else 0 end)/1024/1024/1024,2) 'mem_max/G' ,round(100*(sum(case when STAT_ID='140003' then a.VALUE else 0 end)/sum(case when STAT_ID='140002' then a.VALUE else 0 end)),2) 'mem_percent' from   oceanbase.gv$sysstat a inner join oceanbase.__all_tenant b on a.con_id = b.tenant_id where a.stat_id IN (140003,140002) and (a.con_id > 1000 or a.con_id = 1) and a.class < 1000 group by  b.tenant_id,b.tenant_name, a.SVR_IP order by b.tenant_name,a.SVR_IP;",
-                    'global': True
+                    'global': True,
                 }
 
             handler = StepSQLHandler(self.context, step, self.cluster, self.report_path, self.task_variable_dict, self.env)
@@ -145,15 +157,11 @@ class RollbackTransaction(SafeStdio):
                 step = {
                     'type': 'sql',
                     'sql': "SELECT CASE WHEN tenant_name IS NULL THEN TENANT_ID ELSE tenant_name END tenant_name, host,ctx_name, mod_name, hold, used, count FROM ( SELECT tenant_name,tenant_id,HOST,ctx_name,mod_name,hold,used,COUNT, ROW_NUMBER () OVER ( PARTITION BY tenant_name, HOST ORDER BY hold desc) rnum FROM   (SELECT  b.tenant_name, a.tenant_id, concat(a.svr_ip, ':', a.svr_port) HOST,  a.ctx_name, a.mod_name,  round(a.hold / 1024 / 1024 / 1024) hold, round(a.used / 1024 / 1024 / 1024) used, a.COUNT FROM  oceanbase.__all_virtual_memory_info a  LEFT JOIN oceanbase.__all_tenant b ON a.TENANT_ID = b.TENANT_ID  WHERE a.hold > 1024 * 1024 * 1024 )) WHERE rnum <= 10 ORDER BY tenant_name, HOST, hold DESC;",
-                    'global': True
+                    'global': True,
                 }
             else:
                 # OceanBase 3.x: Query top memory modules
-                step = {
-                    'type': 'sql',
-                    'sql': "select `CONTEXT`, ROUND(USED / 1024 / 1024 / 1024, 2) as USED_GB from oceanbase.gv$memory group by `CONTEXT` ORDER BY USED DESC limit 10;",
-                    'global': True
-                }
+                step = {'type': 'sql', 'sql': "select `CONTEXT`, ROUND(USED / 1024 / 1024 / 1024, 2) as USED_GB from oceanbase.gv$memory group by `CONTEXT` ORDER BY USED DESC limit 10;", 'global': True}
 
             handler = StepSQLHandler(self.context, step, self.cluster, self.report_path, self.task_variable_dict, self.env)
             handler.execute()
@@ -194,13 +202,7 @@ class RollbackTransaction(SafeStdio):
         """Get OBConnector instance"""
         try:
             return OBConnector(
-                context=self.context,
-                ip=self.cluster.get("db_host"),
-                port=self.cluster.get("db_port"),
-                username=self.cluster.get("tenant_sys").get("user"),
-                password=self.cluster.get("tenant_sys").get("password"),
-                timeout=10000,
-                database="oceanbase"
+                context=self.context, ip=self.cluster.get("db_host"), port=self.cluster.get("db_port"), username=self.cluster.get("tenant_sys").get("user"), password=self.cluster.get("tenant_sys").get("password"), timeout=10000, database="oceanbase"
             )
         except Exception as e:
             self.stdio.error("Failed to create OBConnector: {0}".format(e))
@@ -271,20 +273,17 @@ class RollbackTransaction(SafeStdio):
 
             self.stdio.verbose("Executing SQL: {0}".format(sql_rollback_transactions))
             columns, data = ob_connector.execute_sql_return_columns_and_data(sql_rollback_transactions)
-            
+
             if data and len(data) > 0:
                 self.__report_sql_result(file_path, sql_rollback_transactions, columns, data)
                 self.stdio.print("Found {0} rollback transactions in the time range".format(len(data)))
-                
+
                 # Also create a summary file with just trace_ids for easy reference
                 summary_path = os.path.join(self.report_path, "rollback_transactions_summary.txt")
                 with open(summary_path, 'w', encoding='utf-8') as f:
                     f.write("Rollback Transaction Summary\n")
                     f.write("=" * 80 + "\n")
-                    f.write("Time Range: {0} to {1}\n".format(
-                        datetime.datetime.fromtimestamp(from_timestamp/1000000).strftime('%Y-%m-%d %H:%M:%S'),
-                        datetime.datetime.fromtimestamp(to_timestamp/1000000).strftime('%Y-%m-%d %H:%M:%S')
-                    ))
+                    f.write("Time Range: {0} to {1}\n".format(datetime.datetime.fromtimestamp(from_timestamp / 1000000).strftime('%Y-%m-%d %H:%M:%S'), datetime.datetime.fromtimestamp(to_timestamp / 1000000).strftime('%Y-%m-%d %H:%M:%S')))
                     f.write("Total Rollback Transactions: {0}\n\n".format(len(data)))
                     f.write("Trace IDs (can be used with SQL diagnostic function):\n")
                     f.write("-" * 80 + "\n")
@@ -294,10 +293,7 @@ class RollbackTransaction(SafeStdio):
             else:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write("No rollback transactions found in the specified time range.\n")
-                    f.write("Time Range: {0} to {1}\n".format(
-                        datetime.datetime.fromtimestamp(from_timestamp/1000000).strftime('%Y-%m-%d %H:%M:%S'),
-                        datetime.datetime.fromtimestamp(to_timestamp/1000000).strftime('%Y-%m-%d %H:%M:%S')
-                    ))
+                    f.write("Time Range: {0} to {1}\n".format(datetime.datetime.fromtimestamp(from_timestamp / 1000000).strftime('%Y-%m-%d %H:%M:%S'), datetime.datetime.fromtimestamp(to_timestamp / 1000000).strftime('%Y-%m-%d %H:%M:%S')))
                 self.stdio.print("No rollback transactions found in the time range")
 
             self.stdio.print("gather rollback transactions end")
