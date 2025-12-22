@@ -48,4 +48,5 @@ hardcode_scene_list = [
     RegisteredHardCodeScene(
         'observer.px_collect_log', f'''obdiag gather scene run --scene=observer.px_collect_log --env trace_id={trace_id} --env estimated_time='{estimated_time}' ''', '[Collect error source node logs for SQL PX]', '[SQL PX 收集报错源节点日志]'
     ),
+    RegisteredHardCodeScene('observer.rollback_transaction', 'obdiag gather scene run --scene=observer.rollback_transaction --from "2025-12-22 10:00:00" --to "2025-12-22 11:00:00"', '[Rollback transaction collection]', '[回滚事务收集]'),
 ]
