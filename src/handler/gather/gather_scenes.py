@@ -223,6 +223,17 @@ class GatherSceneHandler(SafeStdio):
             env_dict = StringUtils.parse_env(env_option)
             self.env = env_dict
             self.context.set_variable("env", self.env)
+        # Add from_time and to_time to env so they can be accessed by Python tasks
+        if hasattr(self, 'from_time_str') and self.from_time_str:
+            if self.env is None:
+                self.env = {}
+            self.env['from_time'] = self.from_time_str
+        if hasattr(self, 'to_time_str') and self.to_time_str:
+            if self.env is None:
+                self.env = {}
+            self.env['to_time'] = self.to_time_str
+        if self.env:
+            self.context.set_variable("env", self.env)
         if temp_dir_option:
             self.temp_dir = temp_dir_option
         if skip_type_option:
