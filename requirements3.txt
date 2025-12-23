@@ -43,6 +43,7 @@ plotly==5.24.1
 # AI Assistant
 openai>=1.0.0
 rich>=13.0.0
+prompt_toolkit>=3.0.0
 
 # Build tools (not runtime)
 pyinstaller>=4.3
