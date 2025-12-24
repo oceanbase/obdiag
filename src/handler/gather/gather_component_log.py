@@ -411,7 +411,7 @@ class GatherLogOnNode:
                 number = match.group(1)
                 obcdc_id = number
             else:
-                self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
+                self.stdio.warn("can not get obcdc_id by component_id. please check component_id.")
             self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
@@ -469,11 +469,11 @@ class GatherLogOnNode:
             # find logs
             logs_name = self.__find_logs_name()
             if logs_name is None or len(logs_name) == 0:
-                self.stdio.error("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "no log found"
                 return
             elif len(logs_name) > self.file_number_limit:
-                self.stdio.error('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
+                self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
                 self.gather_tuple["info"] = "too many files {0} > {1}".format(len(logs_name), self.file_number_limit)
                 return
 
@@ -484,7 +484,7 @@ class GatherLogOnNode:
             if is_empty_dir(self.ssh_client, tmp_log_dir, self.stdio):
                 # if remote tmp_log_dir is empty, rm the dir and return
                 self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
-                self.stdio.error("gather_log_on_node {0} failed: tmp_log_dir({1}) no log found".format(self.ssh_client.get_name(), tmp_log_dir))
+                self.stdio.warn("gather_log_on_node {0} failed: tmp_log_dir({1}) no log found".format(self.ssh_client.get_name(), tmp_log_dir))
                 self.gather_tuple["info"] = "tmp_log_dir({0}) no log found".format(tmp_log_dir)
                 return
 
@@ -497,11 +497,11 @@ class GatherLogOnNode:
             tar_file_size = int(get_file_size(self.ssh_client, tar_file))
             self.stdio.verbose("gather_log_on_node {0} tar_file_size: {1}".format(self.ssh_client.get_ip(), tar_file_size))
             if tar_file_size == 0:
-                self.stdio.error("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "tar file size is 0"
                 return
             if tar_file_size > self.file_size_limit:
-                self.stdio.error("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "File too large over gather.file_size_limit"
                 return
             else:
@@ -745,7 +745,7 @@ class GatherLogOnNode:
                         log_name_list.append(file_name)
                         self.stdio.verbose("node: {0}, The log file {1} start {2}, end {3} is range {4} to {5}".format(self.ssh_client.get_name(), file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
             except Exception as e:
-                self.stdio.error("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
+                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
                 self.stdio.verbose(traceback.format_exc())
                 continue
         if len(log_name_list) > 0:
@@ -879,7 +879,7 @@ class GatherLogOnNode:
             from_time_dt = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
             to_time_dt = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            self.stdio.error("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+            self.stdio.warn("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
             return log_name_list
 
         for file_name in log_files.split('\n'):
@@ -935,7 +935,7 @@ class GatherLogOnNode:
                         self.stdio.verbose("node: {0}, file {1} has no timestamp and is not a .log or .wf file, skip".format(self.ssh_client.get_name(), file_name))
 
             except Exception as e:
-                self.stdio.error("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
+                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
                 self.stdio.verbose(traceback.format_exc())
                 continue
 
