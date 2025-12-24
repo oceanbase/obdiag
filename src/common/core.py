@@ -617,6 +617,18 @@ class ObdiagHome(object):
             handler = ConfigCheckHandler(self.context)
             return handler.handle()
 
+    def tool_io_performance(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custom config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custom config')
+        else:
+            self.set_context('tool_io_performance', 'tool_io_performance', config)
+            from src.handler.tools.io_performance_handler import IoPerformanceHandler
+
+            handler = IoPerformanceHandler(self.context)
+            return handler.handle()
+
     def config(self, opt):
         config = self.config_manager
         if not config:

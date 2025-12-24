@@ -201,16 +201,22 @@ class GatherComponentLogHandler(BaseShellHandler):
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            if self.recent_count > 0:
+                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
+            else:
+                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         else:
-            self.stdio.print('No time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             if self.since_option:
                 self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            if self.recent_count > 0:
+                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
+            else:
+                self.stdio.print('No time option provided, default processing is based on the last 30 minutes')
+                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
 
         # check redact
         if self.redact:
@@ -748,22 +754,44 @@ class GatherLogOnNode:
             self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
         return log_name_list
 
+    def __get_log_type(self, file_name):
+        """
+        Extract log type from file name by removing timestamp suffix.
+        Examples:
+            observer.log -> observer.log
+            observer.log.20250101120000000 -> observer.log
+            observer.log.wf -> observer.log.wf
+            observer.log.wf.20250101120000000 -> observer.log.wf
+            election.log -> election.log
+            election.log.20250101120000000 -> election.log
+        """
+        # Remove timestamp suffix (17 digits) if present
+        log_type = re.sub(r'\.\d{17}$', '', file_name)
+        return log_type
+
     def __filter_by_recent_count(self, log_name_list):
         """
-        Filter log files to keep only the most recent N files based on timestamp in filename.
+        Filter log files to keep only the most recent N files for EACH log type.
         Files without timestamp (current log files) are treated as newest and included first.
+
+        For example, with recent_count=2:
+            - observer.log, observer.log.20250101, observer.log.20250102 -> keep observer.log + observer.log.20250102
+            - election.log, election.log.20250101 -> keep both
         """
-        if self.recent_count <= 0 or len(log_name_list) <= self.recent_count:
+        if self.recent_count <= 0:
             return log_name_list
 
-        self.stdio.verbose("recent_count is {0}, filtering to keep only the most recent {0} files from {1} files".format(self.recent_count, len(log_name_list)))
+        self.stdio.verbose("recent_count is {0}, filtering to keep only the most recent {0} files per log type from {1} files".format(self.recent_count, len(log_name_list)))
 
-        # Separate files with timestamps and current log files (no timestamp)
-        files_with_timestamp = []  # List of (file_name, timestamp_datetime)
-        current_log_files = []  # List of file_name (no timestamp, current log files)
+        # Group files by log type
+        log_type_groups = {}  # log_type -> list of (file_name, timestamp_datetime or None)
 
         for file_name in log_name_list:
-            timestamp_match = re.search(r'\.(\d{17})(?:\.|$)', file_name)
+            log_type = self.__get_log_type(file_name)
+            if log_type not in log_type_groups:
+                log_type_groups[log_type] = []
+
+            timestamp_match = re.search(r'\.(\d{17})$', file_name)
             if timestamp_match:
                 # File has timestamp
                 timestamp_str = timestamp_match.group(1)
@@ -776,30 +804,38 @@ class GatherLogOnNode:
                     second = int(timestamp_str[12:14])
                     microsecond = int(timestamp_str[14:17]) * 1000
                     file_time_dt = datetime.datetime(year, month, day, hour, minute, second, microsecond)
-                    files_with_timestamp.append((file_name, file_time_dt))
+                    log_type_groups[log_type].append((file_name, file_time_dt))
                 except (ValueError, IndexError):
-                    # Invalid timestamp, treat as current log file
-                    current_log_files.append(file_name)
+                    # Invalid timestamp, treat as current log file (newest)
+                    log_type_groups[log_type].append((file_name, None))
             else:
                 # File has no timestamp, treat as current log file (newest)
-                current_log_files.append(file_name)
+                log_type_groups[log_type].append((file_name, None))
 
-        # Sort files with timestamp by time (newest first)
-        files_with_timestamp.sort(key=lambda x: x[1], reverse=True)
-
-        # Build final list: current log files first (newest), then most recent timestamped files
+        # Filter each log type group to keep only the most recent N files
         filtered_list = []
-        # Add current log files first (they are the newest)
-        filtered_list.extend(current_log_files)
-        # Add most recent timestamped files
-        remaining_slots = self.recent_count - len(current_log_files)
-        if remaining_slots > 0:
-            filtered_list.extend([file_name for file_name, _ in files_with_timestamp[:remaining_slots]])
-        else:
-            # If current log files already exceed recent_count, only keep them
-            filtered_list = current_log_files[: self.recent_count]
+        for log_type, files in log_type_groups.items():
+            # Separate current log files (no timestamp) and timestamped files
+            current_files = [f for f, ts in files if ts is None]
+            timestamped_files = [(f, ts) for f, ts in files if ts is not None]
 
-        self.stdio.verbose("After filtering by recent_count={0}, kept {1} files: {2}".format(self.recent_count, len(filtered_list), filtered_list))
+            # Sort timestamped files by time (newest first)
+            timestamped_files.sort(key=lambda x: x[1], reverse=True)
+
+            # Build list for this log type: current files first, then most recent timestamped files
+            type_filtered = []
+            type_filtered.extend(current_files)
+            remaining_slots = self.recent_count - len(current_files)
+            if remaining_slots > 0:
+                type_filtered.extend([f for f, _ in timestamped_files[:remaining_slots]])
+            else:
+                # If current files already exceed recent_count, only keep them
+                type_filtered = current_files[: self.recent_count]
+
+            self.stdio.verbose("Log type '{0}': kept {1} files from {2}".format(log_type, len(type_filtered), len(files)))
+            filtered_list.extend(type_filtered)
+
+        self.stdio.verbose("After filtering by recent_count={0}, kept {1} files total: {2}".format(self.recent_count, len(filtered_list), filtered_list))
         return filtered_list
 
     def __get_logfile_name_list_v2(self, from_time_str, to_time_str, log_dir, log_files):
