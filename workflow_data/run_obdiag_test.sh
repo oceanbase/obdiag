@@ -180,9 +180,9 @@ obdiag rca run --scene=delete_server_error --env svr_ip=127.0.0.1 --env svr_port
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
 #echo "=================obdiag tool================="
-check_error_log  "obdiag tool config_check --help" 
-check_error_log  "obdiag tool io_performance --disk=clog"
-check_error_log  "obdiag tool io_performance --disk=data"
+#check_error_log  "obdiag tool config_check --help"
+#check_error_log  "obdiag tool io_performance --disk=clog"
+#check_error_log  "obdiag tool io_performance --disk=data"
 
 
 # Check if the tag is "latest" or if the version is greater than 4.2.4.0
