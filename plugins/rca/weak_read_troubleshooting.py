@@ -29,6 +29,8 @@ class WeakReadTroubleshooting(RcaScene):
         self.tenant_id = None
         self.work_path = None
         self.local_path = None
+        self.gathered_log_files = []  # Store gathered log files for local processing
+        self.enable_log_gather = False  # Default: skip log gathering to avoid timeout
 
     def verbose(self, info):
         self.stdio.verbose("[WeakReadTroubleshooting] {0}".format(info))
@@ -38,7 +40,7 @@ class WeakReadTroubleshooting(RcaScene):
             "name": "weak_read_troubleshooting",
             "info_en": "Troubleshooting of weak reading FAQs",
             "info_cn": "弱读常见问题排查",
-            "example": "obdiag rca run --scene=weak_read_troubleshooting --env tenant_id=1001",
+            "example": "obdiag rca run --scene=weak_read_troubleshooting --env tenant_id=1001 --env gather_log=true",
         }
 
     def init(self, context):
@@ -68,26 +70,105 @@ class WeakReadTroubleshooting(RcaScene):
             # If not specified, check all tenants
             self.tenant_id = None
 
-        self.record.add_record("Starting weak read troubleshooting. tenant_id: {0}".format(self.tenant_id if self.tenant_id else "all"))
+        # Get gather_log parameter (default: false to avoid timeout on large log files)
+        gather_log_str = self.input_parameters.get("gather_log", "false")
+        self.enable_log_gather = gather_log_str.lower() in ("true", "1", "yes")
+
+        self.record.add_record("Starting weak read troubleshooting. tenant_id: {0}, gather_log: {1}".format(self.tenant_id if self.tenant_id else "all", self.enable_log_gather))
+
+    def _gather_all_logs_once(self):
+        """Gather all weak read related logs once to avoid multiple remote operations"""
+        self.record.add_record("=" * 60)
+        self.record.add_record("Step 0: Gathering all weak read related logs (one-time operation)")
+        self.record.add_record("=" * 60)
+
+        try:
+            # Set up all grep patterns for weak read related issues
+            self.gather_log.set_parameters("scope", "observer")
+            # Weak read timeout patterns
+            self.gather_log.grep("weak read.*timeout")
+            self.gather_log.grep("weak_read.*timeout")
+            self.gather_log.grep("weak read service.*timeout")
+            # Log disk space patterns
+            self.gather_log.grep("log disk space is almost full")
+            self.gather_log.grep("log disk.*full")
+            self.gather_log.grep("clog.*disk.*full")
+            # Weak read consistency patterns
+            self.gather_log.grep("weak read.*consistency")
+            self.gather_log.grep("weak_read.*consistency")
+            self.gather_log.grep("READ_CONSISTENCY.*WEAK.*error")
+            # Weak read timestamp patterns
+            self.gather_log.grep("generate_weak_read_timestamp_")
+            self.gather_log.grep("weak_read_scn")
+            self.gather_log.grep("weak read ts is not ready")
+            self.gather_log.grep("weak_read.*not.*ready")
+
+            log_path = os.path.join(self.work_path, "weak_read_all_logs")
+            self.gathered_log_files = self.gather_log.execute(save_path=log_path)
+
+            if self.gathered_log_files and len(self.gathered_log_files) > 0:
+                self.record.add_record("Gathered {0} log files for local analysis".format(len(self.gathered_log_files)))
+                self.verbose("Gathered log files: {0}".format(self.gathered_log_files))
+            else:
+                self.record.add_record("No weak read related logs found")
+                self.gathered_log_files = []
+
+        except Exception as e:
+            self.record.add_record("Error gathering logs: {0}".format(str(e)))
+            self.stdio.error("Error in _gather_all_logs_once: {0}".format(e))
+            self.gathered_log_files = []
+
+    def _search_pattern_in_logs(self, patterns: List[str]) -> List[str]:
+        """Search for patterns in gathered log files locally"""
+        import re
+
+        matched_files = []
+
+        if not self.gathered_log_files:
+            return matched_files
+
+        for log_file in self.gathered_log_files:
+            try:
+                if not os.path.exists(log_file):
+                    continue
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    for pattern in patterns:
+                        if re.search(pattern, content, re.IGNORECASE):
+                            if log_file not in matched_files:
+                                matched_files.append(log_file)
+                            break
+            except Exception as e:
+                self.verbose("Error reading log file {0}: {1}".format(log_file, e))
+
+        return matched_files
 
     def execute(self):
         try:
-            # Check 1: weak read timestamp not ready
+            # Step 0: Gather logs only if explicitly enabled (default: skip to avoid timeout)
+            if self.enable_log_gather:
+                self._gather_all_logs_once()
+            else:
+                self.record.add_record("=" * 60)
+                self.record.add_record("Log gathering skipped (default). Use --env gather_log=true to enable.")
+                self.record.add_record("=" * 60)
+
+            # Check 1: weak read timestamp not ready (SQL-based, fast)
             self._check_weak_read_timestamp_not_ready()
 
-            # Check 2: weak read lag
+            # Check 2: weak read lag (SQL-based, fast)
             self._check_weak_read_lag()
 
-            # Check 3: max_stale_time_for_weak_consistency configuration
+            # Check 3: max_stale_time_for_weak_consistency configuration (SQL-based, fast)
             self._check_max_stale_time_config()
 
-            # Check 4: weak read timeout issues
+            # Check 4: weak read timeout issues (log-based, only if logs gathered)
             self._check_weak_read_timeout()
 
-            # Check 5: log disk space issues
+            # Check 5: log disk space issues (log-based, only if logs gathered)
             self._check_log_disk_space()
 
-            # Check 6: weak read consistency issues
+            # Check 6: weak read consistency issues (SQL + log-based)
             self._check_weak_read_consistency()
 
         except RCANotNeedExecuteException as e:
@@ -106,10 +187,11 @@ class WeakReadTroubleshooting(RcaScene):
 
         try:
             # Check __all_virtual_ls_info for weak_read_scn
+            # Note: readable_scn column may not exist in all OB versions, use only weak_read_scn
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
             else:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn from oceanbase.__all_virtual_ls_info"
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn from oceanbase.__all_virtual_ls_info"
 
             self.verbose("Execute SQL: {0}".format(sql))
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
@@ -129,29 +211,12 @@ class WeakReadTroubleshooting(RcaScene):
                 svr_ip = ls_info.get("svr_ip")
                 svr_port = ls_info.get("svr_port")
                 weak_read_scn = ls_info.get("weak_read_scn")
-                readable_scn = ls_info.get("readable_scn")
 
-                # Check for zero or invalid weak_read_scn first
+                # Check for zero or invalid weak_read_scn
                 if not weak_read_scn or weak_read_scn == "0" or weak_read_scn == 0:
                     issues_found = True
                     self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn is zero or invalid: {4}".format(tenant_id, ls_id, svr_ip, svr_port, weak_read_scn))
                     self.record.add_suggest("Weak read SCN is zero or invalid. This indicates weak read timestamp is not ready. Check log disk space and replica sync status.")
-                    continue
-
-                # Check if weak_read_scn is significantly behind readable_scn
-                if weak_read_scn and readable_scn:
-                    try:
-                        weak_read_scn_val = int(weak_read_scn) if weak_read_scn else 0
-                        readable_scn_val = int(readable_scn) if readable_scn else 0
-                        lag = readable_scn_val - weak_read_scn_val
-
-                        if lag > 1000000:  # Significant lag threshold
-                            issues_found = True
-                            self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn={4}, readable_scn={5}, lag={6}".format(tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, lag))
-                            self.record.add_suggest("Weak read SCN is significantly behind readable SCN. This may cause weak read timestamp not ready issues.")
-                    except (ValueError, TypeError) as e:
-                        self.verbose("Error parsing SCN values: {0}".format(e))
-                        pass
 
             if not issues_found:
                 self.record.add_record("No weak read timestamp not ready issues found")
@@ -205,39 +270,61 @@ class WeakReadTroubleshooting(RcaScene):
                 self.record.add_record("Weak read service statistics table not available: {0}".format(str(e)))
                 self.verbose("Table __all_virtual_weak_read_service_stat may not exist in this version")
 
-            # Check weak read lag by comparing weak_read_scn and readable_scn
-            if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, (readable_scn - weak_read_scn) as lag from oceanbase.__all_virtual_ls_info where tenant_id={0} and weak_read_scn > 0 and readable_scn > 0".format(self.tenant_id)
-            else:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn, readable_scn, (readable_scn - weak_read_scn) as lag from oceanbase.__all_virtual_ls_info where weak_read_scn > 0 and readable_scn > 0"
+            # Check weak read lag by comparing weak_read_scn across replicas
+            # Note: readable_scn column may not exist in all OB versions
+            # Instead, we check weak_read_scn values and compare them across log streams
+            try:
+                if self.tenant_id:
+                    sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn from oceanbase.__all_virtual_ls_info where tenant_id={0} and weak_read_scn > 0".format(self.tenant_id)
+                else:
+                    sql = "select tenant_id, ls_id, svr_ip, svr_port, weak_read_scn from oceanbase.__all_virtual_ls_info where weak_read_scn > 0"
 
-            self.verbose("Execute SQL: {0}".format(sql))
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
-            lag_data = cursor.fetchall()
+                self.verbose("Execute SQL: {0}".format(sql))
+                cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+                lag_data = cursor.fetchall()
 
-            if lag_data:
-                self._save_sql_result(lag_data, "weak_read_lag_info")
+                if lag_data:
+                    self._save_sql_result(lag_data, "weak_read_lag_info")
 
-                high_lag_count = 0
-                for ls_info in lag_data:
-                    lag = ls_info.get("lag")
-                    if lag:
-                        try:
-                            lag_val = int(lag) if isinstance(lag, (int, str)) and str(lag).isdigit() else 0
-                            if lag_val > 1000000:  # Significant lag threshold
+                    # Group by ls_id and check for scn variance across replicas
+                    ls_scn_map = {}
+                    for ls_info in lag_data:
+                        ls_id = ls_info.get("ls_id")
+                        weak_read_scn = ls_info.get("weak_read_scn")
+                        if ls_id not in ls_scn_map:
+                            ls_scn_map[ls_id] = []
+                        if weak_read_scn:
+                            try:
+                                ls_scn_map[ls_id].append((ls_info, int(weak_read_scn)))
+                            except (ValueError, TypeError):
+                                pass
+
+                    # Check for significant variance in weak_read_scn within same ls_id
+                    high_lag_count = 0
+                    for ls_id, scn_list in ls_scn_map.items():
+                        if len(scn_list) > 1:
+                            scn_values = [scn for _, scn in scn_list]
+                            max_scn = max(scn_values)
+                            min_scn = min(scn_values)
+                            lag = max_scn - min_scn
+                            if lag > 1000000:  # Significant lag threshold
                                 high_lag_count += 1
                                 if high_lag_count <= 5:  # Show first 5
-                                    self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn lag={4}".format(ls_info.get("tenant_id"), ls_info.get("ls_id"), ls_info.get("svr_ip"), ls_info.get("svr_port"), lag_val))
-                        except (ValueError, TypeError):
-                            pass
+                                    for ls_info, scn in scn_list:
+                                        self.record.add_record(
+                                            "WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, weak_read_scn={4}, lag from max={5}".format(ls_info.get("tenant_id"), ls_id, ls_info.get("svr_ip"), ls_info.get("svr_port"), scn, max_scn - scn)
+                                        )
 
-                if high_lag_count > 0:
-                    self.record.add_record("Found {0} log streams with significant weak read lag".format(high_lag_count))
-                    self.record.add_suggest("Weak read SCN is significantly behind readable SCN, indicating lag. Check replica sync status and network connectivity.")
+                    if high_lag_count > 0:
+                        self.record.add_record("Found {0} log streams with significant weak read SCN variance".format(high_lag_count))
+                        self.record.add_suggest("Weak read SCN variance detected across replicas, indicating lag. Check replica sync status and network connectivity.")
+                    else:
+                        self.record.add_record("No significant weak read lag detected")
                 else:
-                    self.record.add_record("No significant weak read lag detected")
-            else:
-                self.record.add_record("No weak read lag data available")
+                    self.record.add_record("No weak read lag data available")
+            except Exception as inner_e:
+                self.record.add_record("Could not check weak read lag: {0}".format(str(inner_e)))
+                self.verbose("Error checking weak read lag: {0}".format(inner_e))
 
         except Exception as e:
             self.record.add_record("Error checking weak read lag: {0}".format(str(e)))
@@ -283,25 +370,24 @@ class WeakReadTroubleshooting(RcaScene):
             self.stdio.error("Error in _check_max_stale_time_config: {0}".format(e))
 
     def _check_weak_read_timeout(self):
-        """Check weak read timeout issues"""
+        """Check weak read timeout issues (process gathered logs locally)"""
         self.record.add_record("=" * 60)
         self.record.add_record("Check 4: Weak read timeout")
         self.record.add_record("=" * 60)
 
         try:
-            # Gather logs for weak read timeout errors
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("weak read.*timeout")
-            self.gather_log.grep("weak_read.*timeout")
-            self.gather_log.grep("weak read service.*timeout")
+            if not self.enable_log_gather:
+                self.record.add_record("Skipped (log gathering disabled)")
+                return
 
-            log_path = os.path.join(self.work_path, "weak_read_timeout_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            # Search for weak read timeout patterns in gathered logs locally
+            timeout_patterns = [r"weak read.*timeout", r"weak_read.*timeout", r"weak read service.*timeout"]
+            matched_files = self._search_pattern_in_logs(timeout_patterns)
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Found weak read timeout related logs: {0}".format(len(logs_name)))
+            if matched_files:
+                self.record.add_record("Found weak read timeout related logs: {0}".format(len(matched_files)))
                 self.record.add_suggest("Review the collected logs for weak read timeout errors. Check network connectivity and replica availability.")
-                for log_name in logs_name:
+                for log_name in matched_files[:5]:  # Show first 5
                     self.record.add_record("Log file: {0}".format(log_name))
             else:
                 self.record.add_record("No weak read timeout errors found in logs")
@@ -311,25 +397,24 @@ class WeakReadTroubleshooting(RcaScene):
             self.stdio.error("Error in _check_weak_read_timeout: {0}".format(e))
 
     def _check_log_disk_space(self):
-        """Check log disk space issues that may affect weak read"""
+        """Check log disk space issues that may affect weak read (process gathered logs locally)"""
         self.record.add_record("=" * 60)
         self.record.add_record("Check 5: Log disk space")
         self.record.add_record("=" * 60)
 
         try:
-            # Check for log disk space warnings
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("log disk space is almost full")
-            self.gather_log.grep("log disk.*full")
-            self.gather_log.grep("clog.*disk.*full")
+            if not self.enable_log_gather:
+                self.record.add_record("Skipped (log gathering disabled)")
+                return
 
-            log_path = os.path.join(self.work_path, "log_disk_space_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            # Search for log disk space patterns in gathered logs locally
+            disk_patterns = [r"log disk space is almost full", r"log disk.*full", r"clog.*disk.*full"]
+            matched_files = self._search_pattern_in_logs(disk_patterns)
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("WARNING: Found log disk space warnings in logs: {0} files".format(len(logs_name)))
+            if matched_files:
+                self.record.add_record("WARNING: Found log disk space warnings in logs: {0} files".format(len(matched_files)))
                 self.record.add_suggest("Log disk space is almost full. This may cause weak read timestamp generation issues. Please free up disk space.")
-                for log_name in logs_name:
+                for log_name in matched_files[:5]:  # Show first 5
                     self.record.add_record("Log file: {0}".format(log_name))
             else:
                 self.record.add_record("No log disk space warnings found")
@@ -339,83 +424,82 @@ class WeakReadTroubleshooting(RcaScene):
             self.stdio.error("Error in _check_log_disk_space: {0}".format(e))
 
     def _check_weak_read_consistency(self):
-        """Check weak read consistency issues"""
+        """Check weak read consistency issues (SQL-based + optional log-based)"""
         self.record.add_record("=" * 60)
         self.record.add_record("Check 6: Weak read consistency")
         self.record.add_record("=" * 60)
 
         try:
-            # Check for weak read consistency errors in logs
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("weak read.*consistency")
-            self.gather_log.grep("weak_read.*consistency")
-            self.gather_log.grep("READ_CONSISTENCY.*WEAK.*error")
+            # Log-based check (only if logs gathered)
+            if self.enable_log_gather:
+                # Search for weak read consistency patterns in gathered logs locally
+                consistency_patterns = [r"weak read.*consistency", r"weak_read.*consistency", r"READ_CONSISTENCY.*WEAK.*error"]
+                matched_files = self._search_pattern_in_logs(consistency_patterns)
 
-            log_path = os.path.join(self.work_path, "weak_read_consistency_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
-
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Found weak read consistency related logs: {0} files".format(len(logs_name)))
-                self.record.add_suggest("Review the collected logs for weak read consistency issues.")
-                for log_name in logs_name:
-                    self.record.add_record("Log file: {0}".format(log_name))
-            else:
-                self.record.add_record("No weak read consistency errors found in logs")
-
-            # Check replica availability
-            if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, role, replica_type, in_sync from oceanbase.__all_virtual_ls_replica where tenant_id={0}".format(self.tenant_id)
-            else:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, role, replica_type, in_sync from oceanbase.__all_virtual_ls_replica"
-
-            self.verbose("Execute SQL: {0}".format(sql))
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
-            replica_data = cursor.fetchall()
-
-            if replica_data:
-                self._save_sql_result(replica_data, "ls_replica_info")
-
-                # Check for replicas not in sync
-                out_of_sync = [r for r in replica_data if r.get("in_sync") == 0 or r.get("in_sync") == "0"]
-                if out_of_sync:
-                    self.record.add_record("WARNING: Found {0} replicas not in sync".format(len(out_of_sync)))
-                    for replica in out_of_sync[:5]:  # Show first 5
-                        self.record.add_record(
-                            "tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, role={4}, in_sync={5}".format(replica.get("tenant_id"), replica.get("ls_id"), replica.get("svr_ip"), replica.get("svr_port"), replica.get("role"), replica.get("in_sync"))
-                        )
-                    self.record.add_suggest("Some replicas are not in sync, which may affect weak read consistency.")
+                if matched_files:
+                    self.record.add_record("Found weak read consistency related logs: {0} files".format(len(matched_files)))
+                    self.record.add_suggest("Review the collected logs for weak read consistency issues.")
+                    for log_name in matched_files[:5]:  # Show first 5
+                        self.record.add_record("Log file: {0}".format(log_name))
                 else:
-                    self.record.add_record("All replicas are in sync")
+                    self.record.add_record("No weak read consistency errors found in logs")
+            else:
+                self.record.add_record("Log-based check skipped (log gathering disabled)")
+
+            # Check replica availability using __all_virtual_ls_info
+            # Note: 'role' column may not exist in all OB versions, only use ls_state
+            try:
+                if self.tenant_id:
+                    sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
+                else:
+                    sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info"
+
+                self.verbose("Execute SQL: {0}".format(sql))
+                cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
+                replica_data = cursor.fetchall()
+
+                if replica_data:
+                    self._save_sql_result(replica_data, "ls_info_consistency")
+
+                    # Check for replicas in abnormal state
+                    abnormal_states = ["OFFLINE", "DEAD", "DELETING", "DELETED"]
+                    abnormal_replicas = [r for r in replica_data if r.get("ls_state") in abnormal_states]
+                    if abnormal_replicas:
+                        self.record.add_record("WARNING: Found {0} replicas in abnormal state".format(len(abnormal_replicas)))
+                        for replica in abnormal_replicas[:5]:  # Show first 5
+                            self.record.add_record("tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, ls_state={4}".format(replica.get("tenant_id"), replica.get("ls_id"), replica.get("svr_ip"), replica.get("svr_port"), replica.get("ls_state")))
+                        self.record.add_suggest("Some replicas are in abnormal state, which may affect weak read consistency.")
+                    else:
+                        self.record.add_record("All replicas are in normal state")
+            except Exception as inner_e:
+                self.record.add_record("Could not check replica status: {0}".format(str(inner_e)))
+                self.verbose("Error checking replica status: {0}".format(inner_e))
 
         except Exception as e:
             self.record.add_record("Error checking weak read consistency: {0}".format(str(e)))
             self.stdio.error("Error in _check_weak_read_consistency: {0}".format(e))
 
     def _gather_weak_read_logs(self):
-        """Gather logs related to weak read issues"""
+        """Check weak read timestamp related logs (process gathered logs locally)"""
         try:
-            work_path_weak_read = os.path.join(self.local_path, "weak_read_timestamp_logs")
-            if not os.path.exists(work_path_weak_read):
-                os.makedirs(work_path_weak_read)
+            if not self.enable_log_gather:
+                self.record.add_record("Log analysis skipped (log gathering disabled)")
+                return
 
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("generate_weak_read_timestamp_")
-            self.gather_log.grep("weak_read_scn")
-            self.gather_log.grep("weak read ts is not ready")
-            self.gather_log.grep("weak_read.*not.*ready")
+            # Search for weak read timestamp patterns in gathered logs locally
+            timestamp_patterns = [r"generate_weak_read_timestamp_", r"weak_read_scn", r"weak read ts is not ready", r"weak_read.*not.*ready"]
+            matched_files = self._search_pattern_in_logs(timestamp_patterns)
 
-            logs_name = self.gather_log.execute(save_path=work_path_weak_read)
-
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Gathered weak read related logs: {0} files in {1}".format(len(logs_name), work_path_weak_read))
-                for log_name in logs_name[:5]:  # Show first 5 log files
+            if matched_files:
+                self.record.add_record("Found weak read timestamp related logs: {0} files".format(len(matched_files)))
+                for log_name in matched_files[:5]:  # Show first 5 log files
                     self.record.add_record("  - {0}".format(log_name))
             else:
-                self.record.add_record("No weak read related logs found")
+                self.record.add_record("No weak read timestamp related logs found")
 
         except Exception as e:
-            self.stdio.error("Error gathering weak read logs: {0}".format(e))
-            self.record.add_record("Error gathering weak read logs: {0}".format(str(e)))
+            self.stdio.error("Error checking weak read logs: {0}".format(e))
+            self.record.add_record("Error checking weak read logs: {0}".format(str(e)))
 
     def _save_sql_result(self, data: List[Dict], filename: str):
         """Save SQL query result to file"""
