@@ -216,7 +216,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
             else:
                 self.stdio.print('No time option provided, default processing is based on the last 30 minutes')
-            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
 
         # check redact
         if self.redact:
