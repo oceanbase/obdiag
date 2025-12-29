@@ -16,12 +16,54 @@
 @desc: Check if memory_limit is larger than physical memory size. This will cause serious problems.
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MemoryLimitVsPhyMemTask(TaskBase):
     def init(self, context, report):
         super().init(context, report)
+
+    def _parse_memory_value_to_bytes(self, value_str):
+        """
+        Parse memory value string with unit to bytes.
+        Supports formats like: '62G', '1024M', '1073741824', '0M', '0'
+        Returns bytes as float, or None if parsing fails.
+        """
+        if value_str is None:
+            return None
+
+        value_str = str(value_str).strip().upper()
+
+        if not value_str or value_str == '0' or value_str == '0M' or value_str == '0G' or value_str == '0K':
+            return 0.0
+
+        # Try to parse as pure number (bytes)
+        try:
+            return float(value_str)
+        except ValueError:
+            pass
+
+        # Parse with unit suffix
+        unit_multipliers = {
+            'K': 1024,
+            'KB': 1024,
+            'M': 1024 * 1024,
+            'MB': 1024 * 1024,
+            'G': 1024 * 1024 * 1024,
+            'GB': 1024 * 1024 * 1024,
+            'T': 1024 * 1024 * 1024 * 1024,
+            'TB': 1024 * 1024 * 1024 * 1024,
+        }
+
+        for unit, multiplier in unit_multipliers.items():
+            if value_str.endswith(unit):
+                try:
+                    number_part = value_str[: -len(unit)].strip()
+                    return float(number_part) * multiplier
+                except ValueError:
+                    pass
+
+        return None
 
     def execute(self):
         try:
@@ -83,23 +125,28 @@ class MemoryLimitVsPhyMemTask(TaskBase):
                     self.stdio.warn("node: {0} memory_limit not found in parameters".format(ssh_client.get_name()))
                     continue
 
+                # Parse memory_limit value (supports formats like '62G', '1024M', '1073741824')
+                memory_limit_bytes = self._parse_memory_value_to_bytes(memory_limit_value)
+                if memory_limit_bytes is None:
+                    self.stdio.warn("node: {0} failed to parse memory_limit value: {1}".format(ssh_client.get_name(), memory_limit_value))
+                    continue
+
                 try:
-                    memory_limit_value = float(memory_limit_value) if memory_limit_value else 0
                     memory_limit_percentage_value = float(memory_limit_percentage_value) if memory_limit_percentage_value else 80
                 except (ValueError, TypeError) as e:
-                    self.stdio.warn("node: {0} failed to parse memory_limit values: {1}".format(ssh_client.get_name(), e))
-                    continue
+                    self.stdio.warn("node: {0} failed to parse memory_limit_percentage value: {1}".format(ssh_client.get_name(), e))
+                    memory_limit_percentage_value = 80
 
                 # Calculate memory_limit in GB
                 # memory_limit is in bytes, convert to GB
-                if memory_limit_value == 0:
+                if memory_limit_bytes == 0:
                     # Use percentage calculation
                     memory_limit_gb = phy_mem_gb * memory_limit_percentage_value / 100.0
                     self.stdio.verbose("node: {0} memory_limit is 0, using percentage calculation: {1}% of {2}GB = {3}GB".format(ssh_client.get_name(), memory_limit_percentage_value, phy_mem_gb, memory_limit_gb))
                 else:
                     # memory_limit is in bytes, convert to GB
-                    memory_limit_gb = memory_limit_value / (1024 * 1024 * 1024)
-                    self.stdio.verbose("node: {0} memory_limit: {1} bytes = {2}GB".format(ssh_client.get_name(), memory_limit_value, memory_limit_gb))
+                    memory_limit_gb = memory_limit_bytes / (1024 * 1024 * 1024)
+                    self.stdio.verbose("node: {0} memory_limit: {1} ({2} bytes) = {3}GB".format(ssh_client.get_name(), memory_limit_value, memory_limit_bytes, memory_limit_gb))
 
                 self.stdio.verbose("node: {0} physical memory: {1}GB, memory_limit: {2}GB".format(ssh_client.get_name(), phy_mem_gb, memory_limit_gb))
 
@@ -150,7 +197,8 @@ class MemoryLimitVsPhyMemTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "memory_limit_vs_phy_mem",
-            "info": "Check if memory_limit is larger than physical memory size. memory_limit larger than physical memory will cause serious problems. issue #1066",
+            "info": "Check if memory_limit is larger than physical memory size. memory_limit larger than physical memory will cause serious problems",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1066",
         }
 
 

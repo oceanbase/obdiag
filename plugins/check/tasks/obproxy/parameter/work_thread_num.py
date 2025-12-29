@@ -16,7 +16,7 @@
 @desc: Check obproxy work_thread_num parameter value
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class WorkThreadNumTask(TaskBase):
@@ -61,7 +61,8 @@ class WorkThreadNumTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "work_thread_num",
-            "info": "Check obproxy work_thread_num parameter value for potential thread exhaustion issues. issue #1019",
+            "info": "Check obproxy work_thread_num parameter value for potential thread exhaustion issues",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1019",
         }
 
 

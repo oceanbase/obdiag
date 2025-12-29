@@ -16,7 +16,7 @@
 @desc:
 """
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class AutoincCacheRefreshInterval(TaskBase):
@@ -55,7 +55,11 @@ class AutoincCacheRefreshInterval(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "autoinc_cache_refresh_interval", "info": "Check the refresh interval of the auto-increment column cache. Frequent refreshes will affect the system performance. It is recommended to set it to more than 1 hour. . issue #817"}
+        return {
+            "name": "autoinc_cache_refresh_interval",
+            "info": "Check the refresh interval of the auto-increment column cache. Frequent refreshes will affect the system performance. It is recommended to set it to more than 1 hour.",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/817",
+        }
 
 
 autoinc_cache_refresh_interval = AutoincCacheRefreshInterval()

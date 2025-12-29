@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class CpuQuotaConcurrency(TaskBase):
@@ -52,7 +52,11 @@ class CpuQuotaConcurrency(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "cpu_quota_concurrency", "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4. issue #738"}
+        return {
+            "name": "cpu_quota_concurrency",
+            "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/738",
+        }
 
 
 cpu_quota_concurrency = CpuQuotaConcurrency()

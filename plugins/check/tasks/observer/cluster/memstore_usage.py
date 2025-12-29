@@ -18,7 +18,7 @@
 from decimal import Decimal
 
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MemstoreUsage(TaskBase):
@@ -64,7 +64,11 @@ class MemstoreUsage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memstore_useage", "info": "Check memstore usage and alert when utilization rate exceeds 50%. issue #963"}
+        return {
+            "name": "memstore_useage",
+            "info": "Check memstore usage and alert when utilization rate exceeds 50%",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 memstore_usage = MemstoreUsage()

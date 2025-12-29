@@ -16,7 +16,7 @@
 @desc:
 """
 import threading
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MacroblockUtilizationRateTable(TaskBase):
@@ -119,7 +119,8 @@ class MacroblockUtilizationRateTable(TaskBase):
     def get_task_info(self):
         return {
             "name": "macroblock_utilization_rate_table",
-            "info": "Check if the ratio of actual data volume to actual disk usage is within a certain range for all tables in the OceanBase cluster. OceanBase stores data in macroblocks. Each macroblock may not be fully utilized for efficiency. If the ratio of actual data volume to actual disk usage is too low, full consolidation should be performed to improve disk utilization. This task includes query timeout protection to prevent hanging. issue #848, issue #1067",
+            "info": "Check if the ratio of actual data volume to actual disk usage is within a certain range for all tables in the OceanBase cluster. OceanBase stores data in macroblocks. Each macroblock may not be fully utilized for efficiency. If the ratio of actual data volume to actual disk usage is too low, full consolidation should be performed to improve disk utilization. This task includes query timeout protection to prevent hanging",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/848",
         }
 
 

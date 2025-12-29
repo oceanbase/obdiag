@@ -39,8 +39,8 @@ from src.handler.analyzer.analyze_parameter import AnalyzeParameterHandler
 from src.handler.analyzer.analyze_variable import AnalyzeVariableHandler
 from src.handler.analyzer.analyze_memory import AnalyzeMemoryHandler
 from src.handler.analyzer.analyze_index_space import AnalyzeIndexSpaceHandler
-from src.handler.checker.check_handler import CheckHandler
-from src.handler.checker.check_list import CheckListHandler
+from src.handler.check.check_handler import CheckHandler
+from src.handler.check.check_list import CheckListHandler
 from src.handler.gather.gather_awr import GatherAwrHandler
 from src.handler.gather.gather_sysstat import GatherOsInfoHandler
 from src.handler.gather.gather_obstack2 import GatherObstack2Handler

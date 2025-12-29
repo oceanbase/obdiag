@@ -18,7 +18,7 @@
 import re
 
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class UpgradeFinished(TaskBase):
@@ -81,7 +81,11 @@ class UpgradeFinished(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "upgrade_finished", "info": "Check if OceanBase cluster upgrade is completed and verify version consistency. issue #759"}
+        return {
+            "name": "upgrade_finished",
+            "info": "Check if OceanBase cluster upgrade is completed and verify version consistency",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/759",
+        }
 
 
 upgrade_finished = UpgradeFinished()

@@ -18,7 +18,7 @@
 import re
 
 from src.common.command import get_observer_version
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class CgroupKernelBadVersion(TaskBase):
@@ -71,7 +71,8 @@ class CgroupKernelBadVersion(TaskBase):
     def get_task_info(self):
         return {
             "name": "cgroup_kernel_bad_version",
-            "info": "There is a risk of system downtime when deploying OBServer using cgroup method on an operating system with kernel version 3.10. issue #910",
+            "info": "There is a risk of system downtime when deploying OBServer using cgroup method on an operating system with kernel version 3.10",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/910",
         }
 
 

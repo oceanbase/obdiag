@@ -17,7 +17,7 @@
 """
 import re
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class PythonVersion(TaskBase):
@@ -63,7 +63,11 @@ class PythonVersion(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "python_version", "info": "Check if the Python version installed on the host is 2.7. x, ensuring that the relevant OceanBase scripts can run properly. issue #869"}
+        return {
+            "name": "python_version",
+            "info": "Check if the Python version installed on the host is 2.7. x, ensuring that the relevant OceanBase scripts can run properly",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/869",
+        }
 
 
 python_version = PythonVersion()

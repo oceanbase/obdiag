@@ -15,7 +15,7 @@
 @file: macroblock_utilization_rate_tenant.py
 @desc:
 """
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MacroblockUtilizationRateTenant(TaskBase):
@@ -52,7 +52,8 @@ select /*+READ_CONSISTENCY(WEAK)*/ b.tenant_id, d.tenant_name, sum(c.occupy_size
     def get_task_info(self):
         return {
             "name": "macroblock_utilization_rate_tenant",
-            "info": "Check if the ratio of actual data volume to actual disk usage is within a certain range for all tenants in the OceanBase cluster. OceanBase stores data in macroblocks. Each macroblock may not be fully utilized for efficiency. If the ratio of actual data volume to actual disk usage is too low, full consolidation should be performed to improve disk utilization. issue #847",
+            "info": "Check if the ratio of actual data volume to actual disk usage is within a certain range for all tenants in the OceanBase cluster. OceanBase stores data in macroblocks. Each macroblock may not be fully utilized for efficiency. If the ratio of actual data volume to actual disk usage is too low, full consolidation should be performed to improve disk utilization",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/847",
         }
 
 

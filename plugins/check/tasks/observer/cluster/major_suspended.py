@@ -16,7 +16,7 @@
 @desc: Check for suspended major compaction in OceanBase cluster
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MajorSuspendedTask(TaskBase):
@@ -61,7 +61,8 @@ class MajorSuspendedTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "major_suspended",
-            "info": "Check for manually suspended major compaction in OceanBase cluster. issue #1015",
+            "info": "Check for manually suspended major compaction in OceanBase cluster",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1015",
         }
 
 

@@ -15,7 +15,7 @@
 @file: auto_split_error.py
 @desc: Check tables with auto split enabled in the cluster and verify if their partition data size is smaller than the split threshold
 """
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class AutoSplitErrorTable(TaskBase):

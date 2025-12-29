@@ -16,7 +16,7 @@
 @desc:
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class UpperTransVersion(TaskBase):
@@ -46,7 +46,8 @@ class UpperTransVersion(TaskBase):
     def get_task_info(self):
         return {
             "name": "upper_trans_version",
-            "info": "If the OB version is within the range [4.2.5.0, 4.2.5.3), when executing the SQL query in the sys tenant returns non-empty results, prompt the user to upgrade to version ob425_bp3 or higher. issue #838",
+            "info": "If the OB version is within the range [4.2.5.0, 4.2.5.3), when executing the SQL query in the sys tenant returns non-empty results, prompt the user to upgrade to version ob425_bp3 or higher",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/838",
         }
 
 

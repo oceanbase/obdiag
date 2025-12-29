@@ -16,7 +16,7 @@
 @desc: Check for network write condition wakeup issues in observer logs
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class NetworkWriteCondWakeupTask(TaskBase):

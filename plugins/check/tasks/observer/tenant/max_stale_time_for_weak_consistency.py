@@ -16,7 +16,7 @@
 @desc:
 """
 from src.common.command import get_observer_version
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MaxStaleTimeForWeakConsistency(TaskBase):
@@ -51,7 +51,11 @@ select * from oceanbase.GV$OB_PARAMETERS  where name="max_stale_time_for_weak_co
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "max_stale_time_for_weak_consistency", "info": "Confirm if the configuration item is the default value. issue #850"}
+        return {
+            "name": "max_stale_time_for_weak_consistency",
+            "info": "Confirm if the configuration item is the default value",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/850",
+        }
 
 
 max_stale_time_for_weak_consistency = MaxStaleTimeForWeakConsistency()

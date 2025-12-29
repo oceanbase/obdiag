@@ -16,7 +16,7 @@
 @desc:
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ObserverPort(TaskBase):
@@ -61,7 +61,11 @@ class ObserverPort(TaskBase):
             self.report.add_fail("node:{1} execute error {0}".format(node.get("ip"), e).strip())
 
     def get_task_info(self):
-        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue #845"}
+        return {
+            "name": "observer_port",
+            "info": "Check if the necessary ports between OceanBase cluster nodes are connected",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/845",
+        }
 
 
 observer_port = ObserverPort()

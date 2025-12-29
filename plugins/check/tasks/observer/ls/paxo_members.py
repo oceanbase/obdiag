@@ -16,7 +16,7 @@
 @desc: Paxos members status check task for OceanBase
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class PaxosMembersTask(TaskBase):
@@ -25,11 +25,11 @@ class PaxosMembersTask(TaskBase):
         self.stdio.verbose("PaxosMembersTask initialized")
 
     def execute(self):
-        # 检查版本兼容性
+        # Check version compatibility
         if not super().check_ob_version_min("4.0.0.0"):
             return self.report.add_warning("Paxos members check requires OceanBase 4.0.0.0+")
 
-        # 执行SQL查询
+        # Execute SQL query
         sql = """
         SELECT * FROM oceanbase.DBA_OB_LS_LOCATIONS ;
         """
@@ -38,7 +38,7 @@ class PaxosMembersTask(TaskBase):
             self.stdio.verbose("Executing Paxos members SQL query")
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
 
-            # 处理查询结果
+            # Process query results
             if not result:
                 self.report.add_warning("No Paxos member information found")
                 return
@@ -46,7 +46,7 @@ class PaxosMembersTask(TaskBase):
             self.stdio.verbose(f"Paxos members query returned {len(result)} rows")
             ls_data = []
 
-            # 检查每个LS的Paxos成员状态
+            # Check Paxos member status for each LS
             for row in result:
                 ls_id = row.get('LS_ID')
                 SVR_IP = row.get('SVR_IP')
@@ -73,5 +73,5 @@ class PaxosMembersTask(TaskBase):
         return {"name": "paxo_members", "info": "Inspecion checks if ls consistents with paxo-members，else delete server can't success. #"}
 
 
-# 注册任务实例（注意：实例名与文件名保持一致）
+# Register task instance (instance name should match filename)
 paxo_members = PaxosMembersTask()

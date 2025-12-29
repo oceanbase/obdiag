@@ -16,7 +16,7 @@
 @desc:
 """
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class Cgroup(TaskBase):
@@ -56,7 +56,11 @@ class Cgroup(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "cgroup", "info": "Check if tenant isolation is enabled in versions 4. x and above. Default should be enabled to ensure performance. issue #849"}
+        return {
+            "name": "cgroup",
+            "info": "Check if tenant isolation is enabled in versions 4. x and above. Default should be enabled to ensure performance",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/849",
+        }
 
 
 cgroup = Cgroup()

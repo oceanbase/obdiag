@@ -16,7 +16,7 @@
 @desc: Check ob_query_timeout global variable value
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 import re
 
 
@@ -88,7 +88,8 @@ class ObQueryTimeoutTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "ob_query_timeout",
-            "info": "Check ob_query_timeout global variable for potential thread hang issues. issue #978",
+            "info": "Check ob_query_timeout global variable for potential thread hang issues",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/978",
         }
 
 

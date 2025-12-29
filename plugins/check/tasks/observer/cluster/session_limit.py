@@ -17,9 +17,9 @@
 """
 from decimal import Decimal
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 from src.common.tool import StringUtils
-from src.handler.checker.check_exception import CheckException
+from src.handler.check.check_exception import CheckException
 
 
 class SessionLimit(TaskBase):
@@ -54,7 +54,11 @@ class SessionLimit(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "session_count", "info": "Check tenant session count and alert when exceeds 5000 threshold. issue #963"}
+        return {
+            "name": "session_count",
+            "info": "Check tenant session count and alert when exceeds 5000 threshold",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 session_limit = SessionLimit()

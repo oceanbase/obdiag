@@ -19,7 +19,7 @@
 """
 
 import threading
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ArchiveContinuousError(TaskBase):
@@ -129,7 +129,8 @@ class ArchiveContinuousError(TaskBase):
             "name": "archive_continuous_error",
             "info": "Check for 'pay ATTENTION!! archive continuous encounter error more than 15' in observer logs. "
             "This error indicates archive has encountered continuous errors more than 15 times. "
-            "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000003272139. issue #991",
+            "Reference: https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000003272139.",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/991",
         }
 
 

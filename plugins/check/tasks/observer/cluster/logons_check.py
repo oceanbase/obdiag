@@ -16,7 +16,7 @@
 @desc: Check if user logons cumulative value is approaching 2147483647 threshold
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 from src.common.tool import StringUtils
 
 
@@ -27,16 +27,16 @@ class LogonsCheckTask(TaskBase):
             self.report.add_critical("Database connection required for logons check")
 
     def execute(self):
-        # 版本限制检查（仅检查低于4.2.1.4版本）
+        # Version check (only for versions below 4.2.1.4)
         if super().check_ob_version_min("4.2.1.4"):
             return self.report.add_normal("[SKIP] This task only applies to versions before 4.2.1.4")
 
-        # 定义阈值参数
+        # Define threshold parameters
         MAX_THRESHOLD = 2147483647
-        WARNING_THRESHOLD = MAX_THRESHOLD * 0.8  # 80% 阈值
-        CRITICAL_THRESHOLD = MAX_THRESHOLD * 0.95  # 95% 阈值（可选）
+        WARNING_THRESHOLD = MAX_THRESHOLD * 0.8  # 80% threshold
+        CRITICAL_THRESHOLD = MAX_THRESHOLD * 0.95  # 95% threshold (optional)
 
-        # 执行SQL查询
+        # Execute SQL query
         sql = "SELECT * FROM oceanbase.GV$SYSSTAT WHERE NAME = 'user logons cumulative'"
 
         try:
@@ -48,7 +48,7 @@ class LogonsCheckTask(TaskBase):
 
             self.stdio.verbose(f"Found {len(results)} nodes with logons data")
 
-            # 逐节点检查
+            # Check each node
             for row in results:
                 svr_ip = row.get('SVR_IP')
                 svr_port = row.get('SVR_PORT')
@@ -56,10 +56,10 @@ class LogonsCheckTask(TaskBase):
 
                 self.stdio.verbose(f"Node {svr_ip}:{svr_port} - Value: {value} " f"(Threshold: {WARNING_THRESHOLD:.0f})")
 
-                # 构造节点标识
+                # Build node identifier
                 node_id = f"{svr_ip}:{svr_port}"
 
-                # 阈值判断逻辑
+                # Threshold check logic
                 if value >= MAX_THRESHOLD:
                     self.report.add_critical(f"Node {node_id} has reached the maximum value {MAX_THRESHOLD}. " "Immediate action required: Plan version upgrade or emergency restart.")
                 elif value >= WARNING_THRESHOLD:
@@ -74,7 +74,11 @@ class LogonsCheckTask(TaskBase):
             self.stdio.warn(f"SQL execution error: {str(e)}")
 
     def get_task_info(self):
-        return {"name": "logons_check", "info": "Check if user logons cumulative value is approaching 2147483647 threshold (versions before 4.2.1.4). issue #972"}
+        return {
+            "name": "logons_check",
+            "info": "Check if user logons cumulative value is approaching 2147483647 threshold (versions before 4.2.1.4)",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/972",
+        }
 
 
 logons_check = LogonsCheckTask()

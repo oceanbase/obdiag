@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 need_check_command = [
     {"name": "mtr", "info": "Network testing tools. Suggested installation"},

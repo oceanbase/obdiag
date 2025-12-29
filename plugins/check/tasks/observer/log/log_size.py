@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class LogSize(TaskBase):
@@ -50,7 +50,11 @@ class LogSize(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "log_size", "info": "Check max_syslog_file_count parameter and alert when not set to 0 or over 100. issue #963"}
+        return {
+            "name": "log_size",
+            "info": "Check max_syslog_file_count parameter and alert when not set to 0 or over 100",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 log_size = LogSize()

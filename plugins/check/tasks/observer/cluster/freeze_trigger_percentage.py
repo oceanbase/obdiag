@@ -15,7 +15,7 @@
 @file: freeze_trigger_percentage.py
 @desc:
 """
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class FreezeTriggerPercentage(TaskBase):
@@ -53,10 +53,10 @@ class FreezeTriggerPercentage(TaskBase):
                     continue
 
             if tenant_ip_map:
-                # 构建每行一个租户的报告信息
+                # Build report info with one tenant per line
                 warning_msgs = []
                 for tenant_id, ips in tenant_ip_map.items():
-                    unique_ips = sorted(list(set(ips)))  # 去重并排序
+                    unique_ips = sorted(list(set(ips)))  # deduplicate and sort
                     warning_msgs.append(f"Tenant {tenant_id} has incorrect freeze_trigger_percentage on nodes: {', '.join(unique_ips)}")
 
                 return self.report.add_warning("Found incorrect freeze_trigger_percentage(!=20):\n" + "\n".join(warning_msgs))
@@ -66,7 +66,11 @@ class FreezeTriggerPercentage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "freeze_trigger_percentage", "info": "It is recommended that the server keep the default configuration of 20. issue #795"}
+        return {
+            "name": "freeze_trigger_percentage",
+            "info": "It is recommended that the server keep the default configuration of 20",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/795",
+        }
 
 
 freeze_trigger_percentage = FreezeTriggerPercentage()

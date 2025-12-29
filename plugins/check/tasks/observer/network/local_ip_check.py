@@ -17,7 +17,7 @@
 """
 
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class LocalIPCheck(TaskBase):
@@ -94,7 +94,8 @@ class LocalIPCheck(TaskBase):
     def get_task_info(self):
         return {
             "name": "local_ip_check",
-            "info": "Validate if local_ip in observer.config.bin matches the actual NIC IP on the configured network interface. issue #878",
+            "info": "Validate if local_ip in observer.config.bin matches the actual NIC IP on the configured network interface",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/878",
         }
 
 

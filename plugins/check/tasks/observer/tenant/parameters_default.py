@@ -17,7 +17,7 @@
 """
 from src.common.command import get_observer_version
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ParametersDefault(TaskBase):
@@ -81,7 +81,11 @@ GROUP BY
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "parameters_default", "info": "Confirm if the configuration item is the default value. issue #850"}
+        return {
+            "name": "parameters_default",
+            "info": "Confirm if the configuration item is the default value",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/850",
+        }
 
 
 parameters_default = ParametersDefault()

@@ -17,7 +17,7 @@
 """
 import re
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class TraceLogSlowQueryWatermark(TaskBase):
@@ -113,7 +113,8 @@ class TraceLogSlowQueryWatermark(TaskBase):
     def get_task_info(self):
         return {
             "name": "trace_log_slow_query_watermark",
-            "info": "Check the execution time threshold of the query. If the execution time of the query exceeds this threshold, it is considered a slow query, and the trace log of the slow query will be printed to the system log. It is recommended not less than 1s, not more than 2s. issue #842",
+            "info": "Check the execution time threshold of the query. If the execution time of the query exceeds this threshold, it is considered a slow query, and the trace log of the slow query will be printed to the system log. It is recommended not less than 1s, not more than 2s",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/842",
         }
 
 

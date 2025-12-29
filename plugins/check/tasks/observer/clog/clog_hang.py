@@ -17,7 +17,7 @@
 """
 from decimal import Decimal
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ClogHang(TaskBase):
@@ -42,7 +42,11 @@ class ClogHang(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "clog_hang", "info": "Check for disk failures that may cause clog hang issues. issue #963"}
+        return {
+            "name": "clog_hang",
+            "info": "Check for disk failures that may cause clog hang issues",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 clog_hang = ClogHang()

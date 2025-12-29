@@ -16,7 +16,7 @@
 @desc:
 """
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ClogSyncTimeWarnThreshold(TaskBase):
@@ -55,7 +55,11 @@ class ClogSyncTimeWarnThreshold(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "clog_sync_time_warn_threshold", "info": "Check the clog synchronization time warning threshold. If the synchronization time exceeds this value, a WARN log is generated. It is recommended to set it to 100ms. issue #793"}
+        return {
+            "name": "clog_sync_time_warn_threshold",
+            "info": "Check the clog synchronization time warning threshold. If the synchronization time exceeds this value, a WARN log is generated. It is recommended to set it to 100ms",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/793",
+        }
 
 
 clog_sync_time_warn_threshold = ClogSyncTimeWarnThreshold()

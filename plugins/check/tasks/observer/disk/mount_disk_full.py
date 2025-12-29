@@ -17,7 +17,7 @@
 """
 import re
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MountDiskFull(TaskBase):
@@ -63,7 +63,11 @@ class MountDiskFull(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "mount_disk_full", "info": "Check the disk usage of each mounting point on the host. issue #611"}
+        return {
+            "name": "mount_disk_full",
+            "info": "Check the disk usage of each mounting point on the host",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/611",
+        }
 
 
 mount_disk_full = MountDiskFull()

@@ -16,7 +16,7 @@
 @desc:
 """
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ClockSourceCheck(TaskBase):
@@ -80,7 +80,11 @@ class ClockSourceCheck(TaskBase):
             return self.report.add_fail(f"Execute error: {e}")
 
     def get_task_info(self):
-        return {"name": "clock_source_check", "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent.issue #781 #873"}
+        return {
+            "name": "clock_source_check",
+            "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/781",
+        }
 
 
 clock_source_check = ClockSourceCheck()
