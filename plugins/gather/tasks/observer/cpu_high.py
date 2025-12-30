@@ -309,18 +309,28 @@ class CPUHigh(SafeStdio):
                 else:
                     self.stdio.verbose("Skipping EXPLAIN for sql_id={0} (statement type doesn't support EXPLAIN)".format(sql_id))
 
-            # Get GV$OB_SQL_PLAN information
-            sql_get_plan_info = """
-            SELECT * 
-            FROM oceanbase.GV$OB_SQL_PLAN 
-            WHERE sql_id = '{0}'
-            LIMIT 20
-            """.format(
-                sql_id.replace("'", "''")
-            )
+            # Get GV$OB_SQL_PLAN information (only available in OceanBase 4.2.0.0 and later)
+            try:
+                ob_version = get_observer_version(self.context)
+                is_ob420_or_later = StringUtils.compare_versions_greater(ob_version, "4.2.0.0") or ob_version == "4.2.0.0"
+            except Exception as e:
+                self.stdio.warn("Failed to get OceanBase version for GV$OB_SQL_PLAN check: {0}".format(e))
+                is_ob420_or_later = False
 
-            columns, data = ob_connector.execute_sql_return_columns_and_data(sql_get_plan_info)
-            self.__report_sql_result(file_path, "GV$OB_SQL_PLAN for sql_id={0}".format(sql_id), columns, data)
+            if is_ob420_or_later:
+                sql_get_plan_info = """
+                SELECT * 
+                FROM oceanbase.GV$OB_SQL_PLAN 
+                WHERE sql_id = '{0}'
+                LIMIT 20
+                """.format(
+                    sql_id.replace("'", "''")
+                )
+
+                columns, data = ob_connector.execute_sql_return_columns_and_data(sql_get_plan_info)
+                self.__report_sql_result(file_path, "GV$OB_SQL_PLAN for sql_id={0}".format(sql_id), columns, data)
+            else:
+                self.stdio.verbose("Skipping GV$OB_SQL_PLAN query for sql_id={0} (requires OceanBase 4.2.0.0 or later)".format(sql_id))
 
             # Get partition distribution for tables in the SQL
             self.__gather_partition_distribution(ob_connector, file_path, sql_id, from_timestamp, to_timestamp)
