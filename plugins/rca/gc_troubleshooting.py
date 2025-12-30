@@ -108,10 +108,12 @@ class GCTroubleshooting(RcaScene):
 
         try:
             # Check __all_virtual_ls_info for LS status
+            # Note: Different OB versions may have different columns (status vs ls_state)
+            # Try with ls_state first (more compatible), fallback to status if needed
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, status, ls_state from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info where tenant_id={0}".format(self.tenant_id)
             else:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, status, ls_state from oceanbase.__all_virtual_ls_info"
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info"
 
             self.verbose("Execute SQL: {0}".format(sql))
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
@@ -133,14 +135,14 @@ class GCTroubleshooting(RcaScene):
                 ls_id = ls_info.get("ls_id")
                 svr_ip = ls_info.get("svr_ip")
                 svr_port = ls_info.get("svr_port")
-                status = ls_info.get("status")
+                # Use ls_state as the primary field for status check
                 ls_state = ls_info.get("ls_state")
 
                 # Check if LS is in abnormal state for GC
-                if status and status in abnormal_states:
+                if ls_state and ls_state in abnormal_states:
                     issues_found = True
-                    self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, status={4}, ls_state={5}".format(tenant_id, ls_id, svr_ip, svr_port, status, ls_state))
-                    self.record.add_suggest("LS is in abnormal state {0}. This may indicate GC is blocked or hanging.".format(status))
+                    self.record.add_record("WARNING: tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, ls_state={4}".format(tenant_id, ls_id, svr_ip, svr_port, ls_state))
+                    self.record.add_suggest("LS is in abnormal state {0}. This may indicate GC is blocked or hanging.".format(ls_state))
 
             if not issues_found:
                 self.record.add_record("No abnormal LS GC status found")
@@ -202,11 +204,12 @@ class GCTroubleshooting(RcaScene):
 
         try:
             # Check for LS that cannot be safely destroyed
-            # First, check LS in WAIT_OFFLINE or OFFLINE status
+            # First, check LS in WAIT_OFFLINE or OFFLINE state
+            # Note: Use ls_state instead of status for better version compatibility
             if self.tenant_id:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, status from oceanbase.__all_virtual_ls_info where tenant_id={0} and status in ('WAIT_OFFLINE', 'OFFLINE')".format(self.tenant_id)
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info where tenant_id={0} and ls_state in ('WAIT_OFFLINE', 'OFFLINE')".format(self.tenant_id)
             else:
-                sql = "select tenant_id, ls_id, svr_ip, svr_port, status from oceanbase.__all_virtual_ls_info where status in ('WAIT_OFFLINE', 'OFFLINE')"
+                sql = "select tenant_id, ls_id, svr_ip, svr_port, ls_state from oceanbase.__all_virtual_ls_info where ls_state in ('WAIT_OFFLINE', 'OFFLINE')"
 
             self.verbose("Execute SQL: {0}".format(sql))
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
@@ -217,7 +220,7 @@ class GCTroubleshooting(RcaScene):
 
                 self.record.add_record("Found {0} LS waiting for destroy".format(len(waiting_ls)))
                 for ls in waiting_ls[:10]:  # Show first 10
-                    self.record.add_record("tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, status={4}".format(ls.get("tenant_id"), ls.get("ls_id"), ls.get("svr_ip"), ls.get("svr_port"), ls.get("status")))
+                    self.record.add_record("tenant_id={0}, ls_id={1}, svr_ip={2}:{3}, ls_state={4}".format(ls.get("tenant_id"), ls.get("ls_id"), ls.get("svr_ip"), ls.get("svr_port"), ls.get("ls_state")))
 
                 self.record.add_suggest("LS are waiting for safe destroy. This may indicate GC is blocked. Check logs for 'this ls is not safe to destroy'.")
                 # Gather related logs

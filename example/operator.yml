@@ -34,4 +34,3 @@ obcluster:
     global:
       # if running obdiag in kubernetes, please delete the kubernetes_config_file
       kubernetes_config_file: "~/.kube/config/config.yaml"
-
