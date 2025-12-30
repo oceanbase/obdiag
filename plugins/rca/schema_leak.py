@@ -109,102 +109,61 @@ class SchemaLeakScene(RcaScene):
 
     def _check_schema_slots(self):
         """
-        Check schema slot usage for potential leaks.
-        Reference: GV$OB_SCHEMA_SLOT view
+        Check schema-related status for potential leaks.
+        Note: GV$OB_SCHEMA_SLOT view does not exist in OceanBase.
+        Use alternative method: check schema memory usage from __all_virtual_memory_info.
         """
-        self.record.add_record("Step 1: Checking schema slot status...")
+        self.record.add_record("Step 1: Checking schema memory status...")
         leak_detected = False
 
         try:
-            # Query schema slot status
+            # Check schema-related memory usage from __all_virtual_memory_info
             sql = """
                 SELECT 
                     TENANT_ID,
                     SVR_IP,
-                    SVR_PORT,
-                    SLOT_ID,
-                    SCHEMA_VERSION,
-                    SCHEMA_COUNT,
-                    TOTAL_REF_CNT,
-                    REF_INFO
-                FROM oceanbase.GV$OB_SCHEMA_SLOT
-                WHERE TOTAL_REF_CNT > 0
-                ORDER BY TOTAL_REF_CNT DESC
+                    CTX_NAME,
+                    MOD_NAME,
+                    round(HOLD/1024/1024, 2) as HOLD_MB,
+                    round(USED/1024/1024, 2) as USED_MB,
+                    COUNT
+                FROM oceanbase.__all_virtual_memory_info 
+                WHERE lower(MOD_NAME) LIKE '%schema%'
+                ORDER BY HOLD DESC
                 LIMIT 100
             """
-            self.verbose("Executing schema slot query: {0}".format(sql))
+            self.verbose("Executing schema memory query")
 
             cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
-            schema_slot_data = cursor.fetchall()
+            schema_memory_data = cursor.fetchall()
 
-            # Save to file
-            self._save_to_file("schema_slot_status.json", schema_slot_data)
+            if schema_memory_data:
+                self._save_to_file("schema_memory_status.json", schema_memory_data)
 
-            if not schema_slot_data:
-                self.record.add_record("No active schema slots found.")
-                return False
+                # Calculate total schema memory
+                total_schema_mb = sum(float(row.get('HOLD_MB', 0)) for row in schema_memory_data)
+                self.record.add_record("Schema-related memory usage: {0:.2f} MB".format(total_schema_mb))
 
-            self.record.add_record("Found {0} active schema slots".format(len(schema_slot_data)))
-
-            # Analyze for potential leaks
-            high_ref_slots = []
-            for slot in schema_slot_data:
-                total_ref_cnt = int(slot.get('TOTAL_REF_CNT', 0))
-                if total_ref_cnt > self.schema_slot_ref_threshold:
-                    high_ref_slots.append(slot)
-                    self.verbose("High reference count slot found: tenant_id={0}, slot_id={1}, ref_cnt={2}".format(slot.get('TENANT_ID'), slot.get('SLOT_ID'), total_ref_cnt))
-
-            if high_ref_slots:
-                leak_detected = True
-                self.record.add_record("WARNING: Found {0} schema slots with high reference count (>{1})".format(len(high_ref_slots), self.schema_slot_ref_threshold))
-                self._save_to_file("high_ref_schema_slots.json", high_ref_slots)
-
-                # Provide suggestions
-                self.record.add_suggest(
-                    "High schema slot reference count detected. This may indicate:\n"
-                    "1. Schema version not being released properly\n"
-                    "2. Long-running transactions holding old schema versions\n"
-                    "3. Application connection pool not refreshing connections\n"
-                    "Suggestion: Check REF_INFO column for details on what is holding references."
-                )
-
-            # Check for schema version fragmentation
-            self._check_schema_version_fragmentation()
+                # Check for high schema memory (threshold: 1GB)
+                if total_schema_mb > 1024:
+                    leak_detected = True
+                    self.record.add_record("WARNING: High schema memory usage detected ({0:.2f} MB > 1GB)".format(total_schema_mb))
+                    self.record.add_suggest(
+                        "High schema memory usage may indicate:\n"
+                        "1. Frequent DDL operations causing schema version accumulation\n"
+                        "2. Long-running transactions holding old schema versions\n"
+                        "3. Application not refreshing connections after DDL\n"
+                        "Suggestion: Check for uncommitted DDL or long-running transactions."
+                    )
+            else:
+                self.record.add_record("No schema-related memory info found")
 
         except Exception as e:
-            self.verbose("Error checking schema slots: {0}".format(str(e)))
-            self.record.add_record("Failed to check schema slots: {0}".format(str(e)))
+            self.stdio.error("Error checking schema memory: {0}".format(str(e)))
+            self.verbose("Error checking schema memory: {0}".format(str(e)))
+            self.record.add_record("Failed to check schema memory: {0}".format(str(e)))
 
         return leak_detected
-
-    def _check_schema_version_fragmentation(self):
-        """Check for schema version fragmentation across tenants"""
-        try:
-            sql = """
-                SELECT 
-                    TENANT_ID,
-                    COUNT(DISTINCT SCHEMA_VERSION) as VERSION_COUNT,
-                    MIN(SCHEMA_VERSION) as MIN_VERSION,
-                    MAX(SCHEMA_VERSION) as MAX_VERSION
-                FROM oceanbase.GV$OB_SCHEMA_SLOT
-                GROUP BY TENANT_ID
-                HAVING COUNT(DISTINCT SCHEMA_VERSION) > 10
-                ORDER BY VERSION_COUNT DESC
-            """
-            cursor = self.ob_connector.execute_sql_return_cursor_dictionary(sql)
-            fragmentation_data = cursor.fetchall()
-
-            if fragmentation_data:
-                self.record.add_record("Schema version fragmentation detected in {0} tenants".format(len(fragmentation_data)))
-                self._save_to_file("schema_fragmentation.json", fragmentation_data)
-                self.record.add_suggest(
-                    "Schema version fragmentation found. Too many schema versions being held may indicate:\n"
-                    "1. Frequent DDL operations\n"
-                    "2. Long-running queries preventing schema garbage collection\n"
-                    "Suggestion: Review DDL frequency and check for long-running transactions."
-                )
-        except Exception as e:
-            self.verbose("Error checking schema fragmentation: {0}".format(str(e)))
 
     def _check_sessions(self):
         """
@@ -214,11 +173,11 @@ class SchemaLeakScene(RcaScene):
         leak_detected = False
 
         try:
-            # Query active sessions
+            # Query active sessions - use basic columns that exist in all versions
+            # Note: Some columns like TENANT_ID may not exist in all OB versions
             sql = """
                 SELECT 
                     ID,
-                    TENANT_ID,
                     USER,
                     HOST,
                     DB,
@@ -227,16 +186,7 @@ class SchemaLeakScene(RcaScene):
                     STATE,
                     INFO,
                     SVR_IP,
-                    SVR_PORT,
-                    SQL_ID,
-                    TRANS_ID,
-                    THREAD_ID,
-                    SSL_CIPHER,
-                    TRACE_ID,
-                    TRANS_STATE,
-                    TOTAL_TIME,
-                    RETRY_CNT,
-                    RETRY_INFO
+                    SVR_PORT
                 FROM oceanbase.GV$OB_PROCESSLIST
                 ORDER BY TIME DESC
                 LIMIT 500
@@ -302,6 +252,7 @@ class SchemaLeakScene(RcaScene):
             self._check_session_distribution(session_data)
 
         except Exception as e:
+            self.stdio.error("Error checking sessions: {0}".format(str(e)))
             self.verbose("Error checking sessions: {0}".format(str(e)))
             self.record.add_record("Failed to check sessions: {0}".format(str(e)))
 
@@ -393,6 +344,7 @@ class SchemaLeakScene(RcaScene):
             self._check_tenant_memory_overview()
 
         except Exception as e:
+            self.stdio.error("Error checking schema memory: {0}".format(str(e)))
             self.verbose("Error checking schema memory: {0}".format(str(e)))
             self.record.add_record("Failed to check schema memory: {0}".format(str(e)))
 

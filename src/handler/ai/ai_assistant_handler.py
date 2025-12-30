@@ -34,6 +34,15 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
+# prompt_toolkit for better input handling (especially for CJK characters)
+try:
+    from prompt_toolkit import prompt as pt_prompt
+    from prompt_toolkit.history import InMemoryHistory
+
+    PROMPT_TOOLKIT_AVAILABLE = True
+except ImportError:
+    PROMPT_TOOLKIT_AVAILABLE = False
+
 
 class AiAssistantHandler:
     """AI Assistant interactive handler"""
@@ -43,7 +52,7 @@ class AiAssistantHandler:
 ║                          ⚠️  BETA FEATURE WARNING  ⚠️                      ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║                                                                          ║
-║  This is a BETA feature and may change in future versions.              ║
+║  This is a BETA feature and may change in future versions.               ║
 ║  Compatibility with previous versions is not guaranteed.                 ║
 ║                                                                          ║
 ║  If you encounter any issues, please report them at:                     ║
@@ -86,6 +95,12 @@ class AiAssistantHandler:
             self.console = Console()
         else:
             self.console = None
+
+        # Initialize prompt_toolkit history for input
+        if PROMPT_TOOLKIT_AVAILABLE:
+            self.input_history = InMemoryHistory()
+        else:
+            self.input_history = None
 
     def _load_config(self) -> Dict:
         """
@@ -360,6 +375,12 @@ Available diagnostic tools:
             # Show loaded tools info
             self._show_loaded_tools()
 
+            # Debug: show if prompt_toolkit is available
+            if PROMPT_TOOLKIT_AVAILABLE:
+                self.stdio.verbose("Using prompt_toolkit for input (CJK character support enabled)")
+            else:
+                self.stdio.verbose("prompt_toolkit not available, using standard input")
+
             # Interactive loop
             ui_config = config["ui"]
             prompt = ui_config.get("prompt", "obdiag AI> ")
@@ -367,7 +388,11 @@ Available diagnostic tools:
             while True:
                 try:
                     # Get user input
-                    user_input = input(prompt).strip()
+                    # Use prompt_toolkit for better CJK character handling (backspace works correctly)
+                    if PROMPT_TOOLKIT_AVAILABLE:
+                        user_input = pt_prompt(prompt, history=self.input_history).strip()
+                    else:
+                        user_input = input(prompt).strip()
 
                     if not user_input:
                         continue
