@@ -12,5 +12,5 @@ where a.role='LEADER' and a.tenant_id = b.tenant_id  and b.tenant_name not like 
     steps:
       - type: sql
         sql: "select a.tenant_id, b.tenant_name, a.svr_ip, a.role, count(1) part_count from oceanbase.__all_virtual_meta_table a, oceanbase.__all_tenant b
-where a.role='LEADER' and a.tenant_id = b.tenant_id and b.tenant_name not like 'META$%' and (('all'='#{level}') or (a.tenant_id = '#{level}') or (a.table_id in (select table_id from oceanbase.__all_virtual_table where table_name ='#{level}'))) group by a.tenant_id, b.tenant_name, a.svr_ip, a.role order by 4,1;"
+where a.role=1 and a.tenant_id = b.tenant_id and b.tenant_name not like 'META$%' and (('all'='#{level}') or (a.tenant_id = '#{level}') or (a.table_id in (select table_id from oceanbase.__all_virtual_table where table_name ='#{level}'))) group by a.tenant_id, b.tenant_name, a.svr_ip, a.role order by 4,1;"
         global: true
