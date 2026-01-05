@@ -152,6 +152,19 @@ class CPUHigh(SafeStdio):
             self.stdio.error("Failed to create OBConnector: {0}".format(e))
             raise
 
+    def __get_sql_audit_view(self):
+        """Get the correct SQL audit view name based on OceanBase version"""
+        try:
+            ob_version = get_observer_version(self.context)
+            is_ob4 = StringUtils.compare_versions_greater(ob_version, "4.0.0.0") or ob_version.startswith("4.")
+            if is_ob4:
+                return "oceanbase.gv$ob_sql_audit"
+            else:
+                return "oceanbase.gv$sql_audit"
+        except Exception as e:
+            self.stdio.warn("Failed to get OceanBase version, defaulting to 3.x view name: {0}".format(e))
+            return "oceanbase.gv$sql_audit"
+
     def __report_sql_result(self, file_path, sql, columns, data):
         """Report SQL query result to file"""
         try:
@@ -171,6 +184,7 @@ class CPUHigh(SafeStdio):
             self.stdio.print("gather top sql info start")
             from_timestamp, to_timestamp = self.__get_time_range()
             ob_connector = self.__get_ob_connector()
+            sql_audit_view = self.__get_sql_audit_view()
 
             file_path = os.path.join(self.report_path, "top_sql_info.txt")
 
@@ -183,13 +197,13 @@ class CPUHigh(SafeStdio):
                 COUNT(*) as execution_count,
                 SUM(MEMSTORE_READ_ROW_COUNT) as total_memstore_read_rows,
                 SUM(SSSTORE_READ_ROW_COUNT) as total_ssstore_read_rows
-            FROM oceanbase.gv$ob_sql_audit 
+            FROM {2}
             WHERE REQUEST_TIME BETWEEN {0} AND {1}
             GROUP BY sql_id 
             ORDER BY total_execute_time DESC 
             LIMIT 10
             """.format(
-                from_timestamp, to_timestamp
+                from_timestamp, to_timestamp, sql_audit_view
             )
 
             self.stdio.verbose("Executing SQL: {0}".format(sql_top_cpu))
@@ -205,13 +219,13 @@ class CPUHigh(SafeStdio):
                 COUNT(*) as execution_count,
                 SUM(MEMSTORE_READ_ROW_COUNT) as total_memstore_read_rows,
                 SUM(SSSTORE_READ_ROW_COUNT) as total_ssstore_read_rows
-            FROM oceanbase.gv$ob_sql_audit 
+            FROM {2}
             WHERE REQUEST_TIME BETWEEN {0} AND {1}
             GROUP BY sql_id 
             ORDER BY total_ssstore_read_rows DESC 
             LIMIT 10
             """.format(
-                from_timestamp, to_timestamp
+                from_timestamp, to_timestamp, sql_audit_view
             )
 
             self.stdio.verbose("Executing SQL: {0}".format(sql_top_disk_read))
@@ -280,17 +294,18 @@ class CPUHigh(SafeStdio):
     def __gather_sql_plan_info(self, ob_connector, file_path, sql_id, from_timestamp, to_timestamp):
         """Gather execution plan and GV$OB_SQL_PLAN info for a specific SQL"""
         try:
+            sql_audit_view = self.__get_sql_audit_view()
             # Get SQL text
             sql_get_sql_text = """
             SELECT DISTINCT query_sql 
-            FROM oceanbase.gv$ob_sql_audit 
+            FROM {3}
             WHERE sql_id = '{0}' 
             AND REQUEST_TIME BETWEEN {1} AND {2}
             AND query_sql IS NOT NULL 
             AND query_sql != ''
             LIMIT 1
             """.format(
-                sql_id.replace("'", "''"), from_timestamp, to_timestamp
+                sql_id.replace("'", "''"), from_timestamp, to_timestamp, sql_audit_view
             )
 
             columns, data = ob_connector.execute_sql_return_columns_and_data(sql_get_sql_text)
@@ -351,10 +366,7 @@ class CPUHigh(SafeStdio):
 
             # Get SQL text from sql_audit to parse table names
             # Use different view names for 3.x and 4.x
-            if is_ob4:
-                sql_audit_view = "oceanbase.gv$ob_sql_audit"
-            else:
-                sql_audit_view = "oceanbase.gv$sql_audit"
+            sql_audit_view = self.__get_sql_audit_view()
 
             sql_get_sql_text = """
             SELECT DISTINCT 
@@ -509,23 +521,24 @@ class CPUHigh(SafeStdio):
             self.stdio.warn("Failed to check table structure for {0}.{1}: {2}".format(db_name, table_name, e))
 
     def __gather_sql_audit_full_info(self):
-        """Gather full gv$ob_sql_audit information for the collection time period"""
+        """Gather full sql audit information for the collection time period"""
         try:
             self.stdio.print("gather sql audit full info start")
             from_timestamp, to_timestamp = self.__get_time_range()
             ob_connector = self.__get_ob_connector()
+            sql_audit_view = self.__get_sql_audit_view()
 
             file_path = os.path.join(self.report_path, "sql_audit_full_info.txt")
 
-            # Get all columns from gv$ob_sql_audit for the time period
+            # Get all columns from sql audit view for the time period
             sql_full_audit = """
             SELECT * 
-            FROM oceanbase.gv$ob_sql_audit 
+            FROM {2}
             WHERE REQUEST_TIME BETWEEN {0} AND {1}
             ORDER BY REQUEST_TIME DESC
             LIMIT 1000
             """.format(
-                from_timestamp, to_timestamp
+                from_timestamp, to_timestamp, sql_audit_view
             )
 
             self.stdio.verbose("Executing SQL: {0}".format(sql_full_audit))
@@ -542,6 +555,7 @@ class CPUHigh(SafeStdio):
             self.stdio.print("gather qps distribution start")
             from_timestamp, to_timestamp = self.__get_time_range()
             ob_connector = self.__get_ob_connector()
+            sql_audit_view = self.__get_sql_audit_view()
 
             file_path = os.path.join(self.report_path, "qps_distribution.txt")
 
@@ -551,7 +565,7 @@ class CPUHigh(SafeStdio):
                 t2.zone,
                 t1.svr_ip,
                 COUNT(*) as QPS
-            FROM oceanbase.gv$ob_sql_audit t1
+            FROM {2} t1
             JOIN oceanbase.__all_server t2 ON t1.svr_ip = t2.svr_ip
             WHERE t1.IS_EXECUTOR_RPC = 0 
             AND t1.request_time > {0}
@@ -560,7 +574,7 @@ class CPUHigh(SafeStdio):
             ORDER BY QPS DESC
             LIMIT 20
             """.format(
-                from_timestamp, to_timestamp
+                from_timestamp, to_timestamp, sql_audit_view
             )
 
             self.stdio.verbose("Executing SQL: {0}".format(sql_qps_distribution))
@@ -579,7 +593,7 @@ class CPUHigh(SafeStdio):
                     SELECT 
                         plan_type,
                         COUNT(*) as QPS
-                    FROM oceanbase.gv$ob_sql_audit t1
+                    FROM {3} t1
                     JOIN oceanbase.__all_server t2 ON t1.svr_ip = t2.svr_ip
                     WHERE t1.IS_EXECUTOR_RPC = 0 
                     AND t1.request_time > {0}
@@ -588,7 +602,7 @@ class CPUHigh(SafeStdio):
                     GROUP BY plan_type
                     ORDER BY QPS DESC
                     """.format(
-                        from_timestamp, to_timestamp, safe_svr_ip
+                        from_timestamp, to_timestamp, safe_svr_ip, sql_audit_view
                     )
 
                     columns, plan_data = ob_connector.execute_sql_return_columns_and_data(sql_plan_type)
