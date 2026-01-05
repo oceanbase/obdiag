@@ -17,6 +17,7 @@
 """
 
 import os
+import re
 from typing import List, Dict
 from src.handler.rca.rca_exception import RCAInitException, RCAExecuteException, RCANotNeedExecuteException
 from src.handler.rca.rca_handler import RcaScene
@@ -29,6 +30,7 @@ class WeakReadTroubleshooting(RcaScene):
         self.tenant_id = None
         self.work_path = None
         self.local_path = None
+        self.gathered_log_files = []  # Store paths of gathered log files
 
     def verbose(self, info):
         self.stdio.verbose("[WeakReadTroubleshooting] {0}".format(info))
@@ -72,32 +74,55 @@ class WeakReadTroubleshooting(RcaScene):
 
     def execute(self):
         try:
+            # Gather all logs once to reduce network IO
+            self.stdio.start_loading("Gathering all logs")
+            self._gather_all_logs_once()
+            self.stdio.stop_loading('succeed')
+
             # Check 1: weak read timestamp not ready
+            self.stdio.start_loading("Checking weak read timestamp not ready")
             self._check_weak_read_timestamp_not_ready()
+            self.stdio.stop_loading('succeed')
 
             # Check 2: weak read lag
+            self.stdio.start_loading("Checking weak read lag")
             self._check_weak_read_lag()
+            self.stdio.stop_loading('succeed')
 
             # Check 3: max_stale_time_for_weak_consistency configuration
+            self.stdio.start_loading("Checking max_stale_time_for_weak_consistency configuration")
             self._check_max_stale_time_config()
+            self.stdio.stop_loading('succeed')
 
             # Check 4: weak read timeout issues
+            self.stdio.start_loading("Checking weak read timeout issues")
             self._check_weak_read_timeout()
+            self.stdio.stop_loading('succeed')
 
             # Check 5: log disk space issues
+            self.stdio.start_loading("Checking log disk space issues")
             self._check_log_disk_space()
+            self.stdio.stop_loading('succeed')
 
             # Check 6: weak read consistency issues
+            self.stdio.start_loading("Checking weak read consistency issues")
             self._check_weak_read_consistency()
+            self.stdio.stop_loading('succeed')
 
             # Check 7: network latency (EASY SLOW logs)
+            self.stdio.start_loading("Checking network latency")
             self._check_network_latency()
+            self.stdio.stop_loading('succeed')
 
             # Check 8: Leader distribution
+            self.stdio.start_loading("Checking leader distribution")
             self._check_leader_distribution()
+            self.stdio.stop_loading('succeed')
 
             # Check 9: GTS timestamp service
+            self.stdio.start_loading("Checking GTS timestamp service")
             self._check_gts_timestamp_service()
+            self.stdio.stop_loading('succeed')
 
         except RCANotNeedExecuteException as e:
             self.stdio.print("[Not Need Execute]WeakReadTroubleshooting need not execute: {0}".format(e))
@@ -106,6 +131,105 @@ class WeakReadTroubleshooting(RcaScene):
             raise RCAExecuteException("WeakReadTroubleshooting execute error: {0}".format(e))
         finally:
             self.stdio.verbose("end WeakReadTroubleshooting execute")
+
+    def _gather_all_logs_once(self):
+        """Gather all logs once to reduce network IO consumption, then analyze locally"""
+        try:
+            self.verbose("Start gathering all logs once for local analysis")
+            log_path = os.path.join(self.work_path, "all_weak_read_logs")
+            if not os.path.exists(log_path):
+                os.makedirs(log_path)
+
+            self.gather_log.set_parameters("scope", "observer")
+
+            # Gather all logs without grep filtering, analyze locally later
+            logs_name = self.gather_log.execute(save_path=log_path)
+
+            if logs_name and len(logs_name) > 0:
+                self.gathered_log_files = logs_name
+                self.record.add_record("Gathered {0} log files for local analysis".format(len(logs_name)))
+                self.verbose("Gathered log files: {0}".format(logs_name))
+            else:
+                self.gathered_log_files = []
+                self.record.add_record("No logs found during initial gathering")
+                self.verbose("No logs gathered")
+
+        except Exception as e:
+            self.stdio.error("Error gathering all logs: {0}".format(e))
+            self.gathered_log_files = []
+
+    def _search_keywords_in_local_logs(self, keywords: List[str]) -> Dict[str, List[str]]:
+        """
+        Search for keywords in locally gathered log files
+
+        Args:
+            keywords: List of keywords/patterns to search for
+
+        Returns:
+            Dict mapping keyword to list of matching lines
+        """
+        results = {keyword: [] for keyword in keywords}
+
+        if not self.gathered_log_files:
+            self.verbose("No gathered log files to search")
+            return results
+
+        for log_file in self.gathered_log_files:
+            try:
+                if not os.path.exists(log_file):
+                    continue
+
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        for keyword in keywords:
+                            # Support both simple string match and regex pattern
+                            try:
+                                if '.*' in keyword or '\\' in keyword:
+                                    # Regex pattern
+                                    if re.search(keyword, line, re.IGNORECASE):
+                                        results[keyword].append(line.strip())
+                                else:
+                                    # Simple string match (case-insensitive)
+                                    if keyword.lower() in line.lower():
+                                        results[keyword].append(line.strip())
+                            except re.error:
+                                # If regex fails, fall back to simple string match
+                                if keyword.lower() in line.lower():
+                                    results[keyword].append(line.strip())
+
+            except Exception as e:
+                self.verbose("Error reading log file {0}: {1}".format(log_file, e))
+
+        return results
+
+    def _count_keyword_in_local_logs(self, keyword: str) -> int:
+        """
+        Count occurrences of a keyword in locally gathered log files
+
+        Args:
+            keyword: Keyword to count
+
+        Returns:
+            Total count of keyword occurrences
+        """
+        total_count = 0
+
+        if not self.gathered_log_files:
+            return total_count
+
+        for log_file in self.gathered_log_files:
+            try:
+                if not os.path.exists(log_file):
+                    continue
+
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    total_count += content.count(keyword)
+
+            except Exception as e:
+                self.verbose("Error reading log file {0}: {1}".format(log_file, e))
+
+        return total_count
 
     def _check_weak_read_timestamp_not_ready(self):
         """Check weak read timestamp not ready issues"""
@@ -268,20 +392,21 @@ class WeakReadTroubleshooting(RcaScene):
         self.record.add_record("=" * 60)
 
         try:
-            # Gather logs for weak read timeout errors
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("weak read.*timeout")
-            self.gather_log.grep("weak_read.*timeout")
-            self.gather_log.grep("weak read service.*timeout")
+            # Search for weak read timeout errors in locally gathered logs
+            keywords = ["weak read.*timeout", "weak_read.*timeout", "weak read service.*timeout"]
+            search_results = self._search_keywords_in_local_logs(keywords)
 
-            log_path = os.path.join(self.work_path, "weak_read_timeout_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            total_matches = sum(len(matches) for matches in search_results.values())
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Found weak read timeout related logs: {0}".format(len(logs_name)))
+            if total_matches > 0:
+                self.record.add_record("Found {0} weak read timeout related log entries".format(total_matches))
                 self.record.add_suggest("Review the collected logs for weak read timeout errors. Check network connectivity and replica availability.")
-                for log_name in logs_name:
-                    self.record.add_record("Log file: {0}".format(log_name))
+                # Show sample matches
+                for keyword, matches in search_results.items():
+                    if matches:
+                        self.record.add_record("Keyword '{0}' matched {1} times".format(keyword, len(matches)))
+                        for match in matches[:3]:  # Show first 3 matches
+                            self.record.add_record("  - {0}".format(match[:200]))  # Truncate long lines
             else:
                 self.record.add_record("No weak read timeout errors found in logs")
 
@@ -296,20 +421,21 @@ class WeakReadTroubleshooting(RcaScene):
         self.record.add_record("=" * 60)
 
         try:
-            # Check for log disk space warnings
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("log disk space is almost full")
-            self.gather_log.grep("log disk.*full")
-            self.gather_log.grep("clog.*disk.*full")
+            # Search for log disk space warnings in locally gathered logs
+            keywords = ["log disk space is almost full", "log disk.*full", "clog.*disk.*full"]
+            search_results = self._search_keywords_in_local_logs(keywords)
 
-            log_path = os.path.join(self.work_path, "log_disk_space_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            total_matches = sum(len(matches) for matches in search_results.values())
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("WARNING: Found log disk space warnings in logs: {0} files".format(len(logs_name)))
+            if total_matches > 0:
+                self.record.add_record("WARNING: Found {0} log disk space warning entries in logs".format(total_matches))
                 self.record.add_suggest("Log disk space is almost full. This may cause weak read timestamp generation issues. Please free up disk space.")
-                for log_name in logs_name:
-                    self.record.add_record("Log file: {0}".format(log_name))
+                # Show sample matches
+                for keyword, matches in search_results.items():
+                    if matches:
+                        self.record.add_record("Keyword '{0}' matched {1} times".format(keyword, len(matches)))
+                        for match in matches[:3]:  # Show first 3 matches
+                            self.record.add_record("  - {0}".format(match[:200]))
             else:
                 self.record.add_record("No log disk space warnings found")
 
@@ -324,20 +450,21 @@ class WeakReadTroubleshooting(RcaScene):
         self.record.add_record("=" * 60)
 
         try:
-            # Check for weak read consistency errors in logs
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("weak read.*consistency")
-            self.gather_log.grep("weak_read.*consistency")
-            self.gather_log.grep("READ_CONSISTENCY.*WEAK.*error")
+            # Search for weak read consistency errors in locally gathered logs
+            keywords = ["weak read.*consistency", "weak_read.*consistency", "READ_CONSISTENCY.*WEAK.*error"]
+            search_results = self._search_keywords_in_local_logs(keywords)
 
-            log_path = os.path.join(self.work_path, "weak_read_consistency_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            total_matches = sum(len(matches) for matches in search_results.values())
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Found weak read consistency related logs: {0} files".format(len(logs_name)))
+            if total_matches > 0:
+                self.record.add_record("Found {0} weak read consistency related log entries".format(total_matches))
                 self.record.add_suggest("Review the collected logs for weak read consistency issues.")
-                for log_name in logs_name:
-                    self.record.add_record("Log file: {0}".format(log_name))
+                # Show sample matches
+                for keyword, matches in search_results.items():
+                    if matches:
+                        self.record.add_record("Keyword '{0}' matched {1} times".format(keyword, len(matches)))
+                        for match in matches[:3]:  # Show first 3 matches
+                            self.record.add_record("  - {0}".format(match[:200]))
             else:
                 self.record.add_record("No weak read consistency errors found in logs")
 
@@ -371,30 +498,28 @@ class WeakReadTroubleshooting(RcaScene):
             self.stdio.error("Error in _check_weak_read_consistency: {0}".format(e))
 
     def _gather_weak_read_logs(self):
-        """Gather logs related to weak read issues"""
+        """Search for weak read related logs in locally gathered files"""
         try:
-            work_path_weak_read = os.path.join(self.local_path, "weak_read_timestamp_logs")
-            if not os.path.exists(work_path_weak_read):
-                os.makedirs(work_path_weak_read)
+            # Search for weak read timestamp related keywords in locally gathered logs
+            keywords = ["generate_weak_read_timestamp_", "weak_read_scn", "weak read ts is not ready", "weak_read.*not.*ready"]
+            search_results = self._search_keywords_in_local_logs(keywords)
 
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("generate_weak_read_timestamp_")
-            self.gather_log.grep("weak_read_scn")
-            self.gather_log.grep("weak read ts is not ready")
-            self.gather_log.grep("weak_read.*not.*ready")
+            total_matches = sum(len(matches) for matches in search_results.values())
 
-            logs_name = self.gather_log.execute(save_path=work_path_weak_read)
-
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("Gathered weak read related logs: {0} files in {1}".format(len(logs_name), work_path_weak_read))
-                for log_name in logs_name[:5]:  # Show first 5 log files
-                    self.record.add_record("  - {0}".format(log_name))
+            if total_matches > 0:
+                self.record.add_record("Found {0} weak read related log entries".format(total_matches))
+                # Show sample matches
+                for keyword, matches in search_results.items():
+                    if matches:
+                        self.record.add_record("Keyword '{0}' matched {1} times".format(keyword, len(matches)))
+                        for match in matches[:3]:  # Show first 3 matches
+                            self.record.add_record("  - {0}".format(match[:200]))
             else:
                 self.record.add_record("No weak read related logs found")
 
         except Exception as e:
-            self.stdio.error("Error gathering weak read logs: {0}".format(e))
-            self.record.add_record("Error gathering weak read logs: {0}".format(str(e)))
+            self.stdio.error("Error searching weak read logs: {0}".format(e))
+            self.record.add_record("Error searching weak read logs: {0}".format(str(e)))
 
     def _save_sql_result(self, data: List[Dict], filename: str):
         """Save SQL query result to file"""
@@ -425,33 +550,15 @@ class WeakReadTroubleshooting(RcaScene):
         self.record.add_record("=" * 60)
 
         try:
-            # Gather EASY SLOW logs which indicate network latency issues
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("EASY SLOW")
+            # Count EASY SLOW occurrences in locally gathered logs
+            total_count = self._count_keyword_in_local_logs("EASY SLOW")
 
-            log_path = os.path.join(self.work_path, "easy_slow_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
-
-            if logs_name and len(logs_name) > 0:
-                # Count EASY SLOW occurrences
-                total_count = 0
-                for log_file in logs_name:
-                    try:
-                        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-                            count = content.count("EASY SLOW")
-                            total_count += count
-                    except Exception as e:
-                        self.verbose("Error reading log file {0}: {1}".format(log_file, e))
-
-                if total_count >= 1000:
-                    self.record.add_record("CRITICAL: Found {0} EASY SLOW entries in logs (>= 1000, severe network latency)".format(total_count))
-                    self.record.add_suggest("Severe network latency detected. Check network connectivity, switch status, and network bandwidth. Use 'tsar' or 'sar -n DEV' to monitor network performance.")
-                elif total_count > 0:
-                    self.record.add_record("WARNING: Found {0} EASY SLOW entries in logs (network latency exists)".format(total_count))
-                    self.record.add_suggest("Network latency detected. Check network connectivity between OceanBase nodes. Consider using 'ping' and 'netstat -s | grep retransmit' to diagnose.")
-                else:
-                    self.record.add_record("EASY SLOW logs found but count is 0, logs saved to: {0}".format(log_path))
+            if total_count >= 1000:
+                self.record.add_record("CRITICAL: Found {0} EASY SLOW entries in logs (>= 1000, severe network latency)".format(total_count))
+                self.record.add_suggest("Severe network latency detected. Check network connectivity, switch status, and network bandwidth. Use 'tsar' or 'sar -n DEV' to monitor network performance.")
+            elif total_count > 0:
+                self.record.add_record("WARNING: Found {0} EASY SLOW entries in logs (network latency exists)".format(total_count))
+                self.record.add_suggest("Network latency detected. Check network connectivity between OceanBase nodes. Consider using 'ping' and 'netstat -s | grep retransmit' to diagnose.")
             else:
                 self.record.add_record("No EASY SLOW logs found, network latency is normal")
 
@@ -598,20 +705,21 @@ class WeakReadTroubleshooting(RcaScene):
             else:
                 self.record.add_record("No GTS timestamp service information found")
 
-            # Also check NTP-related logs
-            self.gather_log.set_parameters("scope", "observer")
-            self.gather_log.grep("clock.*skew")
-            self.gather_log.grep("time.*drift")
-            self.gather_log.grep("ntp.*error")
+            # Also check NTP-related logs in locally gathered files
+            keywords = ["clock.*skew", "time.*drift", "ntp.*error"]
+            search_results = self._search_keywords_in_local_logs(keywords)
 
-            log_path = os.path.join(self.work_path, "clock_sync_logs")
-            logs_name = self.gather_log.execute(save_path=log_path)
+            total_matches = sum(len(matches) for matches in search_results.values())
 
-            if logs_name and len(logs_name) > 0:
-                self.record.add_record("WARNING: Found clock synchronization related logs: {0} files".format(len(logs_name)))
+            if total_matches > 0:
+                self.record.add_record("WARNING: Found {0} clock synchronization related log entries".format(total_matches))
                 self.record.add_suggest("Clock synchronization issues detected. Check NTP service status with 'ntpq -p' or 'chronyc sources'.")
-                for log_name in logs_name[:3]:
-                    self.record.add_record("Log file: {0}".format(log_name))
+                # Show sample matches
+                for keyword, matches in search_results.items():
+                    if matches:
+                        self.record.add_record("Keyword '{0}' matched {1} times".format(keyword, len(matches)))
+                        for match in matches[:3]:  # Show first 3 matches
+                            self.record.add_record("  - {0}".format(match[:200]))
             else:
                 self.record.add_record("No clock synchronization issues found in logs")
 
