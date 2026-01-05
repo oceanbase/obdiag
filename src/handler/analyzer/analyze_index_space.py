@@ -122,6 +122,10 @@ class AnalyzeIndexSpaceHandler(object):
         except Exception as e:
             self.stdio.error("init option failed: {0}".format(str(e)))
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init option failed: {0}".format(str(e)))
+        # check ob version, this feature only supports OceanBase 4.x
+        if not StringUtils.compare_versions_greater(self.ob_version, "4.0.0.0"):
+            self.stdio.error("analyze index_space only supports OceanBase 4.x and above. Current version: {0}".format(self.ob_version))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="analyze index_space only supports OceanBase 4.x and above. Current version: {0}".format(self.ob_version))
         try:
             # evaluate the space size of the table where the index is located
             self.stdio.start_loading('start query estimated_table_data_size, please wait some minutes...')
