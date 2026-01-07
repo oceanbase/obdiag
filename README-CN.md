@@ -89,12 +89,12 @@ obdiag 期望构建一个开放的社区，我们欢迎任何形式的贡献，�
 |3.2.0|2025.01| 2025.03.14 |<ul><li> obdiag 适配 ipv6 </li><li> obdiag gather stack 支持 arm 机器 </li><li> 巡检场景扩展 </li></ul>|
 |3.3.0|2025.04| 2025.04.18 |<ul><li> obdiag check 支持 python 脚本以适应复杂场景的巡检 </li></ul>|
 |3.4.0|2025.05| 2025.05.15 |<ul><li> obdiag rca 支持 OMS obcdc 通用问题根因分析 </li><li> 新增 obdiag gather dbms_xplan </li></ul>|
-|3.5.0|2024.06| 2025.06.20 |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
-|3.6.0|2024.07| 2025.07.31 |<ul><li> 新增 obdiag tool 功能 </li><li> 支持 MCP </li></ul>|
-|3.7.0|2024.08| 2025.09.09 |<ul><li> obdiag-mcp 新增 pip 安装方式(pip install obdiag-mcp) </li><li> 巡检场景扩展 </li></ul>|
-|3.7.1|2024.09| 2025.10.22 |<ul><li> 巡检场景扩展 </li></ul>|
-|3.7.2|2024.10| - |<ul><li> 巡检场景扩展 </li></ul>|
-|4.0.0|2025.12| - |<ul><li> AI 化探索 </li></ul>|
+|3.5.0|2025.06| 2025.06.20 |<ul><li> 根因分析场景扩展 </li><li> 巡检场景扩展 </li></ul>|
+|3.6.0|2025.07| 2025.07.31 |<ul><li> 新增 obdiag tool 功能 </li><li> 支持 MCP </li></ul>|
+|3.7.0|2025.08| 2025.09.09 |<ul><li> obdiag-mcp 新增 pip 安装方式(pip install obdiag-mcp) </li><li> 巡检场景扩展 </li></ul>|
+|3.7.1|2025.09| 2025.10.22 |<ul><li> 巡检场景扩展 </li></ul>|
+|3.7.2|2025.10| 2025.11.27 |<ul><li> 巡检场景扩展 </li></ul>|
+|4.0.0|2025.12| 2026.01.07 |<ul><li> 新增 `obdiag tool ai_assistant` 命令，AI 智能诊断助手（BETA）</li><li> 新增 `obdiag tool io_performance` 命令，磁盘 IO 性能检测工具</li><li> 新增 `obdiag tool config_check` 命令，配置校验工具</li><li> 新增 `obdiag display scene run --scene=observer.compaction` 命令，合并状态展示场景</li><li> 根因分析场景扩展 </li></ul>|
 
 # 支持
 
