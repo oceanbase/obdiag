@@ -683,6 +683,31 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         return obdiag.gather_obproxy_log(self.opts)
 
 
+class ObdiagGatherOmsLogCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherOmsLogCommand, self).__init__('oms_log', 'Gather OMS log from OMS machines')
+        self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
+        self.parser.add_option('--scope', type='string', help="log type constrains, choices=[console, nginx, supervisord, drc, ghana, scheduler, web, alarm, api, gc, cm, supervisor, cdc, libobcdc, store, all]", default='all')
+        self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
+        self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
+        self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
+        self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
+        self.parser.add_option('--oms_component_id', type='string', help='OMS component id for CDC logs, format: x.x.x.x-123')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagGatherOmsLogCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_oms_log(self.opts)
+
+
 class ObdiagGatherSceneListCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1334,6 +1359,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherPlanMonitorCommand())
         self.register_command(ObdiagGatherAwrCommand())
         self.register_command(ObdiagGatherObproxyLogCommand())
+        self.register_command(ObdiagGatherOmsLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
         self.register_command(ObdiagGatherAshReportCommand())
         self.register_command(ObdiagGatherTableDumpHandler())

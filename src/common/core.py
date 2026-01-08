@@ -338,7 +338,7 @@ class ObdiagHome(object):
                         since=Util.get_option(options, 'since'),
                         grep=Util.get_option(options, 'grep'),
                         store_dir=Util.get_option(options, 'store_dir'),
-                        temp_dir="/tmp",
+                        temp_dir=Util.get_option(options, 'temp_dir'),
                         redact=Util.get_option(options, 'redact'),
                         recent_count=Util.get_option(options, 'recent_count'),
                     )
@@ -395,6 +395,31 @@ class ObdiagHome(object):
                 temp_dir="/tmp",
                 redact=Util.get_option(options, 'redact'),
                 recent_count=Util.get_option(options, 'recent_count'),
+            )
+            return handler.handle()
+
+    def gather_oms_log(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custum config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
+        else:
+            self.set_context_skip_cluster_conn('gather_oms_log', 'gather', config)
+            options = self.context.options
+            handler = GatherComponentLogHandler()
+            handler.init(
+                self.context,
+                target="oms",
+                from_option=Util.get_option(options, 'from'),
+                to_option=Util.get_option(options, 'to'),
+                since=Util.get_option(options, 'since'),
+                scope=Util.get_option(options, 'scope'),
+                grep=Util.get_option(options, 'grep'),
+                store_dir=Util.get_option(options, 'store_dir'),
+                temp_dir=Util.get_option(options, 'temp_dir'),
+                redact=Util.get_option(options, 'redact'),
+                recent_count=Util.get_option(options, 'recent_count'),
+                oms_component_id=Util.get_option(options, 'oms_component_id'),
             )
             return handler.handle()
 

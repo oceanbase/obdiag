@@ -117,6 +117,12 @@ class BaseGatherLogOnNode(ABC):
             self.stdio.verbose("clear tmp_log_dir: {0}".format(self.tmp_dir))
             self.ssh_client.exec_cmd("rm -rf {0}".format(self.tmp_dir))
             self.stdio.verbose("gather_log_on_node {0} finished".format(self.ssh_client.get_ip()))
+            # Close SSH connection
+            if self.ssh_client:
+                try:
+                    self.ssh_client.close()
+                except Exception:
+                    pass
 
     def _build_tmp_dir_name(self, from_ts, to_ts) -> str:
         """Build temporary directory name"""
@@ -124,21 +130,22 @@ class BaseGatherLogOnNode(ABC):
 
     def _validate_logs(self, logs_name) -> bool:
         """Validate found logs"""
-        if not logs_name or len(logs_name) == 0:
+        if not logs_name:
             self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
             self.gather_tuple["info"] = "no log found"
             return False
 
-        if len(logs_name) > self.file_number_limit:
-            self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], Please adjust the query limit'.format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
-            self.gather_tuple["info"] = "too many files {0} > {1}".format(len(logs_name), self.file_number_limit)
+        log_count = len(logs_name)
+        if log_count > self.file_number_limit:
+            self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], Please adjust the query limit'.format(self.ssh_client.get_name(), log_count, self.file_number_limit))
+            self.gather_tuple["info"] = "too many files {0} > {1}".format(log_count, self.file_number_limit)
             return False
 
         return True
 
     def _grep_log_to_tmp(self, logs_name, tmp_log_dir):
         """Grep logs to temp directory"""
-        grep_cmd = self._build_grep_cmd()
+        grep_options = self._build_grep_options()
 
         for log_name in logs_name:
             source_log_name = "{0}/{1}".format(self.log_path, log_name)
@@ -146,34 +153,28 @@ class BaseGatherLogOnNode(ABC):
             self.stdio.verbose("grep files, source_log_name = [{0}], target_log_name = [{1}]".format(source_log_name, target_log_name))
 
             # For compressed files, just copy
-            if log_name.endswith(".gz"):
+            if log_name.endswith(".gz") or log_name.endswith(".zst"):
                 log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
                 self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
                 self.ssh_client.exec_cmd(log_grep_cmd)
                 continue
 
             # For normal files
-            if grep_cmd == "":
+            if not grep_options:
                 log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
             else:
-                log_grep_cmd = grep_cmd + " {0} > {1}".format(source_log_name, target_log_name)
+                # Build correct grep pipeline: cat file | grep -e 'p1' | grep -e 'p2' > target
+                grep_pipeline = " | ".join(["grep -e '{0}'".format(opt) for opt in grep_options])
+                log_grep_cmd = "cat {0} | {1} > {2}".format(source_log_name, grep_pipeline, target_log_name)
 
             self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
             self.ssh_client.exec_cmd(log_grep_cmd)
 
-    def _build_grep_cmd(self) -> str:
-        """Build grep command from options"""
+    def _build_grep_options(self) -> list:
+        """Build grep options list"""
         if not self.grep_option:
-            return ""
-
-        grep_cmd = ""
-        for grep_option in self.grep_option:
-            if grep_cmd == "":
-                grep_cmd = "grep -e '{0}' ".format(grep_option)
-                continue
-            grep_cmd += "| grep -e '{0}'".format(grep_option)
-
-        return grep_cmd
+            return []
+        return list(self.grep_option)
 
     def _package_and_download(self, tmp_log_dir, tmp_dir):
         """Package and download logs to local"""
@@ -251,21 +252,21 @@ class BaseGatherLogOnNode(ABC):
 
     def _build_logs_scope(self) -> str:
         """Build find command scope"""
-        logs_scope = ""
-        for scope in self.scope:
-            target_scopes = self.scope[scope]["key"]
+        name_patterns = []
+        for scope_config in self.scope.values():
+            target_scopes = scope_config["key"]
             if isinstance(target_scopes, list):
-                for target_scope in target_scopes:
-                    if logs_scope == "":
-                        logs_scope = ' -name "{0}" '.format(target_scope)
-                        continue
-                    logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scope)
+                name_patterns.extend(target_scopes)
             else:
-                if logs_scope == "":
-                    logs_scope = ' -name "{0}" '.format(target_scopes)
-                    continue
-                logs_scope = logs_scope + ' -o -name "{0}" '.format(target_scopes)
-        return logs_scope
+                name_patterns.append(target_scopes)
+        
+        if not name_patterns:
+            return ""
+        
+        # Build: \( -name "pattern1" -o -name "pattern2" \)
+        # Parentheses are needed for correct -o behavior in find command
+        pattern_parts = " -o ".join(['-name "{0}"'.format(p) for p in name_patterns])
+        return "\\( {0} \\)".format(pattern_parts)
 
     def _get_all_logfile_names(self, log_files) -> list:
         """Get all log file names without time filtering"""
@@ -280,10 +281,66 @@ class BaseGatherLogOnNode(ABC):
         self.stdio.verbose("get all log file name list (no time filtering), found {0} files".format(len(log_name_list)))
         return log_name_list
 
-    @abstractmethod
     def _get_logfile_names_by_time(self, log_files) -> list:
-        """Get log files filtered by time - must be implemented by subclass"""
-        pass
+        """
+        Get log files filtered by time range.
+        Default implementation for components with standard timestamp format (17 digits).
+        Subclass can override for special handling.
+        """
+        self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}".format(self.from_time_str, self.to_time_str, self.log_path))
+        log_name_list = []
+
+        try:
+            from_time_dt = datetime.datetime.strptime(self.from_time_str, "%Y-%m-%d %H:%M:%S")
+            to_time_dt = datetime.datetime.strptime(self.to_time_str, "%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            self.stdio.warn("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+            return log_name_list
+
+        for file_name in log_files.split('\n'):
+            file_name = file_name.strip()
+            if not file_name:
+                self.stdio.verbose("existing file name is empty")
+                continue
+
+            try:
+                # Parse timestamp from filename
+                file_time_dt = self._parse_timestamp_from_filename(file_name)
+
+                if file_time_dt:
+                    # File has timestamp in filename
+                    self.stdio.verbose("node: {0}, file_name: {1}, file_time: {2}".format(self.ssh_client.get_name(), file_name, file_time_dt.strftime("%Y-%m-%d %H:%M:%S.%f")))
+
+                    if self._is_file_in_time_range(file_time_dt, from_time_dt, to_time_dt):
+                        log_name_list.append(file_name)
+                        self.stdio.verbose("node: {0}, file {1} is in range [{2}, {3}], include it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
+                    else:
+                        self.stdio.verbose("node: {0}, file {1} is out of range [{2}, {3}], exclude it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
+                else:
+                    # File has no timestamp - check if it's a current log file
+                    if self._is_current_log_file(file_name):
+                        log_name_list.append(file_name)
+                        self.stdio.verbose("node: {0}, file {1} has no timestamp, is current log file, include it".format(self.ssh_client.get_name(), file_name))
+                    else:
+                        self.stdio.verbose("node: {0}, file {1} has no timestamp and is not a recognized log file, skip".format(self.ssh_client.get_name(), file_name))
+
+            except Exception as e:
+                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
+                continue
+
+        if log_name_list:
+            self.stdio.verbose("Find the qualified log file {0} on Server [{1}]".format(log_name_list, self.ssh_client.get_ip()))
+        else:
+            self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
+
+        return log_name_list
+
+    def _is_current_log_file(self, file_name) -> bool:
+        """
+        Check if file is a current log file (no timestamp suffix).
+        Override in subclass for component-specific logic.
+        """
+        return file_name.endswith(".log") or file_name.endswith(".wf")
 
     def _get_log_type(self, file_name) -> str:
         """
@@ -315,23 +372,9 @@ class BaseGatherLogOnNode(ABC):
             if log_type not in log_type_groups:
                 log_type_groups[log_type] = []
 
-            timestamp_match = re.search(r'\.(\d{17})$', file_name)
-            if timestamp_match:
-                timestamp_str = timestamp_match.group(1)
-                try:
-                    year = int(timestamp_str[0:4])
-                    month = int(timestamp_str[4:6])
-                    day = int(timestamp_str[6:8])
-                    hour = int(timestamp_str[8:10])
-                    minute = int(timestamp_str[10:12])
-                    second = int(timestamp_str[12:14])
-                    microsecond = int(timestamp_str[14:17]) * 1000
-                    file_time_dt = datetime.datetime(year, month, day, hour, minute, second, microsecond)
-                    log_type_groups[log_type].append((file_name, file_time_dt))
-                except (ValueError, IndexError):
-                    log_type_groups[log_type].append((file_name, None))
-            else:
-                log_type_groups[log_type].append((file_name, None))
+            # Reuse existing timestamp parser
+            file_time_dt = self._parse_timestamp_from_filename(file_name)
+            log_type_groups[log_type].append((file_name, file_time_dt))
 
         # Filter each log type group
         filtered_list = []
@@ -343,13 +386,12 @@ class BaseGatherLogOnNode(ABC):
             timestamped_files.sort(key=lambda x: x[1], reverse=True)
 
             # Build list: current files first, then most recent timestamped files
-            type_filtered = []
-            type_filtered.extend(current_files)
+            type_filtered = list(current_files)
             remaining_slots = self.recent_count - len(current_files)
             if remaining_slots > 0:
                 type_filtered.extend([f for f, _ in timestamped_files[:remaining_slots]])
             else:
-                type_filtered = current_files[: self.recent_count]
+                type_filtered = current_files[:self.recent_count]
 
             self.stdio.verbose("Log type '{0}': kept {1} files from {2}".format(log_type, len(type_filtered), len(files)))
             filtered_list.extend(type_filtered)

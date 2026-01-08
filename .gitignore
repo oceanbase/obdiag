@@ -9,3 +9,5 @@ obdiag_gather_pack_*
 obdiag_analyze_pack_*
 obdiag_rca*
 
+dev_doc/*
+*.md

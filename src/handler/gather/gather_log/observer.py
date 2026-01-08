@@ -16,10 +16,8 @@
 @desc: Observer log gathering
 """
 
-import datetime
 import os
 import subprocess
-import traceback
 
 from src.handler.gather.gather_log.base import BaseGatherLogOnNode
 
@@ -48,87 +46,40 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
         return base_name
 
     def _get_observer_pid(self):
-        """Get observer PID from pid file or ps command"""
+        """Get observer PID from pid file or ps command (local only)"""
+        # Note: This method only works for local observer
+        # For remote nodes, PID info is not critical for log gathering
         home_path = self.node.get("home_path")
+        if not home_path:
+            return None
+            
         pid_file_path = os.path.join(home_path, 'run', 'observer.pid')
 
-        # Try to read from pid file first
+        # Try to read from pid file first (local file access)
         try:
             with open(pid_file_path, 'r') as file:
-                first_line = file.readline().strip()
-                return first_line
+                return file.readline().strip()
         except FileNotFoundError:
-            self.stdio.warn(f"The file {pid_file_path} does not exist. Attempting to find the process using ps.")
+            self.stdio.verbose("The file {0} does not exist. Attempting to find the process using ps.".format(pid_file_path))
         except Exception as e:
-            self.stdio.exception(f"An error occurred while reading pid file: {e}")
+            self.stdio.verbose("An error occurred while reading pid file: {0}".format(e))
 
-        # Fallback to ps command
+        # Fallback to ps command (local execution)
         try:
-            result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE)
+            result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode != 0:
+                return None
             processes = result.stdout.decode().splitlines()
-            observer_processes = [p for p in processes if f"{home_path}/bin/observer" in p and 'grep' not in p]
+            observer_bin = "{0}/bin/observer".format(home_path)
+            observer_processes = [p for p in processes if observer_bin in p and 'grep' not in p]
 
             if observer_processes:
-                pid = observer_processes[0].split()[1]
-                return pid
+                return observer_processes[0].split()[1]
             else:
-                self.stdio.warn("No observer process found at the specified path.")
+                self.stdio.verbose("No observer process found at the specified path.")
                 return None
         except Exception as e:
-            self.stdio.exception(f"An error occurred while trying to find the observer process: {e}")
+            self.stdio.verbose("An error occurred while trying to find the observer process: {0}".format(e))
             return None
 
-    def _get_logfile_names_by_time(self, log_files) -> list:
-        """
-        Get log file names filtered by time range.
-        Parse timestamp from filename for efficiency.
-        """
-        self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}".format(self.from_time_str, self.to_time_str, self.log_path))
-        log_name_list = []
-
-        try:
-            from_time_dt = datetime.datetime.strptime(self.from_time_str, "%Y-%m-%d %H:%M:%S")
-            to_time_dt = datetime.datetime.strptime(self.to_time_str, "%Y-%m-%d %H:%M:%S")
-        except Exception as e:
-            self.stdio.warn("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
-            return log_name_list
-
-        for file_name in log_files.split('\n'):
-            file_name = file_name.strip()
-            try:
-                if file_name == "":
-                    self.stdio.verbose("existing file name is empty")
-                    continue
-
-                # Parse timestamp from filename
-                file_time_dt = self._parse_timestamp_from_filename(file_name)
-
-                if file_time_dt:
-                    # File has timestamp in filename
-                    self.stdio.verbose("node: {0}, file_name: {1}, file_time: {2}".format(self.ssh_client.get_name(), file_name, file_time_dt.strftime("%Y-%m-%d %H:%M:%S.%f")))
-
-                    if self._is_file_in_time_range(file_time_dt, from_time_dt, to_time_dt):
-                        log_name_list.append(file_name)
-                        self.stdio.verbose("node: {0}, file {1} is in range [{2}, {3}], include it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
-                    else:
-                        self.stdio.verbose("node: {0}, file {1} is out of range [{2}, {3}], exclude it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
-                else:
-                    # File has no timestamp (e.g., observer.log, observer.log.wf)
-                    # These are current log files being written, should be included
-                    if file_name.endswith(".log") or file_name.endswith(".wf"):
-                        log_name_list.append(file_name)
-                        self.stdio.verbose("node: {0}, file {1} has no timestamp, is current log file, include it".format(self.ssh_client.get_name(), file_name))
-                    else:
-                        self.stdio.verbose("node: {0}, file {1} has no timestamp and is not a .log or .wf file, skip".format(self.ssh_client.get_name(), file_name))
-
-            except Exception as e:
-                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
-                self.stdio.verbose(traceback.format_exc())
-                continue
-
-        if len(log_name_list) > 0:
-            self.stdio.verbose("Find the qualified log file {0} on Server [{1}]".format(log_name_list, self.ssh_client.get_ip()))
-        else:
-            self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
-
-        return log_name_list
+    # _get_logfile_names_by_time is inherited from BaseGatherLogOnNode

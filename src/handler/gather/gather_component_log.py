@@ -16,6 +16,7 @@
 @desc: Component log gathering - main entry point
 """
 
+import copy
 import datetime
 import os
 import shutil
@@ -33,7 +34,6 @@ from src.handler.gather.gather_log import (
     ObserverGatherLogOnNode,
     ObproxyGatherLogOnNode,
     OmsGatherLogOnNode,
-    OmsCdcGatherLogOnNode,
 )
 
 
@@ -45,7 +45,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         "observer": ObserverGatherLogOnNode,
         "obproxy": ObproxyGatherLogOnNode,
         "oms": OmsGatherLogOnNode,
-        "oms_cdc": OmsCdcGatherLogOnNode,
     }
 
     # Log scope configuration for each component
@@ -53,7 +52,6 @@ class GatherComponentLogHandler(BaseShellHandler):
         "observer": ObserverGatherLogOnNode.LOG_SCOPES,
         "obproxy": ObproxyGatherLogOnNode.LOG_SCOPES,
         "oms": OmsGatherLogOnNode.LOG_SCOPES,
-        "oms_cdc": OmsCdcGatherLogOnNode.LOG_SCOPES,
     }
 
     # Default configuration constants
@@ -169,13 +167,16 @@ class GatherComponentLogHandler(BaseShellHandler):
 
     def __check_store_dir(self):
         """Validate and create store directory"""
+        if self.store_dir is None:
+            self.store_dir = "./"
+        
         if not os.path.exists(self.store_dir):
             self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(self.store_dir)))
             os.makedirs(os.path.abspath(self.store_dir))
 
-        if self.is_scene is False:
-            target_dir = os.path.join("obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-            self.store_dir = os.path.join(self.store_dir or "./", target_dir)
+        if not self.is_scene:
+            target_dir = "obdiag_gather_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp()))
+            self.store_dir = os.path.join(self.store_dir, target_dir)
             if not os.path.exists(self.store_dir):
                 os.makedirs(self.store_dir)
 
@@ -183,18 +184,19 @@ class GatherComponentLogHandler(BaseShellHandler):
 
     def __check_nodes(self):
         """Validate and get nodes configuration"""
-        if self.nodes is None or len(self.nodes) == 0:
-            if self.target == 'observer':
-                self.nodes = self.context.cluster_config.get("servers")
-            elif self.target == 'obproxy':
-                self.nodes = self.context.obproxy_config.get("servers")
-            elif self.target in ('oms', 'oms_cdc'):
-                self.nodes = self.context.oms_config.get("servers")
-            else:
+        if not self.nodes:
+            target_config_map = {
+                'observer': lambda: self.context.cluster_config.get("servers"),
+                'obproxy': lambda: self.context.obproxy_config.get("servers"),
+                'oms': lambda: self.context.oms_config.get("servers"),
+            }
+            config_getter = target_config_map.get(self.target)
+            if config_getter is None:
                 raise Exception("can not get nodes by target: {0}".format(self.target))
+            self.nodes = config_getter()
 
-        if len(self.nodes) == 0:
-            raise Exception("can not get nodes by target: {0}, nodes's len is 0.".format(self.target))
+        if not self.nodes:
+            raise Exception("can not get nodes by target: {0}, nodes is empty.".format(self.target))
 
     def __check_scope(self):
         """Validate scope option"""
@@ -215,72 +217,84 @@ class GatherComponentLogHandler(BaseShellHandler):
     def __check_grep(self):
         """Validate grep option"""
         if self.grep:
-            if isinstance(self.grep, list):
-                pass
-            elif isinstance(self.grep, str):
-                self.grep = self.grep.strip()
-                self.grep = [self.grep]
+            if isinstance(self.grep, str):
+                self.grep = [self.grep.strip()]
+            elif not isinstance(self.grep, list):
+                self.grep = [str(self.grep)]
 
     def __check_time_options(self):
         """Validate and process time options"""
+        now_time = datetime.datetime.now()
+        time_format = '%Y-%m-%d %H:%M:%S'
+        
+        # Case 1: Both from and to options provided
         if self.from_option is not None and self.to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(self.from_option)
                 to_timestamp = TimeUtils.parse_time_str(self.to_option)
-                self.from_time_str = self.from_option
-                self.to_time_str = self.to_option
             except Exception:
                 raise Exception('Error: Datetime is invalid. Must be in format "yyyy-mm-dd hh:mm:ss". from_datetime={0}, to_datetime={1}'.format(self.from_option, self.to_option))
 
             if to_timestamp <= from_timestamp:
                 raise Exception('Error: from datetime is larger than to datetime, please check.')
-        elif (self.from_option is None or self.to_option is None) and self.since_option is not None:
-            now_time = datetime.datetime.now()
-            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
-            self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
-            if self.recent_count > 0:
-                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
-            else:
-                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            self.from_time_str = self.from_option
+            self.to_time_str = self.to_option
         else:
-            now_time = datetime.datetime.now()
-            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+            # Case 2 & 3: Calculate time range based on since_option or default
+            self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime(time_format)
             if self.since_option:
-                self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
+                since_seconds = TimeUtils.parse_time_length_to_sec(self.since_option)
+                self.from_time_str = (now_time - datetime.timedelta(seconds=since_seconds)).strftime(time_format)
             else:
-                self.from_time_str = (now_time - datetime.timedelta(minutes=self.DEFAULT_SINCE_MINUTES)).strftime('%Y-%m-%d %H:%M:%S')
-            if self.recent_count > 0:
-                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
-            else:
+                self.from_time_str = (now_time - datetime.timedelta(minutes=self.DEFAULT_SINCE_MINUTES)).strftime(time_format)
+
+        # Print time range info
+        self.__print_time_range_info()
+
+    def __print_time_range_info(self):
+        """Print time range information"""
+        if self.recent_count > 0:
+            self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
+        else:
+            # Only show default message when no time options are provided at all
+            if self.from_option is None and self.to_option is None and self.since_option is None:
                 self.stdio.print('No time option provided, default processing is based on the last {0} minutes'.format(self.DEFAULT_SINCE_MINUTES))
-                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
 
     def __check_redact(self):
         """Validate redact option"""
-        if self.redact:
-            if self.redact != "" and len(self.redact) != 0:
-                if "," in self.redact and isinstance(self.redact, str):
-                    self.redact = self.redact.split(",")
-                else:
-                    self.redact = [self.redact]
+        if self.redact and self.redact != "":
+            if isinstance(self.redact, str):
+                self.redact = [r.strip() for r in self.redact.split(",") if r.strip()]
+            elif not isinstance(self.redact, list):
+                self.redact = [str(self.redact)]
 
     def __check_inner_config(self):
         """Load configuration from inner_config"""
         if self.inner_config is None:
             self.file_number_limit = self.DEFAULT_FILE_NUMBER_LIMIT
             self.file_size_limit = self.DEFAULT_FILE_SIZE_LIMIT
+            self.config_path = None
         else:
-            basic_config = self.inner_config['obdiag']['basic']
-            self.file_number_limit = int(basic_config["file_number_limit"])
-            self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
-            self.config_path = basic_config['config_path']
+            basic_config = self.inner_config.get('obdiag', {}).get('basic', {})
+            self.file_number_limit = int(basic_config.get("file_number_limit", self.DEFAULT_FILE_NUMBER_LIMIT))
+            file_size_limit_str = basic_config.get("file_size_limit")
+            if file_size_limit_str:
+                self.file_size_limit = int(FileUtil.size(file_size_limit_str))
+            else:
+                self.file_size_limit = self.DEFAULT_FILE_SIZE_LIMIT
+            self.config_path = basic_config.get('config_path')
 
         self.stdio.verbose("file_number_limit: {0}, file_size_limit: {1}".format(self.file_number_limit, self.file_size_limit))
 
     def __check_thread_nums(self):
         """Validate thread_nums option"""
         if self.thread_nums is None or not isinstance(self.thread_nums, int) or self.thread_nums <= 0:
-            self.thread_nums = int(self.context.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums") or self.DEFAULT_THREAD_NUMS)
+            # Safely get thread_nums from config, handle None inner_config
+            config_thread_nums = None
+            if self.inner_config:
+                config_thread_nums = self.inner_config.get("obdiag", {}).get("gather", {}).get("thread_nums")
+            self.thread_nums = int(config_thread_nums) if config_thread_nums else self.DEFAULT_THREAD_NUMS
         self.stdio.verbose("thread_nums: {0}".format(self.thread_nums))
 
     def handle(self):
@@ -301,12 +315,14 @@ class GatherComponentLogHandler(BaseShellHandler):
 
                 # Create tasks for each node
                 for node in self.nodes:
-                    new_context = self.context
-                    new_context.stdio = self.stdio.sub_io()
+                    # Create a shallow copy of context to avoid thread safety issues
+                    # Each task gets its own stdio instance
+                    task_context = copy.copy(self.context)
+                    task_context.stdio = self.stdio.sub_io()
 
                     # Clear ssh_client from node (will be rebuilt in handler)
                     clear_node = self.__clear_node_ssh_client(node)
-                    tasks.append(handler_class(new_context, clear_node, self.gather_log_conf_dict))
+                    tasks.append(handler_class(task_context, clear_node, self.gather_log_conf_dict))
 
                 # Execute tasks in parallel
                 self.__execute_tasks_parallel(tasks)
@@ -325,7 +341,9 @@ class GatherComponentLogHandler(BaseShellHandler):
             except Exception as e:
                 self.stdio.exception(e)
                 self.stdio.verbose("gather log error: {0}".format(e))
-            finally:
+                self.stdio.stop_loading("failed")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="gather log error: {0}".format(str(e)))
+            else:
                 self.stdio.stop_loading("succeed")
 
             # Check result
@@ -349,13 +367,9 @@ class GatherComponentLogHandler(BaseShellHandler):
 
     def __clear_node_ssh_client(self, node):
         """Remove ssh_client from node dict (will be rebuilt in handler)"""
-        if "ssh_client" in node or "ssher" in node:
-            clear_node = {}
-            for node_param in node:
-                if node_param in ("ssh_client", "ssher"):
-                    continue
-                clear_node[node_param] = node[node_param]
-            return clear_node
+        excluded_keys = {"ssh_client", "ssher"}
+        if excluded_keys & set(node.keys()):
+            return {k: v for k, v in node.items() if k not in excluded_keys}
         return node
 
     def __execute_tasks_parallel(self, tasks):
@@ -433,12 +447,19 @@ class GatherComponentLogHandler(BaseShellHandler):
                 extract_path = os.path.dirname(file_path)
 
                 with tarfile.open(file_path, 'r:gz') as tar:
-                    tar.extractall(path=extract_path)
-                    extracted_files = tar.getnames()
+                    # Security check: filter out files with path traversal
+                    safe_members = []
+                    for member in tar.getmembers():
+                        member_path = os.path.normpath(member.name)
+                        if member_path.startswith('..') or os.path.isabs(member_path):
+                            self.stdio.warn("Skipping potentially unsafe path: {0}".format(member.name))
+                            continue
+                        safe_members.append(member)
+                    
+                    tar.extractall(path=extract_path, members=safe_members)
+                    extracted_files = [m.name for m in safe_members]
                     self.stdio.verbose("extracted_files: {0}".format(extracted_files))
-                    extracted_files_new = []
-                    for extracted_file in extracted_files:
-                        extracted_files_new.append(os.path.join(self.store_dir, extracted_file))
+                    extracted_files_new = [os.path.join(self.store_dir, f) for f in extracted_files]
                     all_files[file_path] = extracted_files_new
 
             except Exception as e:
