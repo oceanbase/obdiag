@@ -56,7 +56,11 @@ class ParameterIpLocalPortRangeTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "parameter_ip_local_port_range", "info": "Check net.ipv4.ip_local_port_range kernel parameter."}
+        return {
+            "name": "parameter_ip_local_port_range",
+            "info": "Check net.ipv4.ip_local_port_range kernel parameter.",
+            "supported_os": ["linux"],
+        }
 
 
 parameter_ip_local_port_range = ParameterIpLocalPortRangeTask()

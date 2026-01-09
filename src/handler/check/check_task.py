@@ -141,11 +141,21 @@ class TaskBase:
         Get task metadata. Must be implemented by subclass.
 
         Returns:
-            dict: Task info with 'name', 'info' and optional 'issue_link' keys
+            dict: Task info with required and optional keys:
+            Required:
+                - name: Task name
+                - info: Task description
+            Optional:
+                - issue_link: Related issue URL
+                - supported_os: List of supported OS types ["linux", "darwin"]
+                              If not specified, task runs on all platforms.
+                              Use ["linux"] for Linux-only tasks (e.g., cgroup, aio checks)
+
             Example: {
                 "name": "task_name",
                 "info": "Task description",
-                "issue_link": "https://github.com/oceanbase/obdiag/issues/xxx"
+                "issue_link": "https://github.com/oceanbase/obdiag/issues/xxx",
+                "supported_os": ["linux"]  # Linux only task
             }
         """
         raise NotImplementedError("Subclass must implement get_task_info()")
@@ -247,9 +257,40 @@ class TaskBase:
             self.stdio.error("check_command_exist error: {0}".format(e))
             return False
 
+    def get_os_type(self, ssh_client) -> str:
+        """
+        Detect operating system type on remote node.
+
+        Args:
+            ssh_client: SSH client instance
+
+        Returns:
+            str: 'linux', 'darwin' (macOS), or 'unknown'
+        """
+        try:
+            result = ssh_client.exec_cmd("uname -s").strip().lower()
+            if "linux" in result:
+                return "linux"
+            elif "darwin" in result:
+                return "darwin"
+            else:
+                return "unknown"
+        except Exception as e:
+            self.stdio.warn("get os type fail: {0}".format(e))
+            return "unknown"
+
+    def is_linux(self, ssh_client) -> bool:
+        """Check if remote node is Linux"""
+        return self.get_os_type(ssh_client) == "linux"
+
+    def is_macos(self, ssh_client) -> bool:
+        """Check if remote node is macOS"""
+        return self.get_os_type(ssh_client) == "darwin"
+
     def get_system_parameter(self, ssh_client, parameter_name: str) -> str:
         """
         Get system parameter value from remote node.
+        Supports both Linux (/proc/sys/) and macOS (sysctl).
 
         Args:
             ssh_client: SSH client instance
@@ -259,13 +300,83 @@ class TaskBase:
             str: Parameter value or None if not found
         """
         try:
-            parameter_name = parameter_name.replace(".", "/")
-            # check parameter_name exists
-            if ssh_client.exec_cmd('find /proc/sys/ -name "{0}"'.format(parameter_name.split("/")[-1])) == "":
-                self.stdio.warn("{0} is not exist".format(parameter_name))
-                return None
-            parameter_value = ssh_client.exec_cmd("cat /proc/sys/" + parameter_name).strip()
-            return parameter_value
+            os_type = self.get_os_type(ssh_client)
+
+            if os_type == "darwin":
+                # macOS: use sysctl command
+                # Convert Linux-style parameter name to macOS style if needed
+                mac_param_name = self._convert_param_name_for_mac(parameter_name)
+                if mac_param_name is None:
+                    self.stdio.verbose("Parameter {0} is not supported on macOS".format(parameter_name))
+                    return None
+
+                result = ssh_client.exec_cmd("sysctl -n {0} 2>/dev/null".format(mac_param_name)).strip()
+                if result == "" or "unknown oid" in result.lower():
+                    self.stdio.verbose("{0} is not available on macOS".format(mac_param_name))
+                    return None
+                return result
+
+            else:
+                # Linux: use /proc/sys/
+                proc_path = parameter_name.replace(".", "/")
+                # check parameter_name exists
+                if ssh_client.exec_cmd('find /proc/sys/ -name "{0}"'.format(proc_path.split("/")[-1])) == "":
+                    self.stdio.warn("{0} is not exist".format(parameter_name))
+                    return None
+                parameter_value = ssh_client.exec_cmd("cat /proc/sys/" + proc_path).strip()
+                return parameter_value
+
         except Exception as e:
             self.stdio.warn("get {0} fail: {1}. please check, the parameter_value will be set None".format(parameter_name, e))
             return None
+
+    def _convert_param_name_for_mac(self, linux_param_name: str) -> str:
+        """
+        Convert Linux parameter name to macOS sysctl equivalent.
+
+        Args:
+            linux_param_name: Linux-style parameter name
+
+        Returns:
+            str: macOS sysctl parameter name, or None if not supported
+        """
+        # Mapping of Linux parameters to macOS equivalents
+        linux_to_mac_mapping = {
+            # Network parameters
+            "net.core.somaxconn": "kern.ipc.somaxconn",
+            "net.core.rmem_default": "net.local.stream.recvspace",
+            "net.core.wmem_default": "net.local.stream.sendspace",
+            "net.core.rmem_max": "kern.ipc.maxsockbuf",
+            "net.core.wmem_max": "kern.ipc.maxsockbuf",
+            "net.ipv4.ip_forward": "net.inet.ip.forwarding",
+            "net.ipv4.tcp_fin_timeout": "net.inet.tcp.keepinit",
+            # File system parameters
+            "fs.file-max": "kern.maxfiles",
+            # Kernel parameters
+            "kernel.core_pattern": "kern.corefile",
+            # VM parameters (some don't have direct equivalents)
+            "vm.swappiness": None,  # No direct equivalent on macOS
+            "vm.max_map_count": None,  # Linux specific
+            "vm.overcommit_memory": None,  # Linux specific
+            "vm.nr_hugepages": None,  # Linux specific
+            "vm.min_free_kbytes": None,  # Linux specific
+            "vm.zone_reclaim_mode": None,  # Linux specific
+            "kernel.numa_balancing": None,  # Linux specific
+            # AIO parameters (Linux specific)
+            "fs.aio-max-nr": None,
+            "fs.aio-nr": None,
+            # TCP parameters
+            "net.ipv4.tcp_rmem": None,  # Linux specific format (3 values)
+            "net.ipv4.tcp_wmem": None,  # Linux specific format (3 values)
+            "net.ipv4.tcp_tw_reuse": None,  # Linux specific
+            "net.ipv4.tcp_syncookies": None,  # Linux specific
+            "net.ipv4.tcp_max_syn_backlog": None,  # Linux specific
+            "net.ipv4.tcp_slow_start_after_idle": None,  # Linux specific
+            "net.ipv4.ip_local_port_range": "net.inet.ip.portrange.first",  # Partial mapping
+            "net.ipv4.conf.default.rp_filter": None,  # Linux specific
+            "net.ipv4.conf.default.accept_source_route": None,  # Linux specific
+            "net.core.netdev_max_backlog": None,  # Linux specific
+            "fs.pipe-user-pages-soft": None,  # Linux specific
+        }
+
+        return linux_to_mac_mapping.get(linux_param_name, linux_param_name)

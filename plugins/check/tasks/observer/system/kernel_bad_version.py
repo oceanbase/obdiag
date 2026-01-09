@@ -48,6 +48,7 @@ class KernelBadVersion(TaskBase):
             "name": "kernel_bad_version",
             "info": "There is a risk of system downtime when deploying OBServer using cgroup method on an operating system with kernel version 3.10",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/910",
+            "supported_os": ["linux"],
         }
 
 

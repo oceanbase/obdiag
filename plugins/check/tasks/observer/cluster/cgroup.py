@@ -60,6 +60,7 @@ class Cgroup(TaskBase):
             "name": "cgroup",
             "info": "Check if tenant isolation is enabled in versions 4. x and above. Default should be enabled to ensure performance",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/849",
+            "supported_os": ["linux"],
         }
 
 

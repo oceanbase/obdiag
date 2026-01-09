@@ -274,6 +274,19 @@ class CheckHandler:
             self.stdio.verbose("execute task: {0}".format(task_name))
             report = TaskReport(self.context, task_name)
 
+            # Pre-check: verify OS compatibility
+            task_instance = self.tasks[task_name]
+            task_info = task_instance.get_task_info()
+            supported_os = task_info.get("supported_os")
+
+            if supported_os:
+                # Check if current OS is supported
+                current_os = self.__get_current_os()
+                if current_os not in supported_os:
+                    self.stdio.verbose("Task {0} skipped: requires {1}, current OS is {2}".format(task_name, supported_os, current_os))
+                    report.add_warning("Task skipped: requires OS {0}, current is {1}".format(supported_os, current_os))
+                    return report
+
             if not self.ignore_version:
                 version = self.version
                 if version or Util.get_option(self.options, 'cases') == "build_before":
@@ -361,6 +374,21 @@ class CheckHandler:
             report = TaskReport(self.context, task_name)
             report.add_fail("Task execution failed: {0}".format(str(e)))
             return report
+
+    def __get_current_os(self):
+        """
+        Get the current operating system type.
+        Returns: 'linux', 'darwin' (macOS), or 'unknown'
+        """
+        import platform
+
+        system = platform.system().lower()
+        if system == "linux":
+            return "linux"
+        elif system == "darwin":
+            return "darwin"
+        else:
+            return "unknown"
 
     def __cleanup(self):
         """Cleanup all resources after check execution."""

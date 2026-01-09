@@ -56,6 +56,7 @@ class TcpTwReuse(TaskBase):
             "name": "tcp_tw_reuse",
             "info": "Check if sockets in TIME-WAIT state (TIME-WAIT ports) are allowed to be used for new TCP connections. Need to be set to 1 to ensure system performance",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/737",
+            "supported_os": ["linux"],
         }
 
 

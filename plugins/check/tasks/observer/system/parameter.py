@@ -90,7 +90,11 @@ class ParameterTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "parameter", "info": "Check kernel parameters. Reference: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643"}
+        return {
+            "name": "parameter",
+            "info": "Check kernel parameters. Reference: https://www.oceanbase.com/docs/enterprise-oceanbase-ocp-cn-1000000000125643",
+            "supported_os": ["linux"],  # Linux kernel parameters
+        }
 
 
 parameter = ParameterTask()

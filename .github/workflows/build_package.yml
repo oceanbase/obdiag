@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - *
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -79,6 +80,131 @@ jobs:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
           retention-days: 3
+
+  build-macos-arm:
+    name: Build macOS ARM64 Package
+    needs: cancel
+    runs-on: macos-14  # Apple Silicon (M1/M2)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Get version and release info
+        id: version
+        run: |
+          VERSION=$(grep -E "^OBDIAG_VERSION" Makefile | head -1 | cut -d'=' -f2 | tr -d ' ' || echo "4.0.0")
+          RELEASE=$(date +%Y%m%d%H%M)
+          ARCH=$(uname -m)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "release=${RELEASE}" >> $GITHUB_OUTPUT
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION}, release: ${RELEASE}, arch: ${ARCH}"
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          # Install requirements excluding pyminizip (compilation issues on macOS)
+          grep -v "pyminizip" requirements3.txt > requirements_macos.txt
+          pip3 install -r requirements_macos.txt
+          # Install pyzipper as replacement for pyminizip
+          pip3 install pyzipper==0.3.6
+          # Install PyInstaller for building binary
+          pip3 install pyinstaller
+
+      - name: Update version info
+        run: |
+          BUILD_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+          VERSION=${{ steps.version.outputs.version }}
+          sed -i '' "s/<B_TIME>/${BUILD_TIME}/g" ./src/common/version.py
+          sed -i '' "s/<VERSION>/${VERSION}/g" ./src/common/version.py
+
+      - name: Build macOS binary with PyInstaller
+        run: |
+          cp src/main.py src/obdiag.py
+          pyinstaller \
+            --name obdiag \
+            --onefile \
+            --hidden-import=decimal \
+            --hidden-import=pyzipper \
+            --hidden-import=pymysql \
+            --hidden-import=paramiko \
+            --hidden-import=yaml \
+            --hidden-import=jinja2 \
+            --hidden-import=requests \
+            --hidden-import=tabulate \
+            --hidden-import=prettytable \
+            --hidden-import=colorama \
+            --paths="./src" \
+            --clean \
+            src/obdiag.py
+          rm -f src/obdiag.py
+
+      - name: Create distribution package
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          RELEASE=${{ steps.version.outputs.release }}
+          ARCH=${{ steps.version.outputs.arch }}
+          PKG_NAME="obdiag-${VERSION}-${RELEASE}-macos-${ARCH}"
+          
+          mkdir -p dist_pkg/${PKG_NAME}/{bin,plugins,conf,example,resources}
+          
+          # Copy binary
+          cp dist/obdiag dist_pkg/${PKG_NAME}/bin/
+          chmod +x dist_pkg/${PKG_NAME}/bin/obdiag
+          
+          # Copy plugins, conf, example, resources
+          cp -r plugins/* dist_pkg/${PKG_NAME}/plugins/
+          cp -r conf/* dist_pkg/${PKG_NAME}/conf/
+          cp -r example/* dist_pkg/${PKG_NAME}/example/
+          cp -r resources/* dist_pkg/${PKG_NAME}/resources/ 2>/dev/null || true
+          
+          # Copy install scripts
+          cp macos/install.sh dist_pkg/${PKG_NAME}/
+          cp macos/uninstall.sh dist_pkg/${PKG_NAME}/
+          chmod +x dist_pkg/${PKG_NAME}/*.sh
+          
+          # Create README
+          cat > dist_pkg/${PKG_NAME}/README.txt << EOF
+          OceanBase Diagnostic Tool - macOS Package
+          ==========================================
+          Version: ${VERSION}
+          Build:   ${RELEASE}
+          Arch:    ${ARCH}
+          
+          Installation:
+            ./install.sh
+          
+          Usage:
+            obdiag --help
+          
+          More Info:
+            https://github.com/oceanbase/obdiag
+          EOF
+          
+          # Create archives
+          cd dist_pkg
+          tar -czf ${PKG_NAME}.tar.gz ${PKG_NAME}
+          zip -r ${PKG_NAME}.zip ${PKG_NAME}
+          
+          # Show results
+          ls -lh ${PKG_NAME}.*
+          shasum -a 256 ${PKG_NAME}.*
+
+      - name: Upload macOS ARM64 Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: obdiag-macos-arm64-package
+          path: |
+            dist_pkg/*.tar.gz
+            dist_pkg/*.zip
+          retention-days: 3
+
   run-with-observer:
     name: run-with-observer
     runs-on: ubuntu-latest

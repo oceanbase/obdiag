@@ -51,7 +51,11 @@ class GetenforceTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "getenforce", "info": "Check SELinux status by getenforce."}
+        return {
+            "name": "getenforce",
+            "info": "Check SELinux status by getenforce.",
+            "supported_os": ["linux"],
+        }
 
 
 getenforce = GetenforceTask()

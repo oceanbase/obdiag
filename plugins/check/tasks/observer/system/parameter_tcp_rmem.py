@@ -60,7 +60,11 @@ class ParameterTcpRmemTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "parameter_tcp_rmem", "info": "Check net.ipv4.tcp_rmem kernel parameter."}
+        return {
+            "name": "parameter_tcp_rmem",
+            "info": "Check net.ipv4.tcp_rmem kernel parameter.",
+            "supported_os": ["linux"],
+        }
 
 
 parameter_tcp_rmem = ParameterTcpRmemTask()

@@ -47,7 +47,11 @@ class ClockSourceTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "clock_source", "info": "Check the type of clock_source is tsc."}
+        return {
+            "name": "clock_source",
+            "info": "Check the type of clock_source is tsc.",
+            "supported_os": ["linux"],
+        }
 
 
 clock_source = ClockSourceTask()

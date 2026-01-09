@@ -61,7 +61,11 @@ class MountOptions(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "mount_options", "info": "When mounting NFS, it is necessary to ensure that the parameters of the backup mounting environment include nfsvers=4.1, sync, lookupcache=positive, and hard. issue#611 #852 "}
+        return {
+            "name": "mount_options",
+            "info": "When mounting NFS, it is necessary to ensure that the parameters of the backup mounting environment include nfsvers=4.1, sync, lookupcache=positive, and hard. issue#611 #852",
+            "supported_os": ["linux"],
+        }
 
 
 mount_options = MountOptions()

@@ -73,6 +73,7 @@ class DmesgLog(TaskBase):
             "name": "dmesg_log",
             "info": "Confirm whether there is \"Hardware Error\" in dmesg.",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/885",
+            "supported_os": ["linux"],
         }
 
 

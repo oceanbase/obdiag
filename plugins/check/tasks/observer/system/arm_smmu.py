@@ -55,6 +55,7 @@ class ArmSmmuTask(TaskBase):
             "name": "arm_smmu",
             "info": "Check SMMU on ARM architecture",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/784",
+            "supported_os": ["linux"],
         }
 
 

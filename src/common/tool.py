@@ -44,8 +44,21 @@ import lzma
 import pymysql as mysql
 import shutil
 import tarfile
-import pyminizip
+import platform
 import os
+
+# Cross-platform zip compression support
+# Use pyminizip on Linux, pyzipper on macOS (pyminizip has compilation issues on macOS)
+_USE_PYZIPPER = False
+try:
+    import pyminizip
+except ImportError:
+    try:
+        import pyzipper
+
+        _USE_PYZIPPER = True
+    except ImportError:
+        raise ImportError("Neither pyminizip nor pyzipper is available. Please install one of them.")
 from datetime import timedelta
 from random import choice
 from io import BytesIO
@@ -676,16 +689,31 @@ class FileUtil(object):
                     base_path = os.path.basename(root)
                     files_to_compress.append(file_path)
                     base_paths.append(base_path)
-            stdio.verbose("start pyminizip compress_multiple")
+            stdio.verbose("start compress_multiple using {0}".format("pyzipper" if _USE_PYZIPPER else "pyminizip"))
             # 3. Compress the extracted files into a (possibly) encrypted zip file
-            if password:
-                # Use pyminizip to create the encrypted zip file
-                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
-                stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
+            if _USE_PYZIPPER:
+                # Use pyzipper for macOS compatibility
+                if password:
+                    with pyzipper.AESZipFile(output_zip, 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zf:
+                        zf.setpassword(password.encode('utf-8'))
+                        for file_path, base_path in zip(files_to_compress, base_paths):
+                            arcname = os.path.join(base_path, os.path.basename(file_path))
+                            zf.write(file_path, arcname)
+                    stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
+                else:
+                    with pyzipper.ZipFile(output_zip, 'w', compression=pyzipper.ZIP_DEFLATED) as zf:
+                        for file_path, base_path in zip(files_to_compress, base_paths):
+                            arcname = os.path.join(base_path, os.path.basename(file_path))
+                            zf.write(file_path, arcname)
+                    stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
             else:
-                # Create an unencrypted zip file
-                pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
-                stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
+                # Use pyminizip for Linux
+                if password:
+                    pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, password, 5)  # 5 is the compression level
+                    stdio.verbose("extracted files compressed into encrypted {0}".format(output_zip))
+                else:
+                    pyminizip.compress_multiple(files_to_compress, base_paths, output_zip, None, 5)
+                    stdio.verbose("extracted files compressed into unencrypted {0}".format(output_zip))
 
             # 4. Remove the extracted directory
             shutil.rmtree(extract_dir)

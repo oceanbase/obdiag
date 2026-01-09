@@ -192,3 +192,34 @@ info:
 	@echo "  RELEASE:        $(RELEASE)"
 	@echo "  Python:         $$(python3 --version 2>&1)"
 
+# ==================== macOS Targets ====================
+
+.PHONY: pack_macos install_macos uninstall_macos
+
+# Install obdiag locally on macOS (Homebrew-style)
+install_macos:
+	@echo "Installing obdiag on macOS..."
+	@chmod +x $(PROJECT_PATH)/macos/test_local_install.sh
+	@$(PROJECT_PATH)/macos/test_local_install.sh install
+
+# Uninstall obdiag from macOS
+uninstall_macos:
+	@echo "Uninstalling obdiag from macOS..."
+	@chmod +x $(PROJECT_PATH)/macos/uninstall.sh
+	@$(PROJECT_PATH)/macos/uninstall.sh
+
+# Build macOS package (requires Python 3.11+)
+pack_macos:
+	@echo "Building macOS package (version: $(OBDIAG_VERSION))..."
+	@command -v pyinstaller >/dev/null 2>&1 || pip3 install pyinstaller
+	@mkdir -p $(PROJECT_PATH)/dist_macos
+	@cp -f src/main.py src/obdiag.py
+	@sed -i '' "s/<B_TIME>/$$(date)/" ./src/common/version.py 2>/dev/null || sed -i "s/<B_TIME>/$$(date)/" ./src/common/version.py
+	@sed -i '' "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py 2>/dev/null || sed -i "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py
+	@pyinstaller --hidden-import=decimal --hidden-import=pyzipper -p $(PROJECT_PATH)/src -F src/obdiag.py --distpath $(PROJECT_PATH)/dist_macos
+	@rm -f src/obdiag.py
+	@echo "macOS binary built: $(PROJECT_PATH)/dist_macos/obdiag"
+	@echo ""
+	@echo "To create a distributable package:"
+	@echo "  1. Copy dist_macos/obdiag, plugins/, conf/, example/ to a directory"
+	@echo "  2. Create a DMG or ZIP file for distribution"

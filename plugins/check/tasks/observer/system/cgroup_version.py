@@ -119,6 +119,7 @@ class CgroupVersionTask(TaskBase):
             "name": "cgroup_version",
             "info": "Check cgroup version. OceanBase currently uses cgroup v1. If the customer's operating system is cgroup v2, resource isolation will not take effect",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/1101",
+            "supported_os": ["linux"],  # cgroup is Linux-specific
         }
 
 

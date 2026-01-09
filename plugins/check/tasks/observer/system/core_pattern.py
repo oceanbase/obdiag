@@ -70,7 +70,11 @@ class CorePatternTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "core_pattern", "info": "Check kernel.core_pattern."}
+        return {
+            "name": "core_pattern",
+            "info": "Check kernel.core_pattern.",
+            "supported_os": ["linux"],
+        }
 
 
 core_pattern = CorePatternTask()

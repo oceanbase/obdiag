@@ -65,7 +65,11 @@ class AioTask(TaskBase):
             self.report.add_fail("Execution error: {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "aio", "info": "Check AIO settings."}
+        return {
+            "name": "aio",
+            "info": "Check AIO settings (fs.aio-max-nr, fs.aio-nr).",
+            "supported_os": ["linux"],  # AIO parameters are Linux-specific
+        }
 
 
 aio = AioTask()

@@ -84,6 +84,7 @@ class ClockSourceCheck(TaskBase):
             "name": "clock_source_check",
             "info": "It is recommended to add inspection items to check whether the configuration file server IP of the ob node clock source is consistent",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/781",
+            "supported_os": ["linux"],
         }
 
 
