@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - 410-check-update
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
