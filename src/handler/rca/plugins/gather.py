@@ -23,15 +23,15 @@ from src.handler.gather.gather_component_log import GatherComponentLogHandler
 class Gather_log:
     """
     RCA plugin for gathering logs from different components.
-    
+
     Supported targets:
     - observer: OceanBase observer logs
     - obproxy: OBProxy logs
     - oms: OMS logs (including CDC logs when oms_component_id is provided)
-    
+
     For OMS CDC logs, use target="oms" with scope="cdc" and set oms_component_id.
     """
-    
+
     # Mapping of target to node config getter
     TARGET_NODE_CONFIG = {
         'observer': lambda ctx: ctx.cluster_config.get("servers"),
@@ -73,15 +73,14 @@ class Gather_log:
         """Get all nodes for the specified target"""
         node_getter = self.TARGET_NODE_CONFIG.get(target)
         if node_getter is None:
-            raise Exception("Unsupported target: {0}. Supported targets: {1}".format(
-                target, list(self.TARGET_NODE_CONFIG.keys())))
+            raise Exception("Unsupported target: {0}. Supported targets: {1}".format(target, list(self.TARGET_NODE_CONFIG.keys())))
         return node_getter(self.context) or []
 
     def _filter_nodes(self, all_nodes, filter_list):
         """Filter nodes based on filter_nodes_list"""
         if not filter_list:
             return []
-        
+
         filtered = []
         for node in all_nodes:
             node_ip = node.get("ip")
@@ -97,11 +96,11 @@ class Gather_log:
         if not save_path:
             save_path = self.work_path
         save_path = os.path.expanduser(save_path)
-        
+
         if not os.path.exists(save_path):
             os.makedirs(save_path)
             self.stdio.verbose("{0} does not exist, created it.".format(save_path))
-        
+
         self.work_path = save_path
         self.conf_map["store_dir"] = self.work_path
         return save_path
@@ -109,10 +108,10 @@ class Gather_log:
     def execute(self, save_path=""):
         """
         Execute log gathering.
-        
+
         Args:
             save_path: Optional path to save gathered logs
-            
+
         Returns:
             List of gathered log file paths
         """
@@ -122,7 +121,7 @@ class Gather_log:
             self.stdio.verbose("Gather_log execute, conf_map: {0}".format(self.conf_map))
 
             target = self.conf_map.get("gather_target", "observer")
-            
+
             # Get and filter nodes
             all_nodes = self._get_all_nodes(target)
             filter_list = self.conf_map.get("filter_nodes_list", [])
@@ -145,27 +144,27 @@ class Gather_log:
 
             # Execute gathering
             handler.handle()
-            
+
             # Collect result files
             result_log_files = []
             result_log_dir_data = handler.open_all_file()
             for dir_name in result_log_dir_data:
                 result_log_files.extend(result_log_dir_data[dir_name])
-            
+
             self.reset()
             return result_log_files
-            
+
         except Exception as e:
             raise Exception("rca plugins Gather_log execute error: {0}".format(e))
 
     def set_parameters(self, parameter, value):
         """
         Set a gather parameter.
-        
+
         Args:
             parameter: Parameter name (without 'gather_' prefix)
             value: Parameter value
-            
+
         Returns:
             True if parameter was set, False if parameter not found
         """

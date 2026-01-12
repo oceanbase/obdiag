@@ -52,7 +52,7 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
         home_path = self.node.get("home_path")
         if not home_path:
             return None
-            
+
         pid_file_path = os.path.join(home_path, 'run', 'observer.pid')
 
         # Try to read from pid file first (local file access)

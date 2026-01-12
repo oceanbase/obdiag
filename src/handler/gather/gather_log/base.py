@@ -259,10 +259,10 @@ class BaseGatherLogOnNode(ABC):
                 name_patterns.extend(target_scopes)
             else:
                 name_patterns.append(target_scopes)
-        
+
         if not name_patterns:
             return ""
-        
+
         # Build: \( -name "pattern1" -o -name "pattern2" \)
         # Parentheses are needed for correct -o behavior in find command
         pattern_parts = " -o ".join(['-name "{0}"'.format(p) for p in name_patterns])
@@ -391,7 +391,7 @@ class BaseGatherLogOnNode(ABC):
             if remaining_slots > 0:
                 type_filtered.extend([f for f, _ in timestamped_files[:remaining_slots]])
             else:
-                type_filtered = current_files[:self.recent_count]
+                type_filtered = current_files[: self.recent_count]
 
             self.stdio.verbose("Log type '{0}': kept {1} files from {2}".format(log_type, len(type_filtered), len(files)))
             filtered_list.extend(type_filtered)

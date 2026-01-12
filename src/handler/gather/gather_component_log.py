@@ -169,7 +169,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         """Validate and create store directory"""
         if self.store_dir is None:
             self.store_dir = "./"
-        
+
         if not os.path.exists(self.store_dir):
             self.stdio.warn('args --store_dir [{0}] incorrect: No such directory, Now create it'.format(os.path.abspath(self.store_dir)))
             os.makedirs(os.path.abspath(self.store_dir))
@@ -226,7 +226,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         """Validate and process time options"""
         now_time = datetime.datetime.now()
         time_format = '%Y-%m-%d %H:%M:%S'
-        
+
         # Case 1: Both from and to options provided
         if self.from_option is not None and self.to_option is not None:
             try:
@@ -455,7 +455,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                             self.stdio.warn("Skipping potentially unsafe path: {0}".format(member.name))
                             continue
                         safe_members.append(member)
-                    
+
                     tar.extractall(path=extract_path, members=safe_members)
                     extracted_files = [m.name for m in safe_members]
                     self.stdio.verbose("extracted_files: {0}".format(extracted_files))
