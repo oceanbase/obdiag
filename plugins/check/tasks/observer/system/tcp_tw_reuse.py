@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -52,7 +52,7 @@ class TcpTwReuse(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "tcp_tw_reuse", "info": "Check if sockets in TIME-WAIT state (TIME-WAIT ports) are allowed to be used for new TCP connections. Need to be set to 1 to ensure system performance. issue#737"}
+        return {"name": "tcp_tw_reuse", "info": "Check if sockets in TIME-WAIT state (TIME-WAIT ports) are allowed to be used for new TCP connections. Need to be set to 1 to ensure system performance. issue #737"}
 
 
 tcp_tw_reuse = TcpTwReuse()

@@ -35,7 +35,7 @@ task:
         sql: "select * from oceanbase.__all_restore_info;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > now() - interval 1 day order by gmt_create desc;"
         global: true
       - type: sql
         sql: "select svr_ip,role, is_restore, count(*) from oceanbase.__all_root_table as a, (select value from oceanbase.__all_restore_info where name='tenant_id') as b where a.tenant_id=b.value group by role, is_restore, svr_ip order by svr_ip, is_restore;"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -220,8 +220,19 @@ class GatherSceneHandler(SafeStdio):
         if scene_option:
             self.scene = scene_option
         if env_option:
-            env_dict = StringUtils.parse_env(env_option)
+            env_dict = StringUtils.parse_env_display(env_option)
             self.env = env_dict
+            self.context.set_variable("env", self.env)
+        # Add from_time and to_time to env so they can be accessed by Python tasks
+        if hasattr(self, 'from_time_str') and self.from_time_str:
+            if self.env is None:
+                self.env = {}
+            self.env['from_time'] = self.from_time_str
+        if hasattr(self, 'to_time_str') and self.to_time_str:
+            if self.env is None:
+                self.env = {}
+            self.env['to_time'] = self.to_time_str
+        if self.env:
             self.context.set_variable("env", self.env)
         if temp_dir_option:
             self.temp_dir = temp_dir_option

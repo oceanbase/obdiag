@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -124,7 +124,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         if scope_option:
             self.scope = scope_option
         if log_level_option:
-            self.log_level = OBLogLevel().get_log_level(scope_option)
+            self.log_level = OBLogLevel().get_log_level(log_level_option)
         if temp_dir_option:
             self.gather_ob_log_temporary_dir = temp_dir_option
         return True
@@ -216,7 +216,11 @@ class AnalyzeLogHandler(BaseShellHandler):
         to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
         gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
         gather_dir_full_path = "{0}/{1}_{2}".format(self.gather_ob_log_temporary_dir, gather_dir_name, str(uuid.uuid4())[:6])
-        mkdir(ssh_client, gather_dir_full_path)
+        mkdir_info = mkdir(ssh_client, gather_dir_full_path)
+        if mkdir_info:
+            resp["skip"] = True
+            resp["error"] = mkdir_info
+            return resp, node_results
 
         log_list, resp = self.__handle_log_list(ssh_client, node, resp)
         if resp["skip"]:

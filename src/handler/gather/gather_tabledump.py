@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -30,7 +30,6 @@ from tabulate import tabulate
 
 
 class GatherTableDumpHandler(SafeStdio):
-
     def __init__(self, context, store_dir="./obdiag_gather_report", is_inner=False):
         self.context = context
         self.stdio = context.stdio
@@ -48,6 +47,12 @@ class GatherTableDumpHandler(SafeStdio):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
             self.gather_timestamp = TimeUtils.get_current_us_timestamp()
+
+    def _clean_identifier(self, identifier):
+
+        if identifier:
+            return identifier.replace('`', '')
+        return identifier
 
     def init(self):
         try:
@@ -85,6 +90,10 @@ class GatherTableDumpHandler(SafeStdio):
                 self.tenant_name = self.context.get_variable("gather_tenant_name")
             else:
                 self.tenant_name = self.__extract_string(user)
+
+            self.database = self._clean_identifier(self.database)
+            self.table = self._clean_identifier(self.table)
+
             self.ob_connector = OBConnector(
                 context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.ob_cluster.get("tenant_sys").get("user"), password=self.ob_cluster.get("tenant_sys").get("password"), timeout=100
             )
@@ -128,7 +137,7 @@ class GatherTableDumpHandler(SafeStdio):
                 self.__report_simple(sql, result[0][1])
             return True
         except Exception as e:
-            self.stdio.error("show create table error {0}".format(e))
+            self.stdio.verbose("show create table error: {0}".format(e))
 
     def __get_table_info(self):
         try:
@@ -203,11 +212,10 @@ class GatherTableDumpHandler(SafeStdio):
             query_count = '''select /*+read_consistency(weak) */ 
                     m.zone, 
                     m.svr_ip,
-                    t.database_name,
                     t.table_name,
                     m.role,
                     ROUND(m.data_size / 1024 / 1024, 2) AS "DATA_SIZE(M)",
-                    ROUND(m.required_size / 1024 / 1024, 2) AS "REQUIRED_SIZE(M)"
+                    ROUND(m.required_size / 1024 / 1024, 2) AS "REQUIRED_SIZE(M)",
                     m.row_count as total_rows_count 
                     from oceanbase.__all_virtual_meta_table m, oceanbase.__all_virtual_table t 
                             where m.table_id = t.table_id and m.tenant_id = '{0}' and m.table_id = '{1}' and t.table_name = '{2}' order by total_rows_count desc limit 1'''.format(
@@ -257,11 +265,14 @@ class GatherTableDumpHandler(SafeStdio):
             return s
 
     def __extract_table_name(self, full_name):
+        if '`' in full_name:
+            self.stdio.verbose("'`' in full_name, clean it: {0}".format(full_name))
+            full_name = full_name.replace('`', '')
         parts = full_name.split('.')
         if len(parts) > 1:
-            return parts[-1]
+            return parts[-1].strip()
         else:
-            return full_name
+            return full_name.strip()
 
     def __print_result(self):
         self.end_time = time.time()

@@ -1,0 +1,51 @@
+# Stage 1: Build RPM package
+FROM registry.openanolis.cn/openanolis/anolisos:8.9 AS builder
+
+ENV PATH="/opt/miniconda/bin:$PATH"
+ENV LANGUAGE en_US
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
+RUN yum install -y wget rpm-build gcc gcc-c++ make \
+&& ARCH=$(uname -m) \
+&& if [ "$ARCH" = "x86_64" ]; then \
+    MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"; \
+elif [ "$ARCH" = "aarch64" ]; then \
+    MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"; \
+else \
+    echo "Unsupported architecture: $ARCH"; \
+    exit 1; \
+fi \
+&& wget --quiet --no-check-certificate ${MINICONDA_URL} -O /tmp/miniconda.sh \
+&& bash /tmp/miniconda.sh -b -p /opt/miniconda \
+&& rm -rf /tmp/miniconda.sh \
+&& /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main \
+&& /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r \
+&& /opt/miniconda/bin/conda create -n obdiag -y python=3.11 \
+&& /opt/miniconda/envs/obdiag/bin/pip install --upgrade pip wheel
+
+COPY ./ ./
+RUN source /opt/miniconda/bin/activate obdiag && make pack
+
+# Stage 2: Install RPM package in minimal container
+FROM registry.openanolis.cn/openanolis/anolisos:8.9
+
+ENV LANGUAGE en_US
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
+# Copy RPM package from builder stage
+# Copy the entire RPMS directory to support multiple architectures (x86_64, aarch64)
+COPY --from=builder /root/rpmbuild/RPMS/ /tmp/rpm/
+
+# Install RPM package - automatically detect architecture
+RUN ARCH_DIR=$(find /tmp/rpm -type d -name "x86_64" -o -name "aarch64" | head -1) \
+&& if [ -z "$ARCH_DIR" ]; then \
+    echo "Error: No RPM package found in /tmp/rpm"; \
+    exit 1; \
+fi \
+&& yum install -y ${ARCH_DIR}/oceanbase-diagnostic-tool-*.rpm
+
+# Set PATH to include obdiag
+ENV PATH="/opt/oceanbase-diagnostic-tool:$PATH"
+

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -30,10 +30,9 @@ class EnableLockPriority(TaskBase):
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
             if not super().check_ob_version_min("4.2.5.0"):
-                return self.report.add_warning("enable_lock_priority is not supported in this version")
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             observer_version = get_observer_version(self.context)
             if not (observer_version == "4.3.0.0" or StringUtils.compare_versions_greater("4.3.0.0", observer_version)):
-                self.report.add_warning("observer version is {0}, which is more than 4.3.0.0.".format(observer_version))
                 return
 
             enable_lock_priority_data = self.ob_connector.execute_sql_return_cursor_dictionary("SHOW PARAMETERS LIKE 'enable_lock_priority';").fetchall()
@@ -58,7 +57,7 @@ class EnableLockPriority(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "enable_lock_priority", "info": "After enabling, the activation of enable_lock_priority can also affect the performance of ddl/dml in daily use. Do not open it unless there is a need for lock free structural changes. issue#890"}
+        return {"name": "enable_lock_priority", "info": "After enabling, the activation of enable_lock_priority can also affect the performance of ddl/dml in daily use. Do not open it unless there is a need for lock free structural changes. issue #890"}
 
 
 enable_lock_priority = EnableLockPriority()

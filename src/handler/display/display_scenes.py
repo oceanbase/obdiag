@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -72,32 +72,28 @@ class DisplaySceneHandler(SafeStdio):
         self.context.set_variable('temp_dir', self.temp_dir)
         self.__init_variables()
         self.__init_task_names()
-        self.execute()
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE)
+        data = self.execute()
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"display_data": data})
 
     def execute(self):
         try:
+            return_data = ""
             self.stdio.verbose("execute_tasks. the number of tasks is {0} ,tasks is {1}".format(len(self.yaml_tasks.keys()), self.yaml_tasks.keys()))
             for key, value in zip(self.yaml_tasks.keys(), self.yaml_tasks.values()):
-                self.__execute_yaml_task_one(key, value)
+                data = self.__execute_yaml_task_one(key, value)
+                if isinstance(data, str):
+                    return_data = "{0}\n{1}".format(return_data, data)
+                elif isinstance(data, ObdiagResult):
+                    return data
+            # todo display no code task
             for task in self.code_tasks:
                 self.__execute_code_task_one(task)
+            return return_data
         except Exception as e:
             self.stdio.error("Internal error :{0}".format(e))
 
     def __init_db_connector(self):
         self.db_connector = OBConnector(context=self.context, ip=self.db_conn.get("host"), port=self.db_conn.get("port"), username=self.db_conn.get("user"), password=self.db_conn.get("password"), database=self.db_conn.get("database"), timeout=100)
-
-    def __init_db_conn(self, cli_connection_string):
-        try:
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
-            if StringUtils.validate_db_info(self.db_conn):
-                self.__init_db_connector()
-            else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'] but provided {0}, please check the --env db_connect={0}".format(cli_connection_string))
-                self.db_connector = self.sys_connector
-        except Exception as e:
-            self.stdio.exception("init db connector, error: {0}, please check --env option ")
 
     # execute yaml task
     def __execute_yaml_task_one(self, task_name, task_data):
@@ -111,15 +107,18 @@ class DisplaySceneHandler(SafeStdio):
                     self.cluster["version"] = match.group(0)
                 else:
                     self.stdio.error("get cluster.version failed")
-                    return
+                    return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="get cluster.version failed")
                 task = SceneBase(context=self.context, scene=task_data["task"], env=self.env, scene_variable_dict=self.variables, task_type=task_type, db_connector=self.db_connector)
                 self.stdio.verbose("{0} execute!".format(task_name))
-                task.execute()
+                data = task.execute()
                 self.stdio.verbose("execute tasks end : {0}".format(task_name))
+                return str(data)
             else:
                 self.stdio.error("can't get version")
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="can't get version")
         except Exception as e:
             self.stdio.error("__execute_yaml_task_one Exception : {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="__execute_yaml_task_one Exception : {0}".format(e))
 
     # execute code task
     def __execute_code_task_one(self, task_name):
@@ -128,10 +127,12 @@ class DisplaySceneHandler(SafeStdio):
             scene = {"name": task_name}
             task = SceneBase(context=self.context, scene=scene, env=self.env, mode='code', task_type=task_name, db_connector=self.db_connector)
             self.stdio.verbose("{0} execute!".format(task_name))
-            task.execute()
+            data = task.execute()
             self.stdio.verbose("execute tasks end : {0}".format(task_name))
+            return data
         except Exception as e:
             self.stdio.error("__execute_code_task_one Exception : {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="__execute_code_task_one Exception : {0}".format(e))
 
     def __init_task_names(self):
         if self.scene:
@@ -154,6 +155,7 @@ class DisplaySceneHandler(SafeStdio):
                 self.yaml_tasks["observer.base"] = yaml_task_base
         else:
             self.stdio.error("get task name failed")
+            return False
 
     def __init_variables(self):
         try:
@@ -166,6 +168,7 @@ class DisplaySceneHandler(SafeStdio):
             self.stdio.verbose("display scene variables: {0}".format(self.variables))
         except Exception as e:
             self.stdio.error("init display scene variables failed, error: {0}".format(e))
+            return False
 
     def __get_task_type(self, s):
         trimmed_str = s.strip()
@@ -212,10 +215,14 @@ class DisplaySceneHandler(SafeStdio):
         if env_option:
             env_dict = StringUtils.parse_env_display(env_option)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            if cli_connection_string != None:
-                self.__init_db_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if db_conn and StringUtils.validate_db_info(db_conn):
+                self.db_conn = db_conn
+                self.__init_db_connector()
             else:
+                self.stdio.warn("db connection information not provided or invalid, using sys_connector")
                 self.db_connector = self.sys_connector
         else:
             self.db_connector = self.sys_connector

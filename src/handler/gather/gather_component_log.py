@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -26,7 +26,7 @@ import shutil
 import subprocess
 
 from prettytable import PrettyTable
-from src.common.command import get_file_start_time, get_file_size, is_empty_dir
+from src.common.command import get_file_size, is_empty_dir
 from src.common.constant import const
 from src.common.ssh_client.ssh import SshClient
 from src.common.tool import FileUtil, TimeUtils
@@ -101,6 +101,13 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.oms_log_path = kwargs.get('oms_log_path', None)
             self.thread_nums = kwargs.get('thread_nums', 3)
             self.oms_component_id = kwargs.get('oms_component_id', None)
+            self.recent_count = kwargs.get('recent_count', 0)
+            if self.recent_count is None:
+                self.recent_count = 0
+            try:
+                self.recent_count = int(self.recent_count)
+            except (ValueError, TypeError):
+                self.recent_count = 0
             self.__check_option()
             # build config dict for gather log on node
             self.gather_log_conf_dict = {
@@ -114,6 +121,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "file_number_limit": self.file_number_limit,
                 "file_size_limit": self.file_size_limit,
                 "oms_component_id": self.oms_component_id,
+                "recent_count": self.recent_count,
             }
 
         except Exception as e:
@@ -193,16 +201,22 @@ class GatherComponentLogHandler(BaseShellHandler):
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            if self.recent_count > 0:
+                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
+            else:
+                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
         else:
-            self.stdio.print('No time option provided, default processing is based on the last 30 minutes')
             now_time = datetime.datetime.now()
             self.to_time_str = (now_time + datetime.timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
             if self.since_option:
                 self.from_time_str = (now_time - datetime.timedelta(seconds=TimeUtils.parse_time_length_to_sec(self.since_option))).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 self.from_time_str = (now_time - datetime.timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
-            self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
+            if self.recent_count > 0:
+                self.stdio.print('gather log with recent_count: {0} (most recent {0} files per log type)'.format(self.recent_count))
+            else:
+                self.stdio.print('No time option provided, default processing is based on the last 30 minutes')
+                self.stdio.print('gather log from_time: {0}, to_time: {1}'.format(self.from_time_str, self.to_time_str))
 
         # check redact
         if self.redact:
@@ -397,7 +411,7 @@ class GatherLogOnNode:
                 number = match.group(1)
                 obcdc_id = number
             else:
-                self.stdio.error("can not get obcdc_id by component_id. please check component_id.")
+                self.stdio.warn("can not get obcdc_id by component_id. please check component_id.")
             self.log_path = os.path.join(node.get("store_path"), "store" + obcdc_id, "log")
         else:
             self.log_path = os.path.join(node.get("home_path"), "log")
@@ -410,6 +424,22 @@ class GatherLogOnNode:
         #
         self.file_number_limit = self.config.get("file_number_limit")
         self.file_size_limit = self.config.get("file_size_limit")
+        # Get search_version from inner_config, default is 2
+        inner_config = self.context.inner_config if hasattr(self.context, 'inner_config') else None
+        if inner_config:
+            self.search_version = int(inner_config.get("obdiag", {}).get("gather", {}).get("search_version", 2))
+        else:
+            self.search_version = 2
+        self.stdio.verbose("search_version: {0}".format(self.search_version))
+        # Get recent_count from config, default is 0
+        self.recent_count = self.config.get("recent_count", 0)
+        if self.recent_count is None:
+            self.recent_count = 0
+        try:
+            self.recent_count = int(self.recent_count)
+        except (ValueError, TypeError):
+            self.recent_count = 0
+        self.stdio.verbose("recent_count: {0}".format(self.recent_count))
         self.gather_tuple = {"node": "", "success": "Fail", "info": "", "file_size": 0, "file_path": ""}
 
     def get_result(self):
@@ -430,17 +460,20 @@ class GatherLogOnNode:
                 tmp_dir = "{0}_pid_{1}".format(tmp_dir, pid)
         tmp_log_dir = os.path.join(self.tmp_dir, tmp_dir)
         # mkdir tmp_log_dir
-        self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
-        self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}".format(self.ssh_client.get_ip(), tmp_log_dir))
+        mkdir_response = self.ssh_client.exec_cmd("mkdir -p {0}".format(tmp_log_dir))
+        if mkdir_response:
+            self.stdio.error("gather_log_on_node {0} mkdir -p {0}: {1}, error:{2}".format(self.ssh_client.get_ip(), tmp_log_dir, mkdir_response))
+            return
+        self.stdio.verbose("gather_log_on_node {0} tmp_log_dir: {1}, info:{2}".format(self.ssh_client.get_ip(), tmp_log_dir, mkdir_response))
         try:
             # find logs
             logs_name = self.__find_logs_name()
             if logs_name is None or len(logs_name) == 0:
-                self.stdio.error("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "no log found"
                 return
             elif len(logs_name) > self.file_number_limit:
-                self.stdio.error('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
+                self.stdio.warn('{0} The number of log files is {1}, out of range (0,{2}], ' "Please adjust the query limit".format(self.ssh_client.get_name(), len(logs_name), self.file_number_limit))
                 self.gather_tuple["info"] = "too many files {0} > {1}".format(len(logs_name), self.file_number_limit)
                 return
 
@@ -451,7 +484,7 @@ class GatherLogOnNode:
             if is_empty_dir(self.ssh_client, tmp_log_dir, self.stdio):
                 # if remote tmp_log_dir is empty, rm the dir and return
                 self.ssh_client.exec_cmd("rm -rf {0}".format(tmp_log_dir))
-                self.stdio.error("gather_log_on_node {0} failed: tmp_log_dir({1}) no log found".format(self.ssh_client.get_name(), tmp_log_dir))
+                self.stdio.warn("gather_log_on_node {0} failed: tmp_log_dir({1}) no log found".format(self.ssh_client.get_name(), tmp_log_dir))
                 self.gather_tuple["info"] = "tmp_log_dir({0}) no log found".format(tmp_log_dir)
                 return
 
@@ -464,11 +497,11 @@ class GatherLogOnNode:
             tar_file_size = int(get_file_size(self.ssh_client, tar_file))
             self.stdio.verbose("gather_log_on_node {0} tar_file_size: {1}".format(self.ssh_client.get_ip(), tar_file_size))
             if tar_file_size == 0:
-                self.stdio.error("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: tar file size is 0".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "tar file size is 0"
                 return
             if tar_file_size > self.file_size_limit:
-                self.stdio.error("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
+                self.stdio.warn("gather_log_on_node {0} failed: File too large over gather.file_size_limit".format(self.ssh_client.get_ip()))
                 self.gather_tuple["info"] = "File too large over gather.file_size_limit"
                 return
             else:
@@ -548,13 +581,69 @@ class GatherLogOnNode:
             self.stdio.verbose("gather_log_on_node {0} find logs cmd: {1}".format(self.ssh_client.get_ip(), find_cmd))
             logs_name = self.ssh_client.exec_cmd(find_cmd)
             if logs_name is not None and len(logs_name) != 0:
-                log_name_list = self.__get_logfile_name_list(self.from_time_str, self.to_time_str, self.log_path, logs_name)
-                return log_name_list
+                # If recent_count > 0, skip time filtering and get all log files, then filter by recent_count
+                if self.recent_count > 0:
+                    self.stdio.verbose("recent_count is {0}, skipping time filtering (from/to/since will be ignored)".format(self.recent_count))
+                    log_name_list = self.__get_all_logfile_name_list(logs_name)
+                    # Apply recent_count filter
+                    if len(log_name_list) > self.recent_count:
+                        log_name_list = self.__filter_by_recent_count(log_name_list)
+                    return log_name_list
+                else:
+                    # Normal time filtering when recent_count is 0
+                    # Use search_version to determine which method to use
+                    if self.search_version == 1:
+                        self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list (search_version=1)".format(self.ssh_client.get_ip()))
+                        log_name_list = self.__get_logfile_name_list(self.from_time_str, self.to_time_str, self.log_path, logs_name)
+                    else:
+                        self.stdio.verbose("gather_log_on_node {0} using __get_logfile_name_list_v2 (search_version={1})".format(self.ssh_client.get_ip(), self.search_version))
+                        log_name_list = self.__get_logfile_name_list_v2(self.from_time_str, self.to_time_str, self.log_path, logs_name)
+                    return log_name_list
             else:
                 self.stdio.warn("gather_log_on_node {0} failed: no log found".format(self.ssh_client.get_ip()))
                 return []
         except Exception as e:
             raise Exception("gather_log_on_node {0} find logs failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+
+    def __get_all_logfile_name_list(self, log_files):
+        """
+        Get all log file names without time filtering.
+        Used when recent_count > 0 to get all files first, then filter by recent_count.
+        """
+        log_name_list = []
+
+        # Handle OMS special case
+        if self.target == "oms":
+            formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "log.gz" not in file_name or formatted_time in file_name:
+                    log_name_list.append(file_name)
+            return log_name_list
+
+        # Handle OMS_CDC special case
+        if self.target == "oms_cdc":
+            self.stdio.warn("oms_cdc not support get log file name list, return all 'libobcdc.log*' log file name list")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "libobcdc.log" in file_name:
+                    log_name_list.append(file_name)
+            return log_name_list
+
+        # For observer and obproxy, return all log files
+        for file_name in log_files.split('\n'):
+            file_name = file_name.strip()
+            if file_name == "":
+                self.stdio.verbose("existing file name is empty")
+                continue
+            log_name_list.append(file_name)
+
+        self.stdio.verbose("get all log file name list (no time filtering), found {0} files".format(len(log_name_list)))
+        return log_name_list
 
     def __get_logfile_name_list(self, from_time_str, to_time_str, log_dir, log_files):
         # oms get all log file name list, the log size is so small
@@ -584,71 +673,276 @@ class GatherLogOnNode:
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
         log_name_list = []
         for file_name in log_files.split('\n'):
-            if file_name == "":
-                self.stdio.verbose("existing file name is empty")
-                continue
-            if not file_name.endswith("log") and not file_name.endswith("wf"):
-                # get end_time from file_name
-                first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
-                file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
-                file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
-                self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
-                if file_end_time_str == "":
-                    self.stdio.warn("The log file {0} can't find endtime. skip".format(file_name))
+            file_name = file_name.strip()
+            try:
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
                     continue
-                file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
                 from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
-                if file_start_time_str == "":
-                    if file_end_time_str_strp < from_time_str_strp:
-                        self.stdio.warn("The log file {0} can't find start_time. skip".format(file_name))
-                        continue
-                    else:
-                        self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
-                        log_name_list.append(file_name)
-                        continue
-                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
                 to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
-                # When two time intervals overlap, need to add the file
-                if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
-                    log_name_list.append(file_name)
-                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time_str, from_time_str, to_time_str))
-            elif file_name.endswith("log") or file_name.endswith("wf"):
-                # get form_time and to_time from the first and last lines of text of the file
-                # Get the first and last lines of text of the file. Here, use a command
-                first_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1")
-                if first_line_text == "":
-                    self.stdio.verbose("The log file {0} can't find starttime.".format(file_name))
-                    continue
-                file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
-                file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
 
-                last_line_text = self.ssh_client.exec_cmd('grep -E "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | tail -n 1")
-                file_end_time_str_strp = None
-                if last_line_text == "":
-                    self.stdio.verbose("The log file {0} can't find endtime.".format(file_name))
-                    file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    self.stdio.warn("The log file {0} can't find endtime. set nowtime:{1}".format(file_name, file_end_time))
-                    file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
-                else:
-                    file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
-                    file_end_time_str = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
+                if not file_name.endswith("log") and not file_name.endswith("wf"):
+                    # get end_time from file_name
+                    first_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
+                    if first_line_text == "":
+                        self.stdio.verbose("node: {0}, The log file {1} can't find starttime. skip".format(self.ssh_client.get_name(), file_name))
+                        continue
+                    self.stdio.verbose("node: {0}, The log file {1} first line text: {2}".format(self.ssh_client.get_name(), file_name, first_line_text))
+                    file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
+                    file_end_time_str = TimeUtils.filename_time_to_datetime(TimeUtils.extract_filename_time_from_log_name(file_name, self.stdio), self.stdio)
+                    self.stdio.verbose("node: {0}, file_name: {1}, file_start_time_str: {2}, file_end_time_str: {3}".format(self.ssh_client.get_name(), file_name, file_start_time_str, file_end_time_str))
+                    if file_end_time_str == "":
+                        self.stdio.warn("node: {0}, The log file {1} can't find endtime. skip".format(self.ssh_client.get_name(), file_name))
+                        continue
+                    # print file_end_time_str
+                    self.stdio.verbose("node: {0}, The log file {1} end time: {2}".format(self.ssh_client.get_name(), file_name, file_end_time_str))
                     file_end_time_str_strp = datetime.datetime.strptime(file_end_time_str, "%Y-%m-%d %H:%M:%S")
-                self.stdio.verbose("The log file {0} starts at {1} ends at {2}".format(file_name, file_start_time_str, file_end_time_str))
+                    if file_start_time_str == "":
+                        if file_end_time_str_strp < from_time_str_strp:
+                            self.stdio.warn("node: {0}, The log file {1} can't find start_time. and end_time<from_time. skip".format(self.ssh_client.get_name(), file_name))
+                            continue
+                        else:
+                            self.stdio.warn("node: {0}, The log file {1} can't find start_time. but end_time>from_time, so add it ".format(self.ssh_client.get_name(), file_name))
+                            log_name_list.append(file_name)
+                            continue
+                    file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
 
-                to_time_str_strp = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
-                from_time_str_strp = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
-                if file_start_time_str_strp == "":
-                    if file_end_time_str_strp < from_time_str_strp:
-                        continue
-                    else:
-                        self.stdio.warn("The log file {0} can't find start_time. but end_time>from_time, so add it ".format(file_name))
+                    # When two time intervals overlap, need to add the file
+                    if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
                         log_name_list.append(file_name)
+                        self.stdio.verbose("node: {0}, The log file {1} start {2}, end {3} is range {4} to {5}".format(self.ssh_client.get_name(), file_name, file_start_time_str, file_end_time_str, from_time_str, to_time_str))
+                elif file_name.endswith("log") or file_name.endswith("wf"):
+                    # get form_time and to_time from the first and last lines of text of the file
+                    # Get the first and last lines of text of the file. Here, use a command
+                    first_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | head -n 1").strip()
+                    if first_line_text == "":
+                        self.stdio.verbose("node: {0}, The log file {1} can't find starttime. skip".format(self.ssh_client.get_name(), file_name))
+                        continue
+                    self.stdio.verbose("node: {0}, The log file {1} first line text: {2}".format(self.ssh_client.get_name(), file_name, first_line_text))
+                    file_start_time_str = TimeUtils.extract_time_from_log_file_text(first_line_text, self.stdio)
+                    file_start_time_str_strp = datetime.datetime.strptime(file_start_time_str, "%Y-%m-%d %H:%M:%S")
 
-                if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
-                    log_name_list.append(file_name)
-                    self.stdio.verbose("The log file {0} start {1}, end {2} is range {3} to {4}".format(file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
+                    last_line_text = self.ssh_client.exec_cmd('grep -aE "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}" ' + "{0} ".format(os.path.join(log_dir, file_name)) + " | tail -n 1").strip()
+                    if last_line_text == "":
+                        file_end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        self.stdio.warn("node: {0}, The log file {1} can't find endtime. set nowtime:{2}".format(self.ssh_client.get_name(), file_name, file_end_time))
+                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    else:
+                        self.stdio.verbose("node: {0}, The log file {1} last line text: {2}".format(self.ssh_client.get_name(), file_name, last_line_text))
+                        file_end_time = TimeUtils.extract_time_from_log_file_text(last_line_text, self.stdio)
+                        file_end_time_str_strp = datetime.datetime.strptime(file_end_time, "%Y-%m-%d %H:%M:%S")
+                    self.stdio.verbose("node: {0}, The log file {1} start time: {2}, end time: {3}".format(self.ssh_client.get_name(), file_name, file_start_time_str, file_end_time))
+
+                    if file_start_time_str_strp == "":
+                        if file_end_time_str_strp < from_time_str_strp:
+                            self.stdio.warn("node: {0}, The log file {1} can't find start_time. and end_time<from_time. skip".format(self.ssh_client.get_name(), file_name))
+                            continue
+                        else:
+                            self.stdio.warn("node: {0}, The log file {1} can't find start_time. but end_time>from_time, so add it ".format(self.ssh_client.get_name(), file_name))
+                            log_name_list.append(file_name)
+
+                    if ((file_start_time_str_strp <= from_time_str_strp) and (file_end_time_str_strp >= from_time_str_strp)) or ((file_start_time_str_strp >= from_time_str_strp) and (file_start_time_str_strp <= to_time_str_strp)):
+                        log_name_list.append(file_name)
+                        self.stdio.verbose("node: {0}, The log file {1} start {2}, end {3} is range {4} to {5}".format(self.ssh_client.get_name(), file_name, file_start_time_str, file_end_time, from_time_str, to_time_str))
+            except Exception as e:
+                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
+                self.stdio.verbose(traceback.format_exc())
+                continue
         if len(log_name_list) > 0:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}], " "wait for the next step".format(log_name_list, self.ssh_client.get_ip()))
+        else:
+            self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
+        return log_name_list
+
+    def __get_log_type(self, file_name):
+        """
+        Extract log type from file name by removing timestamp suffix.
+        Examples:
+            observer.log -> observer.log
+            observer.log.20250101120000000 -> observer.log
+            observer.log.wf -> observer.log.wf
+            observer.log.wf.20250101120000000 -> observer.log.wf
+            election.log -> election.log
+            election.log.20250101120000000 -> election.log
+        """
+        # Remove timestamp suffix (17 digits) if present
+        log_type = re.sub(r'\.\d{17}$', '', file_name)
+        return log_type
+
+    def __filter_by_recent_count(self, log_name_list):
+        """
+        Filter log files to keep only the most recent N files for EACH log type.
+        Files without timestamp (current log files) are treated as newest and included first.
+
+        For example, with recent_count=2:
+            - observer.log, observer.log.20250101, observer.log.20250102 -> keep observer.log + observer.log.20250102
+            - election.log, election.log.20250101 -> keep both
+        """
+        if self.recent_count <= 0:
+            return log_name_list
+
+        self.stdio.verbose("recent_count is {0}, filtering to keep only the most recent {0} files per log type from {1} files".format(self.recent_count, len(log_name_list)))
+
+        # Group files by log type
+        log_type_groups = {}  # log_type -> list of (file_name, timestamp_datetime or None)
+
+        for file_name in log_name_list:
+            log_type = self.__get_log_type(file_name)
+            if log_type not in log_type_groups:
+                log_type_groups[log_type] = []
+
+            timestamp_match = re.search(r'\.(\d{17})$', file_name)
+            if timestamp_match:
+                # File has timestamp
+                timestamp_str = timestamp_match.group(1)
+                try:
+                    year = int(timestamp_str[0:4])
+                    month = int(timestamp_str[4:6])
+                    day = int(timestamp_str[6:8])
+                    hour = int(timestamp_str[8:10])
+                    minute = int(timestamp_str[10:12])
+                    second = int(timestamp_str[12:14])
+                    microsecond = int(timestamp_str[14:17]) * 1000
+                    file_time_dt = datetime.datetime(year, month, day, hour, minute, second, microsecond)
+                    log_type_groups[log_type].append((file_name, file_time_dt))
+                except (ValueError, IndexError):
+                    # Invalid timestamp, treat as current log file (newest)
+                    log_type_groups[log_type].append((file_name, None))
+            else:
+                # File has no timestamp, treat as current log file (newest)
+                log_type_groups[log_type].append((file_name, None))
+
+        # Filter each log type group to keep only the most recent N files
+        filtered_list = []
+        for log_type, files in log_type_groups.items():
+            # Separate current log files (no timestamp) and timestamped files
+            current_files = [f for f, ts in files if ts is None]
+            timestamped_files = [(f, ts) for f, ts in files if ts is not None]
+
+            # Sort timestamped files by time (newest first)
+            timestamped_files.sort(key=lambda x: x[1], reverse=True)
+
+            # Build list for this log type: current files first, then most recent timestamped files
+            type_filtered = []
+            type_filtered.extend(current_files)
+            remaining_slots = self.recent_count - len(current_files)
+            if remaining_slots > 0:
+                type_filtered.extend([f for f, _ in timestamped_files[:remaining_slots]])
+            else:
+                # If current files already exceed recent_count, only keep them
+                type_filtered = current_files[: self.recent_count]
+
+            self.stdio.verbose("Log type '{0}': kept {1} files from {2}".format(log_type, len(type_filtered), len(files)))
+            filtered_list.extend(type_filtered)
+
+        self.stdio.verbose("After filtering by recent_count={0}, kept {1} files total: {2}".format(self.recent_count, len(filtered_list), filtered_list))
+        return filtered_list
+
+    def __get_logfile_name_list_v2(self, from_time_str, to_time_str, log_dir, log_files):
+        """
+        Get log file name list by parsing timestamp from filename only (not from file content).
+        Filename format examples:
+        - observer.log (no timestamp, current log file, should be included)
+        - observer.log.20251201131651918 (timestamp: 2025-12-01 13:16:51.918)
+        - observer.log.20251015031702026.zst (timestamp: 2025-10-15 03:17:02.026, compressed)
+        - observer.log.wf (no timestamp, current wf log file, should be included)
+        Timestamp format: YYYYMMDDHHMMSSmmm (17 digits)
+        """
+        # oms get all log file name list, the log size is so small
+        if self.target == "oms":
+            log_name_list = []
+            formatted_time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "log.gz" not in file_name or formatted_time in file_name:
+                    log_name_list.append(file_name)
+                    continue
+            return log_name_list
+        elif self.target == "oms_cdc":
+            self.stdio.warn("oms_cdc not support get log file name list, retrun all 'libobcdc.log*' log file name list")
+            log_name_list = []
+            for file_name in log_files.split('\n'):
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+                if "libobcdc.log" in file_name:
+                    log_name_list.append(file_name)
+                    continue
+            return log_name_list
+
+        self.stdio.verbose("get log file name list v2, from time {0}, to time {1}, log dir {2}, log files {3}".format(from_time_str, to_time_str, log_dir, log_files))
+        log_name_list = []
+
+        try:
+            from_time_dt = datetime.datetime.strptime(from_time_str, "%Y-%m-%d %H:%M:%S")
+            to_time_dt = datetime.datetime.strptime(to_time_str, "%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            self.stdio.warn("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
+            return log_name_list
+
+        for file_name in log_files.split('\n'):
+            file_name = file_name.strip()
+            try:
+                if file_name == "":
+                    self.stdio.verbose("existing file name is empty")
+                    continue
+
+                # Extract timestamp from filename
+                # Pattern: filename.20251201131651918 or filename.20251015031702026.zst
+                # Timestamp is 17 digits: YYYYMMDDHHMMSSmmm
+                # Match pattern: .(17 digits) followed by either . (for compressed files) or end of string
+                timestamp_match = re.search(r'\.(\d{17})(?:\.|$)', file_name)
+
+                if timestamp_match:
+                    # File has timestamp in filename
+                    timestamp_str = timestamp_match.group(1)
+                    try:
+                        # Parse timestamp: YYYYMMDDHHMMSSmmm
+                        year = int(timestamp_str[0:4])
+                        month = int(timestamp_str[4:6])
+                        day = int(timestamp_str[6:8])
+                        hour = int(timestamp_str[8:10])
+                        minute = int(timestamp_str[10:12])
+                        second = int(timestamp_str[12:14])
+                        microsecond = int(timestamp_str[14:17]) * 1000  # Convert milliseconds to microseconds
+
+                        file_time_dt = datetime.datetime(year, month, day, hour, minute, second, microsecond)
+
+                        self.stdio.verbose("node: {0}, file_name: {1}, extracted timestamp: {2}, file_time: {3}".format(self.ssh_client.get_name(), file_name, timestamp_str, file_time_dt.strftime("%Y-%m-%d %H:%M:%S.%f")))
+
+                        # Check if file time is within or overlaps with the time range
+                        # For rotated log files, the timestamp represents when the file was created (end of previous log)
+                        # The file contains logs from its creation time until the next file is created
+                        # We include the file if its timestamp is within the query range [from_time, to_time]
+                        # This is because the file was created during the query period, so it may contain relevant logs
+                        if from_time_dt <= file_time_dt <= to_time_dt:
+                            log_name_list.append(file_name)
+                            self.stdio.verbose("node: {0}, file {1} timestamp {2} is in range [{3}, {4}], include it".format(self.ssh_client.get_name(), file_name, file_time_dt.strftime("%Y-%m-%d %H:%M:%S"), from_time_str, to_time_str))
+                        else:
+                            self.stdio.verbose("node: {0}, file {1} timestamp {2} is out of range [{3}, {4}], exclude it".format(self.ssh_client.get_name(), file_name, file_time_dt.strftime("%Y-%m-%d %H:%M:%S"), from_time_str, to_time_str))
+                    except (ValueError, IndexError) as e:
+                        self.stdio.warn("node: {0}, file {1} has invalid timestamp format, skip: {2}".format(self.ssh_client.get_name(), file_name, str(e)))
+                        continue
+                else:
+                    # File has no timestamp (e.g., observer.log, observer.log.wf, rootservice.log, trace.log)
+                    # These are current log files being written, should be included
+                    if file_name.endswith(".log") or file_name.endswith(".wf"):
+                        log_name_list.append(file_name)
+                        self.stdio.verbose("node: {0}, file {1} has no timestamp, is current log file, include it".format(self.ssh_client.get_name(), file_name))
+                    else:
+                        self.stdio.verbose("node: {0}, file {1} has no timestamp and is not a .log or .wf file, skip".format(self.ssh_client.get_name(), file_name))
+
+            except Exception as e:
+                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
+                self.stdio.verbose(traceback.format_exc())
+                continue
+
+        # Note: recent_count filtering is now handled in __find_logs_name for both search_version methods
+
+        if len(log_name_list) > 0:
+            self.stdio.verbose("Find the qualified log file {0} on Server [{1}], wait for the next step".format(log_name_list, self.ssh_client.get_ip()))
         else:
             self.stdio.warn("No found the qualified log file on Server [{0}]".format(self.ssh_client.get_name()))
         return log_name_list

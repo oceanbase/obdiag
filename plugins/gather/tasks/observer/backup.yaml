@@ -1,6 +1,6 @@
 info_en: "[backup problem]"
 info_cn: "[数据备份问题]"
-command: obdiag gather scene run --scene=observer.backup --env "{tenant_id=xxx}"
+command: obdiag gather scene run --scene=observer.backup --env tenant_id=xxx
 task:
   - version: "[2.0.0.0, 3.9.9.9]"
     steps:
@@ -50,7 +50,7 @@ task:
         sql: "select svr_ip, log_archive_status, count(*) from oceanbase.__all_virtual_pg_backup_log_archive_status group by svr_ip, log_archive_status;"
         global: true
       - type: sql
-        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > #{from_time} and gmt_create < #{to_time} order by gmt_create desc;"
+        sql: "select * from oceanbase.__all_rootservice_event_history where gmt_create > now() - interval 1 day order by gmt_create desc;"
         global: true
       - type: sql
         sql: "select b.* from oceanbase.__all_virtual_pg_backup_log_archive_status a,oceanbase.__all_virtual_pg_log_archive_stat b where a.table_id=b.table_id and a.partition_id=b.partition_id  order by log_archive_cur_ts limit 100;"

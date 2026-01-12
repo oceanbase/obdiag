@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -15,7 +15,7 @@
 @file: observer_port.py
 @desc:
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,6 +28,10 @@ class ObserverPort(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             # get all server sql port and rpc port
             servers_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * FROM oceanbase.DBA_OB_SERVERS;").fetchall()
             for node in self.observer_nodes:
@@ -45,11 +49,11 @@ class ObserverPort(TaskBase):
                 return
             for server_data in servers_data:
                 # test SVR_PORT
-                err_info = ssh_client.exec_cmd("echo | nc -v {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
+                err_info = ssh_client.exec_cmd("echo | nc -v  -w 5 {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
                 if err_info.strip() != "" and "Connection refused" in err_info:
                     self.report.add_critical("node: {0}. can not conn {1}:{2} ".format(ssh_client.get_name(), server_data.get("SVR_IP"), server_data.get("SVR_PORT")))
                 # test SQL_PORT
-                err_info = ssh_client.exec_cmd("echo | nc -v {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
+                err_info = ssh_client.exec_cmd("echo | nc -v  -w 5 {0} {1}".format(server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
                 if err_info.strip() != "" and "Connection refused" in err_info:
                     self.report.add_critical("node: {0}. can not conn {1}:{2} ".format(ssh_client.get_name(), server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
         except Exception as e:
@@ -57,7 +61,7 @@ class ObserverPort(TaskBase):
             self.report.add_fail("node:{1} execute error {0}".format(node.get("ip"), e).strip())
 
     def get_task_info(self):
-        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue#845"}
+        return {"name": "observer_port", "info": "Check if the necessary ports between OceanBase cluster nodes are connected. issue #845"}
 
 
 observer_port = ObserverPort()

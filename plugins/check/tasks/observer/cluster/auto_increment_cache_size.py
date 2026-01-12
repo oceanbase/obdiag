@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -15,7 +15,7 @@
 @file: auto_increment_cache_size.py
 @desc:
 """
-
+from src.common.tool import StringUtils
 from src.handler.checker.check_task import TaskBase
 
 
@@ -28,6 +28,10 @@ class AutoIncrementCacheSize(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0"):
+                pass
+            else:
+                return None
             auto_increment_cache_size_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * from oceanbase.`CDB_OB_SYS_VARIABLES` where name= \"auto_increment_cache_size\";").fetchall()
             if len(auto_increment_cache_size_data) < 1:
                 return self.report.add_fail("get auto_increment_cache_size data error")
@@ -44,6 +48,8 @@ class AutoIncrementCacheSize(TaskBase):
                 default_value = auto_increment_cache_size_data[0].get("default_value") or auto_increment_cache_size_data[0].get("DEFAULT_VALUE")
                 if default_value is None:
                     default_value = 1000000
+                auto_increment_cache_size_value = int(auto_increment_cache_size_value)
+                default_value = int(default_value)
                 if auto_increment_cache_size_value != default_value:
                     self.report.add_warning("tenant_id: {2} auto_increment_cache_size is {0}, default value is {1}".format(auto_increment_cache_size_value, default_value, tenant_id))
                 max_value = auto_increment_cache_size_data[0].get("MAX_VALUE")
@@ -66,7 +72,7 @@ class AutoIncrementCacheSize(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "auto_increment_cache_size", "info": "Check the global available cache of all tenant self added columns in the cluster. issue#870"}
+        return {"name": "auto_increment_cache_size", "info": "Check the global available cache of all tenant self added columns in the cluster. issue #870"}
 
 
 auto_increment_cache_size = AutoIncrementCacheSize()

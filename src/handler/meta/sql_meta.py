@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -59,7 +59,8 @@ sql_dict.set_value(
     tenant_id,
     version() mysql_version,
     svr_ip,
-    svr_port
+    svr_port,
+    ##OB_VERSION_PARAMS_VALUE##
     from oceanbase.##REPLACE_SQL_AUDIT_TABLE_NAME##
     where query_sql != '' and is_inner_sql=0 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc limit 1
     ''',
@@ -83,7 +84,8 @@ sql_dict.set_value(
     tenant_id,
     banner oracle_version, 
     svr_ip, 
-    svr_port 
+    svr_port,
+    ##OB_VERSION_PARAMS_VALUE## 
     from sys.##REPLACE_SQL_AUDIT_TABLE_NAME##, V$VERSION
     where length(query_sql)>4 and trace_id='##REPLACE_TRACE_ID##' order by REQUEST_TIME desc) where rownum < 2
     ''',

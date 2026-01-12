@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -32,9 +32,9 @@ class all_sql:
             (r'multi_stmt_item={(.*?[^\\])\}', 'multi_stmt_item={<SQL_QUERY_REDACTED>}'),
         ]
         log_content = text
-        # 遍历所有模式并进行替换
+        # Apply all patterns sequentially
         for pattern, replacement in patterns:
-            log_content = re.sub(pattern, replacement, text, flags=re.DOTALL)
+            log_content = re.sub(pattern, replacement, log_content, flags=re.DOTALL)
         return log_content
 
 

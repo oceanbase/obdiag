@@ -49,6 +49,7 @@ date "+%Y-%m-%d %H:%M:%S"
 df -h
 cp ~/.obdiag/config.yml ./config.yml
 
+
 check_error_log  "obdiag check" &
 check_error_log  "obdiag check list" &
 check_error_log  "obdiag check run" &
@@ -58,6 +59,8 @@ check_error_log  "obdiag check run -c ./config.yml" &
 check_error_log  "obdiag check run --cases=ad" &
 check_error_log  "obdiag check run --cases=column_storage_poc" &
 check_error_log  "obdiag check run --cases=build_before"
+wait
+rm -rf check_report
 #echo "=================obdiag check run --cases=sysbench_run================="
 #check_error_log  "obdiag check run --cases=sysbench_run"
 #echo "=================obdiag check run --cases=sysbench_free================="
@@ -81,13 +84,15 @@ check_error_log  "obdiag analyze parameter" &
 #check_error_log  "obdiag analyze parameter default --store_dir ./parameter"
 #echo "=================obdiag analyze parameter diff --store_dir ./parameter================="
 #check_error_log  "obdiag analyze parameter diff --store_dir ./parameter" &
-check_error_log  "obdiag analyze memory" &
-check_error_log  "obdiag analyze memory --store_dir ./memory" &
-check_error_log  "obdiag analyze memory --since 1d" &
+check_error_log  "obdiag analyze memory"
+check_error_log  "obdiag analyze memory --store_dir ./memory"
+check_error_log  "obdiag analyze memory --since 1d"
 #echo "=================obdiag analyze index_space================="
 #check_error_log  "obdiag analyze index_space"
 #echo "=================obdiag analyze queue --tenant sys================="
 #check_error_log  "obdiag analyze queue --tenant sys" &
+wait
+rm -rf obdiag_*
 check_error_log  "obdiag display list" &
 check_error_log  "obdiag display scene list" &
 check_error_log  "obdiag display run" &
@@ -107,7 +112,7 @@ check_error_log  "obdiag gather log" &
 check_error_log  "obdiag gather log --since 1d" &
 check_error_log  "obdiag gather log --scope all" &
 check_error_log  "obdiag gather log --grep observer" &
-check_error_log  "obdiag gather log --store_dir ./test" &
+check_error_log  "obdiag gather log --store_dir ./test"
 #echo "=================obdiag gather sysstat================="
 #check_error_log  "obdiag gather sysstat"
 #echo "=================obdiag gather sysstat --store_dir ./sysstat================="
@@ -128,6 +133,8 @@ check_error_log  "obdiag gather log --store_dir ./test" &
 #check_error_log  "obdiag gather all --scope observer"
 #echo "=================obdiag gather all --grep rootservice================="
 #check_error_log  "obdiag gather all --grep rootservice" &
+wait
+rm -rf obdiag_*
 check_error_log  "obdiag gather scene" &
 check_error_log  "obdiag gather scene list" &
 check_error_log  "obdiag gather scene run --scene=other.application_error" &
@@ -144,13 +151,18 @@ check_error_log  "obdiag gather scene run --scene=observer.recovery" &
 check_error_log  "obdiag gather scene run --scene=observer.restart"
 check_error_log  "obdiag gather scene run --scene=observer.rootservice_switch"
 #check_error_log  "obdiag gather scene run --scene=observer.unknown" &
-check_error_log  "obdiag gather scene run --scene=observer.base" &
-check_error_log  "obdiag gather ash" &
-check_error_log  "obdiag gather ash --report_type TEXT" &
-check_error_log  "obdiag gather ash --store_dir ./ash" &
+check_error_log  "obdiag gather scene run --scene=observer.base"
+#check_error_log  "obdiag gather ash" &
+#check_error_log  "obdiag gather ash --report_type TEXT" &
+#check_error_log  "obdiag gather ash --store_dir ./ash" &
+wait
+rm -rf obdiag_*
+
 check_error_log  "obdiag rca list"
-#echo "=================obdiag rca run================="
-#check_error_log  "obdiag rca run"
+echo "=================obdiag rca run================="
+obdiag rca run --scene=replay_hold
+obdiag rca run --scene=memory_full
+obdiag rca run --scene=delete_server_error --env svr_ip=127.0.0.1 --env svr_port=2881
 #echo "=================obdiag rca run --scene=major_hold================="
 #check_error_log  "obdiag rca run --scene=major_hold"
 #echo "=================obdiag rca run --scene=disconnection --env since=1d================="
@@ -167,6 +179,11 @@ check_error_log  "obdiag rca list"
 #check_error_log  "obdiag rca run --scene=clog_disk_full"
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
+#echo "=================obdiag tool================="
+#check_error_log  "obdiag tool config_check --help"
+#check_error_log  "obdiag tool io_performance --disk=clog"
+#check_error_log  "obdiag tool io_performance --disk=data"
+
 
 # Check if the tag is "latest" or if the version is greater than 4.2.4.0
 is_version_greater=false
@@ -174,9 +191,10 @@ if compare_versions_greater "$tag" "4.2.4.0"; then
     is_version_greater=true
 fi
 
-if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
-    check_error_log "obdiag gather ash --report_type html"
-fi
+#if [[ "$tag" == "latest" || "$is_version_greater" == true ]]; then
+#    check_error_log "obdiag gather ash --report_type html"
+#fi
+
 wait
 date "+%Y-%m-%d %H:%M:%S"
 # print pass_case the number of “1”

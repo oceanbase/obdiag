@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -42,6 +42,7 @@ class StepSQLHandler(SafeStdio):
 
     def execute(self):
         try:
+            data = ""
             if "sql" not in self.step:
                 self.stdio.error("StepSQLHandler execute sql is not set")
                 return
@@ -67,7 +68,10 @@ class StepSQLHandler(SafeStdio):
                 title = StringUtils.replace_parameters(title, self.env)
                 formatted_title = f"\n[obdiag display]: {title} "
                 self.stdio.print(formatted_title)
+                data = "{0}\n{1}".format(data, formatted_title)
             self.stdio.print(table)
+            data = "{0}\n{1}".format(data, table)
+            return data
         except Exception as e:
             self.stdio.error("StepSQLHandler execute Exception: {0}".format(e).strip())
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -28,6 +28,8 @@ class DefaultCompressFunc(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             default_compress_func_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_PARAMETERS where Name=\"default_compress_func\";").fetchall()
             for default_compress_func_one in default_compress_func_data:
                 default_compress_func_value = default_compress_func_one.get("VALUE")
@@ -50,7 +52,7 @@ class DefaultCompressFunc(TaskBase):
     def get_task_info(self):
         return {
             "name": "default_compress_func",
-            "info": "The default compression algorithm for checklist data. Recommend using default value with ob_version to improve compression ratio and reduce storage costs. For scenarios with high requirements for querying rt, consider using lz4_1.0 or turning off compression. issue#792",
+            "info": "The default compression algorithm for checklist data. Recommend using default value with ob_version to improve compression ratio and reduce storage costs. For scenarios with high requirements for querying rt, consider using lz4_1.0 or turning off compression. issue #792",
         }
 
 

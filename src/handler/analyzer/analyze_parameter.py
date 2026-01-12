@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -149,6 +149,7 @@ class AnalyzeParameterHandler(object):
 
     def analyze_parameter_default(self):
         observer_version = self.get_version()
+
         if StringUtils.compare_versions_greater(observer_version, "4.2.2.0"):
             if self.parameter_file_name is not None:
                 self.stdio.warn("the version of OceanBase is greater than 4.2.2, an initialization parameter file will be ignored")
@@ -175,8 +176,18 @@ EDIT_LEVEL, now(),default_value,isdefault from GV$OB_PARAMETERS where isdefault=
                 self.stdio.error("the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
                 return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="the version of OceanBase is lower than 4.2.2, an initialization parameter file must be provided to find non-default values")
             else:
-                sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
+                # Use version-specific table query
+                if StringUtils.compare_versions_greater(observer_version, "4.0.0.0"):
+                    sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
 EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
+                else:
+                    # For versions < 4.0, use union of tenant and system parameter tables
+                    sql = '''select version(), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
+EDIT_LEVEL, now(), '','' from oceanbase.__all_virtual_tenant_parameter_info
+union
+select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section,
+EDIT_LEVEL, now(), '','' from oceanbase.__all_virtual_sys_parameter_stat where scope='CLUSTER'
+order by 5,2,3,4,7'''
                 db_parameter_info = self.obconn.execute_sql(sql)
                 db_parameter_dict = dict()
                 for row in db_parameter_info:
@@ -212,8 +223,21 @@ EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
 
     def alalyze_parameter_diff(self):
         if self.parameter_file_name is None:
-            sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
+            # Use version-specific table query
+            observer_version = self.get_version()
+
+            if StringUtils.compare_versions_greater(observer_version, "4.0.0.0"):
+                sql = '''select substr(version(),8), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
 EDIT_LEVEL, now(),'','' from GV$OB_PARAMETERS order by 5,2,3,4,7'''
+            else:
+                # For versions < 4.0, use union of tenant and system parameter tables
+                sql = '''select version(), svr_ip,svr_port,zone,scope,TENANT_ID,name,value,section,
+EDIT_LEVEL, now(), '','' from oceanbase.__all_virtual_tenant_parameter_info
+union
+select version(), svr_ip,svr_port,zone,scope,'None' tenant_id,name,value,section,
+EDIT_LEVEL, now(), '','' from oceanbase.__all_virtual_sys_parameter_stat where scope='CLUSTER'
+order by 5,2,3,4,7'''
+
             parameter_info = self.obconn.execute_sql(sql)
         else:
             parameter_info = []

@@ -1,9 +1,0 @@
-info: "Check the flags of cpu"
-task:
-  - steps:
-      - type: ssh
-        ssh: "lscpu |grep Flags"
-        result:
-          set_value: cpu_flags
-          verify: " [[ $cpu_flags == *avx* ]] "
-          err_msg: "observer need cpu support avx. If the cpu is not support avx, observer will be crash."

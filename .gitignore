@@ -1,12 +1,10 @@
 .idea/
 .vscode/
 venv/
+.venv/
 *.pyc
 *site-packages/
-dependencies/python2/site-packages
-dependencies/python2/libs
-dependencies/python3/site-packages
-dependencies/python3/libs
+dependencies
 obdiag_gather_pack_*
 obdiag_analyze_pack_*
 obdiag_rca*

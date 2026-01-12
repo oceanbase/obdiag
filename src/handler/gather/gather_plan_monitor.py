@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -32,6 +32,7 @@ from src.common.tool import StringUtils
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
 from src.common.tool import SQLTableExtractor
+from src.common.command import get_observer_commit_id
 from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.common.result_type import ObdiagResult
 from src.common.version import OBDIAG_VERSION
@@ -58,6 +59,7 @@ class GatherPlanMonitorHandler(object):
         self.is_scene = is_scene
         self.ob_version = "4.2.5.0"
         self.skip = None
+        self.db_tables = []
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -136,6 +138,17 @@ class GatherPlanMonitorHandler(object):
                 tenant_id = trace[10]
                 svr_ip = trace[12]
                 svr_port = trace[13]
+                params_value = None
+                try:
+                    params_value = trace[14]
+                except IndexError:
+                    # OB 3.x
+                    self.stdio.verbose("OceanBase version is 3.x, params_value column is not available.")
+
+                # 如果params_value不为空，说明是PS模式的SQL，需要填充参数
+                if params_value:
+                    sql = StringUtils.fill_sql_with_params(sql, params_value, self.stdio)
+                    user_sql = sql
                 self.stdio.verbose("TraceID : %s " % trace_id)
                 self.stdio.verbose("SQL : %s " % sql)
                 self.stdio.verbose("SVR_IP : %s " % svr_ip)
@@ -173,10 +186,14 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("[sql plan monitor report task] report plan cache")
                 self.report_plan_cache(plan_explain_sql)
                 # dbms_xplan.display_cursor
-                self.report_display_cursor_obversion4(sql)
+                display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=plan_id, svr_ip=svr_ip, svr_port=svr_port, tenant_id=tenant_id)
+                self.report_display_cursor_obversion4(display_cursor_sql)
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
                 self.report_schema(user_sql, tenant_name)
+                # 检查表和列的collation一致性
+                self.stdio.verbose("[sql plan monitor report task] check table collation")
+                self.report_table_collation_check(user_sql, db_name)
                 # ASH 统计
                 self.stdio.verbose("[ash report task] report ash, sql: [{0}]".format(sql_ash_top_event))
                 self.report_ash_obversion4(sql_ash_top_event)
@@ -211,10 +228,13 @@ class GatherPlanMonitorHandler(object):
                 self.__report("Report generation time： %s <br>" % (time.strftime("%Y-%m-%d %H:%M:%S", t)))
                 self.__report("obdiag version: {0} <br>".format(OBDIAG_VERSION))
                 self.__report("observer version: {0} <br>".format(self.ob_version))
+                observer_version_commit_id = get_observer_commit_id(self.context)
+                if observer_version_commit_id:
+                    self.__report("observer commit id: {0} <br>".format(observer_version_commit_id))
                 self.report_footer()
                 self.stdio.verbose("report footer complete")
             else:
-                self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
+                self.stdio.error("The data queried with the specified trace_id {0} from {1} is empty. Please verify if this trace_id has expired.".format(self.trace_id, self.sql_audit_name))
 
             if resp["skip"]:
                 return
@@ -244,15 +264,25 @@ class GatherPlanMonitorHandler(object):
 
     def __init_db_conn(self, env):
         try:
-            env_dict = StringUtils.parse_env(env)
+            # env must be a list from parse_env_display (action="append")
+            if not isinstance(env, list):
+                self.stdio.error("Invalid env format. Please use --env key=value format, e.g., --env host=127.0.0.1 --env port=2881 --env user=test --env password=****** --env database=test")
+                return False
+
+            env_dict = StringUtils.parse_env_display(env)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            self.db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if not self.db_conn:
+                self.stdio.error("Failed to build database connection information from env parameters")
+                return False
+
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_db_connector()
                 return True
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'],  but provided {0}, please check the --env option".format(env_dict))
+                self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
         except Exception as e:
             self.db_connector = self.sys_connector
@@ -645,15 +675,25 @@ class GatherPlanMonitorHandler(object):
         self.__report(data)
 
     def report_fast_preview(self):
-        content = '''
-        <script>
-        generate_db_time_graph("dfo", db_time_serial, $('#db_time_serial'));
-        generate_graph("dfo", agg_serial, $('#agg_serial'));
-        generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
-        generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
-        generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
-        </script>
-        '''
+        if self.ob_major_version >= 4:
+            content = '''
+            <script>
+            generate_db_time_graph("dfo", db_time_serial, $('#db_time_serial'));
+            generate_graph("dfo", agg_serial, $('#agg_serial'));
+            generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
+            generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
+            generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
+            </script>
+            '''
+        else:
+            content = '''
+            <script>
+            generate_graph("dfo", agg_serial, $('#agg_serial'));
+            generate_graph("dfo", agg_sched_serial, $('#agg_sched_serial'));
+            generate_graph("sqc", svr_agg_serial_v1, $('#svr_agg_serial_v1'));
+            generate_graph("sqc", svr_agg_serial_v2, $('#svr_agg_serial_v2'));
+            </script>
+            '''
         self.__report(content)
         self.stdio.verbose("report SQL_PLAN_MONITOR fast preview complete")
 
@@ -672,9 +712,8 @@ class GatherPlanMonitorHandler(object):
             for row in data:
                 ob_version = row[1]
 
-            version_pattern = r'(?:OceanBase(_CE)?\s+)?(\d+\.\d+\.\d+\.\d+)'
+            version_pattern = r'(?:OceanBase(_CE)?\s+)?(\d+\.\d+\.\d+(?:\.\d+)?)'
             matched_version = re.search(version_pattern, ob_version)
-
             if matched_version:
                 version = matched_version.group(2)
                 self.ob_version = version
@@ -730,10 +769,22 @@ class GatherPlanMonitorHandler(object):
         shutil.copytree(source_path, target_path)
 
     def sql_audit_by_trace_id_limit1_sql(self):
-        if self.tenant_mode == 'mysql':
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+        main_version = int(self.ob_version.split('.')[0])
+
+        if main_version >= 4:
+            params_value_replacement = "params_value"
         else:
-            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+            params_value_replacement = "null as params_value"
+
+        if self.tenant_mode == 'mysql':
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql"))
+        else:
+            sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_oracle"))
+
+        sql = sql.replace("##REPLACE_TRACE_ID##", self.trace_id)
+        sql = sql.replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", self.sql_audit_name)
+        sql = sql.replace("##OB_VERSION_PARAMS_VALUE##", params_value_replacement)
+
         return sql
 
     def select_sql_audit_by_trace_id_limit1(self):
@@ -756,9 +807,9 @@ class GatherPlanMonitorHandler(object):
 
     def full_audit_sql_by_trace_id_sql(self, trace_id):
         if self.tenant_mode == 'mysql':
-            sql = "select /*+ sql_audit */ * from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID" % (self.sql_audit_name, trace_id)
+            sql = "select /*+ sql_audit */ * from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID limit 1000" % (self.sql_audit_name, trace_id)
         else:
-            sql = "select /*+ sql_audit */ * from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID" % (self.sql_audit_name, trace_id)
+            sql = "select /*+ sql_audit */ * from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID limit 1000" % (self.sql_audit_name, trace_id)
         return sql
 
     def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id, svr_ip, svr_port):
@@ -845,7 +896,120 @@ class GatherPlanMonitorHandler(object):
     def report_sql_audit_details(self, sql):
         if self.enable_dump_db:
             full_audit_sql_result = self.sys_connector.execute_sql_pretty(sql)
-            self.__report("<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>" + full_audit_sql_result.get_html_string() + "</div></div>")
+            # 保留原表格格式并添加\G风格的垂直显示
+            # 获取原始表格HTML
+            table_html = full_audit_sql_result.get_html_string()
+
+            # 生成\G风格的垂直显示HTML
+            # 生成垂直显示格式 (MySQL \G 风格)
+            vertical_html = ""
+
+            # 添加垂直显示的JavaScript功能
+            vertical_html += '''
+            <script>
+            function toggleRecord(recordId) {
+                const content = document.getElementById('record-content-' + recordId);
+                const toggleButton = document.getElementById('toggle-btn-' + recordId);
+                const copyButton = document.getElementById('copy-btn-' + recordId);
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    toggleButton.innerHTML = '▼ 收起';
+                    copyButton.style.display = 'inline-block'; // 展开时显示复制按钮
+                } else {
+                    content.style.display = 'none';
+                    toggleButton.innerHTML = '► 展开';
+                    copyButton.style.display = 'none'; // 收起时隐藏复制按钮
+                }
+            }
+
+            function copyRecord(recordId) {
+                const content = document.getElementById('record-content-' + recordId).innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    const button = document.getElementById('copy-btn-' + recordId);
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '✓ 已复制';
+                    setTimeout(() => button.innerHTML = originalText, 2000);
+                });
+            }
+            </script>
+            '''
+
+            vertical_html += '<div class="vertical-display mt-4">'
+            vertical_html += '<h4 class="mb-3">SQL Audit Information (Vertical View - Record with Maximum ELAPSED_TIME)</h4>'
+
+            # 获取PrettyTable数据
+            field_names = full_audit_sql_result.field_names
+            records = full_audit_sql_result.rows
+
+            # 查找符合条件的记录 (ELAPSED_TIME最大且QUERY_SQL和TENANT_NAME不为空)
+            filtered_records = []
+            elapsed_time_index = None
+            query_sql_index = None
+            tenant_name_index = None
+
+            # 获取字段索引
+            for idx, field in enumerate(field_names):
+                if field.upper() == 'ELAPSED_TIME':
+                    elapsed_time_index = idx
+                elif field.upper() == 'QUERY_SQL':
+                    query_sql_index = idx
+                elif field.upper() == 'TENANT_NAME':
+                    tenant_name_index = idx
+
+            # 验证必要字段是否存在
+            if elapsed_time_index is not None and query_sql_index is not None and tenant_name_index is not None:
+                # 筛选记录：QUERY_SQL和TENANT_NAME不为空
+                for row in records:
+                    query_sql = row[query_sql_index] if query_sql_index < len(row) else ''
+                    tenant_name = row[tenant_name_index] if tenant_name_index < len(row) else ''
+                    if query_sql and tenant_name:
+                        filtered_records.append(row)
+
+                # 找到ELAPSED_TIME最大的记录
+                max_elapsed_record = None
+                max_elapsed_value = -1
+                for row in filtered_records:
+                    try:
+                        # Convert to string first since value is stored as integer
+                        elapsed_str = str(row[elapsed_time_index]).strip()
+                        elapsed_value = int(elapsed_str)
+                        if elapsed_value > max_elapsed_value:
+                            max_elapsed_value = elapsed_value
+                            max_elapsed_record = row
+                    except (ValueError, TypeError):
+                        continue  # Skip records with invalid integer format
+
+            # 生成符合条件的记录的垂直显示卡片
+            sql_audit_records = []
+            if max_elapsed_record:
+                # 创建单条记录卡片
+                record_html = f'<div class="card mb-3">'
+                record_html += f'<div class="card-header d-flex justify-content-between align-items-center">'
+                record_html += f'<span><strong>sql_audit (\G)</strong></span>'
+                record_html += f'<div>'
+                record_html += f'<button id="toggle-btn-0" class="btn btn-sm btn-outline-secondary me-2" onclick="toggleRecord(0)"><span>► 展开</span></button>'
+                record_html += f'<button id="copy-btn-0" class="btn btn-sm btn-outline-primary" onclick="copyRecord(0)" style="display: none;"><span>复制</span></button>'
+                record_html += f'</div></div>'
+                record_html += f'<div id="record-content-0" class="card-body" style="display: none;">'
+                record_html += '<table class="table table-sm table-borderless">'
+
+                # 添加字段值对
+                for field, value in zip(field_names, max_elapsed_record):
+                    record_html += f'<tr><th style="width: 30%; text-align: right">{field}:</th><td>{value}</td></tr>'
+
+                record_html += '</table></div></div>'
+                sql_audit_records.append(record_html)
+
+            vertical_html += ''.join(sql_audit_records)
+            vertical_html += '</div>'  # 关闭vertical-display容器
+
+            # 组合表格和垂直格式显示
+            combined_html = f'<div class="sql-audit-container">'
+            combined_html += f'<div class="table-display">{table_html}</div>'
+            combined_html += f'<div class="vertical-display">{vertical_html}</div>'
+            combined_html += '</div>'
+
+            self.__report(f"<div><h2 id='sql_audit_table_anchor'>SQL_AUDIT 信息</h2><div class='v' id='sql_audit_table' style='display: none'>{combined_html}</div></div>")
         self.stdio.verbose("report full sql audit complete")
 
     # plan cache
@@ -891,8 +1055,10 @@ class GatherPlanMonitorHandler(object):
             sql_explain_result_sql = "%s" % explain_sql
             sql_explain_result = from_db_cursor(sql_explain_cursor)
 
-            optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio)
-            self.report_optimization_info_warn(optimization_warn)
+            if self.ob_major_version >= 4:
+                filter_tables = self.get_stat_stale_yes_tables(raw_sql)
+                optimization_warn = StringUtils.parse_optimization_info(str(sql_explain_result), self.stdio, filter_tables)
+                self.report_optimization_info_warn(optimization_warn)
 
             # output explain result
             self.stdio.verbose("report sql_explain_result_sql complete")
@@ -1007,24 +1173,17 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception(repr(e))
             pass
 
-    def __is_select_statement(self, sql):
-        stripped_sql = sql.strip().upper()
-        return stripped_sql.startswith('SELECT')
-
     def report_display_cursor_obversion4(self, display_cursor_sql):
         if self.skip and self.skip == "dbms_xplan":
             self.stdio.warn("you have set the option --skip to skip gather dbms_xplan")
             return
-        if not self.__is_select_statement(display_cursor_sql):
-            self.stdio.verbose("display_cursor report complete")
-            return
         try:
             if not StringUtils.compare_versions_lower(self.ob_version, "4.2.5.0"):
-                plan_result = self.db_connector.execute_display_cursor(display_cursor_sql)
+                self.stdio.print("execute SQL: %s", display_cursor_sql)
+                plan_result = self.db_connector.execute_sql_pretty(display_cursor_sql)
                 if plan_result:
-                    self.stdio.verbose("execute SQL: %s", display_cursor_sql)
-                    step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');".format(display_cursor_sql)
-                    self.report_pre(step)
+                    plan_result.align = 'l'
+                    self.report_pre("obclient> " + display_cursor_sql)
                     self.report_pre(plan_result)
                     self.stdio.verbose("display_cursor report complete")
                 else:
@@ -1042,3 +1201,174 @@ class GatherPlanMonitorHandler(object):
             self.__report(content)
         else:
             self.stdio.verbose("the result of optimization_info_warn is None")
+
+    def get_stat_stale_yes_tables(self, sql):
+        try:
+            parser = SQLTableExtractor()
+            parse_tables = parser.parse(sql)
+            for t in parse_tables:
+                db_name, table_name = t
+                if not db_name:
+                    db_name = self.db_conn.get("database")
+                self.db_tables.append((db_name, table_name))
+        except Exception as e:
+            self.stdio.warn(f"parse_tables failed, err: {str(e)}")
+        stale_tables = []
+        for db, table in self.db_tables:
+            sql = """
+                SELECT IS_STALE 
+                FROM oceanbase.DBA_OB_TABLE_STAT_STALE_INFO 
+                WHERE DATABASE_NAME = '{0}' AND TABLE_NAME = '{1}' limit 1
+            """.format(
+                db, table
+            )
+            try:
+                result = self.db_connector.execute_sql(sql)
+                is_stale = result[0][0] if result else 'NO'
+                self.stdio.print(f"{db}.{table} -> oceanbase.DBA_OB_TABLE_STAT_STALE_INFO IS_STALE={is_stale}")
+                if is_stale == 'YES':
+                    stale_tables.append(table)
+
+            except Exception as e:
+                self.stdio.warn(f"execute SQL: {sql} {str(e)}")
+                continue
+        return stale_tables
+
+    def report_table_collation_check(self, sql, default_db_name):
+        """
+        Check collation consistency for all tables and columns used in the SQL.
+        When executing SQL, all tables and columns should have the same collation for better performance.
+        If collation can't keep consistent, columns will be casted.
+        """
+        try:
+            parser = SQLTableExtractor()
+            parse_tables = parser.parse(sql)
+            if not parse_tables:
+                self.stdio.verbose("No tables found in SQL, skip collation check")
+                return
+
+            collation_info = []
+            all_collations = set()
+
+            for db_name, table_name in parse_tables:
+                if not db_name:
+                    db_name = default_db_name or (self.db_conn.get("database") if self.db_conn else None)
+
+                if not db_name:
+                    self.stdio.warn(f"Database name is empty for table {table_name}, skip collation check")
+                    continue
+
+                try:
+                    # Query column collation information
+                    if self.tenant_mode == 'mysql':
+                        # For MySQL mode, use information_schema.columns
+                        collation_sql = """
+                            SELECT 
+                                TABLE_SCHEMA,
+                                TABLE_NAME,
+                                COLUMN_NAME,
+                                DATA_TYPE,
+                                COLLATION_NAME,
+                                CHARACTER_SET_NAME
+                            FROM information_schema.columns
+                            WHERE TABLE_SCHEMA = '{0}' 
+                            AND TABLE_NAME = '{1}'
+                            AND COLLATION_NAME IS NOT NULL
+                            ORDER BY COLUMN_NAME
+                        """.format(
+                            db_name.replace("'", "''"), table_name.replace("'", "''")
+                        )
+                        connector = self.db_connector
+                    else:
+                        # For Oracle mode, use CDB views or system tables via sys_connector
+                        collation_sql = """
+                            SELECT 
+                                d.database_name as TABLE_SCHEMA,
+                                t.table_name as TABLE_NAME,
+                                c.column_name as COLUMN_NAME,
+                                c.data_type as DATA_TYPE,
+                                c.collation_type as COLLATION_NAME,
+                                c.charset_type as CHARACTER_SET_NAME
+                            FROM oceanbase.__all_virtual_column c
+                            INNER JOIN oceanbase.__all_virtual_table t 
+                                ON c.tenant_id = t.tenant_id 
+                                AND c.table_id = t.table_id
+                            INNER JOIN oceanbase.__all_virtual_database d
+                                ON t.tenant_id = d.tenant_id
+                                AND t.database_id = d.database_id
+                            WHERE UPPER(d.database_name) = UPPER('{0}')
+                            AND UPPER(t.table_name) = UPPER('{1}')
+                            AND c.collation_type IS NOT NULL
+                            ORDER BY c.column_name
+                        """.format(
+                            db_name.replace("'", "''"), table_name.replace("'", "''")
+                        )
+                        connector = self.sys_connector
+
+                    result = connector.execute_sql(collation_sql)
+
+                    if result:
+                        for row in result:
+                            if self.tenant_mode == 'mysql':
+                                table_schema, table_name_col, column_name, data_type, collation_name, charset_name = row
+                            else:
+                                table_schema, table_name_col, column_name, data_type, collation_name, charset_name = row
+
+                            if collation_name:
+                                collation_info.append({'database': table_schema, 'table': table_name_col, 'column': column_name, 'data_type': data_type, 'collation': collation_name, 'charset': charset_name})
+                                all_collations.add(collation_name)
+                except Exception as e:
+                    self.stdio.warn(f"Failed to check collation for table {db_name}.{table_name}: {str(e)}")
+                    continue
+
+            # Generate report
+            if not collation_info:
+                self.stdio.verbose("No collation information found, skip collation check report")
+                return
+
+            # Check if all collations are the same
+            if len(all_collations) > 1:
+                # Collation inconsistency found
+                warning_content = "<div class='statsWarning'>"
+                warning_content += "<h4>⚠️ Collation Inconsistency Warning</h4>"
+                warning_content += "<p><strong>Issue:</strong> The SQL uses tables/columns with different collations. "
+                warning_content += "When executing SQL, all tables and columns should have the same collation for better performance. "
+                warning_content += "If collation can't keep consistent, columns will be casted, which may impact performance.</p>"
+                warning_content += "<p><strong>Found {0} different collation(s):</strong> {1}</p>".format(len(all_collations), ", ".join(sorted(all_collations)))
+
+                # Create a table showing collation details
+                warning_content += "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; margin: 10px 0;'>"
+                warning_content += "<thead><tr style='background-color: #f0f0f0;'>"
+                warning_content += "<th>Database</th><th>Table</th><th>Column</th><th>Data Type</th><th>Collation</th><th>Charset</th>"
+                warning_content += "</tr></thead><tbody>"
+
+                for info in collation_info:
+                    warning_content += "<tr>"
+                    warning_content += "<td>{0}</td>".format(info['database'])
+                    warning_content += "<td>{0}</td>".format(info['table'])
+                    warning_content += "<td>{0}</td>".format(info['column'])
+                    warning_content += "<td>{0}</td>".format(info['data_type'])
+                    warning_content += "<td><strong>{0}</strong></td>".format(info['collation'])
+                    warning_content += "<td>{0}</td>".format(info['charset'] or 'N/A')
+                    warning_content += "</tr>"
+
+                warning_content += "</tbody></table>"
+                warning_content += "<p><strong>Recommendation:</strong> Consider modifying table/column collations to be consistent for better SQL execution performance.</p>"
+                warning_content += "</div>"
+
+                self.__report(warning_content)
+                self.stdio.warn("Collation inconsistency detected: {0} different collation(s) found".format(len(all_collations)))
+            else:
+                # All collations are the same
+                info_content = "<div style='background-color: #e8f5e9; padding: 10px; margin: 10px 0; border-left: 4px solid #4caf50;'>"
+                info_content += "<h4>✓ Collation Consistency Check</h4>"
+                info_content += "<p>All tables and columns use the same collation: <strong>{0}</strong></p>".format(list(all_collations)[0])
+                info_content += "<p>This is good for SQL execution performance.</p>"
+                info_content += "</div>"
+
+                self.__report(info_content)
+                self.stdio.verbose("Collation check passed: all columns use collation {0}".format(list(all_collations)[0]))
+
+        except Exception as e:
+            self.stdio.exception("report table collation check failed: {0}".format(str(e)))
+            pass

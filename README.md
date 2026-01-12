@@ -7,8 +7,8 @@ English | [中文版](README-CN.md)
     <a href="https://github.com/oceanbase/obdiag/releases/latest">
         <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag%2Freleases%2Flatest" />
     </a>
-    <a href="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg">
-        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.8.0%2B-blue.svg" />
+    <a href="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg">
+        <img alt="pyversions" src="https://img.shields.io/badge/python%20-3.11.0%2B-blue.svg" />
     </a>
     <a href="https://github.com/oceanbase/obdiag">
         <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Fobdiag" />
@@ -18,6 +18,9 @@ English | [中文版](README-CN.md)
     </a>
     <a href="https://www.oceanbase.com/docs/obdiag-cn">
         <img alt="Chinese doc" src="https://img.shields.io/badge/文档-简体中文-blue" />
+    </a>
+    <a href="https://deepwiki.com/oceanbase/obdiag">
+        <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" />
     </a>
 </p>
 
@@ -41,10 +44,10 @@ sh /opt/oceanbase-diagnostic-tool/init.sh
 ```
 
 ## Method 2: Install obdiag by using the source code
-To install obdiag on Python >= 3.8, run these commands:
+To install obdiag on Python >= 3.11, run these commands:
 
 ```shell
-./dev_helper.sh init
+make init
 source ~/.bashrc
 ```
 
@@ -90,8 +93,12 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.2.0|2025.01| 2025.03.14 |<ul><li> obdiag adapts to IPv6 </li><li> obdiag gather stack supports ARM machines </li><li> Check Scenario Expansion </li></ul>|
 |3.3.0|2025.04| 2025.04.18 |<ul><li> obdiag check supports python script </li></ul>|
 |3.4.0|2025.05| 2025.05.15 |<ul><li> obdiag rca supports OMS obcdc </li></ul>|
-|3.5.0|2024.06| - |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
-|4.0.0|2025.12| - |<ul><li> AI for obdiag </li></ul>|
+|3.5.0|2025.06| 2025.06.20 |<ul><li> Root Cause Analysis Scenario Expansion </li><li> Check Scenario Expansion </li></ul>|
+|3.6.0|2025.07| 2025.07.31 |<ul><li> Add obdiag tool </li><li> Support MCP </li></ul>|
+|3.7.0|2025.08| 2025.09.09 |<ul><li> Support pip install obdiag-mcp </li><li> Check Scenario Expansion </li></ul>|
+|3.7.1|2025.09| 2025.10.22 |<ul><li> Check Scenario Expansion </li></ul>|
+|3.7.2|2025.10| 2025.11.27 |<ul><li> Check Scenario Expansion </li></ul>|
+|4.0.0|2025.12| 2026.01.07 |<ul><li> Add `obdiag tool ai_assistant` command, AI intelligent diagnostic assistant (BETA)</li><li> Add `obdiag tool io_performance` command, disk IO performance detection tool</li><li> Add `obdiag tool config_check` command, configuration validation tool</li><li> Add `obdiag display scene run --scene=observer.compaction` command, compaction status display scene</li><li> Root Cause Analysis Scenario Expansion </li></ul>|
 
 # Support
 
@@ -120,7 +127,7 @@ git clone https://github.com/your_username/your_repo_here.git
 3. Format your code with black tool 🎨
 
 ```bash
-./dev_helper.sh format
+make format
 ```
 
 4. Commit Your Changes: Once you've made your enhancements, commit them using Git.

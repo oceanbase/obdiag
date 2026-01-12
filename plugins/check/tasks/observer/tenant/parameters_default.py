@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -31,7 +31,10 @@ class ParametersDefault(TaskBase):
                 return self.report.add_critical("can't build obcluster connection")
             # check version 4.2.2.0 ≤ obversion < 4.3.0.0 or 4.3.1.0≤ obversion
             obversion = get_observer_version(self.context)
-            if (super().check_ob_version_min("4.2.2.0") or obversion == "4.2.2.0") and StringUtils.compare_versions_greater("4.3.0.0", obversion):
+            # Check if version is lower than 4.0
+            if StringUtils.compare_versions_greater("4.0.0.0", obversion):
+                return self.report.add_warning("This task is not supported in OceanBase version {0} (versions below 4.0 are not supported)".format(obversion))
+            elif (super().check_ob_version_min("4.2.2.0") or obversion == "4.2.2.0") and StringUtils.compare_versions_greater("4.3.0.0", obversion):
                 pass
             elif super().check_ob_version_min("4.3.1.0"):
                 pass
@@ -62,9 +65,15 @@ GROUP BY
                 parameters_default_value = parameters_data_one.get("default_value")
                 parameters_tenant_ids = parameters_data_one.get("tenant_ids")
                 if parameters_tenant_ids is None:
-                    report_str = "the {0} is not default_value. value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
+                    if parameters_default_value:
+                        pass
+                    else:
+                        continue
+                    if parameters_value == parameters_default_value:
+                        continue
+                    report_str = "the {0} value: {1}, default_value: {2}".format(parameters_name, parameters_value, parameters_default_value)
                 else:
-                    report_str = "the {0} is not default_value. tenant_ids: {1}, value: {2}, default_value: {3}".format(parameters_name, parameters_tenant_ids, parameters_value, parameters_default_value)
+                    report_str = "the {0} tenant_ids: {1}, value: {2}, default_value: {3}".format(parameters_name, parameters_tenant_ids, parameters_value, parameters_default_value)
                 self.report.add_warning(report_str)
 
         except Exception as e:
@@ -72,7 +81,7 @@ GROUP BY
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "parameters_default", "info": "Confirm if the configuration item is the default value. issue#850"}
+        return {"name": "parameters_default", "info": "Confirm if the configuration item is the default value. issue #850"}
 
 
 parameters_default = ParametersDefault()

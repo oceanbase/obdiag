@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -17,7 +17,7 @@
 """
 import threading
 
-from src.common.command import get_observer_version
+from src.common.command import get_observer_version, get_obproxy_version, get_obproxy_full_version
 from src.common.ob_connector import OBConnector
 from src.common.ssh_client.ssh import SshClient
 from src.handler.checker.check_exception import StepResultFailException, StepExecuteFailException, StepResultFalseException, TaskException
@@ -53,7 +53,6 @@ class Task:
             steps_nu = filter_by_version(self.task, self.cluster, self.stdio)
         if steps_nu < 0:
             self.stdio.verbose("Unadapted by version. SKIP")
-            self.report.add("Unadapted by version. SKIP", "warning")
             return "Unadapted by version.SKIP"
         self.stdio.verbose("filter_by_version is return {0}".format(steps_nu))
         if len(self.nodes) == 0:
@@ -117,6 +116,7 @@ class TaskBase:
         self.ob_connector = None
         self.store_dir = None
         self.obproxy_version = None
+        self.obproxy_full_version = None
         self.observer_version = None
         self.report = None
         self.obproxy_nodes = []
@@ -172,8 +172,19 @@ class TaskBase:
             password=self.ob_cluster.get("tenant_sys").get("password"),
             timeout=10000,
         )
+        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
+            self.stdio.print("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
+        else:
+            try:
+                self.obproxy_version = get_obproxy_version(self.context)
+            except Exception as e:
+                self.stdio.error("get obproxy_version fail: {0}".format(e))
+            try:
+                self.obproxy_full_version = get_obproxy_full_version(self.context)
+            except Exception as e:
+                self.stdio.error("get obproxy_full_version fail: {0}".format(e))
 
-    def check_ob_version_min(self, min_version):
+    def check_ob_version_min(self, min_version: str):
         if self.observer_version is None:
             return False
         if self.observer_version == min_version:
@@ -182,6 +193,35 @@ class TaskBase:
             return True
         else:
             return False
+
+    def check_obproxy_version_min(self, min_version):
+        if self.obproxy_version is None:
+            return False
+        if self.obproxy_version == min_version:
+            return True
+        if StringUtils.compare_versions_greater(self.obproxy_version, min_version):
+            return True
+        else:
+            return False
+
+    def check_ob_version_max(self, max_version):
+        if self.observer_version is None:
+            return False
+        if self.observer_version == max_version:
+            return True
+        if StringUtils.compare_versions_greater(max_version, self.observer_version):
+            return True
+        else:
+            return False
+
+    def get_obproxy_parameter(self, parameter_name):
+        try:
+            sql = "show proxyconfig like '{0}';".format(parameter_name)
+            data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
+            return data
+        except Exception as e:
+            self.stdio.error("get {0} fail:{1} .please check".format(parameter_name, e))
+            return []
 
     def check_command_exist(self, ssh_client, command):
         if ssh_client is None:

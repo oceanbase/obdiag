@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -48,6 +48,10 @@ class GatherDBMSXPLANHandler(SafeStdio):
         self.tenant_connector = None
         self.store_dir = store_dir
         self.raw_query_sql = None
+        self.plan_id = None
+        self.tenant_id = None
+        self.svr_ip = None
+        self.svr_port = None
         self.is_innner = is_inner
         self.is_scene = is_scene
         self.tenant_user = None
@@ -89,6 +93,8 @@ class GatherDBMSXPLANHandler(SafeStdio):
                     self.store_dir = os.path.abspath(store_dir_option)
             if self.context.get_variable("gather_trace_id", None):
                 self.trace_id = self.context.get_variable("gather_trace_id")
+                if not self.context.get_variable("gather_user"):
+                    return False
                 user = self.context.get_variable("gather_user")
             if self.context.get_variable("gather_password", None):
                 password = self.context.get_variable("gather_password")
@@ -96,8 +102,11 @@ class GatherDBMSXPLANHandler(SafeStdio):
                 self.store_dir = self.context.get_variable("store_dir")
             if self.context.get_variable("dbms_xplan_scope", None):
                 self.scope = self.context.get_variable("dbms_xplan_scope")
-            if not (self.trace_id and user):
-                self.stdio.error("option --trace_id/--user not found, please provide")
+            if not self.trace_id:
+                self.stdio.error("option --trace_id not found, please provide")
+                return False
+            if not user:
+                self.stdio.error("option --user not found, please provide")
                 return False
             env_option = Util.get_option(options, 'env')
             if env_option:
@@ -161,13 +170,16 @@ class GatherDBMSXPLANHandler(SafeStdio):
     def execute(self):
         try:
             self.version = get_observer_version(self.context)
-            raw_query_sql = self.__get_sql_from_trace_id()
+            if StringUtils.compare_versions_lower(self.version, "4.2.5.0"):
+                self.stdio.error("DBMS_XPLAN feature requires OceanBase version >= 4.2.5.0. Current version: {0} is not supported.".format(self.version))
+                return False
+            raw_query_sql = self.__get_sql_audit_from_trace_id()
             if raw_query_sql:
                 self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.tenant_user, password=self.tenant_password, timeout=100, database=self.db_name)
                 if self.scope in ['all', 'opt_trace']:
                     self.get_opt_trace()
                 if self.scope in ['all', 'display_cursor']:
-                    self.get_display_cursor(raw_query_sql)
+                    self.get_display_cursor()
                 return True
             else:
                 self.stdio.error("The data queried with the specified trace_id {0} from gv$ob_sql_audit is empty. Please verify if this trace_id has expired.".format(self.trace_id))
@@ -176,21 +188,16 @@ class GatherDBMSXPLANHandler(SafeStdio):
             self.stdio.error("get dbms_xplan result failed, error: {0}".format(e))
             return False
 
-    def __is_select_statement(self, sql):
-        stripped_sql = sql.strip().upper()
-        return stripped_sql.startswith('SELECT')
-
-    def get_display_cursor(self, sql):
+    def get_display_cursor(self):
         result = ''
-        if not self.__is_select_statement(sql):
-            self.stdio.warn("Your sql is: {0}. But, this functionality only supports SQL query statements.".format(sql))
+        display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=self.plan_id, svr_ip=self.svr_ip, svr_port=self.svr_port, tenant_id=self.tenant_id)
         try:
             if not StringUtils.compare_versions_lower(self.version, "4.2.5.0"):
-                plan_result = self.tenant_connector.execute_display_cursor(sql)
+                self.stdio.verbose("execute SQL: %s", display_cursor_sql)
+                plan_result = self.tenant_connector.execute_sql_pretty(display_cursor_sql)
                 if plan_result:
-                    self.stdio.verbose("execute SQL: %s", sql)
-                    step = "obclient> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\n{0}\nselect dbms_xplan.display_cursor(0, 'all');\n".format(sql)
-                    result = step + str(plan_result)
+                    plan_result.align = 'l'
+                    result = 'obclient> ' + display_cursor_sql + '\n' + str(plan_result)
                     self.stdio.verbose("dbms_xplan.display_cursor report complete")
                     self.__report(result)
                     self.__print_display_cursor_result()
@@ -235,15 +242,23 @@ class GatherDBMSXPLANHandler(SafeStdio):
         summary_tuples = self.__get_overall_summary(self.gather_tuples)
         self.stdio.print(summary_tuples)
 
-    def __get_sql_from_trace_id(self):
-        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit")
+    def __get_sql_audit_from_trace_id(self):
+        sql = str(GlobalSqlMeta().get_value(key="sql_audit_by_trace_id_limit1_mysql")).replace("##REPLACE_TRACE_ID##", self.trace_id).replace("##REPLACE_SQL_AUDIT_TABLE_NAME##", "gv$ob_sql_audit").replace("##OB_VERSION_PARAMS_VALUE##", "params_value")
         audit_result = self.ob_connector.execute_sql(sql)
         if len(audit_result) > 0:
             trace = audit_result[0]
             raw_sql = trace[1]
             db_name = trace[8]
+            plan_id = trace[9]
+            tenant_id = trace[10]
+            svr_ip = trace[12]
+            svr_port = trace[13]
             self.raw_query_sql = raw_sql
             self.db_name = db_name
+            self.plan_id = plan_id
+            self.tenant_id = tenant_id
+            self.svr_ip = svr_ip
+            self.svr_port = svr_port
             return raw_sql
         else:
             return
@@ -346,15 +361,25 @@ class GatherDBMSXPLANHandler(SafeStdio):
 
     def __init_db_conn(self, env):
         try:
-            env_dict = StringUtils.parse_env(env)
+            # env must be a list from parse_env_display (action="append")
+            if not isinstance(env, list):
+                self.stdio.error("Invalid env format. Please use --env key=value format, e.g., --env host=127.0.0.1 --env port=2881 --env user=test --env password=****** --env database=test")
+                return False
+
+            env_dict = StringUtils.parse_env_display(env)
             self.env = env_dict
-            cli_connection_string = self.env.get("db_connect")
-            self.db_conn = StringUtils.parse_mysql_conn(cli_connection_string)
+
+            # Build db_info directly from env_dict parameters (no db_connect string parsing)
+            self.db_conn = StringUtils.build_db_info_from_env(env_dict, self.stdio)
+            if not self.db_conn:
+                self.stdio.error("Failed to build database connection information from env parameters")
+                return False
+
             if StringUtils.validate_db_info(self.db_conn):
                 self.__init_tenant_connector()
                 return True
             else:
-                self.stdio.error("db connection information requird [db_connect = '-hxx -Pxx -uxx -pxx -Dxx'],  but provided {0}, please check the --env option".format(env_dict))
+                self.stdio.error("db connection information required: --env host=... --env port=... --env user=... --env password=... --env database=...")
                 return False
         except Exception as e:
             self.stdio.exception("init db connector, error: {0}, please check --env option ".format(e))

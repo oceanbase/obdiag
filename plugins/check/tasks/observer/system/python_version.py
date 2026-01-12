@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -63,7 +63,7 @@ class PythonVersion(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "python_version", "info": "Check if the Python version installed on the host is 2.7. x, ensuring that the relevant OceanBase scripts can run properly. issue#869"}
+        return {"name": "python_version", "info": "Check if the Python version installed on the host is 2.7. x, ensuring that the relevant OceanBase scripts can run properly. issue #869"}
 
 
 python_version = PythonVersion()

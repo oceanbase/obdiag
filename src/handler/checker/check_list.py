@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -25,6 +25,7 @@ from src.common.tool import Util, DynamicLoading
 class CheckListHandler:
     def __init__(self, context):
         self.context = context
+        self.options = self.context.options
         self.stdio = context.stdio
         self.work_path = os.path.expanduser(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
 
@@ -79,14 +80,19 @@ class CheckListHandler:
                             )
                     Util.print_title("check cases about {0}".format(target), stdio=self.stdio)
                     Util.print_scene(cases_map, stdio=self.stdio)
-            if False:
+            # Check if --all option is provided
+            show_all_tasks = False
+            if Util.get_option(self.options, 'all'):
+                show_all_tasks = True
+            if show_all_tasks:
                 get_task_list = self.get_task_list()
                 for target in get_task_list:
                     if get_task_list[target] is None:
                         continue
                     self.stdio.print("\n\n")
                     self.stdio.print("tasks of {0}:".format(target))
-                    for task_name in get_task_list[target]:
+                    result_map[target]["tasks"] = get_task_list[target]
+                    for task_name in result_map[target]["tasks"]:
                         self.stdio.print("name: {0}\ninfo: {1}\n".format(task_name, get_task_list[target][task_name]))
 
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_map)

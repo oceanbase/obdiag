@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -82,6 +82,73 @@ html_dict.set_value(
       z-index: 1000;
       position: relative;
     }
+    /* 长文本收缩和复制功能样式 */
+    .long-text-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .long-text {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .long-text.expanded {
+      max-width: none;
+      white-space: normal;
+      word-break: break-all;
+    }
+    
+    .text-controls {
+      position: absolute;
+      top: -20px;
+      right: 0;
+      display: flex;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .long-text-container:hover .text-controls {
+      opacity: 1;
+    }
+    
+    .text-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    
+    .text-btn:hover {
+      background: #0056b3;
+    }
+    
+    .copy-btn {
+      background: #28a745;
+    }
+    
+    .copy-btn:hover {
+      background: #1e7e34;
+    }
+    
+    .copy-success {
+      background: #28a745 !important;
+    }
+    
+    .copy-success::after {
+      content: "✓";
+      margin-left: 3px;
+    }
     </style>
     </head>
     <body>
@@ -109,8 +176,97 @@ html_dict.set_value(
         $('#debug').hide();
       }, 30*1000);
 
+      // 初始化长文本收缩和复制功能
+      initLongTextFeatures();
     });
 
+    // 长文本收缩和复制功能
+    function initLongTextFeatures() {
+      // 查找所有包含长SQL语句的td元素
+      $('td').each(function() {
+        var $td = $(this);
+        var text = $td.text().trim();
+        var htmlContent = $td.html().trim();
+        
+        // 检查是否包含SQL语句（简单的判断条件）
+        if (text.length > 50 && (text.toLowerCase().includes('select') || text.toLowerCase().includes('insert') || text.toLowerCase().includes('update') || text.toLowerCase().includes('delete'))) {
+          // 创建长文本容器
+          var $container = $('<div class="long-text-container"></div>');
+          var $textDiv = $('<div class="long-text" title="点击展开/收缩">' + text + '</div>');
+          var $controls = $('<div class="text-controls"></div>');
+          var $expandBtn = $('<button class="text-btn expand-btn" title="展开/收缩">展开</button>');
+          var $copyBtn = $('<button class="text-btn copy-btn" title="复制">复制</button>');
+          
+          $controls.append($expandBtn, $copyBtn);
+          $container.append($textDiv, $controls);
+          $td.html($container);
+          
+          // 绑定展开/收缩事件
+          $expandBtn.click(function(e) {
+            e.stopPropagation();
+            var $text = $textDiv;
+            var $btn = $(this);
+            
+            if ($text.hasClass('expanded')) {
+              $text.removeClass('expanded');
+              $btn.text('展开');
+              $text.text(text);
+            } else {
+              $text.addClass('expanded');
+              $btn.text('收缩');
+              if (htmlContent.includes('<br>')) {
+                $text.html(htmlContent);
+              } else {
+                $text.text(text);
+              }
+            }
+          });
+          
+          // 绑定复制事件
+          $copyBtn.click(function(e) {
+            e.stopPropagation();
+            var $btn = $(this);
+            
+            // 创建临时textarea来复制文本
+            var textarea = document.createElement('textarea');
+            if (htmlContent.includes('<br>')) {
+              textarea.value = htmlContent.replace(/<br\s*\/?>/gi, '\\n').replace(/&nbsp;/g, ' ');
+            } else {
+              textarea.value = text;
+            }
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+              document.execCommand('copy');
+              $btn.addClass('copy-success');
+              $btn.text('已复制');
+              
+              setTimeout(function() {
+                $btn.removeClass('copy-success');
+                $btn.text('复制');
+              }, 2000);
+            } catch (err) {
+              console.error('复制失败:', err);
+              $btn.text('复制失败');
+              
+              setTimeout(function() {
+                $btn.text('复制');
+              }, 2000);
+            }
+            
+            document.body.removeChild(textarea);
+          });
+          
+          // 点击文本本身也可以展开/收缩
+          $textDiv.click(function() {
+            $expandBtn.click();
+          });
+        }
+      });
+    }
+
+    
     //获取随机安全色
     function getSafeColor(n) {
       var base = ['00','33','66','99','CC','FF'];     //基础色代码
@@ -256,6 +412,73 @@ html_dict.set_value(
       z-index: 1000;
       position: relative;
     }
+    /* 长文本收缩和复制功能样式 */
+    .long-text-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .long-text {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .long-text.expanded {
+      max-width: none;
+      white-space: normal;
+      word-break: break-all;
+    }
+    
+    .text-controls {
+      position: absolute;
+      top: -20px;
+      right: 0;
+      display: flex;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .long-text-container:hover .text-controls {
+      opacity: 1;
+    }
+    
+    .text-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    
+    .text-btn:hover {
+      background: #0056b3;
+    }
+    
+    .copy-btn {
+      background: #28a745;
+    }
+    
+    .copy-btn:hover {
+      background: #1e7e34;
+    }
+    
+    .copy-success {
+      background: #28a745 !important;
+    }
+    
+    .copy-success::after {
+      content: "✓";
+      margin-left: 3px;
+    }
     </style>
     </head>
     <body>
@@ -286,7 +509,96 @@ html_dict.set_value(
         $('#debug').hide();
       }, 30*1000);
 
+      // 初始化长文本收缩和复制功能
+      initLongTextFeatures();
+
     });
+
+    // 长文本收缩和复制功能
+    function initLongTextFeatures() {
+      // 查找所有包含长SQL语句的td元素
+      $('td').each(function() {
+        var $td = $(this);
+        var text = $td.text().trim();
+        var htmlContent = $td.html().trim();
+        
+        // 检查是否包含SQL语句（简单的判断条件）
+        if (text.length > 50 && (text.toLowerCase().includes('select') || text.toLowerCase().includes('insert') || text.toLowerCase().includes('update') || text.toLowerCase().includes('delete'))) {
+          // 创建长文本容器
+          var $container = $('<div class="long-text-container"></div>');
+          var $textDiv = $('<div class="long-text" title="点击展开/收缩">' + text + '</div>');
+          var $controls = $('<div class="text-controls"></div>');
+          var $expandBtn = $('<button class="text-btn expand-btn" title="展开/收缩">展开</button>');
+          var $copyBtn = $('<button class="text-btn copy-btn" title="复制">复制</button>');
+          
+          $controls.append($expandBtn, $copyBtn);
+          $container.append($textDiv, $controls);
+          $td.html($container);
+          
+          // 绑定展开/收缩事件
+          $expandBtn.click(function(e) {
+            e.stopPropagation();
+            var $text = $textDiv;
+            var $btn = $(this);
+            
+            if ($text.hasClass('expanded')) {
+              $text.removeClass('expanded');
+              $btn.text('展开');
+              $text.text(text);
+            } else {
+              $text.addClass('expanded');
+              $btn.text('收缩');
+              if (htmlContent.includes('<br>')) {
+                $text.html(htmlContent);
+              } else {
+                $text.text(text);
+              }
+            }
+          });
+          
+          // 绑定复制事件
+          $copyBtn.click(function(e) {
+            e.stopPropagation();
+            var $btn = $(this);
+            
+            // 创建临时textarea来复制文本
+            var textarea = document.createElement('textarea');
+            if (htmlContent.includes('<br>')) {
+              textarea.value = htmlContent.replace(/<br\s*\/?>/gi, '\\n').replace(/&nbsp;/g, ' ');
+            } else {
+              textarea.value = text;
+            }
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+              document.execCommand('copy');
+              $btn.addClass('copy-success');
+              $btn.text('已复制');
+              
+              setTimeout(function() {
+                $btn.removeClass('copy-success');
+                $btn.text('复制');
+              }, 2000);
+            } catch (err) {
+              console.error('复制失败:', err);
+              $btn.text('复制失败');
+              
+              setTimeout(function() {
+                $btn.text('复制');
+              }, 2000);
+            }
+            
+            document.body.removeChild(textarea);
+          });
+          
+          // 点击文本本身也可以展开/收缩
+          $textDiv.click(function() {
+            $expandBtn.click();
+          });
+        }
+      });
+    }
 
     //获取随机安全色
     function getSafeColor(n) {

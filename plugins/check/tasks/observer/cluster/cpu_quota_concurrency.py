@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -28,6 +28,8 @@ class CpuQuotaConcurrency(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             cpu_quota_concurrency_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_PARAMETERS where Name=\"cpu_quota_concurrency\";").fetchall()
 
             for cpu_quota_concurrency_one in cpu_quota_concurrency_data:
@@ -40,7 +42,7 @@ class CpuQuotaConcurrency(TaskBase):
                 if int(tenant_id) == 1:
                     if cpu_quota_concurrency_value != 10:
                         self.report.add_warning("tenant_id: {1}, svr_ip: {2}. cpu_quota_concurrency is {0}, recommended value is 10.".format(cpu_quota_concurrency_value, tenant_id, svr_ip))
-                        continue
+                    continue
 
                 if cpu_quota_concurrency_value > 4 or cpu_quota_concurrency_value < 2:
                     self.report.add_warning("tenant_id: {1}, svr_ip: {2}. cpu_quota_concurrency is {0}, recommended value is 2-4.".format(cpu_quota_concurrency_value, tenant_id, svr_ip))
@@ -50,7 +52,7 @@ class CpuQuotaConcurrency(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "cpu_quota_concurrency", "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4. issue#738"}
+        return {"name": "cpu_quota_concurrency", "info": "Check the maximum concurrency allowed for each CPU quota of the tenant, with a recommended value of 2-4. issue #738"}
 
 
 cpu_quota_concurrency = CpuQuotaConcurrency()

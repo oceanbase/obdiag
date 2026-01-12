@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -29,7 +29,8 @@ class ServerPermanentOfflineTime(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_fail("can't build obcluster connection")
-
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             sql = "select * from oceanbase.GV$OB_PARAMETERS where name='{0}';".format(self.param_name)
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
 
@@ -53,7 +54,7 @@ class ServerPermanentOfflineTime(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "server_permanent_offline_time", "info": "check the cluster parameters of server_permanent_offline_time . issue #816"}
+        return {"name": "server_permanent_offline_time", "info": "Check server_permanent_offline_time parameter and alert when not set to 3600s. issue #816"}
 
 
 server_permanent_offline_time = ServerPermanentOfflineTime()

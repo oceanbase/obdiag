@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -28,6 +28,8 @@ class LogSize(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             log_size_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * FROM oceanbase.GV$OB_PARAMETERS where name=\"max_syslog_file_count\";").fetchall()
             if len(log_size_data) < 1:
                 return self.report.add_fail("get log_size data error")
@@ -48,7 +50,7 @@ class LogSize(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "log_size", "info": "check obcluster max_syslog_file_count is 0 or over 100"}
+        return {"name": "log_size", "info": "Check max_syslog_file_count parameter and alert when not set to 0 or over 100. issue #963"}
 
 
 log_size = LogSize()

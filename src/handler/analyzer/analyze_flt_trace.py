@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -159,7 +159,11 @@ class AnalyzeFltTraceHandler(object):
         if not ssh_failed:
             gather_dir_name = "trace_merged_cache"
             gather_dir_full_path = "{0}/{1}".format(self.gather_ob_log_temporary_dir, gather_dir_name)
-            mkdir(ssh_client, gather_dir_full_path, self.stdio)
+            mkdir_info = mkdir(ssh_client, gather_dir_full_path, self.stdio)
+            if mkdir_info:
+                resp["skip"] = True
+                resp["error"] = mkdir_info
+                return resp, node_files
             if self.is_ssh:
                 self.__get_online_log_file(ssh_client, node, gather_dir_full_path, local_store_dir)
             else:

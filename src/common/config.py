@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -17,6 +17,7 @@
 
 from __future__ import absolute_import, division, print_function
 import os
+from src.common.file_crypto.file_crypto import FileEncryptor
 from src.common.tool import ConfigOptionsParserUtil, DirectoryUtil
 from src.common.stdio import SafeStdio
 import oyaml as yaml
@@ -153,7 +154,7 @@ class Manager(SafeStdio):
 
 class ConfigManager(Manager):
 
-    def __init__(self, config_file=None, stdio=None, config_env_list=[]):
+    def __init__(self, config_file=None, stdio=None, config_env_list=[], config_password=None):
         default_config_path = os.path.join(os.path.expanduser("~"), ".obdiag", "config.yml")
         if config_env_list is None or len(config_env_list) == 0:
             if config_file is None or not os.path.exists(config_file):
@@ -161,9 +162,17 @@ class ConfigManager(Manager):
                 pathlib.Path(os.path.dirname(default_config_path)).mkdir(parents=True, exist_ok=True)
                 with open(default_config_path, 'w') as f:
                     f.write(DEFAULT_CONFIG_DATA)
+
             super(ConfigManager, self).__init__(config_file, stdio)
             self.config_file = config_file
-            self.config_data = self.load_config()
+            if not self.config_file.endswith('.encrypted'):
+                self.config_data = self.load_config()
+            else:
+                if config_password is None:
+                    raise ValueError("config_password must be provided when decrypting a file")
+                fileEncryptor = FileEncryptor(context=None, stdio=self.stdio)
+                self.config_data = yaml.safe_load(fileEncryptor.decrypt_file(self.path, password=config_password))
+
         else:
             parser = ConfigOptionsParserUtil()
             self.config_data = parser.parse_config(config_env_list)

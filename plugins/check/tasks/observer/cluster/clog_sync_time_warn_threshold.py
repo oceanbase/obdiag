@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -31,6 +31,8 @@ class ClogSyncTimeWarnThreshold(TaskBase):
             # check clog_sync_time_warn_threshold
             if self.ob_connector is None:
                 return self.report.add_fail("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             sql = "select * from oceanbase.GV$OB_PARAMETERS where name='{0}';".format(self.param_name)
             result = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             if not result:
@@ -53,7 +55,7 @@ class ClogSyncTimeWarnThreshold(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "clog_sync_time_warn_threshold", "info": "Check the clog synchronization time warning threshold. If the synchronization time exceeds this value, a WARN log is generated. It is recommended to set it to 100ms. issue#793"}
+        return {"name": "clog_sync_time_warn_threshold", "info": "Check the clog synchronization time warning threshold. If the synchronization time exceeds this value, a WARN log is generated. It is recommended to set it to 100ms. issue #793"}
 
 
 clog_sync_time_warn_threshold = ClogSyncTimeWarnThreshold()

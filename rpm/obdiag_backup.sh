@@ -1,16 +1,29 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+# Get current effective user information
 CURRENT_USER_ID=$(id -u)
-CURRENT_USER_NAME=$(logname 2>/dev/null || echo "$SUDO_USER" | awk -F'[^a-zA-Z0-9_]' '{print $1}')
 
-if [ "$CURRENT_USER_ID" -eq 0 ]; then
-    if [ -n "$SUDO_USER" ]; then
-        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    else
-        USER_HOME=/root
-    fi
+# Determine if the script is executed via sudo (not simply based on SUDO_USER)
+IS_SUDO_EXECUTED=0
+if [ "$CURRENT_USER_ID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    IS_SUDO_EXECUTED=1
 else
+    IS_SUDO_EXECUTED=0
+fi
+
+# Set user and home directory
+if [ $IS_SUDO_EXECUTED -eq 1 ]; then
+    # It was executed via sudo, use the original user
+    CURRENT_USER_NAME="$SUDO_USER"
+    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    # Otherwise, use the current user
+    CURRENT_USER_NAME=$(id -un)
     USER_HOME="$HOME"
+fi
+
+if [ -z "$USER_HOME" ]; then
+    echo "Error: Could not determine home directory for current user."
+    exit 1
 fi
 
 # Define source directory and target backup directory
@@ -23,10 +36,21 @@ mkdir -p "$BACKUP_DIR"
 # List of directories to be backed up
 DIRS=("display" "check" "gather" "rca")
 
-# Check if any of the directories contain files
+# List of files to be backed up
+FILES=("ai.yml" "config.yml")
+
+# Check if any of the directories contain files or backup files exist
 should_backup=false
 for dir in "${DIRS[@]}"; do
     if [ -d "$SOURCE_DIR$dir" ] && [ "$(ls -A "$SOURCE_DIR$dir")" ]; then
+        should_backup=true
+        break
+    fi
+done
+
+# Also check if any of the files exist
+for file in "${FILES[@]}"; do
+    if [ -f "$SOURCE_DIR$file" ]; then
         should_backup=true
         break
     fi
@@ -68,6 +92,18 @@ for dir in "${DIRS[@]}"; do
         echo "Copied $dir to temporary backup directory under ${BASE_NAME}_$TIMESTAMP."
     else
         echo "Source directory $SOURCE_DIR$dir does not exist. Skipping."
+    fi
+done
+
+# Iterate over each file to be backed up
+for file in "${FILES[@]}"; do
+    # Check if the source file exists
+    if [ -f "$SOURCE_DIR$file" ]; then
+        # Copy the file into the top-level directory within the temporary backup directory
+        cp -p "$SOURCE_DIR$file" "$TOP_LEVEL_DIR/"
+        echo "Copied $file to temporary backup directory under ${BASE_NAME}_$TIMESTAMP."
+    else
+        echo "Source file $SOURCE_DIR$file does not exist. Skipping."
     fi
 done
 

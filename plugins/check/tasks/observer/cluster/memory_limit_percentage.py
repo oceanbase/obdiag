@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*
+# -*- coding: UTF-8 -*-
 # Copyright (c) 2022 OceanBase
 # OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -28,6 +28,8 @@ class MemoryLimitPercentage(TaskBase):
         try:
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
+            if not super().check_ob_version_min("4.0.0.0"):
+                return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
             memory_limit_percentage_data = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT * from oceanbase.GV$OB_PARAMETERS where name= \"memory_limit_percentage\";").fetchall()
             if len(memory_limit_percentage_data) < 1:
                 return self.report.add_fail("get memory_limit_percentage data error")
@@ -51,7 +53,7 @@ class MemoryLimitPercentage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memory_limit_percentage", "info": "Check the percentage of total available memory size to total memory size in the system. Suggest keeping the default value of 80. issue#750"}
+        return {"name": "memory_limit_percentage", "info": "Check the percentage of total available memory size to total memory size in the system. Suggest keeping the default value of 80. issue #750"}
 
 
 memory_limit_percentage = MemoryLimitPercentage()
