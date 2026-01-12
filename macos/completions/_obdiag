@@ -1,0 +1,168 @@
+#compdef obdiag
+
+# OceanBase Diagnostic Tool - Zsh Completion
+
+_obdiag() {
+    local -a commands gather_commands check_commands analyze_commands rca_commands display_commands tool_commands
+
+    _arguments -C \
+        '(- *)--version[Show version information]' \
+        '(- *)--help[Show help information]' \
+        '1: :->command' \
+        '*:: :->args'
+
+    case $state in
+        command)
+            commands=(
+                'config:Configure obdiag settings'
+                'gather:Gather diagnostic information'
+                'display:Display cluster information'
+                'analyze:Analyze logs and data'
+                'check:Run diagnostic checks'
+                'rca:Root cause analysis'
+                'update:Update obdiag plugins'
+                'tool:Utility tools'
+                'display-trace:Display trace information'
+            )
+            _describe -t commands 'obdiag command' commands
+            ;;
+        args)
+            case $words[1] in
+                gather)
+                    if (( CURRENT == 2 )); then
+                        gather_commands=(
+                            'log:Gather OceanBase observer logs'
+                            'clog:Gather clog files'
+                            'slog:Gather slog files'
+                            'plan_monitor:Gather plan monitor data'
+                            'stack:Gather stack traces'
+                            'perf:Gather performance data'
+                            'sysstat:Gather system statistics'
+                            'obproxy_log:Gather obproxy logs'
+                            'all:Gather all diagnostic information'
+                            'scene:Gather by predefined scene'
+                            'ash:Gather Active Session History'
+                            'tabledump:Dump table data'
+                            'parameter:Gather cluster parameters'
+                            'variable:Gather cluster variables'
+                            'dbms_xplan:Gather execution plan'
+                            'core:Gather core dump'
+                        )
+                        _describe -t gather_commands 'gather command' gather_commands
+                    elif [[ $words[2] == "scene" ]] && (( CURRENT == 3 )); then
+                        local -a scene_commands
+                        scene_commands=(
+                            'list:List available scenes'
+                            'run:Run a specific scene'
+                        )
+                        _describe -t scene_commands 'scene command' scene_commands
+                    else
+                        _arguments \
+                            '--from[Start time (yyyy-mm-dd hh:mm:ss)]:start time:' \
+                            '--to[End time (yyyy-mm-dd hh:mm:ss)]:end time:' \
+                            '--since[Time range (e.g., 30m, 1h, 1d)]:time range:' \
+                            '--scope[Log scope (observer/election/rootservice/all)]:scope:(observer election rootservice all)' \
+                            '--grep[Filter pattern]:pattern:' \
+                            '--store_dir[Output directory]:directory:_files -/' \
+                            '-c[Configuration file]:config file:_files'
+                    fi
+                    ;;
+                check)
+                    if (( CURRENT == 2 )); then
+                        check_commands=(
+                            'run:Run diagnostic checks'
+                            'list:List available check tasks'
+                        )
+                        _describe -t check_commands 'check command' check_commands
+                    else
+                        _arguments \
+                            '--cases[Specific check cases]:cases:' \
+                            '--obproxy_cases[OBProxy check cases]:cases:' \
+                            '--report_path[Report output path]:path:_files -/' \
+                            '-c[Configuration file]:config file:_files'
+                    fi
+                    ;;
+                analyze)
+                    if (( CURRENT == 2 )); then
+                        analyze_commands=(
+                            'log:Analyze OceanBase logs'
+                            'flt_trace:Analyze full link trace'
+                            'parameter:Analyze cluster parameters'
+                            'variable:Analyze cluster variables'
+                            'index_space:Analyze index space usage'
+                            'queue:Analyze queue status'
+                            'memory:Analyze memory usage'
+                        )
+                        _describe -t analyze_commands 'analyze command' analyze_commands
+                    elif [[ $words[2] == "parameter" ]] && (( CURRENT == 3 )); then
+                        local -a param_commands
+                        param_commands=(
+                            'diff:Compare parameters'
+                            'default:Show default values'
+                        )
+                        _describe -t param_commands 'parameter command' param_commands
+                    elif [[ $words[2] == "variable" ]] && (( CURRENT == 3 )); then
+                        local -a var_commands
+                        var_commands=(
+                            'diff:Compare variables'
+                        )
+                        _describe -t var_commands 'variable command' var_commands
+                    fi
+                    ;;
+                rca)
+                    if (( CURRENT == 2 )); then
+                        rca_commands=(
+                            'run:Run root cause analysis'
+                            'list:List available RCA scenes'
+                        )
+                        _describe -t rca_commands 'rca command' rca_commands
+                    else
+                        _arguments \
+                            '--scene[RCA scene name]:scene:' \
+                            '--env[Environment variables]:env:' \
+                            '--store_dir[Output directory]:directory:_files -/' \
+                            '-c[Configuration file]:config file:_files'
+                    fi
+                    ;;
+                display)
+                    if (( CURRENT == 2 )); then
+                        display_commands=(
+                            'scene:Display scene information'
+                        )
+                        _describe -t display_commands 'display command' display_commands
+                    elif [[ $words[2] == "scene" ]] && (( CURRENT == 3 )); then
+                        local -a scene_commands
+                        scene_commands=(
+                            'list:List available scenes'
+                            'run:Run a specific scene'
+                        )
+                        _describe -t scene_commands 'scene command' scene_commands
+                    fi
+                    ;;
+                tool)
+                    if (( CURRENT == 2 )); then
+                        tool_commands=(
+                            'crypto_config:Encrypt configuration file'
+                            'ai_assistant:AI diagnostic assistant (BETA)'
+                            'io_performance:Test IO performance'
+                            'config_check:Check configuration validity'
+                        )
+                        _describe -t tool_commands 'tool command' tool_commands
+                    fi
+                    ;;
+                config)
+                    _arguments \
+                        '-h[Show help]' \
+                        '--help[Show help]'
+                    ;;
+                update)
+                    _arguments \
+                        '--file[Update package file]:file:_files' \
+                        '--version[Target version]:version:'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_obdiag "$@"
