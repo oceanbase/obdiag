@@ -18,7 +18,7 @@
 
 import re
 from collections import defaultdict
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 from src.common.tool import StringUtils
 
 
@@ -139,7 +139,8 @@ class TenantLocalityConsistencyCheck(TaskBase):
     def get_task_info(self):
         return {
             "name": "tenant_locality_consistency_check",
-            "info": "Check tenant locality consistency with log stream member count to ensure tenant availability. issue #1048",
+            "info": "Check tenant locality consistency with log stream member count to ensure tenant availability",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1048",
         }
 
 

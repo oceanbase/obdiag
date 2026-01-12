@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MemoryChunkCacheSize(TaskBase):
@@ -43,7 +43,11 @@ class MemoryChunkCacheSize(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memory_chunk_cache_size", "info": "Check the memory block capacity of the memory allocator cache. It is recommended to set to 0. issue#843"}
+        return {
+            "name": "memory_chunk_cache_size",
+            "info": "Check the memory block capacity of the memory allocator cache. It is recommended to set to 0",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/843",
+        }
 
 
 memory_chunk_cache_size = MemoryChunkCacheSize()

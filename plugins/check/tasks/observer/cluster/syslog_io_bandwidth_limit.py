@@ -16,7 +16,7 @@
 @desc:
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class SyslogIoBandwidthLimit(TaskBase):
@@ -88,7 +88,11 @@ class SyslogIoBandwidthLimit(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "syslog_io_bandwidth_limit", "info": "Check the disk IO bandwidth limit that the system log can occupy. System logs that exceed the bandwidth upper limit will be discarded. It is recommended not to exceed 30M. issue #841"}
+        return {
+            "name": "syslog_io_bandwidth_limit",
+            "info": "Check the disk IO bandwidth limit that the system log can occupy. System logs that exceed the bandwidth upper limit will be discarded. It is recommended not to exceed 30M",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/841",
+        }
 
 
 syslog_io_bandwidth_limit = SyslogIoBandwidthLimit()

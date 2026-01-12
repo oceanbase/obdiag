@@ -16,8 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
-from src.handler.checker.check_exception import StepResultFailException
+from src.handler.check.check_task import TaskBase
 
 
 class CheckSystemLanguage(TaskBase):

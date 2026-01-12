@@ -15,7 +15,7 @@
 @file: server_permanent_offline_time.py
 @desc:
 """
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class ServerPermanentOfflineTime(TaskBase):
@@ -54,7 +54,11 @@ class ServerPermanentOfflineTime(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "server_permanent_offline_time", "info": "Check server_permanent_offline_time parameter and alert when not set to 3600s. issue #816"}
+        return {
+            "name": "server_permanent_offline_time",
+            "info": "Check server_permanent_offline_time parameter and alert when not set to 3600s",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/816",
+        }
 
 
 server_permanent_offline_time = ServerPermanentOfflineTime()

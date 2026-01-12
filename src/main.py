@@ -16,6 +16,17 @@
 """
 
 import sys
+import os
+
+# Setup sys.path for packaged environment
+# Dynamic plugins use "from src.xxx import yyy", need to find src module
+if getattr(sys, 'frozen', False):
+    # PyInstaller packaged environment
+    _base_path = os.path.dirname(sys.executable)
+    _site_packages = os.path.join(_base_path, 'lib', 'site-packages')
+    if os.path.exists(_site_packages) and _site_packages not in sys.path:
+        sys.path.insert(0, _site_packages)
+
 from src.common.diag_cmd import MainCommand
 from src.common.stdio import IO
 

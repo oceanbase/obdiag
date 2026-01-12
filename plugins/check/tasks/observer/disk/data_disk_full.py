@@ -18,7 +18,7 @@
 from decimal import Decimal
 
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class DataDiskFull(TaskBase):
@@ -54,7 +54,11 @@ class DataDiskFull(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "data_disk_full", "info": "Check data disk usage and alert when usage exceeds 85% threshold. issue #963"}
+        return {
+            "name": "data_disk_full",
+            "info": "Check data disk usage and alert when usage exceeds 85% threshold",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 data_disk_full = DataDiskFull()

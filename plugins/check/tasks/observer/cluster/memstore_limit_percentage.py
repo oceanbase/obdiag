@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class MemstoreLimitPercentage(TaskBase):
@@ -46,7 +46,11 @@ class MemstoreLimitPercentage(TaskBase):
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "memstore_limit_percentage", "info": "Check the percentage of memory used by tenants using memstore to their total available memory. Suggest keeping the default value of 50. issue #871"}
+        return {
+            "name": "memstore_limit_percentage",
+            "info": "Check the percentage of memory used by tenants using memstore to their total available memory. Suggest keeping the default value of 50",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/871",
+        }
 
 
 memstore_limit_percentage = MemstoreLimitPercentage()

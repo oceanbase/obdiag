@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 need_check_options = ["nfsvers=4.1", "sync", "lookupcache=positive", "hard"]
 
@@ -43,13 +43,13 @@ class MountOptions(TaskBase):
             output = ssh_client.exec_cmd("mount -l")
             for line in output.splitlines():
                 if ' type nfs' not in line:
-                    continue  # 跳过非NFS挂载
+                    continue  # Skip non-NFS mounts
                 parts = line.split()
                 if len(parts) < 5 or parts[1] != 'on' or parts[3] != 'type':
-                    continue  # 格式不匹配
-                # 提取关键字段
+                    continue  # Format mismatch
+                # Extract key fields
                 source = parts[0]
-                mount_point = parts[2].rstrip(' ')  # 挂载点路径
+                mount_point = parts[2].rstrip(' ')  # mount point path
                 options_str = parts[-1].strip('()')
                 for opt in need_check_options:
                     if opt not in options_str:
@@ -61,7 +61,11 @@ class MountOptions(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "mount_options", "info": "When mounting NFS, it is necessary to ensure that the parameters of the backup mounting environment include nfsvers=4.1, sync, lookupcache=positive, and hard. issue#611 #852 "}
+        return {
+            "name": "mount_options",
+            "info": "When mounting NFS, it is necessary to ensure that the parameters of the backup mounting environment include nfsvers=4.1, sync, lookupcache=positive, and hard. issue#611 #852",
+            "supported_os": ["linux"],
+        }
 
 
 mount_options = MountOptions()

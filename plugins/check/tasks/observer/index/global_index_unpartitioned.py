@@ -16,7 +16,7 @@
 @desc: Check for unpartitioned global indexes that may cause hotspot issues
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class GlobalIndexUnpartitionedTask(TaskBase):
@@ -96,7 +96,8 @@ class GlobalIndexUnpartitionedTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "global_index_unpartitioned",
-            "info": "Check for unpartitioned global indexes that may cause hotspot issues during batch operations. issue #957",
+            "info": "Check for unpartitioned global indexes that may cause hotspot issues during batch operations",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/957",
         }
 
 

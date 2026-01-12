@@ -16,7 +16,7 @@
 @desc: Check if CPU supports AVX instruction set for OceanBase
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 from src.common.tool import StringUtils
 
 
@@ -114,7 +114,8 @@ class InstructionSetAvxTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "instruction_set_avx",
-            "info": "Check if CPU supports AVX instruction set for OceanBase compatibility. issue #1024",
+            "info": "Check if CPU supports AVX instruction set for OceanBase compatibility",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1024",
         }
 
 

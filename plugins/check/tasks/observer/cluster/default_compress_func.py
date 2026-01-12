@@ -16,7 +16,7 @@
 @desc:
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class DefaultCompressFunc(TaskBase):
@@ -52,7 +52,8 @@ class DefaultCompressFunc(TaskBase):
     def get_task_info(self):
         return {
             "name": "default_compress_func",
-            "info": "The default compression algorithm for checklist data. Recommend using default value with ob_version to improve compression ratio and reduce storage costs. For scenarios with high requirements for querying rt, consider using lz4_1.0 or turning off compression. issue #792",
+            "info": "The default compression algorithm for checklist data. Recommend using default value with ob_version to improve compression ratio and reduce storage costs. For scenarios with high requirements for querying rt, consider using lz4_1.0 or turning off compression",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/792",
         }
 
 

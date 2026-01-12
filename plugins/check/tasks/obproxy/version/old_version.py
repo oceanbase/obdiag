@@ -16,7 +16,7 @@
 @desc: Check obproxy version. Some versions of obproxy are not recommended
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class OldVersionTask(TaskBase):
@@ -69,7 +69,8 @@ class OldVersionTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "old_version",
-            "info": "Check obproxy version. Some versions of obproxy are not recommended. issue #1103",
+            "info": "Check obproxy version. Some versions of obproxy are not recommended",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1103",
         }
 
 

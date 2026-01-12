@@ -18,8 +18,8 @@
 
 from collections import defaultdict
 from src.common.tool import StringUtils
-from src.handler.checker.check_exception import CheckException
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_exception import CheckException
+from src.handler.check.check_task import TaskBase
 
 
 class TenantThreshold(TaskBase):
@@ -37,14 +37,14 @@ class TenantThreshold(TaskBase):
             tenant_threshold_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             if tenant_threshold_data is None:
                 return self.report.add_fail("get data disk value error")
-            # 分组
+            # Group by tenant
             grouped = defaultdict(list)
             for item in tenant_threshold_data:
                 key = (item['tenant_id'], item['svr_ip'])
                 grouped[key].append(item)
 
             for (tenant, svr), items in grouped.items():
-                # 提取stat_id对应的value
+                # Extract value for each stat_id
                 stat_140005 = None
                 stat_140006 = None
                 for item in items:
@@ -53,24 +53,28 @@ class TenantThreshold(TaskBase):
                     elif item['stat_id'] == 140006:
                         stat_140006 = item['value']
 
-                        # 检查是否都存在
+                        # Check if all required values exist
                 if stat_140005 is not None and stat_140006 is not None:
                     try:
                         result = stat_140006 / stat_140005
                         if result > 0.95:
                             self.report.add_warning("tenant_id:{0},svr_ip:{1},The tenant's thread utilization rate is {2}, exceeding the threshold of 0.95.".format(tenant, svr, result))
                     except ZeroDivisionError:
-                        # 处理除零错误，比如记录错误或跳过
+                        # Handle division by zero error, log or skip
                         pass
                 else:
-                    # 处理缺少stat_id的情况
+                    # Handle missing stat_id case
                     pass
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
             return self.report.add_fail("execute error {0}".format(e))
 
     def get_task_info(self):
-        return {"name": "tenant_threshold", "info": "Check tenant thread utilization rate and alert when exceeds 95% threshold. issue #963"}
+        return {
+            "name": "tenant_threshold",
+            "info": "Check tenant thread utilization rate and alert when exceeds 95% threshold",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
+        }
 
 
 tenant_threshold = TenantThreshold()

@@ -16,7 +16,7 @@
 @desc: Check cgroup version. OceanBase currently uses cgroup v1. If the customer's operating system is cgroup v2, resource isolation will not take effect.
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class CgroupVersionTask(TaskBase):
@@ -117,7 +117,9 @@ class CgroupVersionTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "cgroup_version",
-            "info": "Check cgroup version. OceanBase currently uses cgroup v1. If the customer's operating system is cgroup v2, resource isolation will not take effect. issue #1101",
+            "info": "Check cgroup version. OceanBase currently uses cgroup v1. If the customer's operating system is cgroup v2, resource isolation will not take effect",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1101",
+            "supported_os": ["linux"],  # cgroup is Linux-specific
         }
 
 

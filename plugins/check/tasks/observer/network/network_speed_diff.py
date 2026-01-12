@@ -17,7 +17,7 @@
 """
 
 import re
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class NetworkSpeedDiff(TaskBase):
@@ -84,27 +84,36 @@ class NetworkSpeedDiff(TaskBase):
     def _get_nic_speed(self, ssh_client, nic_name):
         """Get speed of specified NIC on single node"""
         try:
-            # 优先尝试ethtool
-            if super().check_command_exist(ssh_client, "ethtool"):
-                output = ssh_client.exec_cmd(f"ethtool {nic_name}")
-                speed_match = re.search(r"Speed:\s*(\d+)Mb/s", output)
-                if speed_match:
-                    return speed_match.group(1)
-                self.stdio.warn(f"ethtool output invalid for {nic_name}: {output}")
+            # Try reading /sys file first (no special privileges required)
+            speed_file = "/sys/class/net/{}/speed".format(nic_name)
+            speed = ssh_client.exec_cmd("cat {} 2>/dev/null".format(speed_file)).strip()
+            if speed and speed.isdigit() and int(speed) > 0:
+                self.stdio.verbose("Got NIC speed from {}: {} Mb/s".format(speed_file, speed))
+                return speed
 
-            # 回退到sys文件读取
-            speed_file = f"/sys/class/net/{nic_name}/speed"
-            speed = ssh_client.exec_cmd(f"cat {speed_file}").strip()
-            return speed if speed.isdigit() else None
+            # Fallback to ethtool (requires root or CAP_NET_ADMIN)
+            if super().check_command_exist(ssh_client, "ethtool"):
+                output = ssh_client.exec_cmd("ethtool {} 2>&1".format(nic_name))
+                # Check for permission errors
+                if "Operation not permitted" in output or "Permission denied" in output:
+                    self.stdio.verbose("ethtool requires elevated privileges for {}, skipping".format(nic_name))
+                else:
+                    speed_match = re.search(r"Speed:\s*(\d+)Mb/s", output)
+                    if speed_match:
+                        return speed_match.group(1)
+                    self.stdio.verbose("ethtool output does not contain valid speed for {}: {}".format(nic_name, output[:100]))
+
+            return None
 
         except Exception as e:
-            self.stdio.warn("Error getting NIC speed: {}".format(str(e)))
+            self.stdio.verbose("Error getting NIC speed: {}".format(str(e)))
             return None
 
     def get_task_info(self):
         return {
             "name": "network_speed_diff",
-            "info": "Check if all observers have consistent NIC speeds by dynamic NIC name lookup. issue #763",
+            "info": "Check if all observers have consistent NIC speeds by dynamic NIC name lookup",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/763",
         }
 
 

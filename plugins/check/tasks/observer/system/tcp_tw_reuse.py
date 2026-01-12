@@ -16,7 +16,7 @@
 @desc:
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class TcpTwReuse(TaskBase):
@@ -52,7 +52,12 @@ class TcpTwReuse(TaskBase):
             return None
 
     def get_task_info(self):
-        return {"name": "tcp_tw_reuse", "info": "Check if sockets in TIME-WAIT state (TIME-WAIT ports) are allowed to be used for new TCP connections. Need to be set to 1 to ensure system performance. issue #737"}
+        return {
+            "name": "tcp_tw_reuse",
+            "info": "Check if sockets in TIME-WAIT state (TIME-WAIT ports) are allowed to be used for new TCP connections. Need to be set to 1 to ensure system performance",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/737",
+            "supported_os": ["linux"],
+        }
 
 
 tcp_tw_reuse = TcpTwReuse()

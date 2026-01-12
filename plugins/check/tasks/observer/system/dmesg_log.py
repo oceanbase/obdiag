@@ -20,7 +20,7 @@ import re
 import shutil
 import uuid
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class DmesgLog(TaskBase):
@@ -69,7 +69,12 @@ class DmesgLog(TaskBase):
                 shutil.rmtree(local_tmp_dir, ignore_errors=True)
 
     def get_task_info(self):
-        return {"name": "dmesg_log", "info": "Confirm whether there is \"Hardware Error\" in dmesg. issue #885 "}
+        return {
+            "name": "dmesg_log",
+            "info": "Confirm whether there is \"Hardware Error\" in dmesg.",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/885",
+            "supported_os": ["linux"],
+        }
 
 
 dmesg_log = DmesgLog()

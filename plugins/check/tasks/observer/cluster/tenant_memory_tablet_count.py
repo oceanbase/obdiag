@@ -18,7 +18,7 @@
 
 from decimal import Decimal
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class TenantMemoryTabletCountTask(TaskBase):
@@ -183,7 +183,8 @@ class TenantMemoryTabletCountTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "tenant_memory_tablet_count",
-            "info": "Check if tenant memory specification and tablet count per observer exceed 90% in health check. issue #1104",
+            "info": "Check if tenant memory specification and tablet count per observer exceed 90% in health check",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1104",
         }
 
 

@@ -16,7 +16,7 @@
 @desc: Check the size of tenant internal table __all_ddl_operation. When the number of records exceeds 10 million, prompt the user to pay attention.
 """
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class DdlOperationTableSizeTask(TaskBase):
@@ -102,7 +102,8 @@ class DdlOperationTableSizeTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "ddl_operation_table_size",
-            "info": "Check the size of tenant internal table __all_ddl_operation. When the number of records exceeds 10 million, prompt the user to pay attention. issue #1061",
+            "info": "Check the size of tenant internal table __all_ddl_operation. When the number of records exceeds 10 million, prompt the user to pay attention.",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1061",
         }
 
 

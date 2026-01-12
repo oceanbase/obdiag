@@ -16,7 +16,7 @@
 @desc: Check obproxy enable_ob_protocol_v2_with_client parameter, alert if enabled
 """
 from src.common.tool import StringUtils
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class EnableObProtocolV2WithClientTask(TaskBase):
@@ -63,7 +63,8 @@ class EnableObProtocolV2WithClientTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "enable_ob_protocol_v2_with_client",
-            "info": "Check obproxy enable_ob_protocol_v2_with_client parameter, alert if enabled. issue #1139",
+            "info": "Check obproxy enable_ob_protocol_v2_with_client parameter, alert if enabled",
+            "issue_link": "https://github.com/oceanbase/obdiag/issues/1139",
         }
 
 
