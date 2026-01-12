@@ -127,7 +127,9 @@ class CheckHandler:
             self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
             obConnectorPool = None
             try:
-                obConnectorPool = CheckOBConnectorPool(context, 3, self.cluster)
+                # Connection pool size matches max_workers for optimal concurrency
+                pool_size = min(self.max_workers, 12)  # max 12 connections to avoid overloading DB
+                obConnectorPool = CheckOBConnectorPool(context, pool_size, self.cluster)
             except Exception as e:
                 self.stdio.warn("obConnector init error. Error info is {0}".format(e))
             finally:
@@ -238,10 +240,14 @@ class CheckHandler:
                     task_name = "{}.{}".format(folder_name, file.split('.')[0])
                     try:
                         DynamicLoading.add_lib_path(root)
-                        task_module = DynamicLoading.import_module(file[:-3], None)
+                        task_module = DynamicLoading.import_module(file[:-3], self.stdio)
                         attr_name = task_name.split('.')[-1]
+                        if task_module is None:
+                            self.stdio.error("{0} import_module failed: module is None".format(task_name))
+                            continue
                         if not hasattr(task_module, attr_name):
-                            self.stdio.error("{0} import_module failed: missing {1} attribute".format(task_name, attr_name))
+                            self.stdio.error("{0} import_module failed: missing {1} attribute. Module attrs: {2}".format(
+                                task_name, attr_name, [x for x in dir(task_module) if not x.startswith('_')]))
                             continue
                         tasks[task_name] = getattr(task_module, attr_name)
                     except Exception as e:

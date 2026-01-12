@@ -146,18 +146,46 @@ class DynamicLoading(object):
 
     @staticmethod
     def import_module(name, stdio=None):
-        if name not in DynamicLoading.MODULES:
+        import importlib.util
+        
+        # Find the actual module file path from LIBS_PATH
+        module_file = None
+        for lib_path in DynamicLoading.LIBS_PATH:
+            if DynamicLoading.LIBS_PATH[lib_path] > 0:
+                candidate = os.path.join(lib_path, name + '.py')
+                if os.path.exists(candidate):
+                    module_file = candidate
+                    break
+        
+        # Use full file path as cache key to avoid conflicts between modules with same name
+        cache_key = module_file if module_file else name
+        
+        if cache_key not in DynamicLoading.MODULES:
             try:
-                stdio and getattr(stdio, 'verbose', print)('import %s' % name)
-                module = __import__(name)
-                DynamicLoading.MODULES[name] = DynamicLoading.Module(module)
-            except:
-                stdio and getattr(stdio, 'exception', print)('import %s failed' % name)
+                stdio and getattr(stdio, 'verbose', print)('import %s from %s' % (name, module_file or 'sys.path'))
+                
+                if module_file:
+                    # Use importlib to load module from specific file path
+                    # This avoids conflicts with cached modules of the same name
+                    spec = importlib.util.spec_from_file_location(name, module_file)
+                    module = importlib.util.module_from_spec(spec)
+                    # Add to sys.modules before exec to handle circular imports
+                    sys.modules[name] = module
+                    spec.loader.exec_module(module)
+                else:
+                    # Fallback to standard import
+                    if name in sys.modules:
+                        del sys.modules[name]
+                    module = __import__(name)
+                
+                DynamicLoading.MODULES[cache_key] = DynamicLoading.Module(module)
+            except Exception as e:
+                stdio and getattr(stdio, 'exception', print)('import %s failed: %s' % (name, e))
                 stdio and getattr(stdio, 'verbose', print)('sys.path: %s' % sys.path)
                 return None
-        DynamicLoading.MODULES[name].count += 1
-        stdio and getattr(stdio, 'verbose', print)('add %s ref count to %s' % (name, DynamicLoading.MODULES[name].count))
-        return DynamicLoading.MODULES[name].module
+        DynamicLoading.MODULES[cache_key].count += 1
+        stdio and getattr(stdio, 'verbose', print)('add %s ref count to %s' % (name, DynamicLoading.MODULES[cache_key].count))
+        return DynamicLoading.MODULES[cache_key].module
 
     @staticmethod
     def export_module(name, stdio=None):
