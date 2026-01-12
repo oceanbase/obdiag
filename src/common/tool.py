@@ -147,7 +147,7 @@ class DynamicLoading(object):
     @staticmethod
     def import_module(name, stdio=None):
         import importlib.util
-        
+
         # Find the actual module file path from LIBS_PATH
         module_file = None
         for lib_path in DynamicLoading.LIBS_PATH:
@@ -156,14 +156,14 @@ class DynamicLoading(object):
                 if os.path.exists(candidate):
                     module_file = candidate
                     break
-        
+
         # Use full file path as cache key to avoid conflicts between modules with same name
         cache_key = module_file if module_file else name
-        
+
         if cache_key not in DynamicLoading.MODULES:
             try:
                 stdio and getattr(stdio, 'verbose', print)('import %s from %s' % (name, module_file or 'sys.path'))
-                
+
                 if module_file:
                     # Use importlib to load module from specific file path
                     # This avoids conflicts with cached modules of the same name
@@ -177,7 +177,7 @@ class DynamicLoading(object):
                     if name in sys.modules:
                         del sys.modules[name]
                     module = __import__(name)
-                
+
                 DynamicLoading.MODULES[cache_key] = DynamicLoading.Module(module)
             except Exception as e:
                 stdio and getattr(stdio, 'exception', print)('import %s failed: %s' % (name, e))

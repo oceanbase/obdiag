@@ -246,8 +246,7 @@ class CheckHandler:
                             self.stdio.error("{0} import_module failed: module is None".format(task_name))
                             continue
                         if not hasattr(task_module, attr_name):
-                            self.stdio.error("{0} import_module failed: missing {1} attribute. Module attrs: {2}".format(
-                                task_name, attr_name, [x for x in dir(task_module) if not x.startswith('_')]))
+                            self.stdio.error("{0} import_module failed: missing {1} attribute. Module attrs: {2}".format(task_name, attr_name, [x for x in dir(task_module) if not x.startswith('_')]))
                             continue
                         tasks[task_name] = getattr(task_module, attr_name)
                     except Exception as e:
