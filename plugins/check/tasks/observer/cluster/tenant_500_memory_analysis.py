@@ -21,7 +21,7 @@
 
 from decimal import Decimal
 
-from src.handler.checker.check_task import TaskBase
+from src.handler.check.check_task import TaskBase
 
 
 class Tenant500MemoryAnalysisTask(TaskBase):
