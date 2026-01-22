@@ -61,7 +61,7 @@ OMS Actual Log Structure (based on /data/1/oms/out/oms_logs):
     ├── libobcdc.log.20250108120000000         # Rotated libobcdc log (17-digit timestamp)
     ├── store.log                              # CDC store log
     └── *oblogproxy*                           # OBLogProxy related logs
-    
+
 Note: CDC logs are in {store_path}, NOT {log_path}!
 
 Log Rotation Patterns:
