@@ -41,10 +41,12 @@ class MajorHoldScene(RcaScene):
     5. Compaction speed analysis
     6. Duplicate index names across tables (Issue #607)
     7. DDL task status that may block compaction
+    8. Memory throttling issues causing merge failures (Issue #1107)
 
     References:
     - https://open.oceanbase.com/blog/14847857236
     - https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000001843060
+    - https://github.com/oceanbase/obdiag/issues/1107
     """
 
     # Configurable thresholds
@@ -325,7 +327,7 @@ class MajorHoldScene(RcaScene):
             sql = "SELECT GLOBAL_BROADCAST_SCN, LAST_SCN FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID='{0}';".format(err_tenant_id)
             scn_data = self._execute_sql_safe(sql, "get SCN")
 
-            if scn_data:
+            if scn_data and len(scn_data) > 0:
                 global_broadcast_scn = scn_data[0].get("GLOBAL_BROADCAST_SCN")
                 last_scn = scn_data[0].get("LAST_SCN")
                 tenant_record.add_record("GLOBAL_BROADCAST_SCN: {0}, LAST_SCN: {1}".format(global_broadcast_scn, last_scn))
@@ -424,6 +426,13 @@ class MajorHoldScene(RcaScene):
             self._check_ddl_task_status(err_tenant_id, tenant_record)
         except Exception as e:
             tenant_record.add_record("Failed to check DDL task status: {0}".format(e))
+
+        # 12. Check memory throttling issues (Issue #1107)
+        try:
+            tenant_record.add_record("Step 12: Checking memory throttling issues")
+            self._check_memory_throttling(err_tenant_id, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to check memory throttling: {0}".format(e))
 
         tenant_record.add_suggest("Please review diagnostic files in {0} for detailed analysis".format(self.local_path))
         self.Result.records.append(tenant_record)
@@ -526,13 +535,13 @@ class MajorHoldScene(RcaScene):
             sql = "SELECT GLOBAL_BROADCAST_SCN FROM oceanbase.CDB_OB_MAJOR_COMPACTION WHERE TENANT_ID='{0}';".format(tenant_id)
             scn_data = self._execute_sql_safe(sql, "get broadcast SCN")
 
-            if scn_data:
+            if scn_data and len(scn_data) > 0:
                 global_broadcast_scn = scn_data[0].get("GLOBAL_BROADCAST_SCN")
 
                 sql = "SELECT snapshot_version FROM oceanbase.__all_virtual_tablet_meta_table WHERE tablet_id='{0}' AND tenant_id='{1}';".format(tablet_id, tenant_id)
                 tablet_data = self._execute_sql_safe(sql, "get tablet snapshot")
 
-                if tablet_data:
+                if tablet_data and len(tablet_data) > 0:
                     compaction_scn = tablet_data[0].get("snapshot_version", 0)
                     tenant_record.add_record("Tablet compaction_scn: {0}, global_broadcast_scn: {1}".format(compaction_scn, global_broadcast_scn))
 
@@ -562,9 +571,9 @@ class MajorHoldScene(RcaScene):
         sql = "SELECT * FROM oceanbase.__all_virtual_ls_info WHERE tenant_id='{0}' AND ls_id='{1}';".format(tenant_id, ls_id)
         ls_info = self._execute_sql_safe(sql, "get LS info")
 
-        if ls_info:
+        if ls_info and len(ls_info) > 0:
             self._save_to_file("ls_info.json", ls_info, tenant_id)
-            weak_read_scn = ls_info[0].get("weak_read_scn") if ls_info else None
+            weak_read_scn = ls_info[0].get("weak_read_scn")
             tenant_record.add_record("weak_read_scn: {0}".format(weak_read_scn))
 
             # Collect relevant logs
@@ -858,7 +867,7 @@ class MajorHoldScene(RcaScene):
             sql = "SELECT SVR_IP, SVR_PORT FROM oceanbase.DBA_OB_TABLET_REPLICAS WHERE TENANT_ID='{0}' AND LS_ID=1 LIMIT 1;".format(tenant_id)
             rs_data = self._execute_sql_safe(sql, "get RS location")
 
-            if rs_data:
+            if rs_data and len(rs_data) > 0:
                 svr_ip = rs_data[0].get("SVR_IP")
                 svr_port = rs_data[0].get("SVR_PORT")
 
@@ -874,6 +883,501 @@ class MajorHoldScene(RcaScene):
                     tenant_record.add_record("Collected major_merge_progress_checker logs")
         except Exception as e:
             self.stdio.warn("Failed to collect observer logs: {0}".format(e))
+
+    def _check_memory_throttling(self, tenant_id, tenant_record):
+        """
+        Check memory throttling issues that may cause merge failures.
+        Issue #1107: Memory insufficient leading to throttling, which causes transaction timeout
+        and inner SQL timeout failures.
+
+        Root cause: In scenarios with multiple memory expansions, meta tenant memory limit
+        increases multiple times, but TxShare throttling limit is not dynamically adjusted,
+        causing continuous throttling.
+        """
+        tenant_record.add_record("Checking memory throttling issues (Issue #1107)...")
+
+        # Step 1: Check tenant memory usage and throttling status
+        self._check_tenant_memory_usage(tenant_id, tenant_record)
+
+        # Step 2: Check TxShare throttling limit vs meta tenant memory limit
+        self._check_txshare_throttling_limit(tenant_record)
+
+        # Step 3: Check for memory expansion bug scenario
+        self._check_memory_expansion_bug(tenant_id, tenant_record)
+
+        # Step 4: Check transaction timeout issues related to throttling
+        self._check_throttling_related_timeouts(tenant_id, tenant_record)
+
+    def _check_tenant_memory_usage(self, tenant_id, tenant_record):
+        """Check tenant memory usage and throttling status"""
+        try:
+            # Get tenant memory usage from __all_virtual_memory_info
+            # Note: __all_virtual_memory_info does not have limit_value field
+            # We need to get memory limit from DBA_OB_UNITS instead
+            # Fields to confirm: tenant_id, svr_ip, svr_port, hold, used
+            # Verify via: DESC oceanbase.__all_virtual_memory_info;
+            sql_memory = """
+                SELECT 
+                    tenant_id,
+                    svr_ip,
+                    svr_port,
+                    ROUND(SUM(hold) / 1024 / 1024 / 1024, 2) as hold_gb,
+                    ROUND(SUM(used) / 1024 / 1024 / 1024, 2) as used_gb
+                FROM oceanbase.__all_virtual_memory_info 
+                WHERE tenant_id = '{0}'
+                GROUP BY tenant_id, svr_ip, svr_port
+                ORDER BY hold_gb DESC;
+            """.format(
+                tenant_id
+            )
+
+            memory_data = self._execute_sql_safe(sql_memory, "check tenant memory usage")
+
+            # Get memory limit from DBA_OB_UNITS
+            # Note: DBA_OB_UNITS has MEMORY_SIZE (not max_memory/min_memory), and fields are uppercase
+            # Fields confirmed: TENANT_ID, SVR_IP, SVR_PORT, MEMORY_SIZE
+            # Verify via: DESC oceanbase.DBA_OB_UNITS;
+            sql_limit = """
+                SELECT 
+                    u.TENANT_ID as tenant_id,
+                    u.SVR_IP as svr_ip,
+                    u.SVR_PORT as svr_port,
+                    ROUND(SUM(u.MEMORY_SIZE) / 1024 / 1024 / 1024, 2) as max_memory_gb
+                FROM oceanbase.DBA_OB_UNITS u
+                WHERE u.TENANT_ID = '{0}'
+                GROUP BY u.TENANT_ID, u.SVR_IP, u.SVR_PORT
+                ORDER BY u.SVR_IP, u.SVR_PORT;
+            """.format(
+                tenant_id
+            )
+
+            limit_data = self._execute_sql_safe(sql_limit, "get tenant memory limit")
+
+            # Create a dictionary for quick lookup
+            limit_dict = {}
+            if limit_data:
+                for row in limit_data:
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    svr_port = row.get("svr_port") or row.get("SVR_PORT")
+                    try:
+                        max_memory_gb = float(row.get("max_memory_gb") or row.get("MAX_MEMORY_GB") or 0)
+                    except (ValueError, TypeError):
+                        max_memory_gb = 0
+                    key = "{0}:{1}".format(svr_ip, svr_port)
+                    limit_dict[key] = max_memory_gb
+
+            if memory_data:
+                self._save_to_file("tenant_memory_usage.json", memory_data, tenant_id)
+                if limit_data:
+                    self._save_to_file("tenant_memory_limit.json", limit_data, tenant_id)
+
+                tenant_record.add_record("Tenant memory usage:")
+                for row in memory_data:
+                    # Handle both uppercase and lowercase field names
+                    try:
+                        hold_gb = float(row.get("hold_gb") or row.get("HOLD_GB") or 0)
+                        used_gb = float(row.get("used_gb") or row.get("USED_GB") or 0)
+                    except (ValueError, TypeError):
+                        hold_gb = 0
+                        used_gb = 0
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    svr_port = row.get("svr_port") or row.get("SVR_PORT")
+                    key = "{0}:{1}".format(svr_ip, svr_port)
+                    max_memory_gb = limit_dict.get(key, 0)
+
+                    if max_memory_gb > 0:
+                        usage_percent = (hold_gb / max_memory_gb * 100) if max_memory_gb > 0 else 0
+                        tenant_record.add_record("  Server {0}:{1}: hold={2}GB, limit={3}GB, usage={4}%".format(svr_ip, svr_port, hold_gb, max_memory_gb, round(usage_percent, 2)))
+
+                        if usage_percent > 90:
+                            tenant_record.add_record("[WARNING] Tenant {0} on {1}:{2} has high memory usage: {3}%".format(tenant_id, svr_ip, svr_port, round(usage_percent, 2)))
+                            tenant_record.add_suggest("Tenant memory usage is very high ({0}%). This may cause memory throttling. " "Consider expanding tenant memory or reducing workload.".format(round(usage_percent, 2)))
+                    else:
+                        # If we can't find memory limit, just show hold and used
+                        tenant_record.add_record("  Server {0}:{1}: hold={2}GB, used={3}GB (memory limit not found in DBA_OB_UNITS)".format(svr_ip, svr_port, hold_gb, used_gb))
+
+            # Check memstore info for throttling triggers
+            # Fields confirmed: tenant_id, svr_ip, svr_port, memstore_used, memstore_limit, freeze_trigger
+            # Note: writing_throttling_trigger_percentage is in GV$OB_PARAMETERS, not in this table
+            # Verify via: DESC oceanbase.__all_virtual_tenant_memstore_info;
+            sql = """
+                SELECT 
+                    tenant_id,
+                    svr_ip,
+                    svr_port,
+                    ROUND(memstore_used / 1024 / 1024 / 1024, 2) as memstore_used_gb,
+                    ROUND(memstore_limit / 1024 / 1024 / 1024, 2) as memstore_limit_gb,
+                    CASE 
+                        WHEN memstore_limit > 0 THEN ROUND(memstore_used / memstore_limit * 100, 2)
+                        ELSE 0
+                    END as memstore_usage_percent,
+                    ROUND(freeze_trigger / 1024 / 1024 / 1024, 2) as freeze_trigger_gb
+                FROM oceanbase.__all_virtual_tenant_memstore_info
+                WHERE tenant_id = '{0}';
+            """.format(
+                tenant_id
+            )
+
+            memstore_data = self._execute_sql_safe(sql, "check memstore info")
+
+            # Get writing_throttling_trigger_percentage from GV$OB_PARAMETERS
+            sql_throttling_param = """
+                SELECT 
+                    SVR_IP as svr_ip,
+                    SVR_PORT as svr_port,
+                    VALUE as writing_throttling_trigger_percentage
+                FROM oceanbase.GV$OB_PARAMETERS 
+                WHERE NAME = 'writing_throttling_trigger_percentage'
+                LIMIT 1;
+            """
+            throttling_param_data = self._execute_sql_safe(sql_throttling_param, "get throttling trigger percentage")
+            writing_throttling_trigger = 60  # Default value
+            if throttling_param_data and len(throttling_param_data) > 0:
+                try:
+                    trigger_value = throttling_param_data[0].get("writing_throttling_trigger_percentage") or "60"
+                    writing_throttling_trigger = float(trigger_value)
+                except (ValueError, TypeError) as e:
+                    self.stdio.warn("Failed to parse writing_throttling_trigger_percentage, using default 60: {0}".format(e))
+                    writing_throttling_trigger = 60
+
+            if memstore_data:
+                self._save_to_file("memstore_info.json", memstore_data, tenant_id)
+                tenant_record.add_record("Memstore info:")
+                for row in memstore_data:
+                    try:
+                        memstore_usage = float(row.get("memstore_usage_percent") or row.get("MEMSTORE_USAGE_PERCENT") or 0)
+                    except (ValueError, TypeError):
+                        memstore_usage = 0
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    svr_port = row.get("svr_port") or row.get("SVR_PORT")
+
+                    tenant_record.add_record("  Server {0}:{1}: memstore_usage={2}%, writing_throttling_trigger={3}%".format(svr_ip, svr_port, memstore_usage, writing_throttling_trigger))
+
+                    if memstore_usage >= writing_throttling_trigger:
+                        tenant_record.add_record("[WARNING] Writing throttling may be triggered on {0}:{1} " "(memstore_usage={2}% >= trigger={3}%)".format(svr_ip, svr_port, memstore_usage, writing_throttling_trigger))
+                        tenant_record.add_suggest(
+                            "Writing throttling is likely active on {0}:{1} due to high memstore usage. " "This can cause transaction timeouts and merge failures. " "Check if tenant memory needs to be expanded.".format(svr_ip, svr_port)
+                        )
+
+        except Exception as e:
+            tenant_record.add_record("Error checking tenant memory usage: {0}".format(e))
+            self.stdio.warn("Error checking tenant memory usage: {0}".format(e))
+
+    def _check_txshare_throttling_limit(self, tenant_record):
+        """
+        Check TxShare throttling limit vs meta tenant memory limit.
+        Issue #1107: In multiple expansion scenarios, meta tenant memory limit increases
+        multiple times, but TxShare throttling limit is not dynamically adjusted.
+        """
+        try:
+            tenant_record.add_record("Checking TxShare throttling limit vs meta tenant memory limit...")
+
+            # Get meta tenant (usually tenant_id = 1) memory limit
+            # Note: __all_virtual_memory_info does not have limit_value field
+            # We need to get memory limit from DBA_OB_UNITS instead
+            # Fields to confirm: tenant_id, svr_ip, svr_port, hold, used
+            # Verify via: DESC oceanbase.__all_virtual_memory_info;
+            sql_memory = """
+                SELECT 
+                    tenant_id,
+                    svr_ip,
+                    svr_port,
+                    ROUND(SUM(hold) / 1024 / 1024 / 1024, 2) as memory_hold_gb,
+                    ROUND(SUM(used) / 1024 / 1024 / 1024, 2) as memory_used_gb
+                FROM oceanbase.__all_virtual_memory_info 
+                WHERE tenant_id = 1
+                GROUP BY tenant_id, svr_ip, svr_port
+                ORDER BY svr_ip, svr_port;
+            """
+
+            # Fields confirmed: TENANT_ID, SVR_IP, SVR_PORT, MEMORY_SIZE (not max_memory/min_memory)
+            # Verify via: DESC oceanbase.DBA_OB_UNITS;
+            sql_limit = """
+                SELECT 
+                    u.TENANT_ID as tenant_id,
+                    u.SVR_IP as svr_ip,
+                    u.SVR_PORT as svr_port,
+                    ROUND(SUM(u.MEMORY_SIZE) / 1024 / 1024 / 1024, 2) as memory_limit_gb
+                FROM oceanbase.DBA_OB_UNITS u
+                WHERE u.TENANT_ID = 1
+                GROUP BY u.TENANT_ID, u.SVR_IP, u.SVR_PORT
+                ORDER BY u.SVR_IP, u.SVR_PORT;
+            """
+
+            meta_tenant_memory = self._execute_sql_safe(sql_memory, "get meta tenant memory usage")
+            meta_tenant_limit = self._execute_sql_safe(sql_limit, "get meta tenant memory limit")
+
+            # Create a dictionary for quick lookup
+            limit_dict = {}
+            if meta_tenant_limit:
+                for row in meta_tenant_limit:
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    svr_port = row.get("svr_port") or row.get("SVR_PORT")
+                    try:
+                        memory_limit_gb = float(row.get("memory_limit_gb") or row.get("MEMORY_LIMIT_GB") or 0)
+                    except (ValueError, TypeError):
+                        memory_limit_gb = 0
+                    key = "{0}:{1}".format(svr_ip, svr_port)
+                    limit_dict[key] = memory_limit_gb
+
+            if meta_tenant_memory:
+                self._save_to_file("meta_tenant_memory.json", meta_tenant_memory)
+                if meta_tenant_limit:
+                    self._save_to_file("meta_tenant_memory_limit.json", meta_tenant_limit)
+
+                tenant_record.add_record("Meta tenant (tenant_id=1) memory limits:")
+                for row in meta_tenant_memory:
+                    try:
+                        memory_hold_gb = float(row.get("memory_hold_gb") or row.get("MEMORY_HOLD_GB") or 0)
+                        memory_used_gb = float(row.get("memory_used_gb") or row.get("MEMORY_USED_GB") or 0)
+                    except (ValueError, TypeError):
+                        memory_hold_gb = 0
+                        memory_used_gb = 0
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    svr_port = row.get("svr_port") or row.get("SVR_PORT")
+                    key = "{0}:{1}".format(svr_ip, svr_port)
+                    memory_limit_gb = limit_dict.get(key, 0)
+
+                    if memory_limit_gb > 0:
+                        tenant_record.add_record("  Server {0}:{1}: limit={2}GB, hold={3}GB".format(svr_ip, svr_port, memory_limit_gb, memory_hold_gb))
+                    else:
+                        tenant_record.add_record("  Server {0}:{1}: hold={2}GB, used={3}GB (memory limit not found in DBA_OB_UNITS)".format(svr_ip, svr_port, memory_hold_gb, memory_used_gb))
+
+            # Check for TxShare throttling configuration
+            # Note: The actual table/view name may need to be confirmed via obclient
+            # Try to find throttling-related parameters
+            # Fields confirmed: SVR_IP, SVR_PORT, NAME, VALUE, INFO (uppercase)
+            # Verify via: DESC oceanbase.GV$OB_PARAMETERS;
+            sql = """
+                SELECT 
+                    SVR_IP as svr_ip,
+                    SVR_PORT as svr_port,
+                    NAME as name,
+                    VALUE as value,
+                    INFO as info
+                FROM oceanbase.GV$OB_PARAMETERS 
+                WHERE NAME LIKE '%throttl%' 
+                   OR NAME LIKE '%TxShare%'
+                   OR NAME LIKE '%tx_share%'
+                ORDER BY NAME, SVR_IP;
+            """
+
+            throttling_params = self._execute_sql_safe(sql, "get throttling parameters")
+            if throttling_params:
+                self._save_to_file("throttling_parameters.json", throttling_params)
+                tenant_record.add_record("Throttling-related parameters:")
+                for row in throttling_params:
+                    name = row.get("name") or row.get("NAME")
+                    value = row.get("value") or row.get("VALUE")
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    tenant_record.add_record("  Server {0}: {1} = {2}".format(svr_ip, name, value))
+
+            # Check if there's a mismatch between meta tenant memory and throttling limits
+            if limit_dict and len(limit_dict) > 0:
+                # Calculate average memory limit for meta tenant
+                try:
+                    total_limit = sum(limit_dict.values())
+                    avg_limit = total_limit / len(limit_dict) if len(limit_dict) > 0 else 0
+                except (TypeError, ZeroDivisionError):
+                    avg_limit = 0
+
+                tenant_record.add_record("Average meta tenant memory limit: {0}GB".format(round(avg_limit, 2)))
+
+                # If meta tenant memory is large (>50GB), it might indicate multiple expansions
+                if avg_limit > 50:
+                    tenant_record.add_record("[WARNING] Meta tenant memory limit is very large ({0}GB), " "which may indicate multiple memory expansions.".format(round(avg_limit, 2)))
+                    tenant_record.add_suggest(
+                        "CRITICAL: Meta tenant memory limit is {0}GB, suggesting multiple memory expansions. "
+                        "This may trigger Issue #1107 bug: TxShare throttling limit may not have been "
+                        "dynamically adjusted to match the increased meta tenant memory limit, causing "
+                        "continuous throttling. Please check:\n"
+                        "1. Check if throttling is active: SELECT * FROM oceanbase.__all_virtual_tenant_memstore_info;\n"
+                        "2. Check transaction timeout errors in logs\n"
+                        "3. Consider restarting observer to reset throttling limits\n"
+                        "4. Contact OceanBase support for a fix in version 435bp4+".format(round(avg_limit, 2))
+                    )
+
+        except Exception as e:
+            tenant_record.add_record("Error checking TxShare throttling limit: {0}".format(e))
+            self.stdio.warn("Error checking TxShare throttling limit: {0}".format(e))
+
+    def _check_memory_expansion_bug(self, tenant_id, tenant_record):
+        """
+        Check for memory expansion bug scenario (Issue #1107).
+        Scenario: Multiple memory expansions (e.g., 50G -> 80G -> 16G -> 64G) may trigger
+        a bug where meta tenant memory limit increases multiple times, but TxShare throttling
+        limit is not dynamically adjusted.
+        """
+        try:
+            tenant_record.add_record("Checking for memory expansion bug scenario...")
+
+            # Check tenant memory history or current configuration
+            # Get tenant unit configuration to see memory settings
+            # Fields confirmed:
+            #   DBA_OB_TENANTS: TENANT_ID, TENANT_NAME (uppercase)
+            #   DBA_OB_UNITS: UNIT_ID, SVR_IP, SVR_PORT, MEMORY_SIZE (uppercase, not max_memory/min_memory)
+            # Verify via: DESC oceanbase.DBA_OB_TENANTS; DESC oceanbase.DBA_OB_UNITS;
+            sql = """
+                SELECT 
+                    t.TENANT_ID as tenant_id,
+                    t.TENANT_NAME as tenant_name,
+                    u.UNIT_ID as unit_id,
+                    u.SVR_IP as svr_ip,
+                    u.SVR_PORT as svr_port,
+                    ROUND(u.MEMORY_SIZE / 1024 / 1024 / 1024, 2) as max_memory_gb
+                FROM oceanbase.DBA_OB_TENANTS t
+                LEFT JOIN oceanbase.DBA_OB_UNITS u ON t.TENANT_ID = u.TENANT_ID
+                WHERE t.TENANT_ID = '{0}'
+                ORDER BY u.SVR_IP, u.SVR_PORT;
+            """.format(
+                tenant_id
+            )
+
+            unit_config = self._execute_sql_safe(sql, "get tenant unit config")
+            if unit_config:
+                self._save_to_file("tenant_unit_config.json", unit_config, tenant_id)
+                tenant_record.add_record("Tenant unit configuration:")
+                for row in unit_config:
+                    try:
+                        max_memory_gb = float(row.get("max_memory_gb") or row.get("MAX_MEMORY_GB") or 0)
+                    except (ValueError, TypeError):
+                        max_memory_gb = 0
+                    svr_ip = row.get("svr_ip") or row.get("SVR_IP")
+                    tenant_record.add_record("  Server {0}: memory_size={1}GB".format(svr_ip, max_memory_gb))
+
+            # Check for signs of multiple memory expansions
+            # Look for large differences between servers (might indicate expansion at different times)
+            if unit_config and len(unit_config) > 1:
+                memory_sizes = []
+                for row in unit_config:
+                    try:
+                        mem_size = float(row.get("max_memory_gb") or row.get("MAX_MEMORY_GB") or 0)
+                        if mem_size > 0:
+                            memory_sizes.append(mem_size)
+                    except (ValueError, TypeError):
+                        continue
+                if memory_sizes:
+                    max_val = max(memory_sizes)
+                    min_val = min(memory_sizes)
+                    if max_val > 0 and min_val > 0:
+                        ratio = max_val / min_val
+                        if ratio > 1.5:  # More than 50% difference
+                            tenant_record.add_record("[WARNING] Large variation in memory limits across servers " "(max={0}GB, min={1}GB, ratio={2:.2f})".format(max_val, min_val, ratio))
+                            tenant_record.add_suggest(
+                                "Large variation in memory limits detected. This may indicate " "multiple memory expansions, which could trigger Issue #1107 bug. " "Please check if throttling is active and if transactions are timing out."
+                            )
+
+        except Exception as e:
+            tenant_record.add_record("Error checking memory expansion bug: {0}".format(e))
+            self.stdio.warn("Error checking memory expansion bug: {0}".format(e))
+
+    def _check_throttling_related_timeouts(self, tenant_id, tenant_record):
+        """
+        Check for transaction timeout issues related to throttling.
+        Issue #1107: Throttling causes transaction timeout, which kills transactions,
+        ultimately causing inner SQL timeout failures.
+        """
+        try:
+            tenant_record.add_record("Checking for throttling-related transaction timeouts...")
+
+            # Check for transaction timeout errors in recent logs
+            # This would typically be done by checking logs, but we can also check
+            # transaction status and error codes
+
+            # Check for inner SQL timeout errors
+            # Fields confirmed: TENANT_ID, SVR_IP, SVR_PORT, SQL_ID, RET_CODE, ELAPSED_TIME,
+            #                    EXECUTE_TIME, IS_INNER_SQL, REQUEST_TIME (uppercase)
+            # Verify via: DESC oceanbase.GV$OB_SQL_AUDIT;
+            sql = """
+                SELECT 
+                    TENANT_ID as tenant_id,
+                    SVR_IP as svr_ip,
+                    SVR_PORT as svr_port,
+                    SQL_ID as sql_id,
+                    RET_CODE as ret_code,
+                    ELAPSED_TIME as elapsed_time,
+                    EXECUTE_TIME as execute_time,
+                    IS_INNER_SQL as is_inner_sql,
+                    usec_to_time(REQUEST_TIME) as request_time
+                FROM oceanbase.GV$OB_SQL_AUDIT
+                WHERE TENANT_ID = '{0}'
+                  AND IS_INNER_SQL = 1
+                  AND RET_CODE != 0
+                  AND REQUEST_TIME > time_to_usec(now() - INTERVAL 1 HOUR)
+                ORDER BY REQUEST_TIME DESC
+                LIMIT 50;
+            """.format(
+                tenant_id
+            )
+
+            inner_sql_errors = self._execute_sql_safe(sql, "check inner sql errors")
+            if inner_sql_errors:
+                self._save_to_file("inner_sql_errors.json", inner_sql_errors, tenant_id)
+                # Handle both string and integer error codes
+                target_error_codes = {-4012, -4013, -4019, -4030, "-4012", "-4013", "-4019", "-4030"}
+                timeout_errors = []
+                for e in inner_sql_errors:
+                    ret_code = e.get("ret_code")
+                    # Try to convert to int if it's a string
+                    if isinstance(ret_code, str):
+                        try:
+                            ret_code = int(ret_code)
+                        except (ValueError, TypeError):
+                            pass
+                    if ret_code in target_error_codes:
+                        timeout_errors.append(e)
+
+                if timeout_errors:
+                    tenant_record.add_record("[WARNING] Found {0} inner SQL timeout/error codes in the last hour".format(len(timeout_errors)))
+                    for err in timeout_errors[:10]:  # Show first 10
+                        ret_code = err.get("ret_code") or err.get("RET_CODE") or "unknown"
+                        request_time = err.get("request_time") or err.get("REQUEST_TIME") or "unknown"
+                        tenant_record.add_record("  Error code {0} at {1}".format(ret_code, request_time))
+
+                    tenant_record.add_suggest(
+                        "Inner SQL timeout errors detected. This may be caused by memory throttling. "
+                        "Error codes -4012, -4013, -4019, -4030 are related to memory/timeout issues. "
+                        "Please check:\n"
+                        "1. If throttling is active (check __all_virtual_tenant_memstore_info)\n"
+                        "2. If tenant memory is insufficient\n"
+                        "3. If TxShare throttling limit needs adjustment (Issue #1107)"
+                    )
+
+            # Check transaction status for timeouts
+            # Fields confirmed: TENANT_ID, SVR_IP, SVR_PORT, STATE, CTX_CREATE_TIME (uppercase)
+            # Verify via: DESC oceanbase.GV$OB_TRANSACTION_PARTICIPANTS;
+            sql = """
+                SELECT 
+                    TENANT_ID as tenant_id,
+                    SVR_IP as svr_ip,
+                    SVR_PORT as svr_port,
+                    COUNT(*) as timeout_count
+                FROM oceanbase.GV$OB_TRANSACTION_PARTICIPANTS
+                WHERE TENANT_ID = '{0}'
+                  AND STATE = 'ABORT'
+                  AND CTX_CREATE_TIME < date_sub(now(), INTERVAL 1 HOUR)
+                GROUP BY TENANT_ID, SVR_IP, SVR_PORT;
+            """.format(
+                tenant_id
+            )
+
+            timeout_transactions = self._execute_sql_safe(sql, "check timeout transactions")
+            if timeout_transactions:
+                self._save_to_file("timeout_transactions.json", timeout_transactions, tenant_id)
+                total_timeouts = 0
+                for row in timeout_transactions:
+                    try:
+                        count = int(row.get("timeout_count") or row.get("TIMEOUT_COUNT") or 0)
+                        total_timeouts += count
+                    except (ValueError, TypeError):
+                        continue
+                if total_timeouts > 0:
+                    tenant_record.add_record("[WARNING] Found {0} aborted transactions in the last hour".format(total_timeouts))
+                    tenant_record.add_suggest("Multiple transaction timeouts detected. This may be caused by memory throttling. " "When throttling is active, transactions may timeout and be killed, leading to " "merge failures and inner SQL timeouts.")
+
+        except Exception as e:
+            tenant_record.add_record("Error checking throttling-related timeouts: {0}".format(e))
+            self.stdio.warn("Error checking throttling-related timeouts: {0}".format(e))
 
     def get_info__all_virtual_compaction_diagnose_info(self, tenant_record):
         """Legacy method for backward compatibility"""
@@ -892,8 +1396,8 @@ class MajorHoldScene(RcaScene):
     def get_scene_info(self):
         return {
             "name": "major_hold",
-            "info_en": "Root cause analysis for major compaction hold issues. Checks for errors, suspensions, long-running tasks, duplicate index names, DDL task status, and provides detailed diagnostics.",
-            "info_cn": "针对合并卡住场景的根因分析。检查合并错误、暂停状态、长时间运行的任务、同名索引冲突、DDL任务状态，并提供详细的诊断信息。",
+            "info_en": "Root cause analysis for major compaction hold issues. Checks for errors, suspensions, long-running tasks, duplicate index names, DDL task status, memory throttling issues (Issue #1107), and provides detailed diagnostics.",
+            "info_cn": "针对合并卡住场景的根因分析。检查合并错误、暂停状态、长时间运行的任务、同名索引冲突、DDL任务状态、内存限速问题（Issue #1107），并提供详细的诊断信息。",
         }
 
 
