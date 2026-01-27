@@ -63,7 +63,7 @@ class OBIClient:
         for part in cookie_parts:
             part = part.strip()
             if part.startswith('authorization='):
-                return part[len('authorization='):]
+                return part[len('authorization=') :]
 
         # Return empty string if authorization not found
         return ""
@@ -194,39 +194,22 @@ class OBIClient:
         try:
             # Call knowledge search API
             chat_url = f"{self.base_url}/api/chat-messages"
-            headers = {
-                'Authorization': f'Bearer {access_token}',
-                'X-App-Code': self.app_code,
-                'Content-Type': 'application/json'
-            }
+            headers = {'Authorization': f'Bearer {access_token}', 'X-App-Code': self.app_code, 'Content-Type': 'application/json'}
 
-            data = {
-                'query': query,
-                'response_mode': 'blocking',
-                'inputs': {'enable_deepthink': enable_deepthink}
-            }
+            data = {'query': query, 'response_mode': 'blocking', 'inputs': {'enable_deepthink': enable_deepthink}}
 
             if self.stdio:
                 self.stdio.verbose(f"Searching knowledge base: {query}")
             # Use shorter timeout to avoid blocking the main request
             response = requests.post(chat_url, headers=headers, json=data, timeout=300)
-            
+
             if response.status_code == 200:
                 result = response.json()
                 if self.stdio:
                     self.stdio.verbose(f"Knowledge search response: {result.get('retriever_resources', [])}")
-                return {
-                    'success': True,
-                    'answer': result.get('answer', ''),
-                    'references': result.get('retriever_resources', []),
-                    'full_response': result
-                }
+                return {'success': True, 'answer': result.get('answer', ''), 'references': result.get('retriever_resources', []), 'full_response': result}
             else:
-                return {
-                    'success': False,
-                    'error': f'Knowledge search failed (HTTP {response.status_code})',
-                    'details': response.text
-                }
+                return {'success': False, 'error': f'Knowledge search failed (HTTP {response.status_code})', 'details': response.text}
 
         except requests.exceptions.Timeout:
             return {'success': False, 'error': 'Request timeout', 'details': 'The request took too long to complete'}
@@ -237,9 +220,4 @@ class OBIClient:
 
     def get_config(self) -> Dict[str, Any]:
         """Get OBI configuration"""
-        return {
-            'base_url': self.base_url,
-            'app_code': self.app_code,
-            'cookie': '***' if self.cookie else '',  # Hide cookie for security
-            'enabled': self.enabled
-        }
+        return {'base_url': self.base_url, 'app_code': self.app_code, 'cookie': '***' if self.cookie else '', 'enabled': self.enabled}  # Hide cookie for security

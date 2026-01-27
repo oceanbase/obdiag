@@ -195,7 +195,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
     def _get_tools(self) -> List[Dict]:
         """Get available tools for function calling"""
         tools = []
-        
+
         # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
@@ -207,23 +207,25 @@ When a tool execution fails, explain the error and suggest alternatives."""
         if self.builtin_mcp_server:
             try:
                 mcp_tools = self.builtin_mcp_server.tools
-                tools.extend([
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": tool.get("name", ""),
-                            "description": tool.get("description", ""),
-                            "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
-                        },
-                    }
-                    for tool in mcp_tools
-                ])
+                tools.extend(
+                    [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": tool.get("name", ""),
+                                "description": tool.get("description", ""),
+                                "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
+                            },
+                        }
+                        for tool in mcp_tools
+                    ]
+                )
             except Exception:
                 pass
 
         # Add direct database and file tools (use context for connection info)
         tools.extend(self._get_direct_tools())
-        
+
         return tools
 
     def _get_direct_tools(self) -> List[Dict]:
@@ -234,17 +236,8 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 "function": {
                     "name": "db_query",
                     "description": "Execute SQL query on the configured OceanBase database. Uses connection information from context (config file). No need to connect first - connection is automatic.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "sql": {
-                                "type": "string",
-                                "description": "SQL query to execute"
-                            }
-                        },
-                        "required": ["sql"]
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {"sql": {"type": "string", "description": "SQL query to execute"}}, "required": ["sql"]},
+                },
             },
             {
                 "type": "function",
@@ -254,29 +247,14 @@ When a tool execution fails, explain the error and suggest alternatives."""
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "file_path": {
-                                "type": "string",
-                                "description": "Path to the file (can be relative or absolute)"
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "Content to write to the file"
-                            },
-                            "mode": {
-                                "type": "string",
-                                "description": "File mode: 'w' for write (overwrite), 'a' for append",
-                                "default": "w",
-                                "enum": ["w", "a"]
-                            },
-                            "encoding": {
-                                "type": "string",
-                                "description": "File encoding, default utf-8",
-                                "default": "utf-8"
-                            }
+                            "file_path": {"type": "string", "description": "Path to the file (can be relative or absolute)"},
+                            "content": {"type": "string", "description": "Content to write to the file"},
+                            "mode": {"type": "string", "description": "File mode: 'w' for write (overwrite), 'a' for append", "default": "w", "enum": ["w", "a"]},
+                            "encoding": {"type": "string", "description": "File encoding, default utf-8", "default": "utf-8"},
                         },
-                        "required": ["file_path", "content"]
-                    }
-                }
+                        "required": ["file_path", "content"],
+                    },
+                },
             },
             {
                 "type": "function",
@@ -285,21 +263,11 @@ When a tool execution fails, explain the error and suggest alternatives."""
                     "description": "Read content from a local file",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "file_path": {
-                                "type": "string",
-                                "description": "Path to the file (can be relative or absolute)"
-                            },
-                            "encoding": {
-                                "type": "string",
-                                "description": "File encoding, default utf-8",
-                                "default": "utf-8"
-                            }
-                        },
-                        "required": ["file_path"]
-                    }
-                }
-            }
+                        "properties": {"file_path": {"type": "string", "description": "Path to the file (can be relative or absolute)"}, "encoding": {"type": "string", "description": "File encoding, default utf-8", "default": "utf-8"}},
+                        "required": ["file_path"],
+                    },
+                },
+            },
         ]
 
     def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
@@ -320,7 +288,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             return self._execute_file_write(arguments)
         elif tool_name == "file_read":
             return self._execute_file_read(arguments)
-        
+
         # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
@@ -377,26 +345,26 @@ When a tool execution fails, explain the error and suggest alternatives."""
     def _validate_sql(self, sql: str) -> Tuple[bool, str]:
         """
         Validate SQL query for safety
-        
+
         Args:
             sql: SQL query string
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
         if not sql or not sql.strip():
             return False, "Error: SQL query cannot be empty"
-        
+
         # Remove comments and normalize
         sql_normalized = sql.strip()
-        
+
         # Check for multiple statements (count semicolons that are not in strings)
         # Simple check: count semicolons outside of quotes
         semicolon_count = 0
         in_single_quote = False
         in_double_quote = False
         in_backtick = False
-        
+
         for char in sql_normalized:
             if char == "'" and not in_double_quote and not in_backtick:
                 in_single_quote = not in_single_quote
@@ -406,17 +374,17 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 in_backtick = not in_backtick
             elif char == ';' and not in_single_quote and not in_double_quote and not in_backtick:
                 semicolon_count += 1
-        
+
         # Allow at most one semicolon at the end
         if semicolon_count > 1:
             return False, "Error: Only one SQL statement is allowed per query. Multiple statements detected."
-        
+
         # Remove trailing semicolon for validation
         sql_for_validation = sql_normalized.rstrip(';').strip()
-        
+
         # Convert to uppercase for keyword checking (but preserve original for execution)
         sql_upper = sql_for_validation.upper().strip()
-        
+
         # Allowed read-only SQL keywords (must start with one of these)
         allowed_keywords = [
             'SELECT',
@@ -426,7 +394,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             'EXPLAIN',
             'WITH',  # CTE queries (must be followed by SELECT)
         ]
-        
+
         # Check if SQL starts with an allowed keyword
         sql_starts_with_allowed = False
         starts_with_keyword = None
@@ -435,10 +403,10 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 sql_starts_with_allowed = True
                 starts_with_keyword = keyword
                 break
-        
+
         if not sql_starts_with_allowed:
             return False, f"Error: Only read-only SQL statements are allowed (SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, WITH). Your query starts with: {sql_for_validation[:50]}"
-        
+
         # Special handling for WITH statements - must be followed by SELECT
         if starts_with_keyword == 'WITH':
             # Check if WITH is followed by SELECT (after CTE definitions)
@@ -451,16 +419,13 @@ When a tool execution fails, explain the error and suggest alternatives."""
             select_pos = sql_upper.find('SELECT', with_pos)
             if select_pos == -1:
                 return False, "Error: WITH statements must contain a SELECT statement"
-        
+
         # Forbidden keywords (even if starts with allowed keyword, check for dangerous operations)
-        forbidden_keywords_pattern = re.compile(
-            r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b',
-            re.IGNORECASE
-        )
-        
+        forbidden_keywords_pattern = re.compile(r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b', re.IGNORECASE)
+
         if forbidden_keywords_pattern.search(sql_for_validation):
             return False, "Error: Dangerous SQL operations are not allowed (INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, etc.). Only read-only queries are permitted."
-        
+
         # Additional check: prevent UNION with dangerous operations
         # This is a basic check - more sophisticated parsing would be needed for complete safety
         if 'UNION' in sql_upper:
@@ -470,7 +435,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 part_stripped = part.strip()
                 if not any(part_stripped.startswith(kw) for kw in allowed_keywords):
                     return False, "Error: UNION queries must only contain SELECT statements"
-        
+
         return True, ""
 
     def _execute_db_query(self, arguments: Dict[str, Any]) -> str:
@@ -620,7 +585,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 self.stdio.verbose("Searching OBI knowledge base...")
                 # Search OBI knowledge base (with timeout handled by requests library)
                 search_result = self.obi_client.search_knowledge(user_message)
-                
+
                 if search_result.get("success"):
                     answer = search_result.get("answer", "")
                     references = search_result.get("references", [])
@@ -811,7 +776,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 pass
             finally:
                 self._db_connector = None
-        
+
         if self.mcp_client:
             self.mcp_client.stop()
             self.mcp_client = None
