@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: clog_disk_full_scene.py
+@file: clog_disk_full.py
 @desc:
 """
 import datetime

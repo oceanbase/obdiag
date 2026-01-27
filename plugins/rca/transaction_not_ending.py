@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: transaction_not_ending_scene.py
+@file: transaction_not_ending.py
 @desc: Root cause analysis for transaction not ending issues.
        Reference: [4.0] 事务问题通用排查手册
 """

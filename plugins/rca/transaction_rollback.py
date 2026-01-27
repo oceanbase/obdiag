@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: transaction_rollback_scene.py
+@file: transaction_rollback.py
 @desc: Root cause analysis for transaction rollback errors.
        Error codes: 6002 (internal: -6224, -6223, -6211, -6213)
        - -6224: transaction need rollback

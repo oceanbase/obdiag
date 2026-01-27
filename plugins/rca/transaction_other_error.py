@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: transaction_other_error_scene.py
+@file: transaction_other_error.py
 @desc: Root cause analysis for transaction other errors.
        Handles error codes: -4013, -4030, -4121, -4122, -4124, -4019
        Reference: [4.0] 事务问题通用排查手册

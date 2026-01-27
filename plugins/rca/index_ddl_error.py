@@ -12,7 +12,7 @@
 
 """
 @time: 2024/06/04
-@file: index_ddl_error_scene.py
+@file: index_ddl_error.py
 @desc:
 """
 
