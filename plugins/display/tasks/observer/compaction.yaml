@@ -1,5 +1,5 @@
-info_en: "[compaction status]"
-info_cn: "[合并状态展示]"
+info_en: "[compaction status and dump merge]"
+info_cn: "[合并状态展示和转储合并]"
 command: obdiag display scene run --scene=observer.compaction
 task:
   - version: "[4.0.0.0,*]"
@@ -74,5 +74,42 @@ task:
               SUGGESTION
               FROM oceanbase.GV$OB_COMPACTION_SUGGESTIONS
               ORDER BY TENANT_ID, START_TIME DESC
+              LIMIT 50;"
+        global: true
+      # 5. View minor freeze info (dump merge) - Issue #990
+      - type: sql
+        title: "Minor Freeze Info (转储合并信息) (__all_virtual_minor_freeze_info)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              svr_ip,
+              svr_port,
+              tenant_id,
+              ls_id,
+              tablet_id,
+              is_force,
+              freeze_clock,
+              freeze_snapshot_version,
+              start_time,
+              end_time,
+              ret_code,
+              state,
+              diagnose_info,
+              memtables_info
+              FROM oceanbase.__all_virtual_minor_freeze_info
+              WHERE state IN ('RUNNING', 'WAIT_READY_FOR_FLUSH', 'FINISH', 'FAILED')
+              ORDER BY tenant_id, start_time DESC
+              LIMIT 100;"
+        global: true
+      # 6. View freeze info (all tenants)
+      - type: sql
+        title: "Freeze Info (所有租户冻结信息) (CDB_OB_FREEZE_INFO)"
+        sql: "SELECT /*+ READ_CONSISTENCY(WEAK) query_timeout(100000000)*/ 
+              TENANT_ID,
+              FROZEN_SCN,
+              CLUSTER_VERSION,
+              SCHEMA_VERSION,
+              GMT_CREATE,
+              GMT_MODIFIED
+              FROM oceanbase.CDB_OB_FREEZE_INFO
+              ORDER BY TENANT_ID, GMT_CREATE DESC
               LIMIT 50;"
         global: true
