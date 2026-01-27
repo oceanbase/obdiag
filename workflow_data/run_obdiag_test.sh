@@ -130,7 +130,7 @@ check_error_log  "obdiag gather log --store_dir ./test"
 #echo "=================obdiag gather all --since 1d================="
 #check_error_log  "obdiag gather all --since 1d"
 #echo "=================obdiag gather all --scope observer================="
-#check_error_log  "obdiag gather all --scope observer"
+check_error_log  "obdiag gather all --scope observer"
 #echo "=================obdiag gather all --grep rootservice================="
 #check_error_log  "obdiag gather all --grep rootservice" &
 wait
@@ -180,7 +180,7 @@ obdiag rca run --scene=delete_server_error --env svr_ip=127.0.0.1 --env svr_port
 #echo "=================obdiag update================="
 #check_error_log  "obdiag update"
 #echo "=================obdiag tool================="
-#check_error_log  "obdiag tool config_check --help"
+check_error_log  "obdiag tool config_check --help"
 #check_error_log  "obdiag tool io_performance --disk=clog"
 #check_error_log  "obdiag tool io_performance --disk=data"
 
