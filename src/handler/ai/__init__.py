@@ -15,3 +15,7 @@
 @file: __init__.py
 @desc: AI Assistant module initialization
 """
+
+from src.handler.ai.obi_client import OBIClient
+
+__all__ = ['OBIClient']
