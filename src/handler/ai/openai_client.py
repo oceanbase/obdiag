@@ -18,11 +18,14 @@
 
 import json
 import os
-from typing import Dict, List, Optional, Any, Generator
+import re
+from typing import Dict, List, Optional, Any, Generator, Tuple
 from openai import OpenAI
 
 from src.handler.ai.mcp_client import MCPClientManager
 from src.handler.ai.mcp_server import MCPServer
+from src.handler.ai.obi_client import OBIClient
+from src.common.ob_connector import OBConnector
 
 
 class ObdiagAIClient:
@@ -38,18 +41,22 @@ Your capabilities include:
 2. Analyzing diagnostic results and providing insights
 3. Recommending diagnostic steps based on user descriptions
 4. Explaining OceanBase concepts and troubleshooting procedures
+5. Searching OceanBase knowledge base through OBI (OceanBase Intelligence) when available
 
 When users describe problems or ask for diagnostics:
 1. First understand what they need
-2. Use the appropriate diagnostic tools
-3. Analyze the results
-4. Provide clear explanations and recommendations
+2. If OBI is available and the question relates to OceanBase knowledge, concepts, or troubleshooting, consider searching the knowledge base first
+3. Use the appropriate diagnostic tools
+4. Analyze the results
+5. Provide clear explanations and recommendations
 
 Important guidelines:
 - Always confirm before executing potentially long-running operations
 - Provide clear, actionable insights from diagnostic results
 - Respond in the same language as the user's question
 - Format output clearly with proper structure
+- When OBI knowledge search is available, use it to enhance your responses with official OceanBase documentation and knowledge
+- **CRITICAL**: When OBI search results include reference documents (references), you MUST list all reference document links in your response. Format them clearly at the end of your answer, including both the document title and URL if available. This helps users access the original documentation for more details.
 
 When a tool execution fails, explain the error and suggest alternatives."""
 
@@ -65,6 +72,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
         temperature: float = 0.7,
         max_tokens: int = 2000,
         system_prompt: Optional[str] = None,
+        obi_client: Optional[OBIClient] = None,
     ):
         """
         Initialize the OpenAI client
@@ -87,6 +95,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
             temperature: Model temperature
             max_tokens: Maximum tokens in response
             system_prompt: Custom system prompt (uses default if not provided)
+            obi_client: Optional OBI client for knowledge search
         """
         self.context = context
         self.stdio = context.stdio
@@ -96,6 +105,8 @@ When a tool execution fails, explain the error and suggest alternatives."""
         self.max_tokens = max_tokens
         # Use custom system prompt if provided, otherwise use default
         self.system_prompt = system_prompt if system_prompt else self.SYSTEM_PROMPT
+        # Store OBI client
+        self.obi_client = obi_client
 
         # Initialize OpenAI client
         client_kwargs = {"api_key": api_key}
@@ -107,6 +118,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
         self.mcp_client: Optional[MCPClientManager] = None
         self.builtin_mcp_server: Optional[MCPServer] = None
         self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
+        self._db_connector: Optional[OBConnector] = None  # Store database connection
 
         if mcp_servers:
             # Use external MCP servers
@@ -125,7 +137,7 @@ When a tool execution fails, explain the error and suggest alternatives."""
         # If no external MCP client, use built-in MCP server
         if self.mcp_client is None:
             try:
-                self.builtin_mcp_server = MCPServer(config_path=self.config_path, stdio=self.stdio)
+                self.builtin_mcp_server = MCPServer(config_path=self.config_path, stdio=self.stdio, context=self.context)
                 self.stdio.verbose("Using built-in MCP server")
             except Exception as e:
                 self.stdio.warn("Warning: Failed to initialize built-in MCP server: {0}".format(e))
@@ -182,32 +194,81 @@ When a tool execution fails, explain the error and suggest alternatives."""
 
     def _get_tools(self) -> List[Dict]:
         """Get available tools for function calling"""
+        tools = []
+
         # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
-                return self.mcp_client.get_tools_for_openai()
+                tools.extend(self.mcp_client.get_tools_for_openai())
             except Exception:
                 pass
 
         # Fall back to built-in MCP server
         if self.builtin_mcp_server:
             try:
-                tools = self.builtin_mcp_server.tools
-                return [
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": tool.get("name", ""),
-                            "description": tool.get("description", ""),
-                            "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
-                        },
-                    }
-                    for tool in tools
-                ]
+                mcp_tools = self.builtin_mcp_server.tools
+                tools.extend(
+                    [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": tool.get("name", ""),
+                                "description": tool.get("description", ""),
+                                "parameters": tool.get("inputSchema", {"type": "object", "properties": {}}),
+                            },
+                        }
+                        for tool in mcp_tools
+                    ]
+                )
             except Exception:
                 pass
 
-        return []
+        # Add direct database and file tools (use context for connection info)
+        tools.extend(self._get_direct_tools())
+
+        return tools
+
+    def _get_direct_tools(self) -> List[Dict]:
+        """Get direct tools that use context for connection info"""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "db_query",
+                    "description": "Execute SQL query on the configured OceanBase database. Uses connection information from context (config file). No need to connect first - connection is automatic.",
+                    "parameters": {"type": "object", "properties": {"sql": {"type": "string", "description": "SQL query to execute"}}, "required": ["sql"]},
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "file_write",
+                    "description": "Create or write to a local file. Automatically creates directories if they don't exist.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "file_path": {"type": "string", "description": "Path to the file (can be relative or absolute)"},
+                            "content": {"type": "string", "description": "Content to write to the file"},
+                            "mode": {"type": "string", "description": "File mode: 'w' for write (overwrite), 'a' for append", "default": "w", "enum": ["w", "a"]},
+                            "encoding": {"type": "string", "description": "File encoding, default utf-8", "default": "utf-8"},
+                        },
+                        "required": ["file_path", "content"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "file_read",
+                    "description": "Read content from a local file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"file_path": {"type": "string", "description": "Path to the file (can be relative or absolute)"}, "encoding": {"type": "string", "description": "File encoding, default utf-8", "default": "utf-8"}},
+                        "required": ["file_path"],
+                    },
+                },
+            },
+        ]
 
     def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """
@@ -220,6 +281,14 @@ When a tool execution fails, explain the error and suggest alternatives."""
         Returns:
             Tool execution result as string
         """
+        # Handle direct tools that use context
+        if tool_name == "db_query":
+            return self._execute_db_query(arguments)
+        elif tool_name == "file_write":
+            return self._execute_file_write(arguments)
+        elif tool_name == "file_read":
+            return self._execute_file_read(arguments)
+
         # Try external MCP client first
         if self.mcp_client and self.mcp_client.is_connected():
             try:
@@ -273,6 +342,231 @@ When a tool execution fails, explain the error and suggest alternatives."""
 
         return "Tool executed but returned no content."
 
+    def _validate_sql(self, sql: str) -> Tuple[bool, str]:
+        """
+        Validate SQL query for safety
+
+        Args:
+            sql: SQL query string
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not sql or not sql.strip():
+            return False, "Error: SQL query cannot be empty"
+
+        # Remove comments and normalize
+        sql_normalized = sql.strip()
+
+        # Check for multiple statements (count semicolons that are not in strings)
+        # Simple check: count semicolons outside of quotes
+        semicolon_count = 0
+        in_single_quote = False
+        in_double_quote = False
+        in_backtick = False
+
+        for char in sql_normalized:
+            if char == "'" and not in_double_quote and not in_backtick:
+                in_single_quote = not in_single_quote
+            elif char == '"' and not in_single_quote and not in_backtick:
+                in_double_quote = not in_double_quote
+            elif char == '`' and not in_single_quote and not in_double_quote:
+                in_backtick = not in_backtick
+            elif char == ';' and not in_single_quote and not in_double_quote and not in_backtick:
+                semicolon_count += 1
+
+        # Allow at most one semicolon at the end
+        if semicolon_count > 1:
+            return False, "Error: Only one SQL statement is allowed per query. Multiple statements detected."
+
+        # Remove trailing semicolon for validation
+        sql_for_validation = sql_normalized.rstrip(';').strip()
+
+        # Convert to uppercase for keyword checking (but preserve original for execution)
+        sql_upper = sql_for_validation.upper().strip()
+
+        # Allowed read-only SQL keywords (must start with one of these)
+        allowed_keywords = [
+            'SELECT',
+            'SHOW',
+            'DESCRIBE',
+            'DESC',
+            'EXPLAIN',
+            'WITH',  # CTE queries (must be followed by SELECT)
+        ]
+
+        # Check if SQL starts with an allowed keyword
+        sql_starts_with_allowed = False
+        starts_with_keyword = None
+        for keyword in allowed_keywords:
+            if sql_upper.startswith(keyword):
+                sql_starts_with_allowed = True
+                starts_with_keyword = keyword
+                break
+
+        if not sql_starts_with_allowed:
+            return False, f"Error: Only read-only SQL statements are allowed (SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, WITH). Your query starts with: {sql_for_validation[:50]}"
+
+        # Special handling for WITH statements - must be followed by SELECT
+        if starts_with_keyword == 'WITH':
+            # Check if WITH is followed by SELECT (after CTE definitions)
+            # Pattern: WITH ... AS (...) SELECT ...
+            # Simple check: ensure SELECT appears after WITH
+            if 'SELECT' not in sql_upper:
+                return False, "Error: WITH statements must be followed by a SELECT statement"
+            # Find the position of first SELECT after WITH
+            with_pos = sql_upper.find('WITH')
+            select_pos = sql_upper.find('SELECT', with_pos)
+            if select_pos == -1:
+                return False, "Error: WITH statements must contain a SELECT statement"
+
+        # Forbidden keywords (even if starts with allowed keyword, check for dangerous operations)
+        forbidden_keywords_pattern = re.compile(r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b', re.IGNORECASE)
+
+        if forbidden_keywords_pattern.search(sql_for_validation):
+            return False, "Error: Dangerous SQL operations are not allowed (INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, etc.). Only read-only queries are permitted."
+
+        # Additional check: prevent UNION with dangerous operations
+        # This is a basic check - more sophisticated parsing would be needed for complete safety
+        if 'UNION' in sql_upper:
+            # Check if UNION is followed by SELECT (which is safe)
+            union_parts = re.split(r'\bUNION\s+(?:ALL\s+)?', sql_upper, flags=re.IGNORECASE)
+            for part in union_parts[1:]:  # Skip first part (already checked)
+                part_stripped = part.strip()
+                if not any(part_stripped.startswith(kw) for kw in allowed_keywords):
+                    return False, "Error: UNION queries must only contain SELECT statements"
+
+        return True, ""
+
+    def _execute_db_query(self, arguments: Dict[str, Any]) -> str:
+        """Execute SQL query using context connection info"""
+        try:
+            sql = arguments.get("sql")
+            if not sql:
+                return "Error: SQL query is required"
+
+            # Validate SQL for safety
+            is_valid, error_msg = self._validate_sql(sql)
+            if not is_valid:
+                self.stdio.verbose(f"SQL validation failed: {error_msg}")
+                return error_msg
+
+            # Get database connection info from context
+            if not self.context or not hasattr(self.context, 'cluster_config'):
+                return "Error: Database connection information not available in context. Please ensure cluster is configured."
+
+            cluster_config = self.context.cluster_config
+            if not cluster_config:
+                return "Error: Cluster configuration not found. Please configure the cluster first."
+
+            db_host = cluster_config.get("db_host")
+            db_port = cluster_config.get("db_port")
+            tenant_sys = cluster_config.get("tenant_sys", {})
+            username = tenant_sys.get("user", "root@sys")
+            password = tenant_sys.get("password")
+
+            if not all([db_host, db_port, username, password]):
+                return f"Error: Incomplete database configuration. Missing: host={db_host}, port={db_port}, user={username}, password={'***' if password else 'MISSING'}"
+
+            self.stdio.verbose(f"Executing SQL query on {db_host}:{db_port} as {username}: {sql[:100]}...")
+
+            # Create or reuse database connection
+            if not self._db_connector:
+                self._db_connector = OBConnector(
+                    context=self.context,
+                    ip=db_host,
+                    port=db_port,
+                    username=username,
+                    password=password,
+                    timeout=100,
+                )
+
+            # Execute query using dictionary cursor
+            cursor = self._db_connector.execute_sql_return_cursor_dictionary(sql)
+            results = cursor.fetchall()
+            cursor.close()
+
+            # Format results
+            if not results:
+                return "Query executed successfully. No rows returned."
+            else:
+                result_text = f"Query executed successfully. Returned {len(results)} row(s):\n\n"
+                result_text += json.dumps(results, indent=2, ensure_ascii=False, default=str)
+                return result_text
+
+        except Exception as e:
+            error_msg = f"SQL query execution failed: {str(e)}"
+            self.stdio.verbose(error_msg)
+            return error_msg
+
+    def _execute_file_write(self, arguments: Dict[str, Any]) -> str:
+        """Create or write to a local file"""
+        try:
+            file_path = arguments.get("file_path")
+            content = arguments.get("content")
+            mode = arguments.get("mode", "w")
+            encoding = arguments.get("encoding", "utf-8")
+
+            if not file_path or content is None:
+                return "Error: Missing required parameters: file_path, content"
+
+            # Convert to absolute path
+            abs_path = os.path.abspath(file_path)
+
+            # Create directory if it doesn't exist
+            dir_path = os.path.dirname(abs_path)
+            if dir_path and not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+                self.stdio.verbose(f"Created directory: {dir_path}")
+
+            # Write file
+            with open(abs_path, mode, encoding=encoding) as f:
+                f.write(content)
+
+            file_size = os.path.getsize(abs_path)
+            success_msg = f"File created successfully: {abs_path}\nFile size: {file_size} bytes"
+            self.stdio.verbose(success_msg)
+            return success_msg
+
+        except PermissionError as e:
+            error_msg = f"Permission denied: {str(e)}"
+            self.stdio.verbose(error_msg)
+            return error_msg
+        except Exception as e:
+            error_msg = f"File creation failed: {str(e)}"
+            self.stdio.verbose(error_msg)
+            return error_msg
+
+    def _execute_file_read(self, arguments: Dict[str, Any]) -> str:
+        """Read content from a local file"""
+        try:
+            file_path = arguments.get("file_path")
+            encoding = arguments.get("encoding", "utf-8")
+
+            if not file_path:
+                return "Error: Missing required parameter: file_path"
+
+            abs_path = os.path.abspath(file_path)
+
+            if not os.path.exists(abs_path):
+                return f"Error: File not found: {abs_path}"
+
+            with open(abs_path, "r", encoding=encoding) as f:
+                content = f.read()
+
+            result_text = f"File read successfully: {abs_path}\nFile size: {len(content)} characters\n\nContent:\n{content}"
+            self.stdio.verbose(f"File read successfully: {abs_path} ({len(content)} characters)")
+            return result_text
+
+        except PermissionError as e:
+            error_msg = f"Permission denied: {str(e)}"
+            self.stdio.verbose(error_msg)
+            return error_msg
+        except Exception as e:
+            error_msg = f"File read failed: {str(e)}"
+            self.stdio.verbose(error_msg)
+            return error_msg
+
     def chat(self, user_message: str, conversation_history: Optional[List[Dict]] = None) -> str:
         """
         Send a chat message and get a response
@@ -284,13 +578,55 @@ When a tool execution fails, explain the error and suggest alternatives."""
         Returns:
             AI response as string
         """
+        # If OBI is available, try to enhance the message with knowledge search
+        obi_context = ""
+        if self.obi_client and self.obi_client.is_configured():
+            try:
+                self.stdio.verbose("Searching OBI knowledge base...")
+                # Search OBI knowledge base (with timeout handled by requests library)
+                search_result = self.obi_client.search_knowledge(user_message)
+
+                if search_result.get("success"):
+                    answer = search_result.get("answer", "")
+                    references = search_result.get("references", [])
+                    if answer:
+                        obi_context = f"\n\n[OBI Knowledge Base Search Results]\n{answer}"
+                        if references:
+                            # Format references with title and URL if available
+                            ref_list = []
+                            for ref in references[:10]:  # Show up to 10 references
+                                title = ref.get('title') or ref.get('name') or 'Unknown Document'
+                                url = ref.get('url') or ref.get('link') or ref.get('source_url') or ''
+                                if url:
+                                    ref_list.append(f"- {title}: {url}")
+                                else:
+                                    ref_list.append(f"- {title}")
+                            if ref_list:
+                                obi_context += f"\n\n[Reference Documents - MUST be listed in your response]\n" + "\n".join(ref_list)
+                                obi_context += "\n\nIMPORTANT: You must include all these reference document links in your final response to help users access the original documentation."
+                        self.stdio.verbose("OBI knowledge search completed successfully: {}".format(search_result))
+                    else:
+                        self.stdio.verbose("OBI search returned empty answer")
+                else:
+                    error_msg = search_result.get("error", "Unknown error")
+                    self.stdio.verbose(f"OBI search failed: {error_msg}")
+            except Exception as e:
+                # Ensure we continue even if OBI search fails
+                self.stdio.verbose(f"OBI knowledge search exception: {e}")
+                # Continue without OBI context
+
         # Build messages
         messages = [{"role": "system", "content": self.system_prompt}]
 
         if conversation_history:
             messages.extend(conversation_history)
 
-        messages.append({"role": "user", "content": user_message})
+        # Enhance user message with OBI context if available
+        enhanced_message = user_message
+        if obi_context:
+            enhanced_message = f"{user_message}\n\n{obi_context}"
+
+        messages.append({"role": "user", "content": enhanced_message})
 
         # Get available tools
         tools = self._get_tools()
@@ -311,24 +647,40 @@ When a tool execution fails, explain the error and suggest alternatives."""
 
             # Check if tool calls are needed
             if assistant_message.tool_calls:
+                self.stdio.verbose(f"Tool calls detected: {len(assistant_message.tool_calls)}")
                 # Execute tools and collect results
                 tool_results = []
                 for tool_call in assistant_message.tool_calls:
                     tool_name = tool_call.function.name
+                    self.stdio.verbose(f"Executing tool: {tool_name}")
                     try:
                         arguments = json.loads(tool_call.function.arguments)
                     except json.JSONDecodeError:
                         arguments = {}
+                        self.stdio.verbose(f"Failed to parse tool arguments, using empty dict")
 
-                    result = self._execute_tool(tool_name, arguments)
-                    tool_results.append(
-                        {
-                            "tool_call_id": tool_call.id,
-                            "role": "tool",
-                            "name": tool_name,
-                            "content": result,
-                        }
-                    )
+                    try:
+                        result = self._execute_tool(tool_name, arguments)
+                        tool_results.append(
+                            {
+                                "tool_call_id": tool_call.id,
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": result,
+                            }
+                        )
+                        self.stdio.verbose(f"Tool {tool_name} executed successfully")
+                    except Exception as tool_error:
+                        error_msg = f"Tool {tool_name} execution failed: {str(tool_error)}"
+                        self.stdio.verbose(error_msg)
+                        tool_results.append(
+                            {
+                                "tool_call_id": tool_call.id,
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": error_msg,
+                            }
+                        )
 
                 # Add assistant message and tool results to messages
                 messages.append(
@@ -348,18 +700,35 @@ When a tool execution fails, explain the error and suggest alternatives."""
                 messages.extend(tool_results)
 
                 # Get final response after tool execution
-                final_response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                )
-                return final_response.choices[0].message.content or ""
+                try:
+                    self.stdio.verbose("Getting final response after tool execution...")
+                    final_response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                    )
+                    final_content = final_response.choices[0].message.content
+                    if not final_content:
+                        self.stdio.verbose("Final response is empty, using assistant message content")
+                        return assistant_message.content or "No response generated."
+                    self.stdio.verbose(f"Final response received ({len(final_content)} characters)")
+                    return final_content
+                except Exception as e:
+                    self.stdio.verbose(f"Error getting final response after tool execution: {e}")
+                    # Fallback to assistant message content
+                    return assistant_message.content or f"Tool execution completed but failed to get final response: {str(e)}"
 
-            return assistant_message.content or ""
+            content = assistant_message.content
+            if not content:
+                self.stdio.verbose("Assistant message content is empty")
+                return "No response generated."
+            return content
 
         except Exception as e:
-            raise RuntimeError(f"API call failed: {str(e)}")
+            error_msg = f"API call failed: {str(e)}"
+            self.stdio.verbose(error_msg)
+            raise RuntimeError(error_msg)
 
     def chat_stream(self, user_message: str, conversation_history: Optional[List[Dict]] = None) -> Generator[str, None, None]:
         """
@@ -398,6 +767,16 @@ When a tool execution fails, explain the error and suggest alternatives."""
 
     def close(self):
         """Clean up resources"""
+        # Close database connection if exists
+        if self._db_connector and self._db_connector.conn:
+            try:
+                self._db_connector.conn.close()
+                self.stdio.verbose("Database connection closed")
+            except Exception:
+                pass
+            finally:
+                self._db_connector = None
+
         if self.mcp_client:
             self.mcp_client.stop()
             self.mcp_client = None

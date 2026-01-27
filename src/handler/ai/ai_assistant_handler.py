@@ -22,6 +22,7 @@ import yaml
 from typing import Dict, List, Optional
 
 from src.handler.ai.openai_client import ObdiagAIClient
+from src.handler.ai.obi_client import OBIClient
 from src.common.tool import Util
 from src.common.result_type import ObdiagResult
 
@@ -88,6 +89,7 @@ class AiAssistantHandler:
         self.stdio = context.stdio
         self.options = context.options
         self.ai_client = None
+        self.obi_client = None
         self.conversation_history: List[Dict] = []
 
         # Initialize Rich console for Markdown rendering
@@ -122,6 +124,12 @@ class AiAssistantHandler:
                 "enabled": True,
                 "servers": {},  # Empty means use built-in MCP server
             },
+            "obi": {
+                "enabled": False,
+                "base_url": "",
+                "app_code": "",
+                "cookie": "",
+            },
             "ui": {
                 "show_welcome": True,
                 "show_beta_warning": True,
@@ -146,6 +154,7 @@ class AiAssistantHandler:
 
         # Merge with user configuration
         llm_config = {**default_config["llm"], **ai_config.get("llm", {})}
+        obi_config = {**default_config["obi"], **ai_config.get("obi", {})}
         ui_config = {**default_config["ui"], **ai_config.get("ui", {})}
 
         # Handle MCP configuration
@@ -176,6 +185,7 @@ class AiAssistantHandler:
         return {
             "llm": llm_config,
             "mcp": mcp_config,
+            "obi": obi_config,
             "ui": ui_config,
         }
 
@@ -183,6 +193,7 @@ class AiAssistantHandler:
         """Initialize AI client"""
         llm_config = config["llm"]
         mcp_config = config["mcp"]
+        obi_config = config["obi"]
 
         # Check API key
         api_key = llm_config.get("api_key") or os.getenv("OPENAI_API_KEY")
@@ -202,7 +213,33 @@ class AiAssistantHandler:
         # Get system prompt (use None for default)
         system_prompt = llm_config.get("system_prompt") or None
 
-        # Initialize AI client
+        # Initialize OBI client if enabled
+        if obi_config.get("enabled", False):
+            try:
+                self.obi_client = OBIClient(
+                    base_url=obi_config.get("base_url", ""),
+                    app_code=obi_config.get("app_code", ""),
+                    cookie=obi_config.get("cookie", ""),
+                    enabled=obi_config.get("enabled", False),
+                    stdio=self.stdio,
+                )
+                if self.obi_client.is_configured():
+                    # Test connection
+                    test_result = self.obi_client.test_connection()
+                    if test_result.get("success"):
+                        self.stdio.verbose("OBI client initialized successfully")
+                    else:
+                        self.stdio.warn(f"OBI client initialized but connection test failed: {test_result.get('error')}")
+                else:
+                    self.stdio.warn("OBI is enabled but not properly configured (missing app_code or cookie)")
+                    self.obi_client = None
+            except Exception as e:
+                self.stdio.warn(f"Failed to initialize OBI client: {e}")
+                self.obi_client = None
+        else:
+            self.obi_client = None
+
+        # Initialize AI client with OBI client
         self.ai_client = ObdiagAIClient(
             context=self.context,
             api_key=api_key,
@@ -214,6 +251,7 @@ class AiAssistantHandler:
             temperature=llm_config.get("temperature", 0.7),
             max_tokens=llm_config.get("max_tokens", 2000),
             system_prompt=system_prompt,
+            obi_client=self.obi_client,
         )
 
     def _clear_screen(self):
@@ -305,6 +343,19 @@ Available diagnostic tools:
     def _show_loaded_tools(self):
         """Show loaded MCP tools information"""
         try:
+            # Show OBI status
+            if self.obi_client and self.obi_client.is_configured():
+                test_result = self.obi_client.test_connection()
+                if test_result.get("success"):
+                    self.stdio.print("🔍 OBI (OceanBase Intelligence): ✓ Connected")
+                else:
+                    self.stdio.print("🔍 OBI (OceanBase Intelligence): ✗ Connection failed")
+            elif self.obi_client:
+                self.stdio.print("🔍 OBI (OceanBase Intelligence): ⚠ Not configured")
+            else:
+                self.stdio.print("🔍 OBI (OceanBase Intelligence): ○ Disabled")
+            self.stdio.print("")
+
             # Check external MCP client first
             if self.ai_client and self.ai_client.mcp_client and self.ai_client.mcp_client.is_connected():
                 # Get connected servers info
