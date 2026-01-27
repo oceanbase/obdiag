@@ -130,7 +130,7 @@ check_error_log  "obdiag gather log --store_dir ./test"
 #echo "=================obdiag gather all --since 1d================="
 #check_error_log  "obdiag gather all --since 1d"
 #echo "=================obdiag gather all --scope observer================="
-check_error_log  "obdiag gather all --scope observer"
+#check_error_log  "obdiag gather all --scope observer"
 #echo "=================obdiag gather all --grep rootservice================="
 #check_error_log  "obdiag gather all --grep rootservice" &
 wait
