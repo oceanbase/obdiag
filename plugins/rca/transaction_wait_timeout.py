@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: transaction_wait_timeout_scene.py
+@file: transaction_wait_timeout.py
 @desc: Root cause analysis for lock wait timeout.
        NOTE: This scene is now integrated into lock_conflict scene.
        Supports: "Shared lock conflict" (-6004) and "Lock wait timeout exceeded" (-6003)

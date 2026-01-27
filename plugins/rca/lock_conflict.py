@@ -12,7 +12,7 @@
 
 """
 @time: 2024/07/29
-@file: lock_conflict_scene.py
+@file: lock_conflict.py
 @desc: Root cause analysis for lock conflict issues.
        Supports:
        - GV$OB_LOCKS based analysis (4.2+)

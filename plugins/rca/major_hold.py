@@ -12,7 +12,7 @@
 
 """
 @time: 2024/1/2
-@file: major_hold_scene.py
+@file: major_hold.py
 @desc: RCA scene for diagnosing major compaction hold issues
        Reference: https://open.oceanbase.com/blog/14847857236
 """

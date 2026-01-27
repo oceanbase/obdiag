@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/20
-@file: transaction_execute_timeout_scene.py
+@file: transaction_execute_timeout.py
 @desc: Root cause analysis for transaction/statement timeout errors.
        Error code: 4012 (internal: -6212 statement timeout, -6210 transaction timeout)
        Reference: [4.0] 事务问题通用排查手册

@@ -12,7 +12,7 @@
 
 """
 @time: 2024/06/12
-@file: ddl_failure_scene.py
+@file: ddl_failure.py
 @desc:
 """
 import os

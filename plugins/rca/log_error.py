@@ -12,7 +12,7 @@
 
 """
 @time: 2024/04/16
-@file: log_error_scene.py
+@file: log_error.py
 @desc:
 """
 import os

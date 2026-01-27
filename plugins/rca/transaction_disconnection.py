@@ -12,7 +12,7 @@
 
 """
 @time: 2024/05/28
-@file: transaction_disconnection_scene.py
+@file: transaction_disconnection.py
 @desc: Root cause analysis for session disconnection during transaction.
        Common causes: ob_trx_idle_timeout, ob_trx_timeout exceeded
        Reference: [4.0] 事务问题通用排查手册
