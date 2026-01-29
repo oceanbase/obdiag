@@ -16,10 +16,10 @@
 @desc:
 """
 import datetime
+import glob
 import os
 import re
-import threading
-import uuid
+import tarfile
 
 import tabulate
 
@@ -27,15 +27,15 @@ from src.common.ssh_client.local_client import LocalClient
 from src.handler.base_shell_handler import BaseShellHandler
 from src.common.obdiag_exception import OBDIAGFormatException
 from src.common.constant import const
-from src.common.command import SshClient
+from src.common.command import download_file
 from src.common.ob_log_level import OBLogLevel
 from src.handler.meta.ob_error import OB_RET_DICT
-from src.common.command import download_file, get_logfile_name_list, mkdir, delete_file
-from src.common.tool import Util, NetUtils
+from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_component_log import GatherComponentLogHandler
 
 
 class AnalyzeLogHandler(BaseShellHandler):
@@ -136,37 +136,23 @@ class AnalyzeLogHandler(BaseShellHandler):
         if not self.init_config():
             self.stdio.error('init config failed')
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
+        self.stdio.print("analyze nodes's log start. Please wait a moment...")
+        self.stdio.print('analyze start')
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
-        # analyze_thread default thread nums is 3
-        analyze_thread_nums = int(self.context.inner_config.get("analyze", {}).get("thread_nums") or 3)
-        pool_sema = threading.BoundedSemaphore(value=analyze_thread_nums)
 
-        def handle_from_node(node):
-            with pool_sema:
-                resp, node_results = self.__handle_from_node(node, local_store_parent_dir)
-                analyze_tuples.append((node.get("ip"), False, resp["error"], node_results))
+        # When --files is not specified: use GatherComponentLogHandler to collect logs (compressed) first, then analyze locally
+        if not self.directly_analyze_files:
+            return self.__handle_with_gather(local_store_parent_dir)
 
-        nodes_threads = []
+        # --files specified: analyze local files only (no SSH)
+        DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze start')
-        for node in self.nodes:
-            if self.directly_analyze_files:
-                if nodes_threads:
-                    break
-                node["ip"] = '127.0.0.1'
-            else:
-                if not self.is_ssh:
-                    local_ip = NetUtils.get_inner_ip()
-                    node = self.nodes[0]
-                    node["ip"] = local_ip
-            node_threads = threading.Thread(target=handle_from_node, args=(node,))
-            node_threads.start()
-            nodes_threads.append(node_threads)
-        for node_thread in nodes_threads:
-            node_thread.join()
-        title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, self.directly_analyze_files)
+        resp, node_results = self.__handle_offline(local_store_parent_dir)
+        analyze_tuples = [("127.0.0.1", False, resp["error"], node_results)]
+        title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, True)
         analyze_info_nodes = []
         for summary in summary_list:
             analyze_info_node = {}
@@ -197,87 +183,137 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.print(last_info)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
 
-    def __handle_from_node(self, node, local_store_parent_dir):
+    def __handle_with_gather(self, local_store_parent_dir):
+        """
+        Use GatherComponentLogHandler to collect logs (compressed tar.gz) first, then extract and analyze locally.
+        Reduces network transfer time compared to pulling raw logs.
+        """
+        DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
+        gather_store_dir = os.path.join(local_store_parent_dir, "gathered_logs")
+        DirectoryUtil.mkdir(path=gather_store_dir, stdio=self.stdio)
+
+        self.stdio.print("gather log (compressed) start, then analyze locally...")
+        self.stdio.start_loading("gather log start")
+        handler = GatherComponentLogHandler()
+        handler.init(
+            self.context,
+            target="observer",
+            from_option=self.from_time_str,
+            to_option=self.to_time_str,
+            since=Util.get_option(self.context.options, 'since'),
+            scope=self.scope,
+            grep=self.grep_args,
+            store_dir=gather_store_dir,
+            temp_dir=self.gather_ob_log_temporary_dir,
+            is_scene=True,
+        )
+        gather_result = handler.handle()
+        self.stdio.stop_loading("gather succeed" if gather_result.is_success() else "gather failed")
+
+        if not gather_result.is_success():
+            self.stdio.error("gather log failed: {0}".format(gather_result.error_data))
+            return gather_result
+
+        tar_files = glob.glob(os.path.join(gather_store_dir, "*.tar.gz"))
+        if not tar_files:
+            self.stdio.warn("No tar.gz files found in gather result dir: {0}".format(gather_store_dir))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="No log tar files gathered, please check gather config or time range")
+
+        self.stdio.verbose("extract {0} tar file(s) to local".format(len(tar_files)))
+        for tar_path in tar_files:
+            try:
+                with tarfile.open(tar_path, 'r:gz') as tar:
+                    tar.extractall(path=local_store_parent_dir)
+            except Exception as e:
+                self.stdio.exception("extract tar failed: {0}, error: {1}".format(tar_path, e))
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="extract gather tar failed: {0}".format(str(e)))
+
+        analyze_tuples = []
+        self.stdio.start_loading("analyze log start")
+        for name in os.listdir(local_store_parent_dir):
+            node_dir = os.path.join(local_store_parent_dir, name)
+            if name == "gathered_logs" or not os.path.isdir(node_dir):
+                continue
+            node_name = self.__parse_node_name_from_gather_dir(name)
+            log_files = [f for f in os.listdir(node_dir) if os.path.isfile(os.path.join(node_dir, f))]
+            node_results = []
+            for log_f in sorted(log_files):
+                full_path = os.path.join(node_dir, log_f)
+                try:
+                    file_result = self.__parse_log_lines(full_path)
+                    node_results.append(file_result)
+                except Exception as e:
+                    self.stdio.verbose("parse log file {0} failed: {1}".format(full_path, e))
+            analyze_tuples.append((node_name, False, "", node_results))
+
+        self.stdio.stop_loading("succeed")
+        title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, False)
+        analyze_info_nodes = []
+        for summary in summary_list:
+            analyze_info_node = {}
+            field_names_nu = 0
+            for m in field_names:
+                analyze_info_node[m] = summary[field_names_nu]
+                field_names_nu += 1
+                if field_names_nu == len(summary):
+                    break
+            analyze_info_nodes.append(analyze_info_node)
+        table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
+        self.stdio.print(title)
+        self.stdio.print(table)
+        with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+            fileobj.write(u'{}'.format(title + str(table) + "\n\nDetails:\n\n"))
+        summary_details_list_data = []
+        for m in range(len(summary_details_list)):
+            summary_details_list_data_once = {}
+            for n in range(len(field_names)):
+                extend = "\n\n" if n == len(field_names) - 1 else "\n"
+                with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+                    fileobj.write(u'{}'.format(field_names[n] + ": " + str(summary_details_list[m][n]) + extend))
+                summary_details_list_data_once[field_names[n]] = str(summary_details_list[m][n])
+            summary_details_list_data.append(summary_details_list_data_once)
+        last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
+        self.stdio.print(last_info)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
+
+    def __parse_node_name_from_gather_dir(self, dir_name):
+        """
+        Parse node display name from gather tar inner dir name.
+        Format: observer_log_10.0.0.1_2881_20250101120000_20250102120000_abc123 -> 10.0.0.1_2881
+        """
+        match = re.match(r'^observer_log_(.+)_\d+_\d+_[a-z0-9]{6}$', dir_name)
+        if match:
+            return match.group(1)
+        return dir_name
+
+    def __handle_offline(self, local_store_parent_dir):
+        """
+        Analyze local log files only (--files). No SSH, no remote node.
+        """
         resp = {"skip": False, "error": ""}
-        remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         node_results = []
-        try:
-            ssh_client = SshClient(self.context, node)
-            self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
-            DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
-            local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name().replace(":", "_"))
-            DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
-        except Exception as e:
-            resp["skip"] = True
-            resp["error"] = "Please check the node conf about {0}".format(remote_ip)
-            raise Exception("Please check the node conf about {0}".format(remote_ip))
+        local_store_dir = os.path.join(local_store_parent_dir, "127.0.0.1")
+        DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
 
-        from_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.from_time_str))
-        to_datetime_timestamp = TimeUtils.timestamp_to_filename_time(TimeUtils.datetime_to_timestamp(self.to_time_str))
-        gather_dir_name = "ob_log_{0}_{1}_{2}".format(ssh_client.get_name(), from_datetime_timestamp, to_datetime_timestamp)
-        gather_dir_full_path = "{0}/{1}_{2}".format(self.gather_ob_log_temporary_dir, gather_dir_name, str(uuid.uuid4())[:6])
-        mkdir_info = mkdir(ssh_client, gather_dir_full_path)
-        if mkdir_info:
+        log_list = self.__get_log_name_list_offline()
+        if len(log_list) > self.file_number_limit:
             resp["skip"] = True
-            resp["error"] = mkdir_info
+            resp["error"] = "Too many files {0} > {1}, Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
+            return resp, node_results
+        if len(log_list) == 0:
+            resp["skip"] = True
+            resp["error"] = "No files found"
             return resp, node_results
 
-        log_list, resp = self.__handle_log_list(ssh_client, node, resp)
-        if resp["skip"]:
-            return resp, node_results
-        self.stdio.print(FileUtil.show_file_list_tabulate(remote_ip, log_list, self.stdio))
+        self.stdio.print(FileUtil.show_file_list_tabulate("127.0.0.1", log_list, self.stdio))
         self.stdio.start_loading("analyze log start")
         for log_name in log_list:
-            if self.directly_analyze_files:
-                self.__pharse_offline_log_file(ssh_client, log_name=log_name, local_store_dir=local_store_dir)
-                analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
-            else:
-                self.__pharse_log_file(ssh_client, node=node, log_name=log_name, gather_path=gather_dir_full_path, local_store_dir=local_store_dir)
-                analyze_log_full_path = "{0}/{1}".format(local_store_dir, log_name)
+            self.__pharse_offline_log_file(log_name=log_name, local_store_dir=local_store_dir)
+            analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
             file_result = self.__parse_log_lines(analyze_log_full_path)
             node_results.append(file_result)
         self.stdio.stop_loading("succeed")
-        delete_file(ssh_client, gather_dir_full_path, self.stdio)
-        ssh_client.ssh_close()
         return resp, node_results
-
-    def __handle_log_list(self, ssh_client, node, resp):
-        if self.directly_analyze_files:
-            log_list = self.__get_log_name_list_offline()
-        else:
-            log_list = self.__get_log_name_list(ssh_client, node)
-        if len(log_list) > self.file_number_limit:
-            self.stdio.warn("{0} The number of log files is {1}, out of range (0,{2}]".format(node.get("ip"), len(log_list), self.file_number_limit))
-            resp["skip"] = (True,)
-            resp["error"] = "Too many files {0} > {1}, Please adjust the analyze time range".format(len(log_list), self.file_number_limit)
-            if self.directly_analyze_files:
-                resp["error"] = "Too many files {0} > {1}, " "Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
-            return log_list, resp
-        elif len(log_list) == 0:
-            self.stdio.warn("{0} The number of log files is {1}, No files found, " "Please adjust the query limit".format(node.get("ip"), len(log_list)))
-            resp["skip"] = (True,)
-            resp["error"] = "No files found"
-            return log_list, resp
-        return log_list, resp
-
-    def __get_log_name_list(self, ssh_client, node):
-        """
-        :param ssh_client:
-        :return: log_name_list
-        """
-        home_path = node.get("home_path")
-        log_path = os.path.join(home_path, "log")
-        if self.scope == "observer" or self.scope == "rootservice" or self.scope == "election":
-            get_oblog = "ls -1 -F %s/*%s.log* | awk -F '/' '{print $NF}'" % (log_path, self.scope)
-        else:
-            get_oblog = "ls -1 -F %s/observer.log* %s/rootservice.log* %s/election.log* | awk -F '/' '{print $NF}'" % (log_path, log_path, log_path)
-        log_name_list = []
-        log_files = ssh_client.exec_cmd(get_oblog)
-        if log_files:
-            log_name_list = get_logfile_name_list(ssh_client, self.from_time_str, self.to_time_str, log_path, log_files, self.stdio)
-        else:
-            self.stdio.error("Unable to find the log file. Please provide the correct --ob_install_dir, the default is [/home/admin/oceanbase]")
-        return log_name_list
 
     def __get_log_name_list_offline(self):
         """
@@ -297,42 +333,18 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.stdio.verbose("get log list {}".format(log_name_list))
         return log_name_list
 
-    def __pharse_log_file(self, ssh_client, node, log_name, gather_path, local_store_dir):
-        home_path = node.get("home_path")
-        log_path = os.path.join(home_path, "log")
-        local_store_path = "{0}/{1}".format(local_store_dir, log_name)
-        if self.grep_args is not None:
-            grep_cmd = "grep -e '{grep_args}' {log_dir}/{log_name} >> {gather_path}/{log_name} ".format(grep_args=self.grep_args, gather_path=gather_path, log_name=log_name, log_dir=log_path)
-            self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            ssh_client.exec_cmd(grep_cmd)
-            log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
-            download_file(ssh_client, log_full_path, local_store_path, self.stdio)
-        else:
-            real_time_logs = ["observer.log", "rootservice.log", "election.log", "trace.log", "observer.log.wf", "rootservice.log.wf", "election.log.wf", "trace.log.wf"]
-            if log_name in real_time_logs:
-                cp_cmd = "cp {log_dir}/{log_name} {gather_path}/{log_name} ".format(gather_path=gather_path, log_name=log_name, log_dir=log_path)
-                self.stdio.verbose("copy files, run cmd = [{0}]".format(cp_cmd))
-                ssh_client.exec_cmd(cp_cmd)
-                log_full_path = "{gather_path}/{log_name}".format(log_name=log_name, gather_path=gather_path)
-                download_file(ssh_client, log_full_path, local_store_path, self.stdio)
-            else:
-                log_full_path = "{log_dir}/{log_name}".format(log_name=log_name, log_dir=log_path)
-                download_file(ssh_client, log_full_path, local_store_path, self.stdio)
-
-    def __pharse_offline_log_file(self, ssh_client, log_name, local_store_dir):
+    def __pharse_offline_log_file(self, log_name, local_store_dir):
         """
-        :param ssh_helper, log_name
-        :return:
+        Copy or grep local log file to local_store_dir for parsing.
         """
-
-        ssh_client = LocalClient(context=self.context, node={"ssh_type": "local"})
+        local_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
             grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
-            ssh_client.exec_cmd(grep_cmd)
+            local_client.exec_cmd(grep_cmd)
         else:
-            download_file(ssh_client, log_name, local_store_path, self.stdio)
+            download_file(local_client, log_name, local_store_path, self.stdio)
 
     def __get_observer_ret_code(self, log_line):
         """
