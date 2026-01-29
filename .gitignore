@@ -4,7 +4,7 @@ venv/
 .venv/
 *.pyc
 *site-packages/
-dependencies
+dependencies/bin/obstack*
 obdiag_gather_pack_*
 obdiag_analyze_pack_*
 obdiag_rca*
