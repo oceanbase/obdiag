@@ -1,6 +1,6 @@
 # Log volume (CLOG) statistics - see https://github.com/oceanbase/obdiag/issues/830
-info_en: "[log volume statistics] Display CLOG / log disk usage per server and per tenant (current snapshot). For size within a time range, run at start and end of the period and compare."
-info_cn: "[日志量统计] 展示各节点、各租户的 CLOG/日志盘使用情况（当前快照）。统计规定时间内大小可分别在时段起止各执行一次本场景后对比结果。"
+info_en: "[clog volume statistics] Display CLOG / log disk usage per server and per tenant (current snapshot). For size within a time range, run at start and end of the period and compare."
+info_cn: "[clog日志量统计] 展示各节点、各租户的 CLOG/日志盘使用情况（当前快照）。统计规定时间内大小可分别在时段起止各执行一次本场景后对比结果。"
 command: obdiag display scene run --scene=observer.log_volume_statistics
 task:
   - version: "[4.0.0.0, *]"
