@@ -46,6 +46,9 @@ const.OBSTACK2_DEFAULT_INSTALL_PATH = '/tmp/obstack'
 const.OBSTACK2_LOCAL_STORED_PATH_AARCH64 = "./dependencies/bin/obstack_aarch64"
 const.OBSTACK2_LOCAL_STORED_PATH_X86_64 = "./dependencies/bin/obstack_x86_64"
 
+# for perf
+const.FLAMEGRAPH_STACKCOLLAPSE_PL = "./dependencies/bin/stackcollapse-perf.pl"
+const.FLAMEGRAPH_FLAMEGRAPH_PL = "./dependencies/bin/flamegraph.pl"
 # 限制收集任务的并发线程数量 10
 const.GATHER_THREADS_LIMIT = 10
 # 限制收集任务的并发线程单个线程的执行超时时间 15分钟

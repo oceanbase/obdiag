@@ -13,9 +13,12 @@
 """
 @time: 2023/01/12
 @file: gather_perf.py
-@desc:
+@desc: Gather perf data and optionally generate flame graph SVG (see github.com/oceanbase/obdiag/issues/95).
 """
 import os
+import shutil
+import subprocess
+import tarfile
 import time
 import datetime
 
@@ -185,12 +188,84 @@ class GatherPerfHandler(BaseShellHandler):
             if int(file_size) < self.file_size_limit:
                 local_file_path = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
                 download_file(ssh_client, remote_tar_full_path, local_file_path, self.stdio)
+                self.__generate_flame_graph_svg(local_file_path, remote_dir_name, local_stored_path)
                 resp["error"] = ""
             else:
                 resp["error"] = "File too large"
             delete_file_force(ssh_client, remote_tar_full_path, self.stdio)
             resp["gather_pack_path"] = "{0}/{1}.tar.gz".format(local_stored_path, remote_dir_name)
         return resp
+
+    def __get_flamegraph_scripts(self):
+        """
+        Get stackcollapse-perf.pl and flamegraph.pl paths from const (dependencies/bin/).
+        Returns (stackcollapse_pl, flamegraph_pl) or (None, None) if not found.
+        """
+        stackcollapse_pl = os.path.abspath(const.FLAMEGRAPH_STACKCOLLAPSE_PL)
+        flamegraph_pl = os.path.abspath(const.FLAMEGRAPH_FLAMEGRAPH_PL)
+        if os.path.isfile(stackcollapse_pl) and os.path.isfile(flamegraph_pl):
+            return (stackcollapse_pl, flamegraph_pl)
+        return (None, None)
+
+    def __generate_flame_graph_svg(self, local_tar_path, remote_dir_name, local_stored_path):
+        """
+        Extract perf pack tar, generate flame graph SVG from flame.viz if present, re-pack tar.
+        See https://github.com/oceanbase/obdiag/issues/95
+        """
+        stackcollapse_pl, flamegraph_pl = self.__get_flamegraph_scripts()
+        if not stackcollapse_pl or not flamegraph_pl:
+            self.stdio.verbose("FlameGraph scripts not found at {0}, {1}; skip generating flame graph SVG.".format(const.FLAMEGRAPH_STACKCOLLAPSE_PL, const.FLAMEGRAPH_FLAMEGRAPH_PL))
+            return
+        extract_dir = os.path.join(local_stored_path, remote_dir_name)
+        try:
+            with tarfile.open(local_tar_path, "r:gz") as tar:
+                tar.extractall(path=local_stored_path)
+            flame_viz = os.path.join(extract_dir, "flame.viz")
+            if not os.path.isfile(flame_viz):
+                self.stdio.verbose("No flame.viz in pack, skip flame graph SVG.")
+                shutil.rmtree(extract_dir, ignore_errors=True)
+                return
+            started_loading = False
+            try:
+                self.stdio.start_loading("generate flame graph SVG")
+                started_loading = True
+                with open(flame_viz, "r", encoding="utf-8", errors="ignore") as f_in:
+                    p1 = subprocess.Popen(
+                        ["perl", stackcollapse_pl],
+                        stdin=f_in,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        cwd=extract_dir,
+                    )
+                    p2 = subprocess.Popen(
+                        ["perl", flamegraph_pl],
+                        stdin=p1.stdout,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        cwd=extract_dir,
+                    )
+                    p1.stdout.close()
+                    out, err = p2.communicate(timeout=120)
+                if p2.returncode != 0:
+                    self.stdio.verbose("flamegraph.pl failed: {0}".format(err.decode("utf-8", errors="ignore") if err else "unknown"))
+                    return
+                flame_svg = os.path.join(extract_dir, "flame.svg")
+                with open(flame_svg, "wb") as f_out:
+                    f_out.write(out)
+                self.stdio.verbose("flame graph SVG written into pack: {0}".format(flame_svg))
+                self.stdio.print("flame graph SVG generated: open flame.svg in the pack to view.")
+                with tarfile.open(local_tar_path, "w:gz") as tar:
+                    for name in os.listdir(extract_dir):
+                        tar.add(os.path.join(extract_dir, name), arcname=name)
+            except Exception as e:
+                self.stdio.verbose("generate flame graph SVG failed: {0}".format(e))
+            finally:
+                if started_loading:
+                    self.stdio.stop_loading("succeed")
+        except Exception as e:
+            self.stdio.verbose("extract or flame graph failed: {0}".format(e))
+        finally:
+            shutil.rmtree(extract_dir, ignore_errors=True)
 
     def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
