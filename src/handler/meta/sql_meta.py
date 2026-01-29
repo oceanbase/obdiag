@@ -240,7 +240,7 @@ sql_dict.set_value(
       sys.gv$sql_plan_monitor
       where
         trace_id = '##REPLACE_TRACE_ID##'
-    
+
     ) plan_monitor
     LEFT JOIN
     (
@@ -1440,5 +1440,47 @@ sql_dict.set_value(
     '''
     SELECT SQL_PLAN_LINE_ID OP_ID, IF(EVENT = '', 'CPU + WAIT FOR CPU', EVENT) AS EVENT, WAIT_CLASS, COUNT(1) EVENT_CNT, ROUND(COUNT(1) * 100 / SUM(COUNT(1)) OVER (), 2) AS Percent, MAX(P1TEXT) P1TEXT, MAX(P1) P1, MAX(P2TEXT) P2TEXT,  MAX(P2) P2, MAX(P3TEXT) P3TEXT, MAX(P3) P3
      FROM OCEANBASE.GV$ACTIVE_SESSION_HISTORY A WHERE CON_ID = ##REPLACE_TENANT_ID## AND TRACE_ID = '##REPLACE_TRACE_ID##' GROUP BY A.SQL_PLAN_LINE_ID, A.EVENT, A.WAIT_CLASS ORDER BY 1 ASC, 4 DESC
+    ''',
+)
+
+# Histogram statistics for plan_monitor report (Issue #626).
+# MySQL mode: oceanbase.DBA_TAB_HISTOGRAMS uses OWNER (verified via SHOW COLUMNS).
+sql_dict.set_value(
+    "sql_plan_monitor_histogram_mysql",
+    '''
+    SELECT OWNER AS TABLE_OWNER, TABLE_NAME, COLUMN_NAME, ENDPOINT_NUMBER, ENDPOINT_VALUE, ENDPOINT_ACTUAL_VALUE
+    FROM oceanbase.DBA_TAB_HISTOGRAMS
+    WHERE OWNER = '##REPLACE_DATABASE_NAME##' AND TABLE_NAME = '##REPLACE_TABLE_NAME##'
+    ORDER BY COLUMN_NAME, ENDPOINT_NUMBER
+    ''',
+)
+# Oracle mode: SYS.DBA_TAB_HISTOGRAMS uses OWNER.
+sql_dict.set_value(
+    "sql_plan_monitor_histogram_oracle",
+    '''
+    SELECT OWNER AS TABLE_OWNER, TABLE_NAME, COLUMN_NAME, ENDPOINT_NUMBER, ENDPOINT_VALUE, ENDPOINT_ACTUAL_VALUE
+    FROM SYS.DBA_TAB_HISTOGRAMS
+    WHERE OWNER = '##REPLACE_DATABASE_NAME##' AND TABLE_NAME = '##REPLACE_TABLE_NAME##'
+    ORDER BY COLUMN_NAME, ENDPOINT_NUMBER
+    ''',
+)
+# Partition-level histogram (MySQL mode). Uses OWNER (verified via SHOW COLUMNS).
+sql_dict.set_value(
+    "sql_plan_monitor_part_histogram_mysql",
+    '''
+    SELECT OWNER AS TABLE_OWNER, TABLE_NAME, PARTITION_NAME, COLUMN_NAME, ENDPOINT_NUMBER, ENDPOINT_VALUE, ENDPOINT_ACTUAL_VALUE
+    FROM oceanbase.DBA_PART_HISTOGRAMS
+    WHERE OWNER = '##REPLACE_DATABASE_NAME##' AND TABLE_NAME = '##REPLACE_TABLE_NAME##'
+    ORDER BY PARTITION_NAME, COLUMN_NAME, ENDPOINT_NUMBER
+    ''',
+)
+# Partition-level histogram (Oracle mode).
+sql_dict.set_value(
+    "sql_plan_monitor_part_histogram_oracle",
+    '''
+    SELECT OWNER AS TABLE_OWNER, TABLE_NAME, PARTITION_NAME, COLUMN_NAME, ENDPOINT_NUMBER, ENDPOINT_VALUE, ENDPOINT_ACTUAL_VALUE
+    FROM SYS.DBA_PART_HISTOGRAMS
+    WHERE OWNER = '##REPLACE_DATABASE_NAME##' AND TABLE_NAME = '##REPLACE_TABLE_NAME##'
+    ORDER BY PARTITION_NAME, COLUMN_NAME, ENDPOINT_NUMBER
     ''',
 )

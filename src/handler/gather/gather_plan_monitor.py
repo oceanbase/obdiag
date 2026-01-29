@@ -91,9 +91,11 @@ class GatherPlanMonitorHandler(object):
                 os.makedirs(os.path.abspath(store_dir_option))
             self.local_stored_path = os.path.abspath(store_dir_option)
         if env_option is not None:
+            self.stdio.verbose("use db_connector")
             if not self.__init_db_conn(env_option):
                 return False
         else:
+            self.stdio.verbose("use sys_connector")
             self.db_connector = self.sys_connector
         if skip_option:
             self.skip = skip_option
@@ -194,6 +196,9 @@ class GatherPlanMonitorHandler(object):
                 # 检查表和列的collation一致性
                 self.stdio.verbose("[sql plan monitor report task] check table collation")
                 self.report_table_collation_check(user_sql, db_name)
+                # 统计信息直方图 (Issue #626)
+                self.stdio.verbose("[sql plan monitor report task] report table histograms")
+                self.report_table_histograms(user_sql, db_name)
                 # ASH 统计
                 self.stdio.verbose("[ash report task] report ash, sql: [{0}]".format(sql_ash_top_event))
                 self.report_ash_obversion4(sql_ash_top_event)
@@ -1371,4 +1376,98 @@ class GatherPlanMonitorHandler(object):
 
         except Exception as e:
             self.stdio.exception("report table collation check failed: {0}".format(str(e)))
+            pass
+
+    def sql_plan_monitor_histogram_sql(self, db_name, table_name):
+        """Get histogram query SQL for table-level statistics (Issue #626)."""
+        db_escaped = db_name.replace("'", "''") if db_name else ""
+        table_escaped = table_name.replace("'", "''") if table_name else ""
+        if self.tenant_mode == 'mysql':
+            sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_histogram_mysql")
+        else:
+            sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_histogram_oracle")
+        return str(sql).replace("##REPLACE_DATABASE_NAME##", db_escaped).replace("##REPLACE_TABLE_NAME##", table_escaped)
+
+    def sql_plan_monitor_part_histogram_sql(self, db_name, table_name):
+        """Get partition-level histogram query SQL (Issue #626)."""
+        db_escaped = db_name.replace("'", "''") if db_name else ""
+        table_escaped = table_name.replace("'", "''") if table_name else ""
+        if self.tenant_mode == 'mysql':
+            sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_part_histogram_mysql")
+        else:
+            sql = GlobalSqlMeta().get_value(key="sql_plan_monitor_part_histogram_oracle")
+        return str(sql).replace("##REPLACE_DATABASE_NAME##", db_escaped).replace("##REPLACE_TABLE_NAME##", table_escaped)
+
+    def report_table_histograms(self, sql, default_db_name):
+        """
+        Report histogram statistics for tables used in the SQL (Issue #626).
+        Uses DBA_TAB_HISTOGRAMS / DBA_PART_HISTOGRAMS per OceanBase docs.
+        """
+        try:
+            parser = SQLTableExtractor()
+            parse_tables = parser.parse(sql)
+            if not parse_tables:
+                self.stdio.verbose("No tables found in SQL, skip histogram report")
+                return
+
+            # OB 4.x has DBA_TAB_HISTOGRAMS; lower versions may not.
+            if self.ob_major_version < 4:
+                self.stdio.verbose("Histogram views (DBA_TAB_HISTOGRAMS) are supported from OB 4.x, skip")
+                return
+
+            section_added = False
+            for db_name, table_name in parse_tables:
+                if not db_name:
+                    db_name = default_db_name or (self.db_conn.get("database") if self.db_conn else None)
+                if not db_name:
+                    self.stdio.warn("Database name is empty for table {0}, skip histogram".format(table_name))
+                    continue
+
+                try:
+                    hist_sql = self.sql_plan_monitor_histogram_sql(db_name, table_name)
+                    self.stdio.verbose("execute histogram SQL for {0}.{1}".format(db_name, table_name))
+                    self.stdio.verbose("hist_sql: %s", hist_sql)
+                    cursor = self.db_connector.execute_sql_return_cursor(hist_sql)
+                    rows = cursor.fetchall()
+                    cursor.close()
+                    self.stdio.verbose("rows: %s", rows)
+                    if rows:
+                        if not section_added:
+                            self.__report("<div><h2 id='histogram_anchor'>统计信息直方图 (Histogram)</h2>")
+                            section_added = True
+                        self.stdio.verbose("section_added: %s", section_added)
+                        cursor_tbl = self.db_connector.execute_sql_return_cursor(hist_sql)
+                        tbl = from_db_cursor(cursor_tbl)
+                        tbl.align = 'l'
+                        self.__report("<h3>{0}.{1}</h3>".format(db_name, table_name))
+                        self.__report("<div class='v' style='display: none'>" + tbl.get_html_string() + "</div>")
+                        cursor_tbl.close()
+                        self.stdio.verbose("reported table-level histogram for {0}.{1}, rows: {2}".format(db_name, table_name, len(rows)))
+
+                    part_sql = self.sql_plan_monitor_part_histogram_sql(db_name, table_name)
+                    cursor_part = self.db_connector.execute_sql_return_cursor(part_sql)
+                    part_rows = cursor_part.fetchall()
+                    cursor_part.close()
+
+                    if part_rows:
+                        if not section_added:
+                            self.__report("<div><h2 id='histogram_anchor'>统计信息直方图 (Histogram)</h2>")
+                            section_added = True
+                        cursor_part_tbl = self.db_connector.execute_sql_return_cursor(part_sql)
+                        tbl_part = from_db_cursor(cursor_part_tbl)
+                        tbl_part.align = 'l'
+                        self.__report("<h3>{0}.{1} (分区直方图 DBA_PART_HISTOGRAMS)</h3>".format(db_name, table_name))
+                        self.__report("<div class='v' style='display: none'>" + tbl_part.get_html_string() + "</div>")
+                        cursor_part_tbl.close()
+                        self.stdio.verbose("reported part histogram for {0}.{1}, rows: {2}".format(db_name, table_name, len(part_rows)))
+
+                except Exception as e:
+                    self.stdio.warn("Failed to get histogram for {0}.{1}: {2}".format(db_name or "", table_name, str(e)))
+                    continue
+
+            if section_added:
+                self.__report("</div>")
+
+        except Exception as e:
+            self.stdio.exception("report table histograms failed: {0}".format(str(e)))
             pass
