@@ -1,0 +1,15 @@
+# Log volume (CLOG) statistics - see https://github.com/oceanbase/obdiag/issues/830
+info_en: "[log volume statistics] Display CLOG / log disk usage per server and per tenant (current snapshot). For size within a time range, run at start and end of the period and compare."
+info_cn: "[日志量统计] 展示各节点、各租户的 CLOG/日志盘使用情况（当前快照）。统计规定时间内大小可分别在时段起止各执行一次本场景后对比结果。"
+command: obdiag display scene run --scene=observer.log_volume_statistics
+task:
+  - version: "[4.0.0.0, *]"
+    steps:
+      - type: sql
+        tittle: "Server-level log disk (CLOG) usage"
+        sql: "SELECT SVR_IP, SVR_PORT, ZONE, concat(ROUND(LOG_DISK_CAPACITY/1024/1024/1024, 2), 'G') AS LOG_DISK_CAPACITY_GB, concat(ROUND(LOG_DISK_ASSIGNED/1024/1024/1024, 2), 'G') AS LOG_DISK_ASSIGNED_GB, concat(ROUND(LOG_DISK_IN_USE/1024/1024/1024, 2), 'G') AS LOG_DISK_IN_USE_GB, ROUND(100.0 * LOG_DISK_IN_USE / NULLIF(LOG_DISK_CAPACITY, 0), 2) AS USE_PCT FROM oceanbase.GV$OB_SERVERS ORDER BY ZONE, SVR_IP;"
+        global: true
+      - type: sql
+        tittle: "Tenant-level log disk (CLOG) usage"
+        sql: "SELECT t.tenant_name, a.svr_ip, a.svr_port, concat(ROUND(a.LOG_DISK_SIZE/1024/1024/1024, 2), 'G') AS LOG_DISK_SIZE_GB, concat(ROUND(a.LOG_DISK_IN_USE/1024/1024/1024, 2), 'G') AS LOG_DISK_IN_USE_GB, ROUND(100.0 * a.LOG_DISK_IN_USE / NULLIF(a.LOG_DISK_SIZE, 0), 2) AS USE_PCT FROM oceanbase.gv$ob_units a JOIN oceanbase.__all_tenant t ON a.tenant_id = t.tenant_id ORDER BY t.tenant_name, a.svr_ip;"
+        global: true
