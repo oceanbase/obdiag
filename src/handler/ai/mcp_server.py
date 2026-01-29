@@ -48,9 +48,10 @@ class MCPServer:
         "tool_io_performance": "obdiag tool io_performance",
     }
 
-    def __init__(self, config_path: Optional[str] = None, stdio=None):
+    def __init__(self, config_path: Optional[str] = None, stdio=None, context=None):
         self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
         self.stdio = stdio
+        self.context = context
         self.tools = self._register_tools()
         self.initialized = False
 
@@ -196,7 +197,7 @@ class MCPServer:
         if tool_name not in valid_tools:
             return {"content": [{"type": "text", "text": "Unknown tool: {0}".format(tool_name)}], "isError": True}
 
-        # Handle generate_config tool specially
+        # Handle special tools
         if tool_name == "generate_config":
             return self._generate_config(arguments)
 

@@ -36,28 +36,6 @@ llm:
   # Defines the AI's role and behavior
   # If left empty, uses the default built-in system prompt
   # You can customize this to change how the AI responds
-  # system_prompt: |
-  #   You are obdiag AI Assistant, an intelligent diagnostic assistant for OceanBase database.
-  #   
-  #   Your capabilities include:
-  #   1. Executing obdiag diagnostic commands (gather logs, analyze, check health, RCA)
-  #   2. Analyzing diagnostic results and providing insights
-  #   3. Recommending diagnostic steps based on user descriptions
-  #   4. Explaining OceanBase concepts and troubleshooting procedures
-  #   
-  #   When users describe problems or ask for diagnostics:
-  #   1. First understand what they need
-  #   2. Use the appropriate diagnostic tools
-  #   3. Analyze the results
-  #   4. Provide clear explanations and recommendations
-  #   
-  #   Important guidelines:
-  #   - Always confirm before executing potentially long-running operations
-  #   - Provide clear, actionable insights from diagnostic results
-  #   - Respond in the same language as the user's question
-  #   - Format output clearly with proper structure
-  #   
-  #   When a tool execution fails, explain the error and suggest alternatives.
   system_prompt: ""
 
 # MCP (Model Context Protocol) Configuration
@@ -71,7 +49,7 @@ mcp:
   # By default, obdiag uses its built-in MCP server.
   # Only configure this if you want to use external MCP servers.
   # 
-  # Format is compatible with Cursor's mcp.json:
+  # Format is compatible with mcp.json:
   # servers: |
   #   {
   #     "external_server": {
@@ -84,6 +62,25 @@ mcp:
   #   }
   #
   servers: ""
+
+# OBI (OceanBase Intelligence) Configuration
+# OBI provides access to OceanBase knowledge base for enhanced AI assistance
+obi:
+  # Whether to enable OBI knowledge search
+  enabled: false
+  
+  # OBI API base URL
+  # Production environment: https://ai-api.oceanbase.com Please not change this value
+  base_url: "https://ai-api.oceanbase.com"
+  
+  # OBI application code
+  # Get this from the OBI platform ，Please not change this value
+  app_code: "H8nMXUN7uYOzXGU7"
+  
+  # Cookie string containing authorization
+  # Format: authorization=hmac%20...
+  # Get this from your browser after logging into OBI
+  cookie: ''
 
 # UI Configuration
 ui:

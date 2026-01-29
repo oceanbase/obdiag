@@ -40,7 +40,7 @@ _obdiag_completion() {
                     type_list="list run"
                     ;;
                 tool)
-                    type_list="crypto_config ai_assistant"
+                    type_list="ai_assistant config_check crypto_config io_performance"
                     ;;
                 *)
                     type_list=""
