@@ -122,6 +122,25 @@ class TestSQLTableExtractor(unittest.TestCase):
         result = self.parser.parse(sql)
         self.assertEqual(result, [('db14', 'left_table'), ('db14', 'right_table')])
 
+    def test_insert_on_duplicate_key_update(self):
+        # Issue #902: ON DUPLICATE KEY UPDATE key1 = ... must not be parsed as table "key1"
+        sql = """
+        INSERT INTO dwd_credit_pro_transaction_snapshot_rt (
+            key1, key2, key3
+        ) VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            key1 = CASE WHEN VALUES(key3) > key3 THEN VALUES(key1) ELSE key1 END,
+            key2 = CASE WHEN VALUES(key3) >= key2 THEN VALUES(key2) ELSE key2 END
+        """
+        result = self.parser.parse(sql)
+        # Only the table after INTO should be returned, not key1/key2 from UPDATE clause
+        self.assertEqual(result, [(None, 'dwd_credit_pro_transaction_snapshot_rt')])
+
+    def test_insert_on_duplicate_key_update_with_db(self):
+        sql = "INSERT INTO dbname.tbname (key1, key2) VALUES (1, 2) ON DUPLICATE KEY UPDATE key1 = VALUES(key1)"
+        result = self.parser.parse(sql)
+        self.assertEqual(result, [('dbname', 'tbname')])
+
     def test_empty_query(self):
         result = self.parser.parse("")
         self.assertEqual(result, [])

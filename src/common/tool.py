@@ -1920,22 +1920,30 @@ class SQLUtil(object):
 class SQLTableExtractor:
 
     def __init__(self):
-        self.pattern_db_table = re.compile(r'\b(?:FROM|JOIN|INTO|UPDATE)\s+([^\s.,;]+)(?:\.([^\s.,;]+))?', re.IGNORECASE)
+        # Match FROM, JOIN, INTO, or UPDATE followed by table ref. Use capturing group for keyword to filter ON DUPLICATE KEY UPDATE.
+        self.pattern_db_table = re.compile(r'\b(FROM|JOIN|INTO|UPDATE)\s+([^\s.,;]+)(?:\.([^\s.,;]+))?', re.IGNORECASE)
+        self.pattern_on_duplicate_key = re.compile(r'\bON\s+DUPLICATE\s+KEY\b', re.IGNORECASE)
 
     def parse(self, sql):
         """
         Parse SQL statements and return a list containing tuples of (database name, table name).
         If no database name is specified, the database name will be None.
+        For INSERT ... ON DUPLICATE KEY UPDATE, only the table after INTO is returned; column names after UPDATE are ignored.
         :param sql: The SQL statement to be parsed
         :return: A list of tuples containing (database name, table name)
         """
-        matches = self.pattern_db_table.findall(sql)
+        # Find position of "ON DUPLICATE KEY" so we can ignore UPDATE matches that are part of it (Issue #902)
+        on_dup_match = self.pattern_on_duplicate_key.search(sql)
+        on_dup_pos = on_dup_match.start() if on_dup_match else -1
+
         results = []
-        for match in matches:
-            db_name, table_name = match
-            if not table_name:
-                table_name = db_name
-                db_name = None
+        for m in self.pattern_db_table.finditer(sql):
+            keyword, first, second = m.group(1), m.group(2), m.group(3)
+            # Ignore UPDATE when it is part of "ON DUPLICATE KEY UPDATE col = ..." (column name, not table) (Issue #902)
+            if keyword.upper() == 'UPDATE' and on_dup_pos >= 0 and m.start() > on_dup_pos:
+                continue
+            db_name = first if second else None
+            table_name = second if second else first
             results.append((db_name, table_name))
         return results
 
