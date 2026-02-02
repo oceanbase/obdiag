@@ -57,6 +57,8 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.zip_encrypt = False
         self.log_level = OBLogLevel.WARN
         self.config_path = const.DEFAULT_CONFIG_PATH
+        self.by_tenant = True  # Default: enable tenant statistics
+        self.tenant_id_filter = None  # If specified, only analyze this tenant
 
     def init_config(self):
         self.nodes = self.context.cluster_config['servers']
@@ -127,6 +129,10 @@ class AnalyzeLogHandler(BaseShellHandler):
             self.log_level = OBLogLevel().get_log_level(log_level_option)
         if temp_dir_option:
             self.gather_ob_log_temporary_dir = temp_dir_option
+        tenant_id_option = Util.get_option(options, 'tenant_id')
+        if tenant_id_option is not None:
+            self.tenant_id_filter = tenant_id_option.strip()
+            self.stdio.verbose("tenant_id filter: {0}".format(self.tenant_id_filter))
         return True
 
     def handle(self):
@@ -150,7 +156,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze start')
-        resp, node_results = self.__handle_offline(local_store_parent_dir)
+        resp, node_results, tenant_results_list = self.__handle_offline(local_store_parent_dir)
         analyze_tuples = [("127.0.0.1", False, resp["error"], node_results)]
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, True)
         analyze_info_nodes = []
@@ -179,6 +185,16 @@ class AnalyzeLogHandler(BaseShellHandler):
                     fileobj.write(u'{}'.format(field_names[n] + ": " + str(summary_details_list[m][n]) + extend))
                 summary_details_list_data_once[field_names[n]] = str(summary_details_list[m][n])
             summary_details_list_data.append(summary_details_list_data_once)
+        if self.by_tenant and tenant_results_list:
+            tenant_title, tenant_field_names, tenant_summary_list = self.__get_tenant_summary(tenant_results_list)
+            if tenant_summary_list:
+                tenant_table = tabulate.tabulate(tenant_summary_list, headers=tenant_field_names, tablefmt="grid", showindex=False)
+                self.stdio.print(tenant_title)
+                self.stdio.print(tenant_table)
+                with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+                    fileobj.write(u'{}'.format(tenant_title + str(tenant_table) + "\n\n"))
+            elif self.tenant_id_filter:
+                self.stdio.warn("No errors found for tenant: {0}".format(self.tenant_id_filter))
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
@@ -229,6 +245,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                 return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="extract gather tar failed: {0}".format(str(e)))
 
         analyze_tuples = []
+        tenant_results_list = []
         self.stdio.start_loading("analyze log start")
         for name in os.listdir(local_store_parent_dir):
             node_dir = os.path.join(local_store_parent_dir, name)
@@ -240,8 +257,9 @@ class AnalyzeLogHandler(BaseShellHandler):
             for log_f in sorted(log_files):
                 full_path = os.path.join(node_dir, log_f)
                 try:
-                    file_result = self.__parse_log_lines(full_path)
+                    file_result, tenant_result = self.__parse_log_lines(full_path)
                     node_results.append(file_result)
+                    tenant_results_list.append(tenant_result)
                 except Exception as e:
                     self.stdio.verbose("parse log file {0} failed: {1}".format(full_path, e))
             analyze_tuples.append((node_name, False, "", node_results))
@@ -272,6 +290,16 @@ class AnalyzeLogHandler(BaseShellHandler):
                     fileobj.write(u'{}'.format(field_names[n] + ": " + str(summary_details_list[m][n]) + extend))
                 summary_details_list_data_once[field_names[n]] = str(summary_details_list[m][n])
             summary_details_list_data.append(summary_details_list_data_once)
+        if self.by_tenant and tenant_results_list:
+            tenant_title, tenant_field_names, tenant_summary_list = self.__get_tenant_summary(tenant_results_list)
+            if tenant_summary_list:
+                tenant_table = tabulate.tabulate(tenant_summary_list, headers=tenant_field_names, tablefmt="grid", showindex=False)
+                self.stdio.print(tenant_title)
+                self.stdio.print(tenant_table)
+                with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
+                    fileobj.write(u'{}'.format(tenant_title + str(tenant_table) + "\n\n"))
+            elif self.tenant_id_filter:
+                self.stdio.warn("No errors found for tenant: {0}".format(self.tenant_id_filter))
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
@@ -299,21 +327,23 @@ class AnalyzeLogHandler(BaseShellHandler):
         if len(log_list) > self.file_number_limit:
             resp["skip"] = True
             resp["error"] = "Too many files {0} > {1}, Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
-            return resp, node_results
+            return resp, node_results, []
         if len(log_list) == 0:
             resp["skip"] = True
             resp["error"] = "No files found"
-            return resp, node_results
+            return resp, node_results, []
 
         self.stdio.print(FileUtil.show_file_list_tabulate("127.0.0.1", log_list, self.stdio))
         self.stdio.start_loading("analyze log start")
+        tenant_results_list = []
         for log_name in log_list:
             self.__pharse_offline_log_file(log_name=log_name, local_store_dir=local_store_dir)
             analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
-            file_result = self.__parse_log_lines(analyze_log_full_path)
+            file_result, tenant_result = self.__parse_log_lines(analyze_log_full_path)
             node_results.append(file_result)
+            tenant_results_list.append(tenant_result)
         self.stdio.stop_loading("succeed")
-        return resp, node_results
+        return resp, node_results, tenant_results_list
 
     def __get_log_name_list_offline(self):
         """
@@ -346,6 +376,27 @@ class AnalyzeLogHandler(BaseShellHandler):
         else:
             download_file(local_client, log_name, local_store_path, self.stdio)
 
+    def __get_tenant_from_log_line(self, log_line):
+        """
+        Extract tenant identifier from OceanBase observer log line.
+        Tries tname= (tenant name) first, then tenant_id= (numeric).
+        :param log_line: raw log line
+        :return: tenant string, or "_unknown_" when not found
+        """
+        if not log_line:
+            return "_unknown_"
+        # tname=tenant_name (common in OB log)
+        tname_pattern = r"tname=([^,\s)\]]+)"
+        tname_match = re.search(tname_pattern, log_line)
+        if tname_match:
+            return tname_match.group(1).strip()
+        # tenant_id=123 or tenant_id:123
+        tid_pattern = r"tenant_id[=:](\d+)"
+        tid_match = re.search(tid_pattern, log_line, re.IGNORECASE)
+        if tid_match:
+            return "tenant_id:" + tid_match.group(1)
+        return "_unknown_"
+
     def __get_observer_ret_code(self, log_line):
         """
         Get the ret code from the observer log
@@ -369,11 +420,13 @@ class AnalyzeLogHandler(BaseShellHandler):
 
     def __parse_log_lines(self, file_full_path):
         """
-        Process the observer's log line by line
+        Process the observer's log line by line.
         :param file_full_path
-        :return: error_dict
+        :return: (error_dict, tenant_error_dict). tenant_error_dict is {} when by_tenant is False.
+                 tenant_error_dict[tenant][ret_code] = {file_name, count, first_found_time, last_found_time, trace_id_list}
         """
         error_dict = {}
+        tenant_error_dict = {}
         self.crash_error = ""
         self.stdio.verbose("start parse log {0}".format(file_full_path))
         with open(file_full_path, 'r', encoding='utf8', errors='ignore') as file:
@@ -382,12 +435,12 @@ class AnalyzeLogHandler(BaseShellHandler):
                 line_num = line_num + 1
                 line = line.strip()
                 if line:
-                    ##新增CRASH ERROR日志过滤
+                    ## CRASH ERROR log
                     if line.find("CRASH ERROR") != -1:
                         ret_code = "CRASH_ERROR"
                         line_time = ""
                         trace_id = ""
-                        ## 提取tname
+                        ## extract tname
                         tname_pattern = r"tname=([^,]+)"
                         tname_match = re.search(tname_pattern, line)
                         if tname_match:
@@ -402,6 +455,9 @@ class AnalyzeLogHandler(BaseShellHandler):
                         else:
                             count = error_dict[ret_code]["count"] + 1
                             error_dict[ret_code] = {"file_name": file_full_path, "count": count, "first_found_time": line_time, "last_found_time": line_time, "trace_id_list": trace_id}
+                        if self.by_tenant:
+                            tenant = self.__get_tenant_from_log_line(line)
+                            self.__merge_tenant_error(tenant_error_dict, tenant, ret_code, file_full_path, line_time, line_time, trace_id)
                         continue
                     line_time = self.__get_time_from_ob_log_line(line)
                     if len(line_time) == 0:
@@ -424,8 +480,53 @@ class AnalyzeLogHandler(BaseShellHandler):
                             if not (trace_id in trace_id_list):
                                 trace_id_list.append(trace_id)
                             error_dict[ret_code] = {"file_name": file_full_path, "count": count, "first_found_time": first_found_time, "last_found_time": last_found_time, "trace_id_list": trace_id_list}
+                        if self.by_tenant:
+                            tenant = self.__get_tenant_from_log_line(line)
+                            self.__merge_tenant_error(tenant_error_dict, tenant, ret_code, file_full_path, line_time, line_time, trace_id)
         self.stdio.verbose("complete parse log {0}".format(file_full_path))
-        return error_dict
+        return (error_dict, tenant_error_dict)
+
+    def __merge_tenant_error(self, tenant_error_dict, tenant, ret_code, file_name, line_time_first, line_time_last, trace_id):
+        """Merge one error occurrence into tenant_error_dict[tenant][ret_code]."""
+        # Filter by tenant_id if specified
+        if self.tenant_id_filter is not None:
+            # Support both tenant name and tenant_id:xxx format
+            if tenant == "_unknown_":
+                return  # Skip unknown tenants when filter is specified
+            # Check if tenant matches filter (exact match or tenant_id:xxx format)
+            filter_match = False
+            if tenant == self.tenant_id_filter:
+                filter_match = True
+            elif self.tenant_id_filter.startswith("tenant_id:"):
+                # Filter format: tenant_id:123, match against tenant_id:xxx
+                if tenant.startswith("tenant_id:") and tenant == self.tenant_id_filter:
+                    filter_match = True
+            elif tenant.startswith("tenant_id:"):
+                # Extract numeric ID from tenant (tenant_id:123) and compare with filter (could be "123" or "tenant_id:123")
+                tenant_id_num = tenant.replace("tenant_id:", "")
+                if tenant_id_num == self.tenant_id_filter or self.tenant_id_filter == "tenant_id:" + tenant_id_num:
+                    filter_match = True
+            if not filter_match:
+                return  # Skip this tenant if it doesn't match filter
+        
+        if tenant not in tenant_error_dict:
+            tenant_error_dict[tenant] = {}
+        if ret_code not in tenant_error_dict[tenant]:
+            tenant_error_dict[tenant][ret_code] = {
+                "file_name": file_name,
+                "count": 0,
+                "first_found_time": line_time_first,
+                "last_found_time": line_time_last,
+                "trace_id_list": [],
+            }
+        rec = tenant_error_dict[tenant][ret_code]
+        rec["count"] += 1
+        if rec["first_found_time"] > line_time_first or not rec["first_found_time"]:
+            rec["first_found_time"] = line_time_first
+        if rec["last_found_time"] < line_time_last:
+            rec["last_found_time"] = line_time_last
+        if trace_id and trace_id not in rec["trace_id_list"]:
+            rec["trace_id_list"].append(trace_id)
 
     def __get_time_from_ob_log_line(self, log_line):
         """
@@ -521,3 +622,83 @@ class AnalyzeLogHandler(BaseShellHandler):
         t.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
         t_details.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=False)
         return title, field_names, t, t_details
+
+    def __merge_tenant_results(self, tenant_results_list):
+        """
+        Merge list of tenant_error_dict from multiple files into one.
+        tenant_results_list: list of dict[tenant][ret_code] = {file_name, count, first_found_time, last_found_time, trace_id_list}
+        """
+        merged = {}
+        for tenant_dict in tenant_results_list:
+            for tenant, ret_dict in tenant_dict.items():
+                if tenant not in merged:
+                    merged[tenant] = {}
+                for ret_code, rec in ret_dict.items():
+                    if ret_code not in merged[tenant]:
+                        merged[tenant][ret_code] = {
+                            "file_name": rec["file_name"],
+                            "count": 0,
+                            "first_found_time": rec["first_found_time"],
+                            "last_found_time": rec["last_found_time"],
+                            "trace_id_list": list(rec["trace_id_list"]) if isinstance(rec["trace_id_list"], list) else [],
+                        }
+                    else:
+                        m = merged[tenant][ret_code]
+                        m["count"] += rec["count"]
+                        if rec["first_found_time"] and (not m["first_found_time"] or m["first_found_time"] > rec["first_found_time"]):
+                            m["first_found_time"] = rec["first_found_time"]
+                        if rec["last_found_time"] and (not m["last_found_time"] or m["last_found_time"] < rec["last_found_time"]):
+                            m["last_found_time"] = rec["last_found_time"]
+                        for tid in rec["trace_id_list"] if isinstance(rec["trace_id_list"], list) else []:
+                            if tid and tid not in m["trace_id_list"]:
+                                m["trace_id_list"].append(tid)
+        return merged
+
+    def __get_tenant_summary(self, tenant_results_list):
+        """
+        Build summary table by tenant dimension from merged tenant_error_dict.
+        :param tenant_results_list: list of tenant_error_dict per file
+        :return: (title, field_names, summary_list)
+        """
+        merged = self.__merge_tenant_results(tenant_results_list)
+        field_names = ["Tenant", "ErrorCode", "Message", "Count", "First Found Time", "Last Found Time"]
+        if self.tenant_id_filter:
+            title = "\nAnalyze OceanBase Log Summary (By Tenant - Filtered: {0}):\n".format(self.tenant_id_filter)
+        else:
+            title = "\nAnalyze OceanBase Log Summary (By Tenant):\n"
+        summary_list = []
+        for tenant, ret_dict in sorted(merged.items()):
+            # Additional filter check in summary (should already be filtered in __merge_tenant_error, but double-check)
+            if self.tenant_id_filter is not None:
+                filter_match = False
+                if tenant == self.tenant_id_filter:
+                    filter_match = True
+                elif self.tenant_id_filter.startswith("tenant_id:"):
+                    if tenant.startswith("tenant_id:") and tenant == self.tenant_id_filter:
+                        filter_match = True
+                elif tenant.startswith("tenant_id:"):
+                    tenant_id_num = tenant.replace("tenant_id:", "")
+                    if tenant_id_num == self.tenant_id_filter or self.tenant_id_filter == "tenant_id:" + tenant_id_num:
+                        filter_match = True
+                if not filter_match:
+                    continue
+            
+            for ret_code, rec in ret_dict.items():
+                error_code_info = OB_RET_DICT.get(ret_code, "")
+                message = ""
+                if ret_code == "CRASH_ERROR":
+                    message = getattr(self, "crash_error", "") or "crash thread"
+                elif error_code_info != "":
+                    message = error_code_info[1] if len(error_code_info) > 1 else ""
+                if not error_code_info and ret_code != "CRASH_ERROR":
+                    continue
+                summary_list.append([
+                    tenant,
+                    ret_code,
+                    message,
+                    rec["count"],
+                    rec.get("first_found_time") or "",
+                    rec.get("last_found_time") or "",
+                ])
+        summary_list.sort(key=lambda x: (x[0], x[1], x[3]), reverse=False)
+        return title, field_names, summary_list
