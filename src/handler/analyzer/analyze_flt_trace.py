@@ -29,6 +29,9 @@ from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.result_type import ObdiagResult
+from src.common.ob_connector import OBConnector
+from src.common.command import get_observer_version
+from src.common.tool import StringUtils
 
 
 class AnalyzeFltTraceHandler(object):
@@ -51,8 +54,10 @@ class AnalyzeFltTraceHandler(object):
         self.gather_timestamp = TimeUtils.get_current_us_timestamp()
 
     def init_config(self):
-        self.nodes = self.context.cluster_config['servers']
-        self.obproxy_nodes = self.context.obproxy_config['servers']
+        self.nodes = self.context.cluster_config.get('servers', [])
+        self.obproxy_nodes = self.context.obproxy_config.get('servers', [])
+        # Note: Filtering will be done after collecting FLT trace logs
+        # because we need to extract SQL trace_id or time range from the logs first
         if len(self.obproxy_nodes) > 0:
             self.nodes.extend(self.obproxy_nodes)
         self.inner_config = self.context.inner_config
@@ -111,12 +116,54 @@ class AnalyzeFltTraceHandler(object):
                 node_files.append([node, node_file])
                 analyze_tuples.append((node.get("ip"), False, resp["error"], node_file))
 
+        # First, collect logs from observer nodes to extract SQL trace_ids or time range
+        observer_nodes = [n for n in self.nodes if n.get("host_type") != "OBPROXY"]
+        obproxy_nodes_list = [n for n in self.nodes if n.get("host_type") == "OBPROXY"]
+
+        # Collect observer logs first
+        observer_files = []
         if self.is_ssh:
-            for node in self.nodes:
-                handle_from_node(node)
+            for node in observer_nodes:
+                resp, node_file_s = self.__handle_from_node(node, old_files, local_store_parent_dir)
+                old_files.extend(node_file_s)
+                for node_file in node_file_s:
+                    observer_files.append([node, node_file])
+                    node_files.append([node, node_file])
+                    analyze_tuples.append((node.get("ip"), False, resp["error"], node_file))
         else:
             local_ip = '127.0.0.1'
-            node = self.nodes[0]
+            if observer_nodes:
+                node = observer_nodes[0]
+                node["ip"] = local_ip
+                resp, node_file_s = self.__handle_from_node(node, old_files, local_store_parent_dir)
+                old_files.extend(node_file_s)
+                for node_file in node_file_s:
+                    observer_files.append([node, node_file])
+                    node_files.append([node, node_file])
+                    analyze_tuples.append((node.get("ip"), False, resp["error"], node_file))
+
+        # Filter obproxy nodes based on client_ip from gv$ob_sql_audit after collecting observer logs
+        # Extract SQL trace_ids or time range from collected FLT trace logs
+        # If no matching obproxy nodes are found, fallback to old strategy (scan all obproxy nodes)
+        filtered_obproxy_nodes = None
+        if self.flt_trace_id and len(obproxy_nodes_list) > 0 and len(observer_files) > 0:
+            filtered_obproxy_nodes = self.__filter_obproxy_nodes_by_client_ip_from_logs(observer_files)
+            if filtered_obproxy_nodes is not None and len(filtered_obproxy_nodes) > 0:
+                original_count = len(obproxy_nodes_list)
+                filtered_count = len(filtered_obproxy_nodes)
+                self.stdio.print("Successfully filtered obproxy nodes: {0} -> {1} nodes (reduced by {2} nodes)".format(original_count, filtered_count, original_count - filtered_count))
+                obproxy_nodes_list = filtered_obproxy_nodes
+            else:
+                # No matching obproxy nodes found, fallback to old strategy: use all obproxy nodes
+                self.stdio.print("No matching obproxy nodes found by client_ip, fallback to old strategy: collect logs from all {0} obproxy node(s)".format(len(obproxy_nodes_list)))
+
+        # Collect logs from filtered obproxy nodes (or all obproxy nodes when fallback)
+        if self.is_ssh:
+            for node in obproxy_nodes_list:
+                handle_from_node(node)
+        elif obproxy_nodes_list:
+            local_ip = '127.0.0.1'
+            node = obproxy_nodes_list[0]
             node["ip"] = local_ip
             handle_from_node(node)
 
@@ -367,6 +414,288 @@ class AnalyzeFltTraceHandler(object):
                 if line_nu > 60:
                     break
         return result_info
+
+    def __get_sql_audit_view_name(self):
+        """
+        Get the correct SQL audit view name based on OceanBase version.
+        Returns 'gv$ob_sql_audit' for OB 4.x, 'gv$sql_audit' for OB 3.x.
+        """
+        try:
+            ob_version = get_observer_version(self.context)
+            is_ob4 = StringUtils.compare_versions_greater(ob_version, "4.0.0.0") or ob_version.startswith("4.")
+            if is_ob4:
+                return "oceanbase.gv$ob_sql_audit"
+            else:
+                return "oceanbase.gv$sql_audit"
+        except Exception as e:
+            self.stdio.warn("Failed to get OceanBase version, defaulting to 3.x view name (gv$sql_audit): {0}".format(str(e)))
+            return "oceanbase.gv$sql_audit"
+
+    def __filter_obproxy_nodes_by_client_ip_from_logs(self, node_files):
+        """
+        Filter obproxy nodes based on client_ip extracted from FLT trace logs.
+        First try to extract SQL trace_ids from FLT trace logs, then query SQL audit view.
+        If SQL trace_ids are not found, try to extract time range and query by time range.
+        Returns filtered obproxy nodes list, or None if filtering failed.
+        """
+        try:
+            ob_cluster = self.context.cluster_config
+            if not ob_cluster or not ob_cluster.get("db_host"):
+                self.stdio.warn("Database connection not available, skip obproxy node filtering")
+                return None
+
+            # Get all obproxy nodes from config
+            all_obproxy_nodes = self.context.obproxy_config.get('servers', [])
+            if not all_obproxy_nodes:
+                self.stdio.verbose("No obproxy nodes configured, skip filtering")
+                return None
+
+            # Get correct SQL audit view name based on OB version
+            sql_audit_view = self.__get_sql_audit_view_name()
+            self.stdio.print("Starting to filter obproxy nodes based on client_ip from {0} for FLT trace_id: {1}".format(sql_audit_view, self.flt_trace_id))
+            self.stdio.print("Original obproxy nodes count: {0}".format(len(all_obproxy_nodes)))
+
+            # Extract SQL trace_ids from collected FLT trace logs
+            sql_trace_ids = self.__extract_sql_trace_ids_from_logs(node_files)
+            time_range = self.__extract_time_range_from_logs(node_files)
+
+            # Create ob_connector to query SQL audit view
+            self.stdio.verbose("Connecting to database {0}:{1} to query {2}".format(ob_cluster.get("db_host"), ob_cluster.get("db_port"), sql_audit_view))
+            ob_connector = OBConnector(
+                context=self.context,
+                ip=ob_cluster.get("db_host"),
+                port=ob_cluster.get("db_port"),
+                username=ob_cluster.get("tenant_sys").get("user"),
+                password=ob_cluster.get("tenant_sys").get("password"),
+                timeout=10000,
+            )
+
+            client_ips = set()
+
+            # First, try to query by SQL trace_ids extracted from logs
+            if sql_trace_ids:
+                self.stdio.verbose("Found {0} SQL trace_id(s) in FLT trace logs".format(len(sql_trace_ids)))
+                client_ips.update(self.__query_client_ip_by_sql_trace_ids(ob_connector, sql_trace_ids, sql_audit_view))
+
+            # If no client_ip found, try to query by time range
+            if not client_ips and time_range:
+                self.stdio.verbose("Querying {0} by time range: {1} to {2}".format(sql_audit_view, time_range[0], time_range[1]))
+                client_ips.update(self.__query_client_ip_by_time_range(ob_connector, time_range, sql_audit_view))
+
+            # Fallback: try direct FLT trace_id query (in case they match)
+            if not client_ips:
+                self.stdio.verbose("Trying direct FLT trace_id query as fallback")
+                client_ips.update(self.__query_client_ip_by_flt_trace_id(ob_connector, sql_audit_view))
+
+            if not client_ips:
+                self.stdio.warn("No client_ip found in {0}, using all obproxy nodes".format(sql_audit_view))
+                return None
+
+            # Filter obproxy nodes by matching IP
+            self.stdio.print("Found {0} distinct client_ip(s): {1}".format(len(client_ips), ", ".join(sorted(client_ips)) if client_ips else "none"))
+            self.stdio.verbose("Matching obproxy nodes with client_ip(s)...")
+            filtered_nodes = []
+            for node in all_obproxy_nodes:
+                node_ip = node.get("ip", "").strip()
+                if node_ip in client_ips:
+                    filtered_nodes.append(node)
+                    self.stdio.verbose("Matched obproxy node: {0}".format(node_ip))
+
+            if len(filtered_nodes) == 0:
+                self.stdio.warn("No obproxy nodes matched the client_ip(s), using all obproxy nodes")
+                return None
+
+            return filtered_nodes
+
+        except Exception as e:
+            self.stdio.warn("Failed to filter obproxy nodes by client_ip: {0}, using all obproxy nodes".format(str(e)))
+            self.stdio.verbose(traceback.format_exc())
+            return None
+
+    def __extract_sql_trace_ids_from_logs(self, node_files):
+        """Extract SQL trace_ids from FLT trace log files."""
+        sql_trace_ids = set()
+        import re
+
+        # SQL trace_id pattern: YB format like YB42060CEBF7-000648E247342CEF-0-0
+        sql_trace_id_pattern = re.compile(r'YB[0-9A-F]+-[0-9A-F]+-[0-9]+-[0-9]+')
+
+        for node_file_pair in node_files:
+            file_path = node_file_pair[1]
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        matches = sql_trace_id_pattern.findall(line)
+                        for match in matches:
+                            sql_trace_ids.add(match)
+            except Exception as e:
+                self.stdio.verbose("Failed to read file {0}: {1}".format(file_path, str(e)))
+
+        return list(sql_trace_ids)
+
+    def __extract_time_range_from_logs(self, node_files):
+        """Extract time range from FLT trace log files."""
+        import re
+        from datetime import datetime, timedelta
+
+        timestamps = []
+        # Try to extract timestamps from log lines (format may vary)
+        timestamp_patterns = [
+            re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'),  # YYYY-MM-DD HH:MM:SS
+            re.compile(r'"start_ts":\s*(\d+)'),  # JSON format start_ts
+            re.compile(r'"end_ts":\s*(\d+)'),  # JSON format end_ts
+        ]
+
+        for node_file_pair in node_files:
+            file_path = node_file_pair[1]
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        # Try pattern 1: datetime string
+                        match = timestamp_patterns[0].search(line)
+                        if match:
+                            try:
+                                dt = datetime.strptime(match.group(), '%Y-%m-%d %H:%M:%S')
+                                timestamps.append(dt)
+                            except:
+                                pass
+                        # Try pattern 2 & 3: timestamp in microseconds
+                        for pattern in timestamp_patterns[1:]:
+                            match = pattern.search(line)
+                            if match:
+                                try:
+                                    ts_us = int(match.group(1))
+                                    # Convert microseconds to datetime (assuming microseconds since epoch)
+                                    dt = datetime.fromtimestamp(ts_us / 1000000)
+                                    timestamps.append(dt)
+                                except:
+                                    pass
+            except Exception as e:
+                self.stdio.verbose("Failed to read file {0}: {1}".format(file_path, str(e)))
+
+        if timestamps:
+            min_time = min(timestamps)
+            max_time = max(timestamps)
+            # Add buffer: 5 minutes before and after
+            time_from = (min_time - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
+            time_to = (max_time + timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
+            return (time_from, time_to)
+
+        return None
+
+    def __query_client_ip_by_sql_trace_ids(self, ob_connector, sql_trace_ids, sql_audit_view):
+        """Query client_ip from SQL audit view by SQL trace_ids."""
+        client_ips = set()
+        if not sql_trace_ids:
+            return client_ips
+
+        # Build SQL with IN clause
+        trace_ids_str = "', '".join(sql_trace_ids)
+        sql = """
+            SELECT DISTINCT client_ip 
+            FROM {0}
+            WHERE trace_id IN ('{1}')
+            AND client_ip IS NOT NULL 
+            AND length(client_ip) > 0
+            LIMIT 1000
+        """.format(
+            sql_audit_view, trace_ids_str
+        )
+
+        try:
+            self.stdio.verbose("Querying {0} by SQL trace_ids".format(sql_audit_view))
+            result = ob_connector.execute_sql(sql)
+            if result:
+                for row in result:
+                    if row and len(row) > 0 and row[0]:
+                        client_ip = str(row[0]).strip()
+                        if client_ip:
+                            client_ips.add(client_ip)
+                            self.stdio.verbose("Found client_ip: {0}".format(client_ip))
+        except Exception as e:
+            self.stdio.verbose("Failed to query {0} by SQL trace_ids: {1}".format(sql_audit_view, str(e)))
+
+        return client_ips
+
+    def __query_client_ip_by_time_range(self, ob_connector, time_range, sql_audit_view):
+        """Query client_ip from SQL audit view by time range."""
+        client_ips = set()
+        if not time_range:
+            return client_ips
+
+        time_from, time_to = time_range
+        # OB 4.x uses usec_to_time, OB 3.x uses from_unixtime
+        if "gv$ob_sql_audit" in sql_audit_view:
+            # OB 4.x
+            sql = """
+                SELECT DISTINCT client_ip 
+                FROM {0}
+                WHERE usec_to_time(request_time) >= '{1}'
+                AND usec_to_time(request_time) <= '{2}'
+                AND client_ip IS NOT NULL 
+                AND length(client_ip) > 0
+                LIMIT 1000
+            """.format(
+                sql_audit_view, time_from, time_to
+            )
+        else:
+            # OB 3.x
+            sql = """
+                SELECT DISTINCT client_ip 
+                FROM {0}
+                WHERE from_unixtime(request_time/1000000) >= '{1}'
+                AND from_unixtime(request_time/1000000) <= '{2}'
+                AND client_ip IS NOT NULL 
+                AND length(client_ip) > 0
+                LIMIT 1000
+            """.format(
+                sql_audit_view, time_from, time_to
+            )
+
+        try:
+            self.stdio.verbose("Querying {0} by time range".format(sql_audit_view))
+            result = ob_connector.execute_sql(sql)
+            if result:
+                for row in result:
+                    if row and len(row) > 0 and row[0]:
+                        client_ip = str(row[0]).strip()
+                        if client_ip:
+                            client_ips.add(client_ip)
+                            self.stdio.verbose("Found client_ip: {0}".format(client_ip))
+        except Exception as e:
+            self.stdio.verbose("Failed to query {0} by time range: {1}".format(sql_audit_view, str(e)))
+
+        return client_ips
+
+    def __query_client_ip_by_flt_trace_id(self, ob_connector, sql_audit_view):
+        """Query client_ip from SQL audit view by FLT trace_id (fallback)."""
+        client_ips = set()
+
+        sql = """
+            SELECT DISTINCT client_ip 
+            FROM {0}
+            WHERE trace_id = '{1}' 
+            AND client_ip IS NOT NULL 
+            AND length(client_ip) > 0
+            LIMIT 1000
+        """.format(
+            sql_audit_view, self.flt_trace_id
+        )
+
+        try:
+            self.stdio.verbose("Querying {0} by FLT trace_id (fallback)".format(sql_audit_view))
+            result = ob_connector.execute_sql(sql)
+            if result:
+                for row in result:
+                    if row and len(row) > 0 and row[0]:
+                        client_ip = str(row[0]).strip()
+                        if client_ip:
+                            client_ips.add(client_ip)
+                            self.stdio.verbose("Found client_ip: {0}".format(client_ip))
+        except Exception as e:
+            self.stdio.verbose("Failed to query {0} by FLT trace_id: {1}".format(sql_audit_view, str(e)))
+
+        return client_ips
 
     def parse_file(self, file):
         self.stdio.verbose('parse file: {}'.format(file[1]))
