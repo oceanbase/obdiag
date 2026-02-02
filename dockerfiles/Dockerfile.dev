@@ -19,6 +19,7 @@ RUN rm -rf /etc/yum.repos.d/* \
 && source /opt/miniconda/bin/activate obdiag \
 && python3 -m pip install --upgrade pip wheel
 
-COPY ./requirements3.txt /workspaces/obdiag/requirements3.txt
-RUN /opt/miniconda/envs/obdiag/bin/pip install -r /workspaces/obdiag/requirements3.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+COPY ./pyproject.toml ./LICENSE /workspaces/obdiag/
+COPY ./src /workspaces/obdiag/src
+RUN /opt/miniconda/envs/obdiag/bin/pip install -e /workspaces/obdiag -i https://pypi.tuna.tsinghua.edu.cn/simple
 RUN echo "source /opt/miniconda/bin/activate obdiag" >> ~/.bashrc

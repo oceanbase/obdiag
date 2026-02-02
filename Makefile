@@ -107,14 +107,10 @@ check_python:
 		(echo "Error: Python version must be >= $(PYTHON_MIN_MAJOR).$(PYTHON_MIN_MINOR)" && exit 1)
 	@echo "Python version check passed"
 
-# Install requirements
+# Install requirements (from pyproject.toml)
 install_requirements:
-	@echo "Installing requirements..."
-	@if [ -f "$(PROJECT_PATH)/requirements3.txt" ]; then \
-		pip3 install -r $(PROJECT_PATH)/requirements3.txt; \
-	else \
-		echo "No requirements3.txt file found"; \
-	fi
+	@echo "Installing dependencies from pyproject.toml..."
+	@pip3 install -e "$(PROJECT_PATH)"
 
 # Backup obdiag folders
 backup_obdiag:

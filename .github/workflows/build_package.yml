@@ -38,7 +38,7 @@ jobs:
           source /opt/miniconda3/bin/activate obdiag
           /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
           source activate obdiag
-          pip3 install -r requirements3.txt
+          pip3 install .[build]
           make pack
 
       - name: "Upload rpm"
@@ -108,13 +108,10 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          # Install requirements excluding pyminizip (compilation issues on macOS)
-          grep -v "pyminizip" requirements3.txt > requirements_macos.txt
-          pip3 install -r requirements_macos.txt
-          # Install pyzipper as replacement for pyminizip
+          # Install project (macos extras: pyzipper instead of pyminizip) and build tools
+          pip3 install .[macos,build]
+          pip3 uninstall -y pyminizip 2>/dev/null || true
           pip3 install pyzipper==0.3.6
-          # Install PyInstaller for building binary
-          pip3 install pyinstaller
 
       - name: Update version info
         run: |
