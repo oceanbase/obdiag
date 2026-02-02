@@ -104,15 +104,10 @@ install_dependencies() {
         source "$VENV_DIR/bin/activate"
         pip install --upgrade pip wheel
         
-        # Install requirements (use macOS-specific file to avoid pyminizip compilation issues)
-        if [ -f "requirements3.txt" ]; then
-            grep -v "pyminizip" requirements3.txt > /tmp/requirements_filtered.txt
-            pip install -r /tmp/requirements_filtered.txt || true
-            rm -f /tmp/requirements_filtered.txt
-        fi
-        
-        # Install pyzipper as macOS replacement for pyminizip
-        pip install pyzipper==0.3.6
+        # Install from pyproject.toml: prefer [macos] extra (pyzipper); fallback to base then add pyzipper
+        pip install -e ".[macos]" || pip install -e .
+        pip uninstall -y pyminizip 2>/dev/null || true
+        pip install "pyzipper==0.3.6"
         
         deactivate
     fi

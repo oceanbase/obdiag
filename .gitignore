@@ -3,6 +3,8 @@
 venv/
 .venv/
 *.pyc
+*.egg-info/
+*.egg
 *site-packages/
 dependencies/bin/obstack*
 obdiag_gather_pack_*
