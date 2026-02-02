@@ -38,7 +38,7 @@ jobs:
           source /opt/miniconda3/bin/activate obdiag
           /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
           source activate obdiag
-          pip3 install .
+          pip3 install .[build]
           make pack
 
       - name: "Upload rpm"

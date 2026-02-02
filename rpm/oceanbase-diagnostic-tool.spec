@@ -25,7 +25,7 @@ VERSION="$RPM_PACKAGE_VERSION"
 
 cd $SRC_DIR
 pwd
-pip install .
+pip install .[build]
 cp -f src/main.py src/obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./src/common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./src/common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
