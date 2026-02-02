@@ -508,7 +508,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                     filter_match = True
             if not filter_match:
                 return  # Skip this tenant if it doesn't match filter
-        
+
         if tenant not in tenant_error_dict:
             tenant_error_dict[tenant] = {}
         if ret_code not in tenant_error_dict[tenant]:
@@ -682,7 +682,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                         filter_match = True
                 if not filter_match:
                     continue
-            
+
             for ret_code, rec in ret_dict.items():
                 error_code_info = OB_RET_DICT.get(ret_code, "")
                 message = ""
@@ -692,13 +692,15 @@ class AnalyzeLogHandler(BaseShellHandler):
                     message = error_code_info[1] if len(error_code_info) > 1 else ""
                 if not error_code_info and ret_code != "CRASH_ERROR":
                     continue
-                summary_list.append([
-                    tenant,
-                    ret_code,
-                    message,
-                    rec["count"],
-                    rec.get("first_found_time") or "",
-                    rec.get("last_found_time") or "",
-                ])
+                summary_list.append(
+                    [
+                        tenant,
+                        ret_code,
+                        message,
+                        rec["count"],
+                        rec.get("first_found_time") or "",
+                        rec.get("last_found_time") or "",
+                    ]
+                )
         summary_list.sort(key=lambda x: (x[0], x[1], x[3]), reverse=False)
         return title, field_names, summary_list
