@@ -5,7 +5,7 @@ SHELL := /bin/bash
 PROJECT_PATH := $(shell pwd)
 WORK_DIR := $(shell pwd)
 OBDIAG_HOME ?= $(HOME)/.obdiag
-RELEASE := $(shell date +%Y%m%d%H)
+RELEASE ?= $(shell date +%Y%m%d%H%M)
 OBDIAG_VERSION ?= 4.1.0
 
 # URLs for obstack downloads
