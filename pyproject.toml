@@ -82,3 +82,6 @@ macos = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+
+[project.scripts]
+obdiag = "src.main:main"
