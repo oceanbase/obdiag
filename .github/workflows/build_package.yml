@@ -98,7 +98,7 @@ jobs:
         id: version
         run: |
           VERSION=$(grep -E "^OBDIAG_VERSION" Makefile | head -1 | cut -d'=' -f2 | tr -d ' ' || echo "4.0.0")
-          RELEASE=$(date +%Y%m%d%H%M)
+          RELEASE=$(date +%Y%m%d%H)
           ARCH=$(uname -m)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "release=${RELEASE}" >> $GITHUB_OUTPUT

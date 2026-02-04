@@ -17,7 +17,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Version
 VERSION="${OBDIAG_VERSION:-4.0.0}"
-RELEASE="${RELEASE:-$(date +%Y%m%d%H%M)}"
+RELEASE="${RELEASE:-$(date +%Y%m%d%H)}"
 ARCH=$(uname -m)  # arm64 or x86_64
 
 # Build directories
