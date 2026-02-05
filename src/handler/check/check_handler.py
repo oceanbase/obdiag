@@ -372,7 +372,6 @@ class CheckHandler:
             report.add_fail("Task execution failed: {0}".format(str(e)))
             return report
 
-
     def __get_current_os(self):
         """
         Get the current operating system type.

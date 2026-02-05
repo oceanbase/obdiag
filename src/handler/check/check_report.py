@@ -173,11 +173,11 @@ class CheckReport:
             fp = open(self.report_path + ".table", 'a+', encoding='utf-8')
             fp.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
             fp.write("report time: {0}\n\n".format(self.report_time))
-            
+
             # Check if this is build_before case (should not get version)
             cases_option = Util.get_option(self.context.options, 'cases')
             is_build_before = cases_option == "build_before"
-            
+
             if self.report_target == "observer":
                 if not is_build_before:
                     observer_version = get_observer_version(self.context)
@@ -379,11 +379,11 @@ class CheckReport:
             fp.write(template_head.render(report_title=report_title_str) + "\n")
             template_report_info_table = Template(html_template_report_info_table)
             cluster_ips = ""
-            
+
             # Check if this is build_before case (should not get version)
             cases_option = Util.get_option(self.context.options, 'cases')
             is_build_before = cases_option == "build_before"
-            
+
             ob_commit_id = None
             ob_version = None
             if not is_build_before:
@@ -391,13 +391,11 @@ class CheckReport:
                 ob_version = self.context.cluster_config.get("version")
             else:
                 self.stdio.verbose("cases is build_before, skip getting observer version in html report")
-            
+
             for server in self.context.cluster_config["servers"]:
                 cluster_ips += server["ip"]
                 cluster_ips += ";"
-            fp.write(
-                template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_commit_id=ob_commit_id or "", ob_version=ob_version or "") + "\n"
-            )
+            fp.write(template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_commit_id=ob_commit_id or "", ob_version=ob_version or "") + "\n")
 
             if len(fail_map_html) != 0:
                 rendered_fail_map_html = template_table.render(task_name="Fail Tasks Report", tasks=fail_map_html)
