@@ -47,7 +47,8 @@ class TcpRetransmissionTask(TaskBase):
                         if retran_value > 10:
                             self.report.add_critical("On {0}: tcp retransmission is too high ({1}%), over 10%.".format(node_name, retran_value))
                     except ValueError:
-                        self.stdio.add_fail("Cannot parse tcp retransmission value on {0}: {1}".format(node_name, retran))
+                        self.stdio.error("Cannot parse tcp retransmission value on {0}: {1}".format(node_name, retran))
+                        self.report.add_fail("Cannot parse tcp retransmission value on {0}: {1}".format(node_name, retran))
 
                 except Exception as e:
                     self.stdio.error("Failed to check TCP retransmission on {0}: {1}".format(node_name, e))
