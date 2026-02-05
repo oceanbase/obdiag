@@ -32,17 +32,29 @@ from src.common.stdio import IO
 
 ROOT_IO = IO(1)
 
-if __name__ == '__main__':
+
+def main():
+    """Main entry point for obdiag command."""
     defaultencoding = 'utf-8'
     if sys.getdefaultencoding() != defaultencoding:
         try:
+            # Python 2 compatibility (deprecated in Python 3)
             from imp import reload
-        except:
+
+            reload(sys)
+            sys.setdefaultencoding(defaultencoding)
+        except (ImportError, AttributeError):
+            # Python 3 doesn't support setdefaultencoding
+            # UTF-8 is already the default in Python 3
             pass
-        reload(sys)
-        sys.setdefaultencoding(defaultencoding)
     ROOT_IO.track_limit += 2
     if MainCommand().init(sys.argv[0], sys.argv[1:]).do_command():
         ROOT_IO.exit(0)
+        return 0
     else:
         ROOT_IO.exit(1)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

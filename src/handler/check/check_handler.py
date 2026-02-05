@@ -26,7 +26,6 @@ import threading
 
 from src.common.ob_connector import OBConnector
 from src.common.scene import get_version_by_type
-from src.common.ssh_client.ssh import SshClient
 from src.handler.check.check_exception import CheckException
 from src.handler.check.check_report import TaskReport, CheckReport, CheckReportException
 from src.common.tool import Util, DynamicLoading
@@ -110,17 +109,8 @@ class CheckHandler:
         # input_param
         self.options = self.context.options
 
-        # add ssher
-        new_node = []
-        for node in self.nodes:
-            ssher = None
-            try:
-                ssher = SshClient(context, node)
-            except Exception as e:
-                self.stdio.warn("CheckHandler get SshHelper fail on {0}, Exception: {1}".format(node.get("ip"), e))
-            node["ssher"] = ssher
-            new_node.append(node)
-        self.nodes = new_node
+        # Note: SSH connections are created per-task in __execute_one to avoid connection contention
+        # Each task gets its own independent SSH connections for thread safety
 
         # get version
         if Util.get_option(self.options, 'cases') != "build_before":
@@ -299,6 +289,7 @@ class CheckHandler:
                     self.stdio.verbose("cluster.version is {0}".format(self.cluster["version"]))
 
                     # Execute Python task
+                    # SSH connections are created in TaskBase.init() for thread safety
                     task_instance = self.tasks[task_name]
                     task_instance.init(self.context, report)
                     task_instance.execute()
@@ -310,6 +301,7 @@ class CheckHandler:
             else:
                 self.stdio.verbose("ignore version")
                 # Execute Python task without version check
+                # SSH connections are created in TaskBase.init() for thread safety
                 task_instance = self.tasks[task_name]
                 task_instance.init(self.context, report)
                 task_instance.execute()
@@ -318,7 +310,7 @@ class CheckHandler:
             self.stdio.error("execute_one Exception: {0}".format(e))
             raise CheckException("execute_one Exception: {0}".format(e))
         finally:
-            # Cleanup task resources (release connection back to pool)
+            # Cleanup task resources (release connection back to pool and close SSH connections)
             if task_instance and hasattr(task_instance, 'cleanup'):
                 try:
                     task_instance.cleanup()
@@ -397,20 +389,9 @@ class CheckHandler:
 
     def __cleanup(self):
         """Cleanup all resources after check execution."""
-        try:
-            # Close SSH connections for all nodes
-            for node in self.nodes:
-                ssher = node.get("ssher")
-                if ssher and ssher.client:
-                    try:
-                        # RemoteClient has _ssh_fd.close()
-                        if hasattr(ssher.client, '_ssh_fd') and ssher.client._ssh_fd:
-                            ssher.client._ssh_fd.close()
-                    except Exception as e:
-                        self.stdio.warn("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
-            self.stdio.verbose("SSH connections cleanup completed")
-        except Exception as e:
-            self.stdio.warn("Cleanup error: {0}".format(e))
+        # Note: SSH connections are now created per-task and cleaned up in __execute_one
+        # No need to cleanup here as connections are task-specific
+        self.stdio.verbose("Check execution cleanup completed")
 
 
 class CheckOBConnectorPool:

@@ -91,6 +91,7 @@ DEFAULT_INNER_CONFIG = {
     'check': {
         'ignore_version': False,
         'work_path': '~/.obdiag/check',
+        'max_workers': 12,
         'report': {
             'report_path': './check_report/',
             'export_type': 'table',
