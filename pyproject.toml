@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "obdiag"
-version = "4.0.0"
+version = "4.1.0"
 description = "OceanBase Diagnostic Tool - cluster diagnosis, log gathering and analysis"
 readme = "LICENSE"
 license = { text = "Mulan PSL v2" }
