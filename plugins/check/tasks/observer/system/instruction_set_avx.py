@@ -60,7 +60,9 @@ class InstructionSetAvxTask(TaskBase):
                     else:
                         # for self.observer_version not exist, print warning
                         self.report.add_warning(
-                            "CPU on {0} does not support AVX instruction set. Observer versions before '4.2.5.6', '4.3.5.4', or '4.4.1.0' may have compatibility issues. Please upgrade to '4.2.5.6 or later', '4.3.5.4 or later', or '4.4.1.0 or later' if you encounter problems.".format(ssh_client.get_name())
+                            "CPU on {0} does not support AVX instruction set. Observer versions before '4.2.5.6', '4.3.5.4', or '4.4.1.0' may have compatibility issues. Please upgrade to '4.2.5.6 or later', '4.3.5.4 or later', or '4.4.1.0 or later' if you encounter problems.".format(
+                                ssh_client.get_name()
+                            )
                         )
 
                 # check if avx2
@@ -71,9 +73,7 @@ class InstructionSetAvxTask(TaskBase):
                             self.report.add_critical("CPU on {0} does not support AVX2 instruction set. observer (version 4.2.0.0) need it. ".format(ssh_client.get_name()))
                     else:
                         # for self.observer_version not exist, print warning
-                        self.report.add_warning(
-                            "CPU on {0} does not support AVX2 instruction set. Observer version 4.2.0.0 requires AVX2 support. Please upgrade to a newer version if you encounter problems.".format(ssh_client.get_name())
-                        )
+                        self.report.add_warning("CPU on {0} does not support AVX2 instruction set. Observer version 4.2.0.0 requires AVX2 support. Please upgrade to a newer version if you encounter problems.".format(ssh_client.get_name()))
 
         except Exception as e:
             self.report.add_fail("Execution error: {0}".format(e))

@@ -113,7 +113,7 @@ class TaskBase:
 
         # Reuse ob_connector from connection pool if available
         # For build_before cases, do not create database connection
-        
+
         ob_connector_pool = self.context.get_variable('check_obConnector_pool')
         if ob_connector_pool:
             self.ob_connector = ob_connector_pool.get_connection()
@@ -153,28 +153,28 @@ class TaskBase:
     def _create_ssh_connection_with_lock(self, node):
         """
         Create SSH connection with per-host locking to avoid concurrent connection issues.
-        
+
         Args:
             node: Node configuration dict
-            
+
         Returns:
             SshClient instance or None if connection failed
         """
         host_ip = node.get("ip")
         if not host_ip:
             return None
-        
+
         # Get or create a lock for this specific host
         with _ssh_connection_locks_lock:
             if host_ip not in _ssh_connection_locks:
                 _ssh_connection_locks[host_ip] = threading.Lock()
             host_lock = _ssh_connection_locks[host_ip]
-        
+
         # Use per-host lock to serialize connection attempts
         with host_lock:
             # Add small random delay to avoid thundering herd
             time.sleep(random.uniform(0.01, 0.1))
-            
+
             ssher = None
             try:
                 ssher = SshClient(self.context, node)
@@ -195,7 +195,7 @@ class TaskBase:
             if ob_connector_pool and self.ob_connector:
                 ob_connector_pool.release_connection(self.ob_connector)
                 self.ob_connector = None
-        
+
         # Close SSH connections created for this task
         if hasattr(self, 'observer_nodes') and self.observer_nodes:
             for node in self.observer_nodes:
@@ -206,7 +206,7 @@ class TaskBase:
                             ssher.client._ssh_fd.close()
                     except Exception as e:
                         self.stdio.verbose("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
-        
+
         if hasattr(self, 'obproxy_nodes') and self.obproxy_nodes:
             for node in self.obproxy_nodes:
                 ssher = node.get("ssher")

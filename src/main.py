@@ -40,6 +40,7 @@ def main():
         try:
             # Python 2 compatibility (deprecated in Python 3)
             from imp import reload
+
             reload(sys)
             sys.setdefaultencoding(defaultencoding)
         except (ImportError, AttributeError):
