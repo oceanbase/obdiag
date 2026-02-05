@@ -21,7 +21,7 @@ jobs:
     needs: cancel
     runs-on: ubuntu-latest
     container:
-      image: "registry.openanolis.cn/openanolis/anolisos:23.4"
+      image: "registry.openanolis.cn/openanolis/anolisos:8.10"
 
     steps:
       - name: Checkout code
