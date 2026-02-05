@@ -31,8 +31,8 @@ class InstructionSetAvxTask(TaskBase):
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
                 if ssh_client is None:
-                    self.report.add_fail("node: {0} ssh client is None".format(ssh_client.get_name()))
-                    return
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get_name()))
+                    continue
 
                 # Check CPU architecture first
                 arch_cmd = "uname -m"
@@ -58,16 +58,22 @@ class InstructionSetAvxTask(TaskBase):
                                 "CPU on {0} does not support AVX instruction set. if you want to use observer, please upgrade the observer version to '4.2.5.6 or later' or '4.3.5.4 or later' or '4.4.1.0 or later'".format(ssh_client.get_name())
                             )
                     else:
-                        # for self.observer_version not exist, print warn
-                        self.report.add_critical(
-                            "CPU on {0} does not support AVX instruction set. if you want to use observer, please upgrade the observer version to '4.2.5.6 or later' or '4.3.5.4 or later' or '4.4.1.0 or later'".format(ssh_client.get_name())
+                        # for self.observer_version not exist, print warning
+                        self.report.add_warning(
+                            "CPU on {0} does not support AVX instruction set. Observer versions before '4.2.5.6', '4.3.5.4', or '4.4.1.0' may have compatibility issues. Please upgrade to '4.2.5.6 or later', '4.3.5.4 or later', or '4.4.1.0 or later' if you encounter problems.".format(ssh_client.get_name())
                         )
 
                 # check if avx2
                 if "avx2" not in cpu_flags:
-                    # when avx2 not in cpu_flags, check if observer version need not 4.2.0.0
-                    if self.observer_version and self.observer_version == "4.2.0.0":
-                        self.report.add_critical("CPU on {0} does not support AVX2 instruction set. observer (version 4.2.0.0) need it. ".format(ssh_client.get_name()))
+                    if self.observer_version:
+                        # when avx2 not in cpu_flags, check if observer version need not 4.2.0.0
+                        if self.observer_version == "4.2.0.0":
+                            self.report.add_critical("CPU on {0} does not support AVX2 instruction set. observer (version 4.2.0.0) need it. ".format(ssh_client.get_name()))
+                    else:
+                        # for self.observer_version not exist, print warning
+                        self.report.add_warning(
+                            "CPU on {0} does not support AVX2 instruction set. Observer version 4.2.0.0 requires AVX2 support. Please upgrade to a newer version if you encounter problems.".format(ssh_client.get_name())
+                        )
 
         except Exception as e:
             self.report.add_fail("Execution error: {0}".format(e))

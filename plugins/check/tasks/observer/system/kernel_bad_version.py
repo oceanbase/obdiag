@@ -29,6 +29,9 @@ class KernelBadVersion(TaskBase):
             # get kernel version by ssher
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
+                if ssh_client is None:
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get_name()))
+                    continue
                 kernel_version = ssh_client.exec_cmd("uname -r")
                 if not kernel_version:
                     return self.report.add_fail("get kernel version error")
