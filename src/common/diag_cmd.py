@@ -809,7 +809,7 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
             '--env',
             action="append",
             type='string',
-            help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
+            help='env options Format: --env key=value. Multiple --env options can be specified.',
         )
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')

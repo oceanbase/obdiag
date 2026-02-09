@@ -578,42 +578,43 @@ When a tool execution fails, explain the error and suggest alternatives."""
         Returns:
             AI response as string
         """
+        # NOTE: OBI functionality is currently disabled as it's not fully developed
         # If OBI is available, try to enhance the message with knowledge search
         obi_context = ""
-        if self.obi_client and self.obi_client.is_configured():
-            try:
-                self.stdio.verbose("Searching OBI knowledge base...")
-                # Search OBI knowledge base (with timeout handled by requests library)
-                search_result = self.obi_client.search_knowledge(user_message)
-
-                if search_result.get("success"):
-                    answer = search_result.get("answer", "")
-                    references = search_result.get("references", [])
-                    if answer:
-                        obi_context = f"\n\n[OBI Knowledge Base Search Results]\n{answer}"
-                        if references:
-                            # Format references with title and URL if available
-                            ref_list = []
-                            for ref in references[:10]:  # Show up to 10 references
-                                title = ref.get('title') or ref.get('name') or 'Unknown Document'
-                                url = ref.get('url') or ref.get('link') or ref.get('source_url') or ''
-                                if url:
-                                    ref_list.append(f"- {title}: {url}")
-                                else:
-                                    ref_list.append(f"- {title}")
-                            if ref_list:
-                                obi_context += f"\n\n[Reference Documents - MUST be listed in your response]\n" + "\n".join(ref_list)
-                                obi_context += "\n\nIMPORTANT: You must include all these reference document links in your final response to help users access the original documentation."
-                        self.stdio.verbose("OBI knowledge search completed successfully: {}".format(search_result))
-                    else:
-                        self.stdio.verbose("OBI search returned empty answer")
-                else:
-                    error_msg = search_result.get("error", "Unknown error")
-                    self.stdio.verbose(f"OBI search failed: {error_msg}")
-            except Exception as e:
-                # Ensure we continue even if OBI search fails
-                self.stdio.verbose(f"OBI knowledge search exception: {e}")
-                # Continue without OBI context
+        # if self.obi_client and self.obi_client.is_configured():
+        #     try:
+        #         self.stdio.verbose("Searching OBI knowledge base...")
+        #         # Search OBI knowledge base (with timeout handled by requests library)
+        #         search_result = self.obi_client.search_knowledge(user_message)
+        #
+        #         if search_result.get("success"):
+        #             answer = search_result.get("answer", "")
+        #             references = search_result.get("references", [])
+        #             if answer:
+        #                 obi_context = f"\n\n[OBI Knowledge Base Search Results]\n{answer}"
+        #                 if references:
+        #                     # Format references with title and URL if available
+        #                     ref_list = []
+        #                     for ref in references[:10]:  # Show up to 10 references
+        #                         title = ref.get('title') or ref.get('name') or 'Unknown Document'
+        #                         url = ref.get('url') or ref.get('link') or ref.get('source_url') or ''
+        #                         if url:
+        #                             ref_list.append(f"- {title}: {url}")
+        #                         else:
+        #                             ref_list.append(f"- {title}")
+        #                     if ref_list:
+        #                         obi_context += f"\n\n[Reference Documents - MUST be listed in your response]\n" + "\n".join(ref_list)
+        #                         obi_context += "\n\nIMPORTANT: You must include all these reference document links in your final response to help users access the original documentation."
+        #                 self.stdio.verbose("OBI knowledge search completed successfully: {}".format(search_result))
+        #             else:
+        #                 self.stdio.verbose("OBI search returned empty answer")
+        #         else:
+        #             error_msg = search_result.get("error", "Unknown error")
+        #             self.stdio.verbose(f"OBI search failed: {error_msg}")
+        #     except Exception as e:
+        #         # Ensure we continue even if OBI search fails
+        #         self.stdio.verbose(f"OBI knowledge search exception: {e}")
+        #         # Continue without OBI context
 
         # Build messages
         messages = [{"role": "system", "content": self.system_prompt}]

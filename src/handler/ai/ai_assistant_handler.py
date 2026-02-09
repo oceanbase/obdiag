@@ -214,30 +214,32 @@ class AiAssistantHandler:
         system_prompt = llm_config.get("system_prompt") or None
 
         # Initialize OBI client if enabled
-        if obi_config.get("enabled", False):
-            try:
-                self.obi_client = OBIClient(
-                    base_url=obi_config.get("base_url", ""),
-                    app_code=obi_config.get("app_code", ""),
-                    cookie=obi_config.get("cookie", ""),
-                    enabled=obi_config.get("enabled", False),
-                    stdio=self.stdio,
-                )
-                if self.obi_client.is_configured():
-                    # Test connection
-                    test_result = self.obi_client.test_connection()
-                    if test_result.get("success"):
-                        self.stdio.verbose("OBI client initialized successfully")
-                    else:
-                        self.stdio.warn(f"OBI client initialized but connection test failed: {test_result.get('error')}")
-                else:
-                    self.stdio.warn("OBI is enabled but not properly configured (missing app_code or cookie)")
-                    self.obi_client = None
-            except Exception as e:
-                self.stdio.warn(f"Failed to initialize OBI client: {e}")
-                self.obi_client = None
-        else:
-            self.obi_client = None
+        # NOTE: OBI functionality is currently disabled as it's not fully developed
+        # if obi_config.get("enabled", False):
+        #     try:
+        #         self.obi_client = OBIClient(
+        #             base_url=obi_config.get("base_url", ""),
+        #             app_code=obi_config.get("app_code", ""),
+        #             cookie=obi_config.get("cookie", ""),
+        #             enabled=obi_config.get("enabled", False),
+        #             stdio=self.stdio,
+        #         )
+        #         if self.obi_client.is_configured():
+        #             # Test connection
+        #             test_result = self.obi_client.test_connection()
+        #             if test_result.get("success"):
+        #                 self.stdio.verbose("OBI client initialized successfully")
+        #             else:
+        #                 self.stdio.warn(f"OBI client initialized but connection test failed: {test_result.get('error')}")
+        #         else:
+        #             self.stdio.warn("OBI is enabled but not properly configured (missing app_code or cookie)")
+        #             self.obi_client = None
+        #     except Exception as e:
+        #         self.stdio.warn(f"Failed to initialize OBI client: {e}")
+        #         self.obi_client = None
+        # else:
+        #     self.obi_client = None
+        self.obi_client = None  # OBI functionality is currently disabled
 
         # Initialize AI client with OBI client
         self.ai_client = ObdiagAIClient(
@@ -344,16 +346,18 @@ Available diagnostic tools:
         """Show loaded MCP tools information"""
         try:
             # Show OBI status
-            if self.obi_client and self.obi_client.is_configured():
-                test_result = self.obi_client.test_connection()
-                if test_result.get("success"):
-                    self.stdio.print("🔍 OBI (OceanBase Intelligence): ✓ Connected")
-                else:
-                    self.stdio.print("🔍 OBI (OceanBase Intelligence): ✗ Connection failed")
-            elif self.obi_client:
-                self.stdio.print("🔍 OBI (OceanBase Intelligence): ⚠ Not configured")
-            else:
-                self.stdio.print("🔍 OBI (OceanBase Intelligence): ○ Disabled")
+            # NOTE: OBI functionality is currently disabled as it's not fully developed
+            # if self.obi_client and self.obi_client.is_configured():
+            #     test_result = self.obi_client.test_connection()
+            #     if test_result.get("success"):
+            #         self.stdio.print("🔍 OBI (OceanBase Intelligence): ✓ Connected")
+            #     else:
+            #         self.stdio.print("🔍 OBI (OceanBase Intelligence): ✗ Connection failed")
+            # elif self.obi_client:
+            #     self.stdio.print("🔍 OBI (OceanBase Intelligence): ⚠ Not configured")
+            # else:
+            #     self.stdio.print("🔍 OBI (OceanBase Intelligence): ○ Disabled")
+            self.stdio.print("🔍 OBI (OceanBase Intelligence): ○ Disabled (functionality not fully developed)")
             self.stdio.print("")
 
             # Check external MCP client first
