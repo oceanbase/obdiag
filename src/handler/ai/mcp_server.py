@@ -318,6 +318,9 @@ class MCPServer:
 
     def _generate_config(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Generate obdiag configuration file"""
+        if self.stdio:
+            self.stdio.verbose("generate_config tool called with arguments: {0}".format(json.dumps(arguments, indent=2)))
+
         # Check required parameters
         missing_params = []
         required_params = ["ob_cluster_name", "db_host", "tenant_sys_password", "nodes"]
@@ -362,23 +365,30 @@ class MCPServer:
 
         # If missing required parameters, return error with detailed message
         if missing_params:
-            error_msg = "Cannot generate config file. Missing required parameters:\n"
+            error_msg = "❌ Cannot generate config file. Missing required parameters:\n\n"
             for param in missing_params:
-                error_msg += "  - {0}\n".format(param)
-            error_msg += "\nPlease provide the following information:\n"
-            error_msg += "  1. ob_cluster_name: Name of your OceanBase cluster\n"
-            error_msg += "  2. db_host: Database host IP address\n"
-            error_msg += "  3. tenant_sys_password: Password for sys tenant (can be empty string '')\n"
-            error_msg += "  4. nodes: List of server nodes, each with at least 'ip' field\n"
+                error_msg += "  • {0}\n".format(param)
+            error_msg += "\n📋 Please provide the following information:\n"
+            error_msg += "  1. ob_cluster_name: Name of your OceanBase cluster (required)\n"
+            error_msg += "  2. db_host: Database host IP address (required)\n"
+            error_msg += "  3. tenant_sys_password: Password for sys tenant (required, can be empty string '')\n"
+            error_msg += "  4. nodes: List of server nodes, each with at least 'ip' field (required)\n"
             error_msg += "  5. SSH credentials: Either global_ssh_username + global_ssh_password/global_ssh_key_file, or specify in each node\n"
             error_msg += "  6. home_path: OceanBase installation directory (global_home_path or in each node)\n"
+            error_msg += "\n💡 Example usage:\n"
+            error_msg += "  Use the generate_config tool with all required parameters in a single call.\n"
+            error_msg += "  The tool expects a JSON object with the required fields.\n"
             return {"content": [{"type": "text", "text": error_msg}], "isError": True}
 
         # Build configuration
+        if self.stdio:
+            self.stdio.verbose("Building configuration from arguments...")
         config = self._build_config(arguments)
 
         # Determine output path (always use ~/.obdiag/config.yml for local obdiag)
         output_path = os.path.expanduser("~/.obdiag/config.yml")
+        if self.stdio:
+            self.stdio.verbose("Output path: {0}".format(output_path))
 
         # Ensure directory exists
         output_dir = os.path.dirname(output_path)
@@ -400,22 +410,56 @@ class MCPServer:
             with open(output_path, 'w', encoding='utf-8') as f:
                 yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
-            success_msg = "Configuration file generated successfully!\n"
-            success_msg += "Output path: {0}\n".format(output_path)
+            # Verify file was written successfully
+            if not os.path.exists(output_path):
+                return {"content": [{"type": "text", "text": "Failed to generate config file: File was not created at {0}".format(output_path)}], "isError": True}
+
+            # Get file size to verify it's not empty
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                return {"content": [{"type": "text", "text": "Failed to generate config file: Generated file is empty at {0}".format(output_path)}], "isError": True}
+
+            success_msg = "✅ Configuration file generated successfully!\n\n"
+            success_msg += "📁 Output path: {0}\n".format(output_path)
+            success_msg += "📊 File size: {0} bytes\n".format(file_size)
             if backup_path:
-                success_msg += "Backup of previous config: {0}\n".format(backup_path)
-            success_msg += "\nGenerated configuration:\n"
+                success_msg += "💾 Backup of previous config: {0}\n".format(backup_path)
+            success_msg += "\n📝 Generated configuration:\n"
+            success_msg += "=" * 70 + "\n"
             success_msg += yaml.dump(config, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            success_msg += "=" * 70 + "\n"
+            success_msg += "\n✨ You can now use this configuration file with obdiag commands.\n"
 
             return {"content": [{"type": "text", "text": success_msg}], "isError": False}
-        except Exception as e:
+        except PermissionError as e:
+            error_msg = "Failed to write config file: Permission denied.\n"
+            error_msg += "Please check if you have write permission to: {0}\n".format(output_path)
+            error_msg += "Error details: {0}".format(str(e))
+            return {"content": [{"type": "text", "text": error_msg}], "isError": True}
+        except OSError as e:
+            error_msg = "Failed to write config file: OS error.\n"
+            error_msg += "Output path: {0}\n".format(output_path)
+            error_msg += "Error details: {0}".format(str(e))
             # If write failed and we have backup, try to restore
             if backup_path and os.path.exists(backup_path):
                 try:
                     shutil.copy2(backup_path, output_path)
+                    error_msg += "\n⚠️  Previous config file has been restored from backup."
                 except Exception:
                     pass
-            return {"content": [{"type": "text", "text": "Failed to write config file: {0}".format(str(e))}], "isError": True}
+            return {"content": [{"type": "text", "text": error_msg}], "isError": True}
+        except Exception as e:
+            error_msg = "Failed to write config file: Unexpected error.\n"
+            error_msg += "Output path: {0}\n".format(output_path)
+            error_msg += "Error details: {0}".format(str(e))
+            # If write failed and we have backup, try to restore
+            if backup_path and os.path.exists(backup_path):
+                try:
+                    shutil.copy2(backup_path, output_path)
+                    error_msg += "\n⚠️  Previous config file has been restored from backup."
+                except Exception:
+                    pass
+            return {"content": [{"type": "text", "text": error_msg}], "isError": True}
 
     def _build_config(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Build configuration dictionary from arguments"""
