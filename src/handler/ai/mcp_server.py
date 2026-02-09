@@ -365,17 +365,17 @@ class MCPServer:
 
         # If missing required parameters, return error with detailed message
         if missing_params:
-            error_msg = "❌ Cannot generate config file. Missing required parameters:\n\n"
+            error_msg = "Cannot generate config file. Missing required parameters:\n\n"
             for param in missing_params:
-                error_msg += "  • {0}\n".format(param)
-            error_msg += "\n📋 Please provide the following information:\n"
+                error_msg += "  - {0}\n".format(param)
+            error_msg += "\nPlease provide the following information:\n"
             error_msg += "  1. ob_cluster_name: Name of your OceanBase cluster (required)\n"
             error_msg += "  2. db_host: Database host IP address (required)\n"
             error_msg += "  3. tenant_sys_password: Password for sys tenant (required, can be empty string '')\n"
             error_msg += "  4. nodes: List of server nodes, each with at least 'ip' field (required)\n"
             error_msg += "  5. SSH credentials: Either global_ssh_username + global_ssh_password/global_ssh_key_file, or specify in each node\n"
             error_msg += "  6. home_path: OceanBase installation directory (global_home_path or in each node)\n"
-            error_msg += "\n💡 Example usage:\n"
+            error_msg += "\nExample usage:\n"
             error_msg += "  Use the generate_config tool with all required parameters in a single call.\n"
             error_msg += "  The tool expects a JSON object with the required fields.\n"
             return {"content": [{"type": "text", "text": error_msg}], "isError": True}
@@ -419,16 +419,16 @@ class MCPServer:
             if file_size == 0:
                 return {"content": [{"type": "text", "text": "Failed to generate config file: Generated file is empty at {0}".format(output_path)}], "isError": True}
 
-            success_msg = "✅ Configuration file generated successfully!\n\n"
-            success_msg += "📁 Output path: {0}\n".format(output_path)
-            success_msg += "📊 File size: {0} bytes\n".format(file_size)
+            success_msg = "Configuration file generated successfully!\n\n"
+            success_msg += "Output path: {0}\n".format(output_path)
+            success_msg += "File size: {0} bytes\n".format(file_size)
             if backup_path:
-                success_msg += "💾 Backup of previous config: {0}\n".format(backup_path)
-            success_msg += "\n📝 Generated configuration:\n"
+                success_msg += "Backup of previous config: {0}\n".format(backup_path)
+            success_msg += "\nGenerated configuration:\n"
             success_msg += "=" * 70 + "\n"
             success_msg += yaml.dump(config, default_flow_style=False, allow_unicode=True, sort_keys=False)
             success_msg += "=" * 70 + "\n"
-            success_msg += "\n✨ You can now use this configuration file with obdiag commands.\n"
+            success_msg += "\nYou can now use this configuration file with obdiag commands.\n"
 
             return {"content": [{"type": "text", "text": success_msg}], "isError": False}
         except PermissionError as e:
@@ -444,7 +444,7 @@ class MCPServer:
             if backup_path and os.path.exists(backup_path):
                 try:
                     shutil.copy2(backup_path, output_path)
-                    error_msg += "\n⚠️  Previous config file has been restored from backup."
+                    error_msg += "\nWARNING: Previous config file has been restored from backup."
                 except Exception:
                     pass
             return {"content": [{"type": "text", "text": error_msg}], "isError": True}
@@ -456,7 +456,7 @@ class MCPServer:
             if backup_path and os.path.exists(backup_path):
                 try:
                     shutil.copy2(backup_path, output_path)
-                    error_msg += "\n⚠️  Previous config file has been restored from backup."
+                    error_msg += "\nWARNING: Previous config file has been restored from backup."
                 except Exception:
                     pass
             return {"content": [{"type": "text", "text": error_msg}], "isError": True}
