@@ -453,16 +453,19 @@ class TaskReport:
             self.normal.append(msg)
 
     def add_warning(self, tip):
+        self.stdio.warn("report warning: " + str(tip))
         msg = "[warning] " + str(tip)
         if msg not in self.warning:
             self.warning.append(msg)
 
     def add_critical(self, critical):
+        self.stdio.warn("report critical: " + str(critical))
         msg = "[critical] " + str(critical)
         if msg not in self.critical:
             self.critical.append(msg)
 
     def add_fail(self, fail):
+        self.stdio.error("report fail: " + str(fail))
         msg = "[fail] " + str(fail)
         if msg not in self.fail:
             self.fail.append(msg)
