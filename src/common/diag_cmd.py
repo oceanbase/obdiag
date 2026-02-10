@@ -887,7 +887,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
-        self.parser.add_option('--tenant_id', type='string', help='filter errors by specific tenant (tenant name or tenant_id:xxx). By default, statistics are shown for all tenants.')
+        self.parser.add_option('--tenant_id', type='string', help='filter errors by specific tenant_id. By default, statistics are shown for all tenants.')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
