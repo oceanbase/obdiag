@@ -63,24 +63,7 @@ mcp:
   #
   servers: ""
 
-# OBI (OceanBase Intelligence) Configuration
-# OBI provides access to OceanBase knowledge base for enhanced AI assistance
-obi:
-  # Whether to enable OBI knowledge search
-  enabled: false
-  
-  # OBI API base URL
-  # Production environment: https://ai-api.oceanbase.com Please not change this value
-  base_url: "https://ai-api.oceanbase.com"
-  
-  # OBI application code
-  # Get this from the OBI platform ，Please not change this value
-  app_code: "H8nMXUN7uYOzXGU7"
-  
-  # Cookie string containing authorization
-  # Format: authorization=hmac%20...
-  # Get this from your browser after logging into OBI
-  cookie: ''
+
 
 # UI Configuration
 ui:
