@@ -465,7 +465,7 @@ class TaskReport:
             self.critical.append(msg)
 
     def add_fail(self, fail):
-        self.stdio.error("report fail: " + str(fail))
+        self.stdio.warn("report fail: " + str(fail))
         msg = "[fail] " + str(fail)
         if msg not in self.fail:
             self.fail.append(msg)
