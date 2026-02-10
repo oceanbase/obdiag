@@ -31,14 +31,6 @@ jobs:
 
       - name: Install dependencies and build obdiag rpm
         run: |
-#          yum install -y wget rpm-build gcc gcc-c++ make
-#          wget  --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
-#          sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
-#          export PATH=/opt/miniconda3/bin:$PATH
-#          /opt/miniconda3/bin/conda init
-#          /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
-#          source /opt/miniconda3/bin/activate obdiag
-#          /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
           /opt/miniconda3/bin/conda create --name obdiag311 python=3.11 -y
           source /opt/miniconda3/bin/activate obdiag311
           pip3 install .[build]
