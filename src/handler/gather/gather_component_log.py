@@ -291,8 +291,14 @@ class GatherComponentLogHandler(BaseHandler):
         if self.store_dir is None:
             self.store_dir = "./"
 
-        # Use BaseHandler template method for base directory
-        base_store_dir = self._init_store_dir(default=self.store_dir)
+        # In scene mode the caller (e.g. analyze_log) passes the exact output dir; do not override
+        # with context.options.store_dir so that tar files are written under the run directory.
+        if self.is_scene:
+            base_store_dir = os.path.abspath(os.path.expanduser(self.store_dir))
+            if not os.path.exists(base_store_dir):
+                os.makedirs(base_store_dir, exist_ok=True)
+        else:
+            base_store_dir = self._init_store_dir(default=self.store_dir)
 
         if not self.is_scene:
             # Non-scene mode: Create timestamped subdirectory
