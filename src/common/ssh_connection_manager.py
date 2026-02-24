@@ -64,7 +64,7 @@ class SSHConnectionManager:
     def setup_nodes_with_connections(self, context: HandlerContext, nodes: List[Dict], node_type: str = "observer") -> List[Dict]:
         """
         Setup nodes with SSH connections attached.
-        
+
         If some connections fail to create, keep the successfully created ones.
         This is important because some hosts may have limited connection capacity.
 
@@ -90,27 +90,18 @@ class SSHConnectionManager:
                 failure_count += 1
                 node_ip = node.get('ip', 'unknown')
                 if context.stdio:
-                    context.stdio.warn(
-                        f"Failed to create SSH connection for {node_type} node {node_ip}: {e}. "
-                        f"Continuing with available connections."
-                    )
+                    context.stdio.warn(f"Failed to create SSH connection for {node_type} node {node_ip}: {e}. " f"Continuing with available connections.")
 
         # Log summary
         if context.stdio:
             total_nodes = len(nodes)
             if success_count > 0:
                 if failure_count > 0:
-                    context.stdio.warn(
-                        f"SSH connection setup: {success_count}/{total_nodes} {node_type} nodes connected "
-                        f"({failure_count} failed). Will use available connections."
-                    )
+                    context.stdio.warn(f"SSH connection setup: {success_count}/{total_nodes} {node_type} nodes connected " f"({failure_count} failed). Will use available connections.")
                 else:
                     context.stdio.verbose(f"SSH connection setup: all {success_count} {node_type} nodes connected")
             else:
-                context.stdio.warn(
-                    f"SSH connection setup: all {total_nodes} {node_type} nodes failed. "
-                    f"Connections will be created on-demand."
-                )
+                context.stdio.warn(f"SSH connection setup: all {total_nodes} {node_type} nodes failed. " f"Connections will be created on-demand.")
 
         # Store in context (only successfully connected nodes)
         context.set_variable(f"{node_type}_nodes", nodes_with_connections)

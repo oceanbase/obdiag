@@ -83,13 +83,13 @@ class TaskBase:
         """
         # Initialize basic context and report
         self._init_context_and_report(context, report)
-        
+
         # Initialize SSH connections
         self._init_ssh_connections()
-        
+
         # Initialize versions
         self._init_versions()
-        
+
         # Initialize database connection
         self._init_db_connection()
 
@@ -104,34 +104,30 @@ class TaskBase:
         """Initialize SSH connections for observer and obproxy nodes."""
         ssh_manager = self.context.get_variable('check_ssh_manager')
         self._using_ssh_pool = ssh_manager is not None
-        
+
         # Initialize observer nodes
         observer_nodes_config = self.context.cluster_config.get("servers")
         if observer_nodes_config:
-            self.observer_nodes = self._setup_nodes_with_connections(
-                observer_nodes_config, ssh_manager, "observer"
-            )
+            self.observer_nodes = self._setup_nodes_with_connections(observer_nodes_config, ssh_manager, "observer")
         else:
             self.observer_nodes = []
-        
+
         # Initialize obproxy nodes
         obproxy_nodes_config = self.context.obproxy_config.get("servers")
         if obproxy_nodes_config:
-            self.obproxy_nodes = self._setup_nodes_with_connections(
-                obproxy_nodes_config, ssh_manager, "obproxy"
-            )
+            self.obproxy_nodes = self._setup_nodes_with_connections(obproxy_nodes_config, ssh_manager, "obproxy")
         else:
             self.obproxy_nodes = []
 
     def _setup_nodes_with_connections(self, nodes_config, ssh_manager, node_type):
         """
         Setup nodes with SSH connections.
-        
+
         Args:
             nodes_config: List of node configuration dictionaries
             ssh_manager: SSH connection manager instance
             node_type: Type of nodes ("observer" or "obproxy")
-            
+
         Returns:
             List of nodes with SSH connections attached
         """
@@ -139,7 +135,7 @@ class TaskBase:
         for node in nodes_config:
             # Create a copy of node dict to avoid sharing between tasks
             node_copy = node.copy()
-            
+
             if ssh_manager:
                 # Use connection pool for better performance
                 try:
@@ -158,7 +154,7 @@ class TaskBase:
                 ssher = self._create_ssh_connection_with_lock(node_copy)
                 node_copy["ssher"] = ssher
                 nodes.append(NodeWrapper(node_copy))
-        
+
         return nodes
 
     def _init_versions(self):
@@ -174,7 +170,7 @@ class TaskBase:
         else:
             # Optimized: Reuse observer_version from context (cached by CheckHandler)
             self.observer_version = self.context.get_variable('check_observer_version')
-            
+
             # Fallback: try cluster config or query if not cached
             if not self.observer_version:
                 self.observer_version = self.context.cluster_config.get("version", "")
@@ -198,7 +194,7 @@ class TaskBase:
             # Optimized: Reuse obproxy versions from context (cached by CheckHandler)
             self.obproxy_version = self.context.get_variable('check_obproxy_version')
             self.obproxy_full_version = self.context.get_variable('check_obproxy_full_version')
-            
+
             # Fallback: query if not cached
             if not self.obproxy_version:
                 try:
@@ -209,7 +205,7 @@ class TaskBase:
                     self.stdio.error("get obproxy_version fail: {0}".format(e))
             else:
                 self.stdio.verbose("Using cached obproxy version from context")
-            
+
             if not self.obproxy_full_version:
                 try:
                     self.stdio.verbose("Obproxy full version not cached, querying...")

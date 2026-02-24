@@ -82,8 +82,8 @@ class GatherComponentLogHandler(BaseHandler):
     # Each component has a dedicated handler class to handle component-specific log paths and formats
     COMPONENT_HANDLERS = {
         "observer": ObserverGatherLogOnNode,  # OceanBase database service node log gatherer
-        "obproxy": ObproxyGatherLogOnNode,     # OceanBase proxy node log gatherer
-        "oms": OmsGatherLogOnNode,             # OceanBase management service log gatherer
+        "obproxy": ObproxyGatherLogOnNode,  # OceanBase proxy node log gatherer
+        "oms": OmsGatherLogOnNode,  # OceanBase management service log gatherer
     }
 
     # Log scope configuration: Defines supported log types (scope) for each component
@@ -95,10 +95,10 @@ class GatherComponentLogHandler(BaseHandler):
     }
 
     # Default configuration constants
-    DEFAULT_FILE_NUMBER_LIMIT = 20                    # Default maximum number of files to collect per log type
+    DEFAULT_FILE_NUMBER_LIMIT = 20  # Default maximum number of files to collect per log type
     DEFAULT_FILE_SIZE_LIMIT = 2 * 1024 * 1024 * 1024  # Default total size limit for collected logs: 2GB
-    DEFAULT_SINCE_MINUTES = 30                         # Default time range: last 30 minutes (when no time parameter is specified)
-    DEFAULT_THREAD_NUMS = 3                            # Default number of concurrent threads: 3 threads
+    DEFAULT_SINCE_MINUTES = 30  # Default time range: last 30 minutes (when no time parameter is specified)
+    DEFAULT_THREAD_NUMS = 3  # Default number of concurrent threads: 3 threads
 
     def _init(
         self, target=None, from_option=None, to_option=None, since=None, scope=None, grep=None, store_dir=None, temp_dir=None, redact=None, nodes=None, is_scene=False, oms_log_path=None, thread_nums=None, oms_component_id=None, recent_count=0, **kwargs

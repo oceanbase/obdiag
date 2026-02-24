@@ -115,17 +115,15 @@ class CheckHandler(BaseHandler):
         # If not provided, create a new one for this handler
         if not self.ssh_manager:
             from src.common.ssh_connection_manager import SSHConnectionManager
+
             # Create SSH connection manager with configurable pool size
             # Each node can have up to max_workers connections (but capped at 5 per node)
             max_conn_per_node = min(self.max_workers, 5)
-            self.ssh_manager = SSHConnectionManager(
-                max_connections_per_node=max_conn_per_node,
-                idle_timeout=300
-            )
+            self.ssh_manager = SSHConnectionManager(max_connections_per_node=max_conn_per_node, idle_timeout=300)
             self._log_verbose(f"[CheckHandler] Created SSH connection manager with {max_conn_per_node} connections per node")
         else:
             self._log_verbose(f"[CheckHandler] Using provided SSH connection manager")
-        
+
         # Store SSH manager in context for tasks to use
         self.context.set_variable('check_ssh_manager', self.ssh_manager)
 
@@ -134,14 +132,15 @@ class CheckHandler(BaseHandler):
         if self._get_option('cases') != "build_before":
             self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
             self.cluster["version"] = self.version
-            
+
             # Cache versions in context for all tasks to reuse (avoid repeated queries)
             self.context.set_variable('check_observer_version', self.version)
             self._log_verbose(f"Cached observer version in context: {self.version}")
-            
+
             # Get obproxy versions if obproxy nodes exist
             if self.context.obproxy_config.get("servers"):
                 from src.common.command import get_obproxy_version, get_obproxy_full_version
+
                 try:
                     obproxy_version = get_obproxy_version(self.context)
                     obproxy_full_version = get_obproxy_full_version(self.context)
@@ -155,7 +154,7 @@ class CheckHandler(BaseHandler):
             else:
                 self.context.set_variable('check_obproxy_version', None)
                 self.context.set_variable('check_obproxy_full_version', None)
-            
+
             # Use global OBConnectionPool instead of CheckOBConnectorPool
             from src.common.ob_connection_pool import OBConnectionPool
 
@@ -231,7 +230,7 @@ class CheckHandler(BaseHandler):
                         # Try pattern match
                         matched_tasks = self._load_tasks_by_pattern(task_pattern)
                         self.tasks.update(matched_tasks)
-                
+
                 if len(self.tasks) == 0:
                     raise CheckException("no cases is check by *_tasks: {0}".format(input_tasks))
                 self.stdio.verbose("input_tasks is {0}, loaded {1} tasks".format(input_tasks, len(self.tasks)))
@@ -259,14 +258,14 @@ class CheckHandler(BaseHandler):
 
             # Optimized: Pre-filter tasks by compatibility (version and OS) before execution
             self.tasks = self._filter_tasks_by_compatibility(self.tasks)
-            
+
             # Resolve task dependencies and determine execution order
             task_execution_order = self._resolve_task_dependencies(self.tasks)
             if task_execution_order:
                 # Reorder tasks according to dependencies
                 self.tasks = {task_name: self.tasks[task_name] for task_name in task_execution_order if task_name in self.tasks}
                 self._log_verbose(f"Task execution order after dependency resolution: {task_execution_order}")
-            
+
             self._log_verbose(f"tasks after filtering: {list(self.tasks.keys())}")
             result = self.__execute()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result)
@@ -311,38 +310,38 @@ class CheckHandler(BaseHandler):
     def _load_task_by_path(self, task_path):
         """
         Load a single task by full path (e.g., 'observer.system.python_version').
-        
+
         Args:
             task_path: Full task path like 'observer.system.python_version'
-            
+
         Returns:
             Task class or None if not found
         """
         parts = task_path.split('.')
         if len(parts) < 2:
             return None
-        
+
         # tasks_base_path is already e.g. .../tasks/observer, so strip leading observer. if present
         if parts[0] == self.check_target_type:
             parts = parts[1:]
         if len(parts) < 1:
             return None
-        
+
         # Find the task file
         task_file_name = parts[-1] + '.py'
         task_dir_parts = parts[:-1]
-        
+
         # Try to find the task file
         search_path = self.tasks_base_path
         for part in task_dir_parts:
             search_path = os.path.join(search_path, part)
-        
+
         task_file = os.path.join(search_path, task_file_name)
-        
+
         if not os.path.exists(task_file):
             # Try pattern matching: find files matching the pattern
             return None
-        
+
         try:
             DynamicLoading.add_lib_path(search_path)
             module_name = parts[-1]
@@ -351,51 +350,51 @@ class CheckHandler(BaseHandler):
                 return getattr(task_module, module_name)
         except Exception as e:
             self._log_error(f"Failed to load task {task_path}: {e}")
-        
+
         return None
 
     def _load_tasks_by_pattern(self, task_pattern):
         """
         Load tasks matching a pattern (e.g., 'observer.system.*').
-        
+
         Args:
             task_pattern: Task name pattern with wildcards
-            
+
         Returns:
             dict: Task name -> task class mapping
         """
         tasks = {}
         pattern_re = re.compile(task_pattern.replace('*', '.*'))
-        
+
         # Walk through task directory
         for root, dirs, files in os.walk(self.tasks_base_path):
             for file in files:
                 if file.endswith('.py') and not file.startswith('__'):
                     folder_name = os.path.basename(root)
                     task_name = f"{folder_name}.{file.split('.')[0]}"
-                    
+
                     if pattern_re.match(task_name):
                         task_class = self._load_task_by_path(task_name)
                         if task_class:
                             tasks[task_name] = task_class
-        
+
         return tasks
 
     def get_tasks_by_package(self, package_name):
         """
         Optimized: Load tasks for a specific package without loading all tasks.
-        
+
         Args:
             package_name: Package name from package file
-            
+
         Returns:
             dict: Task name -> task class mapping
         """
         package_tasks = self.get_package_tasks(package_name)
-        
+
         if not package_tasks:
             return {}
-        
+
         tasks = {}
         for task_pattern in package_tasks:
             # Try exact match first
@@ -404,11 +403,11 @@ class CheckHandler(BaseHandler):
                 if task_class:
                     tasks[task_pattern] = task_class
                     continue
-            
+
             # Try pattern match
             matched_tasks = self._load_tasks_by_pattern(task_pattern)
             tasks.update(matched_tasks)
-        
+
         return tasks
 
     def get_package_tasks(self, package_name):
@@ -487,7 +486,7 @@ class CheckHandler(BaseHandler):
         """Execute all check tasks concurrently and generate report."""
         execution_start_time = time.time()
         task_timings = {}
-        
+
         try:
             task_count = len(self.tasks.keys())
             self._log_verbose(f"execute_all_tasks. the number of tasks is {task_count}, tasks is {list(self.tasks.keys())}")
@@ -519,7 +518,7 @@ class CheckHandler(BaseHandler):
                         t_report = future.result()
                         task_end_time = time.time()
                         task_timings[task_name] = task_end_time - task_start_time
-                        
+
                         if t_report:
                             self.report.add_task_report(t_report)
                     except Exception as e:
@@ -540,7 +539,7 @@ class CheckHandler(BaseHandler):
             # Log performance statistics
             execution_end_time = time.time()
             total_execution_time = execution_end_time - execution_start_time
-            
+
             self._log_performance_stats(task_timings, total_execution_time, task_count, failed_tasks)
 
             if failed_tasks:
@@ -569,11 +568,11 @@ class CheckHandler(BaseHandler):
     def __execute_one_safe(self, task_name, max_retries=1):
         """
         Thread-safe wrapper for __execute_one with retry mechanism.
-        
+
         Args:
             task_name: Name of the task to execute
             max_retries: Maximum number of retries (default: 1)
-            
+
         Returns:
             TaskReport instance
         """
@@ -591,6 +590,7 @@ class CheckHandler(BaseHandler):
                     self._log_warn(f"Task {task_name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
                     # Wait before retry with exponential backoff
                     import time
+
                     time.sleep(0.5 * (attempt + 1))
                 else:
                     # Final attempt failed
@@ -598,7 +598,7 @@ class CheckHandler(BaseHandler):
                     report = TaskReport(self.context, task_name)
                     report.add_fail(f"Task execution failed after {max_retries + 1} attempts: {str(e)}")
                     return report
-        
+
         # Should not reach here, but just in case
         report = TaskReport(self.context, task_name)
         report.add_fail(f"Task execution failed: Unknown error")
@@ -638,7 +638,7 @@ class CheckHandler(BaseHandler):
     def _log_performance_stats(self, task_timings, total_time, task_count, failed_tasks):
         """
         Log performance statistics for check execution.
-        
+
         Args:
             task_timings: Dict of task_name -> execution_time
             total_time: Total execution time
@@ -647,17 +647,17 @@ class CheckHandler(BaseHandler):
         """
         if not task_timings:
             return
-        
+
         # Calculate statistics
         times = list(task_timings.values())
         avg_time = sum(times) / len(times) if times else 0
         max_time = max(times) if times else 0
         min_time = min(times) if times else 0
-        
+
         # Find slowest and fastest tasks
         slowest_task = max(task_timings.items(), key=lambda x: x[1]) if task_timings else None
         fastest_task = min(task_timings.items(), key=lambda x: x[1]) if task_timings else None
-        
+
         # Log statistics
         self._log_verbose("=" * 60)
         self._log_verbose("Performance Statistics:")
@@ -668,28 +668,28 @@ class CheckHandler(BaseHandler):
         self._log_verbose(f"  Average task time: {avg_time:.2f}s")
         self._log_verbose(f"  Min task time: {min_time:.2f}s")
         self._log_verbose(f"  Max task time: {max_time:.2f}s")
-        
+
         if slowest_task:
             self._log_verbose(f"  Slowest task: {slowest_task[0]} ({slowest_task[1]:.2f}s)")
         if fastest_task:
             self._log_verbose(f"  Fastest task: {fastest_task[0]} ({fastest_task[1]:.2f}s)")
-        
+
         # Log top 5 slowest tasks
         sorted_tasks = sorted(task_timings.items(), key=lambda x: x[1], reverse=True)
         if len(sorted_tasks) > 1:
             self._log_verbose("  Top 5 slowest tasks:")
             for i, (task_name, task_time) in enumerate(sorted_tasks[:5], 1):
                 self._log_verbose(f"    {i}. {task_name}: {task_time:.2f}s")
-        
+
         self._log_verbose("=" * 60)
 
     def _resolve_task_dependencies(self, tasks):
         """
         Resolve task dependencies and return execution order using topological sort.
-        
+
         Args:
             tasks: Dict of task_name -> task_class
-            
+
         Returns:
             List of task names in execution order, or None if circular dependency detected
         """
@@ -704,30 +704,30 @@ class CheckHandler(BaseHandler):
             except Exception as e:
                 self._log_warn(f"Failed to get task info for {task_name}: {e}")
                 graph[task_name] = []
-        
+
         # Topological sort using DFS
         execution_order = []
         visited = set()
         visiting = set()
-        
+
         def visit(task_name):
             if task_name in visiting:
                 self._log_error(f"Circular dependency detected involving {task_name}")
                 raise CheckException(f"Circular dependency detected involving {task_name}")
             if task_name in visited:
                 return
-            
+
             visiting.add(task_name)
-            
+
             # Visit dependencies first
             for dep in graph.get(task_name, []):
                 if dep in tasks:
                     visit(dep)
-            
+
             visiting.remove(task_name)
             visited.add(task_name)
             execution_order.append(task_name)
-        
+
         # Visit all tasks
         for task_name in tasks.keys():
             if task_name not in visited:
@@ -737,62 +737,62 @@ class CheckHandler(BaseHandler):
                     # Circular dependency detected, return None to use original order
                     self._log_warn("Circular dependency detected, using original task order")
                     return None
-        
+
         return execution_order
 
     def _filter_tasks_by_compatibility(self, tasks):
         """
         Optimized: Filter tasks based on version and OS compatibility before execution.
         This avoids unnecessary task initialization for incompatible tasks.
-        
+
         Args:
             tasks: dict of task_name -> task_class
-            
+
         Returns:
             dict: Filtered tasks
         """
         filtered = {}
         current_os = self.__get_current_os()
         filtered_count = 0
-        
+
         for task_name, task_class in tasks.items():
             try:
                 # Get task info without instantiating (just call class method)
                 task_info = task_class.get_task_info()
-                
+
                 # OS compatibility check
                 supported_os = task_info.get("supported_os")
                 if supported_os and current_os not in supported_os:
                     self._log_verbose(f"Task {task_name} skipped: requires {supported_os}, current OS is {current_os}")
                     filtered_count += 1
                     continue
-                
+
                 # Version compatibility check (if version available and not ignored)
                 if not self.ignore_version and self.version:
                     min_version = task_info.get("min_ob_version")
                     max_version = task_info.get("max_ob_version")
-                    
+
                     if min_version:
                         if not self._version_meets_min(self.version, min_version):
                             self._log_verbose(f"Task {task_name} skipped: version {self.version} < {min_version}")
                             filtered_count += 1
                             continue
-                    
+
                     if max_version:
                         if not self._version_meets_max(self.version, max_version):
                             self._log_verbose(f"Task {task_name} skipped: version {self.version} > {max_version}")
                             filtered_count += 1
                             continue
-                
+
                 filtered[task_name] = task_class
             except Exception as e:
                 self._log_warn(f"Failed to check compatibility for {task_name}: {e}")
                 # Include task if compatibility check fails (fail-safe)
                 filtered[task_name] = task_class
-        
+
         if filtered_count > 0:
             self._log_verbose(f"Filtered {filtered_count} incompatible tasks, {len(filtered)} tasks remaining")
-        
+
         return filtered
 
     def __cleanup(self):
@@ -805,11 +805,11 @@ class CheckHandler(BaseHandler):
                     self._log_verbose(f"SSH connection pool stats: {ssh_stats}")
                 except Exception as e:
                     self._log_verbose(f"Failed to get SSH pool stats: {e}")
-                
+
                 # Cleanup idle connections (connections will be returned by tasks)
                 self.ssh_manager.cleanup()
                 self._log_verbose("SSH connection pool cleanup completed")
-            
+
             # Log database connection pool statistics before cleanup
             ob_connector_pool = self.context.get_variable('check_obConnector_pool')
             if ob_connector_pool:
@@ -818,13 +818,13 @@ class CheckHandler(BaseHandler):
                     self._log_verbose(f"Database connection pool stats: {db_stats}")
                 except Exception as e:
                     self._log_verbose(f"Failed to get DB pool stats: {e}")
-                
+
                 try:
                     ob_connector_pool.close_all()
                     self._log_verbose("Database connection pool cleanup completed")
                 except Exception as e:
                     self._log_warn(f"Database connection pool cleanup error: {e}")
-            
+
             self._log_verbose("Check execution cleanup completed")
         except Exception as e:
             self._log_warn(f"Cleanup error: {e}")

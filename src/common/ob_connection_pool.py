@@ -58,7 +58,7 @@ class OBConnectionPool:
     def _initialize_pool(self):
         """
         Initialize pool with initial connections.
-        
+
         If some connections fail to create, keep the successfully created ones.
         This is important because some hosts may have limited connection capacity.
         """
@@ -71,7 +71,7 @@ class OBConnectionPool:
 
             success_count = 0
             failure_count = 0
-            
+
             for i in range(self.max_size):
                 try:
                     conn = self._create_connection()
@@ -91,17 +91,11 @@ class OBConnectionPool:
             if self.stdio:
                 if success_count > 0:
                     if failure_count > 0:
-                        self.stdio.warn(
-                            f"OBConnectionPool initialized with {success_count}/{self.max_size} connections "
-                            f"({failure_count} failed). Pool will use available connections."
-                        )
+                        self.stdio.warn(f"OBConnectionPool initialized with {success_count}/{self.max_size} connections " f"({failure_count} failed). Pool will use available connections.")
                     else:
                         self.stdio.verbose(f"OBConnectionPool initialized with {success_count} connections")
                 else:
-                    self.stdio.warn(
-                        f"OBConnectionPool initialization: all {self.max_size} connections failed. "
-                        f"Pool will create connections on-demand."
-                    )
+                    self.stdio.warn(f"OBConnectionPool initialization: all {self.max_size} connections failed. " f"Pool will create connections on-demand.")
         except Exception as e:
             if self.stdio:
                 self.stdio.error(f"OBConnectionPool initialization error: {e}")
@@ -258,7 +252,7 @@ class OBConnectionPool:
     def get_stats(self) -> Dict:
         """
         Get pool statistics.
-        
+
         Returns:
             Dictionary with pool statistics including:
             - total_connections: Total connections in pool
@@ -270,12 +264,5 @@ class OBConnectionPool:
             total = self._pool.qsize()
             max_size = self.max_size
             utilization_rate = total / max_size if max_size > 0 else 0.0
-            
-            return {
-                "total_connections": total,
-                "max_size": max_size,
-                "available_connections": total,
-                "utilization_rate": utilization_rate,
-                "timeout": self.timeout,
-                "health_check_interval": self.health_check_interval
-            }
+
+            return {"total_connections": total, "max_size": max_size, "available_connections": total, "utilization_rate": utilization_rate, "timeout": self.timeout, "health_check_interval": self.health_check_interval}
