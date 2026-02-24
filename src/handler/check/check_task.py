@@ -29,6 +29,22 @@ _ssh_connection_locks = {}
 _ssh_connection_locks_lock = threading.Lock()
 
 
+class NodeWrapper(dict):
+    """
+    Wrapper for node dict to provide get_name() for compatibility with different ssh_type.
+
+    When ssher (SSH client) exists, get_name() delegates to ssher.get_name(), which returns
+    names like 'remote_1.2.3.4', 'local', 'docker_xxx', 'kubernetes_ns_pod' according to ssh_type.
+    When ssher is None (e.g. SSH connection failed), returns node ip as fallback.
+    """
+
+    def get_name(self):
+        ssher = self.get("ssher")
+        if ssher is not None and hasattr(ssher, "get_name"):
+            return ssher.get_name()
+        return self.get("ip", "unknown")
+
+
 class TaskBase:
     """
     Base class for Python check tasks.
@@ -65,60 +81,163 @@ class TaskBase:
             context: Handler context with cluster config and options
             report: TaskReport instance for recording results
         """
+        # Initialize basic context and report
+        self._init_context_and_report(context, report)
+        
+        # Initialize SSH connections
+        self._init_ssh_connections()
+        
+        # Initialize versions
+        self._init_versions()
+        
+        # Initialize database connection
+        self._init_db_connection()
+
+    def _init_context_and_report(self, context, report):
+        """Initialize context and report."""
         self.report = report
         self.context = context
         self.stdio = context.stdio
-        # get ob_cluster
         self.ob_cluster = self.context.cluster_config
 
-        # Create independent SSH connections for this task to avoid connection contention
-        # Each task creates its own SSH connections in init to ensure thread safety
-        # Use per-host locks to prevent concurrent connection attempts to the same server
+    def _init_ssh_connections(self):
+        """Initialize SSH connections for observer and obproxy nodes."""
+        ssh_manager = self.context.get_variable('check_ssh_manager')
+        self._using_ssh_pool = ssh_manager is not None
+        
+        # Initialize observer nodes
         observer_nodes_config = self.context.cluster_config.get("servers")
         if observer_nodes_config:
+            self.observer_nodes = self._setup_nodes_with_connections(
+                observer_nodes_config, ssh_manager, "observer"
+            )
+        else:
             self.observer_nodes = []
-            for node in observer_nodes_config:
-                # Create a copy of node dict to avoid sharing between tasks
-                node_copy = node.copy()
-                ssher = self._create_ssh_connection_with_lock(node_copy)
-                node_copy["ssher"] = ssher
-                self.observer_nodes.append(node_copy)
-
+        
+        # Initialize obproxy nodes
         obproxy_nodes_config = self.context.obproxy_config.get("servers")
         if obproxy_nodes_config:
+            self.obproxy_nodes = self._setup_nodes_with_connections(
+                obproxy_nodes_config, ssh_manager, "obproxy"
+            )
+        else:
             self.obproxy_nodes = []
-            for node in obproxy_nodes_config:
-                # Create a copy of node dict to avoid sharing between tasks
-                node_copy = node.copy()
+
+    def _setup_nodes_with_connections(self, nodes_config, ssh_manager, node_type):
+        """
+        Setup nodes with SSH connections.
+        
+        Args:
+            nodes_config: List of node configuration dictionaries
+            ssh_manager: SSH connection manager instance
+            node_type: Type of nodes ("observer" or "obproxy")
+            
+        Returns:
+            List of nodes with SSH connections attached
+        """
+        nodes = []
+        for node in nodes_config:
+            # Create a copy of node dict to avoid sharing between tasks
+            node_copy = node.copy()
+            
+            if ssh_manager:
+                # Use connection pool for better performance
+                try:
+                    ssher = ssh_manager.get_connection(self.context, node_copy)
+                    node_copy["ssher"] = ssher
+                    nodes.append(NodeWrapper(node_copy))
+                except Exception as e:
+                    self.stdio.warn(f"Failed to get SSH connection from pool for {node_copy.get('ip')}: {e}")
+                    # Fallback to direct creation
+                    ssher = self._create_ssh_connection_with_lock(node_copy)
+                    node_copy["ssher"] = ssher
+                    nodes.append(NodeWrapper(node_copy))
+                    self._using_ssh_pool = False
+            else:
+                # Fallback: create SSH connection directly with per-host locking
                 ssher = self._create_ssh_connection_with_lock(node_copy)
                 node_copy["ssher"] = ssher
-                self.obproxy_nodes.append(node_copy)
+                nodes.append(NodeWrapper(node_copy))
+        
+        return nodes
 
-        # Check if this is build_before case (should not create DB connection or get version)
+    def _init_versions(self):
+        """Initialize version information (observer and obproxy)."""
+        # Check if this is build_before case
         cases_option = Util.get_option(self.context.options, 'cases')
         is_build_before = cases_option == "build_before"
 
-        # Reuse observer_version from context if available
-        # For build_before cases, do not get observer version
+        # Initialize observer version
         if is_build_before:
             self.observer_version = None
             self.stdio.verbose("cases is build_before, skip getting observer version")
         else:
-            self.observer_version = self.context.cluster_config.get("version", "")
+            # Optimized: Reuse observer_version from context (cached by CheckHandler)
+            self.observer_version = self.context.get_variable('check_observer_version')
+            
+            # Fallback: try cluster config or query if not cached
             if not self.observer_version:
+                self.observer_version = self.context.cluster_config.get("version", "")
+                if not self.observer_version:
+                    try:
+                        self.stdio.verbose("Observer version not cached, querying...")
+                        self.observer_version = get_observer_version(self.context)
+                        # Cache it for other tasks
+                        self.context.set_variable('check_observer_version', self.observer_version)
+                    except Exception as e:
+                        self.stdio.error("get observer_version fail: {0}".format(e))
+            else:
+                self.stdio.verbose("Using cached observer version from context")
+
+        # Initialize obproxy versions
+        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
+            self.stdio.verbose("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
+            self.obproxy_version = None
+            self.obproxy_full_version = None
+        else:
+            # Optimized: Reuse obproxy versions from context (cached by CheckHandler)
+            self.obproxy_version = self.context.get_variable('check_obproxy_version')
+            self.obproxy_full_version = self.context.get_variable('check_obproxy_full_version')
+            
+            # Fallback: query if not cached
+            if not self.obproxy_version:
                 try:
-                    self.observer_version = get_observer_version(self.context)
+                    self.stdio.verbose("Obproxy version not cached, querying...")
+                    self.obproxy_version = get_obproxy_version(self.context)
+                    self.context.set_variable('check_obproxy_version', self.obproxy_version)
                 except Exception as e:
-                    self.stdio.error("get observer_version fail: {0}".format(e))
+                    self.stdio.error("get obproxy_version fail: {0}".format(e))
+            else:
+                self.stdio.verbose("Using cached obproxy version from context")
+            
+            if not self.obproxy_full_version:
+                try:
+                    self.stdio.verbose("Obproxy full version not cached, querying...")
+                    self.obproxy_full_version = get_obproxy_full_version(self.context)
+                    self.context.set_variable('check_obproxy_full_version', self.obproxy_full_version)
+                except Exception as e:
+                    self.stdio.error("get obproxy_full_version fail: {0}".format(e))
+            else:
+                self.stdio.verbose("Using cached obproxy full version from context")
 
-        # Reuse ob_connector from connection pool if available
-        # For build_before cases, do not create database connection
+    def _init_db_connection(self):
+        """Initialize database connection from pool or create new one."""
+        # Check if this is build_before case
+        cases_option = Util.get_option(self.context.options, 'cases')
+        is_build_before = cases_option == "build_before"
 
+        if is_build_before:
+            # For build_before cases, do not create database connection
+            self.ob_connector = None
+            self._using_pool_connection = False
+            self.stdio.verbose("cases is build_before, skip creating database connection")
+            return
+
+        # Try to get connection from pool
         ob_connector_pool = self.context.get_variable('check_obConnector_pool')
         if ob_connector_pool:
-            # Support both old CheckOBConnectorPool and new OBConnectionPool interfaces
             try:
-                # Try new OBConnectionPool interface first
+                # Support both old CheckOBConnectorPool and new OBConnectionPool interfaces
                 if hasattr(ob_connector_pool, 'get_connection'):
                     self.ob_connector = ob_connector_pool.get_connection()
                 else:
@@ -129,37 +248,24 @@ class TaskBase:
                 self.stdio.warn(f"Failed to get connection from pool: {e}")
                 self.ob_connector = None
                 self._using_pool_connection = False
-        elif is_build_before:
-            # For build_before cases, do not create database connection
-            self.ob_connector = None
-            self._using_pool_connection = False
-            self.stdio.verbose("cases is build_before, skip creating database connection")
         else:
             # Fallback: create new connector if pool not available
             from src.common.ob_connector import OBConnector
 
-            self.ob_connector = OBConnector(
-                context=self.context,
-                ip=self.ob_cluster.get("db_host"),
-                port=self.ob_cluster.get("db_port"),
-                username=self.ob_cluster.get("tenant_sys").get("user"),
-                password=self.ob_cluster.get("tenant_sys").get("password"),
-                timeout=10000,
-            )
-            self._using_pool_connection = False
-
-        # get obproxy version (only once, reuse if available)
-        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
-            self.stdio.verbose("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
-        else:
             try:
-                self.obproxy_version = get_obproxy_version(self.context)
+                self.ob_connector = OBConnector(
+                    context=self.context,
+                    ip=self.ob_cluster.get("db_host"),
+                    port=self.ob_cluster.get("db_port"),
+                    username=self.ob_cluster.get("tenant_sys").get("user"),
+                    password=self.ob_cluster.get("tenant_sys").get("password"),
+                    timeout=10000,
+                )
+                self._using_pool_connection = False
             except Exception as e:
-                self.stdio.error("get obproxy_version fail: {0}".format(e))
-            try:
-                self.obproxy_full_version = get_obproxy_full_version(self.context)
-            except Exception as e:
-                self.stdio.error("get obproxy_full_version fail: {0}".format(e))
+                self.stdio.warn(f"Failed to create database connection: {e}")
+                self.ob_connector = None
+                self._using_pool_connection = False
 
     def _create_ssh_connection_with_lock(self, node):
         """
@@ -197,8 +303,8 @@ class TaskBase:
     def cleanup(self):
         """
         Cleanup resources after task execution.
-        Release connection back to pool if using pooled connection.
-        Close SSH connections created for this task.
+        Release connections back to pools if using pooled connections.
+        Close SSH connections if created directly.
         """
         # Release database connection back to pool
         if hasattr(self, '_using_pool_connection') and self._using_pool_connection:
@@ -216,26 +322,52 @@ class TaskBase:
                     self.stdio.warn(f"Failed to release connection to pool: {e}")
                 self.ob_connector = None
 
-        # Close SSH connections created for this task
+        # Get SSH connection manager
+        ssh_manager = self.context.get_variable('check_ssh_manager')
+        using_ssh_pool = hasattr(self, '_using_ssh_pool') and self._using_ssh_pool and ssh_manager
+
+        # Return SSH connections to pool or close them
         if hasattr(self, 'observer_nodes') and self.observer_nodes:
             for node in self.observer_nodes:
                 ssher = node.get("ssher")
-                if ssher and hasattr(ssher, 'client') and ssher.client:
-                    try:
-                        if hasattr(ssher.client, '_ssh_fd') and ssher.client._ssh_fd:
-                            ssher.client._ssh_fd.close()
-                    except Exception as e:
-                        self.stdio.verbose("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
+                if ssher:
+                    if using_ssh_pool:
+                        # Return to connection pool
+                        try:
+                            ssh_manager.return_connection(ssher)
+                        except Exception as e:
+                            self.stdio.verbose(f"Failed to return SSH connection to pool for {node.get('ip')}: {e}")
+                    else:
+                        # Close connection directly
+                        try:
+                            if hasattr(ssher, 'client') and ssher.client:
+                                if hasattr(ssher.client, '_ssh_fd') and ssher.client._ssh_fd:
+                                    ssher.client._ssh_fd.close()
+                        except Exception as e:
+                            self.stdio.verbose("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
+                    # Clear reference
+                    node["ssher"] = None
 
         if hasattr(self, 'obproxy_nodes') and self.obproxy_nodes:
             for node in self.obproxy_nodes:
                 ssher = node.get("ssher")
-                if ssher and hasattr(ssher, 'client') and ssher.client:
-                    try:
-                        if hasattr(ssher.client, '_ssh_fd') and ssher.client._ssh_fd:
-                            ssher.client._ssh_fd.close()
-                    except Exception as e:
-                        self.stdio.verbose("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
+                if ssher:
+                    if using_ssh_pool:
+                        # Return to connection pool
+                        try:
+                            ssh_manager.return_connection(ssher)
+                        except Exception as e:
+                            self.stdio.verbose(f"Failed to return SSH connection to pool for {node.get('ip')}: {e}")
+                    else:
+                        # Close connection directly
+                        try:
+                            if hasattr(ssher, 'client') and ssher.client:
+                                if hasattr(ssher.client, '_ssh_fd') and ssher.client._ssh_fd:
+                                    ssher.client._ssh_fd.close()
+                        except Exception as e:
+                            self.stdio.verbose("Failed to close SSH connection for {0}: {1}".format(node.get("ip"), e))
+                    # Clear reference
+                    node["ssher"] = None
 
     def execute(self):
         """

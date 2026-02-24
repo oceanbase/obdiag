@@ -64,18 +64,15 @@ class GatherObAdminHandler(BaseHandler):
 
         # Use ConfigAccessor if available
         if self.config:
-            self.file_number_limit = self.config.gather_file_number_limit
-            self.file_size_limit = self.config.gather_file_size_limit
+            self._file_size_limit = self.config.gather_file_size_limit
             self.config_path = self.config.basic_config_path
         else:
             # Fallback to direct config access
             if self.context.inner_config is None:
-                self.file_number_limit = 20
-                self.file_size_limit = 2 * 1024 * 1024 * 1024
+                self._file_size_limit = 2 * 1024 * 1024 * 1024
             else:
                 basic_config = self.context.inner_config['obdiag']['basic']
-                self.file_number_limit = int(basic_config["file_number_limit"])
-                self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
+                self._file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
                 self.config_path = basic_config['config_path']
 
         # Initialize options
@@ -232,7 +229,7 @@ class GatherObAdminHandler(BaseHandler):
         gather_log_file_size = get_file_size(ssh_client, gather_package_dir, self.stdio)
         self._log_info(FileUtil.show_file_size_tabulate(ssh_client, gather_log_file_size, self.stdio))
         local_path = ""
-        if int(gather_log_file_size) < self.file_size_limit:
+        if int(gather_log_file_size) < self._file_size_limit:
             local_store_tar_gz_file = f"{pack_dir_this_command}/{gather_dir_name}.tar.gz"
             download_file(ssh_client, gather_package_dir, local_store_tar_gz_file, self.stdio)
             local_path = f"{pack_dir_this_command}/{gather_dir_name}.zip"

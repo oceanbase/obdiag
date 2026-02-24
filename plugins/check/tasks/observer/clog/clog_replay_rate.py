@@ -99,16 +99,17 @@ class ClogReplayRateTask(TaskBase):
             # Analyze each record
             critical_issues = []
             warning_issues = []
-            total_unreplayed_size_mb = 0
+            total_unreplayed_size_mb = 0.0
 
             for row in results:
                 svr_ip = row.get("svr_ip") or row.get("SVR_IP")
                 svr_port = row.get("svr_port") or row.get("SVR_PORT")
                 tenant_id = row.get("tenant_id") or row.get("TENANT_ID")
                 ls_id = row.get("ls_id") or row.get("LS_ID")
-                unreplayed_size_bytes = row.get("unreplayed_size_bytes") or 0
-                replay_delay_seconds = row.get("replay_delay_seconds") or 0
-                pending_cnt = row.get("pending_cnt") or row.get("PENDING_CNT") or 0
+                # Coerce to float to avoid float += Decimal (DB drivers may return Decimal)
+                unreplayed_size_bytes = float(row.get("unreplayed_size_bytes") or 0)
+                replay_delay_seconds = float(row.get("replay_delay_seconds") or 0)
+                pending_cnt = int(row.get("pending_cnt") or row.get("PENDING_CNT") or 0)
 
                 # Convert bytes to MB
                 unreplayed_size_mb = unreplayed_size_bytes / (1024 * 1024)
@@ -164,13 +165,14 @@ class ClogReplayRateTask(TaskBase):
             tenant_stats = {}
             for row in replay_results:
                 tenant_id = row.get("tenant_id") or row.get("TENANT_ID")
-                unreplayed_size_bytes = row.get("unreplayed_size_bytes") or 0
-                replay_delay_seconds = row.get("replay_delay_seconds") or 0
+                # Coerce to float to avoid int/float += Decimal (DB drivers may return Decimal)
+                unreplayed_size_bytes = float(row.get("unreplayed_size_bytes") or 0)
+                replay_delay_seconds = float(row.get("replay_delay_seconds") or 0)
 
                 if tenant_id not in tenant_stats:
                     tenant_stats[tenant_id] = {
-                        "total_unreplayed_mb": 0,
-                        "max_delay_minutes": 0,
+                        "total_unreplayed_mb": 0.0,
+                        "max_delay_minutes": 0.0,
                         "follower_count": 0,
                     }
 

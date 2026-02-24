@@ -21,7 +21,7 @@ BUILD_DIR=$OLDPWD/rpmbuild
 cd $SRC_DIR/
 rm -rf build.log build dist oceanbase-diagnostic-tool.spec
 DATE=`date`
-VERSION="$RPM_PACKAGE_VERSION"
+VERSION="${OBDIAG_VERSION:-$RPM_PACKAGE_VERSION}"
 
 cd $SRC_DIR
 pwd
@@ -35,7 +35,7 @@ mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 mkdir -p ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool
 cp -rf $SRC_DIR/src $BUILD_DIR/SOURCES/site-packages/
-pyinstaller --hidden-import=decimal -p $BUILD_DIR/SOURCES/site-packages -F src/obdiag.py
+pyinstaller --hidden-import=decimal --hidden-import=xmltodict --hidden-import=oyaml --hidden-import=tabulate --hidden-import=jinja2 --hidden-import=markupsafe -p $BUILD_DIR/SOURCES/site-packages -F src/obdiag.py
 rm -f obdiag.py oceanbase-diagnostic-tool.spec
 
 cd $SRC_DIR
@@ -82,5 +82,10 @@ echo -e 'Please execute the following command to init obdiag:\n'
 echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 
 %preun
-# Clean up symbolic links before uninstall
-rm -f /usr/bin/obdiag 2>/dev/null || true
+# Remove symlink only on full uninstall ($1=0), not on upgrade ($1=1).
+# On upgrade, new package's %post already created /usr/bin/obdiag; old package's
+# %preun must not remove it or the command would disappear after rpm -U.
+if [ "$1" = "0" ]; then
+  echo "rm /usr/bin/obdiag"
+  rm -f /usr/bin/obdiag 2>/dev/null || true
+fi

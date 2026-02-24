@@ -31,7 +31,10 @@ class ClockSourceCheck(TaskBase):
 
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
-                node_ip = node["ip"]
+                node_ip = node.get("ip", "unknown")
+                if ssh_client is None:
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get_name()))
+                    continue
                 if not self.check_command_exist(ssh_client, "chronyc"):
                     self.report.add_warning("node:{0}. chronyc command does not exist.".format(ssh_client.get_name()))
                     continue

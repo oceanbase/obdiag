@@ -56,7 +56,12 @@ class OBConnectionPool:
         self._initialize_pool()
 
     def _initialize_pool(self):
-        """Initialize pool with initial connections."""
+        """
+        Initialize pool with initial connections.
+        
+        If some connections fail to create, keep the successfully created ones.
+        This is important because some hosts may have limited connection capacity.
+        """
         try:
             tenant_sys = self.cluster_config.get("tenant_sys", {})
             if not tenant_sys.get("user"):
@@ -64,16 +69,45 @@ class OBConnectionPool:
                     self.stdio.warn("Sys tenant credentials not configured, pool initialization skipped")
                 return
 
+            success_count = 0
+            failure_count = 0
+            
             for i in range(self.max_size):
-                conn = self._create_connection()
-                if conn:
-                    self._pool.put_nowait(conn)
+                try:
+                    conn = self._create_connection()
+                    if conn:
+                        self._pool.put_nowait(conn)
+                        success_count += 1
+                    else:
+                        failure_count += 1
+                        if self.stdio:
+                            self.stdio.verbose(f"Failed to create connection {i+1}/{self.max_size}, continuing with available connections")
+                except Exception as e:
+                    failure_count += 1
+                    if self.stdio:
+                        self.stdio.warn(f"Exception creating connection {i+1}/{self.max_size}: {e}, continuing with available connections")
 
+            # Log initialization result
             if self.stdio:
-                self.stdio.verbose(f"OBConnectionPool initialized with {self._pool.qsize()} connections")
+                if success_count > 0:
+                    if failure_count > 0:
+                        self.stdio.warn(
+                            f"OBConnectionPool initialized with {success_count}/{self.max_size} connections "
+                            f"({failure_count} failed). Pool will use available connections."
+                        )
+                    else:
+                        self.stdio.verbose(f"OBConnectionPool initialized with {success_count} connections")
+                else:
+                    self.stdio.warn(
+                        f"OBConnectionPool initialization: all {self.max_size} connections failed. "
+                        f"Pool will create connections on-demand."
+                    )
         except Exception as e:
             if self.stdio:
-                self.stdio.error(f"OBConnectionPool initialization failed: {e}")
+                self.stdio.error(f"OBConnectionPool initialization error: {e}")
+                # Even if initialization fails, keep any connections that were successfully created
+                if self._pool.qsize() > 0:
+                    self.stdio.verbose(f"Keeping {self._pool.qsize()} successfully created connections despite initialization error")
 
     def _create_connection(self) -> Optional[OBConnector]:
         """Create a new database connection."""
@@ -220,3 +254,28 @@ class OBConnectionPool:
                     self._safe_close(conn)
                 except queue.Empty:
                     break
+
+    def get_stats(self) -> Dict:
+        """
+        Get pool statistics.
+        
+        Returns:
+            Dictionary with pool statistics including:
+            - total_connections: Total connections in pool
+            - max_size: Maximum pool size
+            - available_connections: Available connections
+            - utilization_rate: Pool utilization rate (0.0-1.0)
+        """
+        with self._lock:
+            total = self._pool.qsize()
+            max_size = self.max_size
+            utilization_rate = total / max_size if max_size > 0 else 0.0
+            
+            return {
+                "total_connections": total,
+                "max_size": max_size,
+                "available_connections": total,
+                "utilization_rate": utilization_rate,
+                "timeout": self.timeout,
+                "health_check_interval": self.health_check_interval
+            }

@@ -39,6 +39,9 @@ class DmesgLog(TaskBase):
             # check dmesg is exist
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
+                if ssh_client is None:
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get_name()))
+                    continue
                 if not super().check_command_exist(ssh_client, "dmesg"):
                     self.report.add_warning("node:{0}. dmesg command does not exist.".format(ssh_client.get_name()))
                     continue

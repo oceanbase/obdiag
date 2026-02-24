@@ -1,0 +1,2576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBdiag 命令生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        #subSubCommandGroup {
+            display: none !important;
+        }
+
+        #subSubCommandGroup[style*="block"] {
+            display: block !important;
+        }
+
+        #subSubSubCommandGroup {
+            display: none !important;
+        }
+
+        #subSubSubCommandGroup[style*="block"] {
+            display: block !important;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .command-output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            margin-top: 10px;
+            background: #28a745;
+            color: white;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .node-list {
+            margin-top: 10px;
+        }
+
+        .node-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .node-item input {
+            flex: 1;
+        }
+
+        .add-node-btn {
+            background: #17a2b8;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .remove-node-btn {
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .db-env-container {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .db-env-container .form-group {
+            margin-bottom: 10px;
+        }
+
+        .db-env-container label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .db-env-container input {
+            margin-top: 5px;
+        }
+
+        /* Tooltip 样式 */
+        .tooltip-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 5px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: fixed;
+            z-index: 10000;
+            background-color: #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            width: 350px;
+            max-width: 90vw;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .tooltip-content {
+                width: 280px;
+                font-size: 12px;
+            }
+        }
+
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+            pointer-events: none;
+        }
+
+        .tooltip-wrapper:hover .tooltip-content,
+        .tooltip-wrapper.active .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .tooltip-example {
+            background: #1a1a1a;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .tooltip-param {
+            margin: 5px 0;
+        }
+
+        .tooltip-param strong {
+            color: #4CAF50;
+        }
+
+        .validation-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        input:invalid {
+            border-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 OBdiag 命令生成器</h1>
+            <p>根据您的需求自动生成 obdiag 诊断命令</p>
+            <p style="font-size: 0.9em; opacity: 0.85; margin-top: 10px;">
+                <span style="background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 12px;">
+                    📌 本工具适配 obdiag 4.1.0 版本
+                </span>
+            </p>
+        </div>
+
+        <div class="content">
+            <!-- 版本提示 -->
+            <div class="alert" style="background: #e7f3ff; color: #004085; border: 1px solid #b3d7ff; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+                <strong>📌 版本说明：</strong>本命令生成助手适配 <strong>obdiag 4.1.0</strong> 版本。如果您使用的是其他版本，部分命令参数可能有所不同，请参考对应版本的文档。
+            </div>
+            
+            <!-- 主命令选择 -->
+            <div class="section">
+                <div class="section-title">1. 选择功能</div>
+                <div class="form-group">
+                    <label for="mainCommand">主命令
+                        <span class="tooltip-wrapper">
+                            <span class="tooltip-icon">?</span>
+                            <div class="tooltip-content">
+                                <div class="tooltip-title">命令说明</div>
+                                <div>选择要执行的 obdiag 主命令：</div>
+                                <div class="tooltip-param"><strong>gather</strong>: 收集诊断信息</div>
+                                <div class="tooltip-param"><strong>display</strong>: 显示集群信息</div>
+                                <div class="tooltip-param"><strong>analyze</strong>: 分析日志和数据</div>
+                                <div class="tooltip-param"><strong>check</strong>: 检查集群</div>
+                                <div class="tooltip-param"><strong>rca</strong>: 根因分析</div>
+                            </div>
+                        </span>
+                    </label>
+                    <select id="mainCommand">
+                        <option value="">请选择...</option>
+                        <option value="gather">gather - 收集诊断信息</option>
+                        <option value="display">display - 显示集群信息</option>
+                        <option value="analyze">analyze - 分析日志和数据</option>
+                        <option value="check">check - 检查集群</option>
+                        <option value="rca">rca - 根因分析</option>
+                        <option value="config">config - 快速构建配置</option>
+                        <option value="update">update - 更新插件</option>
+                        <option value="tool">tool - 工具</option>
+                        <option value="display-trace">display-trace - 显示trace日志</option>
+                    </select>
+                </div>
+                <div class="form-group" id="subCommandGroup" style="display: none;">
+                    <label for="subCommand">子命令
+                        <span class="tooltip-wrapper" id="subCommandTooltip" style="display: none;">
+                            <span class="tooltip-icon">?</span>
+                            <div class="tooltip-content" id="subCommandTooltipContent"></div>
+                        </span>
+                    </label>
+                    <select id="subCommand" onchange="updateSubSubCommands(); updateSubCommandTooltip();"></select>
+                </div>
+                <div class="form-group" id="subSubCommandGroup" style="display: none;">
+                    <label for="subSubCommand">三级命令
+                        <span class="tooltip-wrapper" id="subSubCommandTooltip" style="display: none;">
+                            <span class="tooltip-icon">?</span>
+                            <div class="tooltip-content" id="subSubCommandTooltipContent"></div>
+                        </span>
+                    </label>
+                    <select id="subSubCommand" onchange="updateSubSubSubCommands(); updateSubSubCommandTooltip();"></select>
+                </div>
+                <div class="form-group" id="subSubSubCommandGroup" style="display: none;">
+                    <label for="subSubSubCommand">四级命令（场景选择）
+                        <span class="tooltip-wrapper" id="subSubSubCommandTooltip" style="display: none;">
+                            <span class="tooltip-icon">?</span>
+                            <div class="tooltip-content" id="subSubSubCommandTooltipContent"></div>
+                        </span>
+                    </label>
+                    <select id="subSubSubCommand" onchange="updateCommandOptions(); updateSubSubSubCommandTooltip();"></select>
+                </div>
+            </div>
+
+            <!-- 数据库连接配置 -->
+            <div class="section">
+                <div class="section-title">2. 数据库连接配置</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dbHost">数据库主机 (db_host)</label>
+                        <input type="text" id="dbHost" placeholder="例如: 192.168.1.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="dbPort">数据库端口 (db_port)</label>
+                        <input type="number" id="dbPort" placeholder="例如: 2881">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dbUser">系统租户用户 (tenant_sys.user)</label>
+                        <input type="text" id="dbUser" placeholder="例如: root@sys">
+                    </div>
+                    <div class="form-group">
+                        <label for="dbPassword">系统租户密码 (tenant_sys.password)</label>
+                        <input type="password" id="dbPassword" placeholder="输入密码">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observer 节点配置 -->
+            <div class="section">
+                <div class="section-title">3. Observer 节点配置</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="observerSshUsername">SSH 用户名 (obcluster.servers.global.ssh_username)</label>
+                        <input type="text" id="observerSshUsername" placeholder="例如: admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="observerSshPassword">SSH 密码 (obcluster.servers.global.ssh_password)</label>
+                        <input type="password" id="observerSshPassword" placeholder="输入密码（可选）">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="observerSshKeyFile">SSH 密钥文件 (obcluster.servers.global.ssh_key_file)</label>
+                        <input type="text" id="observerSshKeyFile" placeholder="例如: ~/.ssh/id_rsa">
+                        <div class="help-text">如果服务器只支持公钥认证，必须填写此选项</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="observerSshPort">SSH 端口 (obcluster.servers.global.ssh_port)</label>
+                        <input type="number" id="observerSshPort" placeholder="默认: 22" value="22">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="observerHomePath">Home 路径 (obcluster.servers.global.home_path)</label>
+                    <input type="text" id="observerHomePath" placeholder="例如: /home/admin/oceanbase">
+                </div>
+                <div class="form-group">
+                    <label>Observer 节点 IP 列表</label>
+                    <div id="observerNodes" class="node-list">
+                        <div class="node-item">
+                            <input type="text" class="node-ip" placeholder="节点 IP 地址">
+                            <input type="text" class="node-data-dir" placeholder="data_dir (可选)">
+                            <input type="text" class="node-redo-dir" placeholder="redo_dir (可选)">
+                            <button type="button" class="btn remove-node-btn" onclick="removeObserverNode(this)">删除</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn add-node-btn" onclick="addObserverNode()">添加节点</button>
+                </div>
+            </div>
+
+            <!-- OBProxy 节点配置 -->
+            <div class="section">
+                <div class="section-title">4. OBProxy 节点配置（可选）</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="obproxySshUsername">SSH 用户名 (obproxy.servers.global.ssh_username)</label>
+                        <input type="text" id="obproxySshUsername" placeholder="例如: admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="obproxySshPassword">SSH 密码 (obproxy.servers.global.ssh_password)</label>
+                        <input type="password" id="obproxySshPassword" placeholder="输入密码（可选）">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="obproxySshKeyFile">SSH 密钥文件 (obproxy.servers.global.ssh_key_file)</label>
+                        <input type="text" id="obproxySshKeyFile" placeholder="例如: ~/.ssh/id_rsa">
+                    </div>
+                    <div class="form-group">
+                        <label for="obproxyHomePath">Home 路径 (obproxy.servers.global.home_path)</label>
+                        <input type="text" id="obproxyHomePath" placeholder="例如: /home/admin/obproxy">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>OBProxy 节点 IP 列表</label>
+                    <div id="obproxyNodes" class="node-list">
+                        <div class="node-item">
+                            <input type="text" class="proxy-node-ip" placeholder="节点 IP 地址">
+                            <button type="button" class="btn remove-node-btn" onclick="removeObproxyNode(this)">删除</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn add-node-btn" onclick="addObproxyNode()">添加节点</button>
+                </div>
+            </div>
+
+            <!-- 命令特定参数 -->
+            <div class="section" id="commandSpecificOptions">
+                <div class="section-title">5. 命令特定参数</div>
+                <div id="commandOptions"></div>
+            </div>
+
+            <!-- 生成命令 -->
+            <div class="section">
+                <div class="section-title">6. 生成的命令</div>
+                <div id="commandOutput" class="command-output">请选择功能并填写配置...</div>
+                <button type="button" class="btn copy-btn" onclick="copyCommand()">📋 复制命令</button>
+                <div id="copyAlert" class="alert alert-success hidden">命令已复制到剪贴板！</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 子命令功能说明
+        const subCommandDescriptions = {
+            'gather.all': '收集所有诊断信息（日志、系统状态、堆栈等）',
+            'gather.log': '收集 OceanBase 日志',
+            'gather.sysstat': '收集系统状态信息',
+            'gather.stack': '收集堆栈信息',
+            'gather.perf': '收集性能分析数据',
+            'gather.slog': '收集系统日志',
+            'gather.clog': '收集提交日志',
+            'gather.plan_monitor': '收集 ParalleSQL 执行计划监控信息',
+            'gather.awr': '收集 AWR 报告',
+            'gather.obproxy_log': '收集 OBProxy 日志',
+            'gather.oms_log': '收集 OMS 日志',
+            'gather.scene': '使用场景方式收集诊断信息',
+            'gather.ash': '收集 Active Session History 信息',
+            'gather.tabledump': '导出表数据',
+            'gather.parameter': '收集参数信息',
+            'gather.variable': '收集变量信息',
+            'gather.dbms_xplan': '收集执行计划信息',
+            'gather.core': '收集 core 文件',
+            'display.scene': '使用场景方式显示集群信息',
+            'analyze.log': '分析日志文件',
+            'analyze.flt_trace': '分析 FLT trace 信息',
+            'analyze.parameter': '分析参数配置',
+            'analyze.variable': '分析变量配置',
+            'analyze.queue': '分析队列信息',
+            'analyze.index_space': '分析索引空间',
+            'analyze.memory': '分析内存使用情况',
+            'check.run': '运行集群检查任务',
+            'check.list': '列出可用的检查任务',
+            'rca.run': '运行根因分析场景',
+            'rca.list': '列出可用的根因分析场景'
+        };
+
+        // RCA 场景列表（常见场景）
+        const rcaScenes = {
+            'lock_conflict': { name: 'lock_conflict', description: '锁冲突问题排查' },
+            'major_hold': { name: 'major_hold', description: '合并卡住问题排查' },
+            'tenant_memory_throttling': { name: 'tenant_memory_throttling', description: '租户内存限速问题排查' },
+            'log_error': { name: 'log_error', description: '日志相关问题排查' },
+            'memory_full': { name: 'memory_full', description: '内存爆问题排查' },
+            'replay_hold': { name: 'replay_hold', description: '回放卡住问题排查' },
+            'disconnection': { name: 'disconnection', description: '连接断开问题排查' },
+            'suspend_transaction': { name: 'suspend_transaction', description: '事务挂起问题排查' },
+            'schema_leak': { name: 'schema_leak', description: 'Schema 泄漏问题排查' },
+            'transaction_wait_timeout': { name: 'transaction_wait_timeout', description: '事务等待超时问题排查' },
+            'transaction_rollback': { name: 'transaction_rollback', description: '事务回滚问题排查' },
+            'transaction_execute_timeout': { name: 'transaction_execute_timeout', description: '事务执行超时问题排查' },
+            'transaction_disconnection': { name: 'transaction_disconnection', description: '事务连接断开问题排查' },
+            'transaction_not_ending': { name: 'transaction_not_ending', description: '事务未结束问题排查' },
+            'transaction_other_error': { name: 'transaction_other_error', description: '事务其他错误问题排查' },
+            'ddl_failure': { name: 'ddl_failure', description: 'DDL 失败问题排查' },
+            'ddl_disk_full': { name: 'ddl_disk_full', description: 'DDL 磁盘满问题排查' },
+            'clog_disk_full': { name: 'clog_disk_full', description: 'Clog 磁盘满问题排查' },
+            'index_ddl_error': { name: 'index_ddl_error', description: '索引 DDL 错误问题排查' },
+            'split_schedule_error': { name: 'split_schedule_error', description: '分裂调度错误问题排查' },
+            'delete_server_error': { name: 'delete_server_error', description: '删除服务器错误问题排查' },
+            'unit_gc': { name: 'unit_gc', description: 'Unit GC 问题排查' },
+            'gc_troubleshooting': { name: 'gc_troubleshooting', description: 'GC 问题排查' },
+            'weak_read_troubleshooting': { name: 'weak_read_troubleshooting', description: '弱读问题排查' },
+            'oms_obcdc': { name: 'oms_obcdc', description: 'OMS OBCDC 问题排查' },
+            'oms_full_trans': { name: 'oms_full_trans', description: 'OMS 全量事务问题排查' }
+        };
+
+        // Gather Scene 场景列表（包含必需的环境变量信息）
+        const gatherScenes = {
+            // Observer 场景
+            'observer.base': { 
+                name: 'observer.base', 
+                description: '集群基础信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.compaction': { 
+                name: 'observer.compaction', 
+                description: '合并问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.clog_disk_full': { 
+                name: 'observer.clog_disk_full', 
+                description: 'Clog 磁盘满',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.cluster_down': { 
+                name: 'observer.cluster_down', 
+                description: '集群宕机',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.delay_of_primary_and_backup': { 
+                name: 'observer.delay_of_primary_and_backup', 
+                description: '主备延迟',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.io': { 
+                name: 'observer.io', 
+                description: 'IO 问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.log_archive': { 
+                name: 'observer.log_archive', 
+                description: '日志归档问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.long_transaction': { 
+                name: 'observer.long_transaction', 
+                description: '长事务问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.memory': { 
+                name: 'observer.memory', 
+                description: '内存问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.recovery': { 
+                name: 'observer.recovery', 
+                description: '恢复问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.restart': { 
+                name: 'observer.restart', 
+                description: '重启问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.rootservice_switch': { 
+                name: 'observer.rootservice_switch', 
+                description: 'RootService 切换',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.suspend_transaction': { 
+                name: 'observer.suspend_transaction', 
+                description: '事务挂起',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.topsql': { 
+                name: 'observer.topsql', 
+                description: 'TopSQL 问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.unknown': { 
+                name: 'observer.unknown', 
+                description: '未知问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.unit_data_imbalance': { 
+                name: 'observer.unit_data_imbalance', 
+                description: 'Unit 数据不平衡',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.backup': { 
+                name: 'observer.backup', 
+                description: '备份问题',
+                requiredEnv: ['tenant_id'],
+                optionalEnv: []
+            },
+            'observer.backup_clean': { 
+                name: 'observer.backup_clean', 
+                description: '备份清理',
+                requiredEnv: ['tenant_id'],
+                optionalEnv: []
+            },
+            // Observer 硬编码场景
+            'observer.perf_sql': { 
+                name: 'observer.perf_sql', 
+                description: 'SQL性能问题',
+                requiredEnv: ['host', 'port', 'user', 'password', 'database', 'trace_id'],
+                optionalEnv: []
+            },
+            'observer.sql_err': { 
+                name: 'observer.sql_err', 
+                description: 'SQL执行出错',
+                requiredEnv: ['host', 'port', 'user', 'password', 'database', 'trace_id'],
+                optionalEnv: []
+            },
+            'observer.cpu_high': { 
+                name: 'observer.cpu_high', 
+                description: 'CPU高',
+                requiredEnv: [],
+                optionalEnv: ['perf_count']
+            },
+            'observer.px_collect_log': { 
+                name: 'observer.px_collect_log', 
+                description: 'SQL PX 收集报错源节点日志',
+                requiredEnv: ['trace_id'],
+                optionalEnv: ['estimated_time']
+            },
+            'observer.rollback_transaction': { 
+                name: 'observer.rollback_transaction', 
+                description: '回滚事务收集',
+                requiredEnv: [],
+                optionalEnv: ['from_time', 'to_time', 'since']
+            },
+            // OBProxy 场景
+            'obproxy.restart': { 
+                name: 'obproxy.restart', 
+                description: 'OBProxy 无故重启',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'obproxy.obproxy_parameter': { 
+                name: 'obproxy.obproxy_parameter', 
+                description: 'OBProxy 参数问题',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            // Other 场景
+            'other.application_error': { 
+                name: 'other.application_error', 
+                description: '应用报错问题',
+                requiredEnv: [],
+                optionalEnv: []
+            }
+        };
+
+        // Display Scene 场景列表（包含必需的环境变量信息）
+        const displayScenes = {
+            // Observer 场景
+            'observer.cluster_info': { 
+                name: 'observer.cluster_info', 
+                description: '集群信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.all_tenant': { 
+                name: 'observer.all_tenant', 
+                description: '所有租户信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.tenant_info': { 
+                name: 'observer.tenant_info', 
+                description: '租户信息',
+                requiredEnv: ['tenant_name'],
+                optionalEnv: []
+            },
+            'observer.zone_info': { 
+                name: 'observer.zone_info', 
+                description: 'Zone 信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.server_info': { 
+                name: 'observer.server_info', 
+                description: '服务器信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.unit_info': { 
+                name: 'observer.unit_info', 
+                description: 'Unit 信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.memory': { 
+                name: 'observer.memory', 
+                description: '内存信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.cpu': { 
+                name: 'observer.cpu', 
+                description: 'CPU 信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.compaction': { 
+                name: 'observer.compaction', 
+                description: '合并信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.clog_volume_statistics': { 
+                name: 'observer.clog_volume_statistics', 
+                description: 'Clog 容量统计',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.topsql': { 
+                name: 'observer.topsql', 
+                description: 'TopSQL',
+                requiredEnv: ['tenant_name'],
+                optionalEnv: ['mtime']
+            },
+            'observer.slowsql': { 
+                name: 'observer.slowsql', 
+                description: '慢SQL',
+                requiredEnv: ['tenant_name'],
+                optionalEnv: ['mtime']
+            },
+            'observer.plan': { 
+                name: 'observer.plan', 
+                description: '执行计划',
+                requiredEnv: ['tenant_name', 'sqlid'],
+                optionalEnv: []
+            },
+            'observer.plan_explain': { 
+                name: 'observer.plan_explain', 
+                description: '执行计划解释',
+                requiredEnv: ['svr_ip', 'svr_port', 'tenant_id', 'plan_id'],
+                optionalEnv: []
+            },
+            'observer.processlist': { 
+                name: 'observer.processlist', 
+                description: '进程列表',
+                requiredEnv: ['tenant_name'],
+                optionalEnv: []
+            },
+            'observer.processlist_stat': { 
+                name: 'observer.processlist_stat', 
+                description: '进程统计',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.long_transaction': { 
+                name: 'observer.long_transaction', 
+                description: '长事务',
+                requiredEnv: [],
+                optionalEnv: ['wait_time']
+            },
+            'observer.lockholder': { 
+                name: 'observer.lockholder', 
+                description: '锁持有者',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.lock_table': { 
+                name: 'observer.lock_table', 
+                description: '锁表信息',
+                requiredEnv: ['tablename'],
+                optionalEnv: []
+            },
+            'observer.leader': { 
+                name: 'observer.leader', 
+                description: 'Leader 信息',
+                requiredEnv: ['level'],
+                optionalEnv: []
+            },
+            'observer.rs': { 
+                name: 'observer.rs', 
+                description: 'RootService 信息',
+                requiredEnv: [],
+                optionalEnv: []
+            },
+            'observer.event': { 
+                name: 'observer.event', 
+                description: '事件信息',
+                requiredEnv: ['tenant_name'],
+                optionalEnv: []
+            },
+            'observer.database_datasize': { 
+                name: 'observer.database_datasize', 
+                description: '数据库数据大小',
+                requiredEnv: ['tenant_id', 'database_name'],
+                optionalEnv: []
+            },
+            'observer.table_datasize': { 
+                name: 'observer.table_datasize', 
+                description: '表数据大小',
+                requiredEnv: ['tenant_id', 'database_name', 'table_name'],
+                optionalEnv: []
+            },
+            'observer.table_info': { 
+                name: 'observer.table_info', 
+                description: '表信息',
+                requiredEnv: ['host', 'port', 'user', 'password', 'database', 'database_name', 'table_name'],
+                optionalEnv: []
+            },
+            'observer.table_ndv': { 
+                name: 'observer.table_ndv', 
+                description: '表 NDV',
+                requiredEnv: ['database_name', 'table_name'],
+                optionalEnv: []
+            },
+            'observer.index': { 
+                name: 'observer.index', 
+                description: '索引信息',
+                requiredEnv: ['database_name', 'table_name'],
+                optionalEnv: []
+            },
+            'observer.storage_method': { 
+                name: 'observer.storage_method', 
+                description: '存储方式',
+                requiredEnv: ['tenant_name', 'database_name'],
+                optionalEnv: []
+            },
+            'observer.inner_table': { 
+                name: 'observer.inner_table', 
+                description: '内部表信息',
+                requiredEnv: ['tablename'],
+                optionalEnv: []
+            }
+        };
+
+        // 命令结构定义
+        const commandStructure = {
+            gather: {
+                all: { options: ['from', 'to', 'since', 'grep', 'store_dir', 'temp_dir'] },
+                log: { options: ['from', 'to', 'since', 'scope', 'grep', 'store_dir', 'temp_dir', 'recent_count', 'redact'] },
+                sysstat: { options: ['store_dir'] },
+                stack: { options: ['store_dir'] },
+                perf: { options: ['store_dir', 'scope', 'count'] },
+                slog: { options: ['from', 'to', 'since', 'store_dir'] },
+                clog: { options: ['from', 'to', 'since', 'store_dir'] },
+                plan_monitor: { options: ['trace_id', 'store_dir', 'env_db', 'env_custom', 'skip'], required: ['env_db'] },
+                awr: { options: ['cluster_name', 'cluster_id', 'from', 'to', 'since', 'store_dir'] },
+                obproxy_log: { options: ['from', 'to', 'since', 'scope', 'grep', 'store_dir', 'recent_count'] },
+                oms_log: { options: ['from', 'to', 'since', 'scope', 'grep', 'store_dir', 'temp_dir', 'recent_count', 'oms_component_id'] },
+                scene: { 
+                    list: { options: [], description: '显示可用的收集场景列表' },
+                    run: { options: ['scene', 'from', 'to', 'since', 'env_db', 'env_custom', 'store_dir', 'temp_dir', 'skip_type', 'redact'], required: ['scene'], description: '运行指定的收集场景' }
+                },
+                ash: { options: ['trace_id', 'sql_id', 'wait_class', 'report_type', 'from', 'to', 'store_dir', 'svr_ip', 'svr_port', 'tenant_id'] },
+                tabledump: { options: ['database', 'table', 'user', 'password', 'store_dir'] },
+                parameter: { options: ['store_dir'] },
+                variable: { options: ['store_dir'] },
+                dbms_xplan: { options: ['trace_id', 'scope', 'user', 'password', 'store_dir', 'env_db', 'env_custom'], required: ['env_db'] },
+                core: { options: ['from', 'to', 'since', 'store_dir'] }
+            },
+            display: {
+                scene: {
+                    list: { options: [], description: '显示可用的场景列表' },
+                    run: { options: ['scene', 'from', 'to', 'since', 'env_db', 'env_custom'], required: ['scene'], description: '运行指定的显示场景' }
+                }
+            },
+            analyze: {
+                log: { options: ['from', 'to', 'scope', 'grep', 'log_level', 'files', 'store_dir', 'since', 'temp_dir', 'tenant_id'] },
+                flt_trace: { options: ['flt_trace_id', 'files', 'top', 'recursion', 'output', 'store_dir', 'temp_dir'] },
+                parameter: {
+                    diff: { options: ['file', 'store_dir'] },
+                    default: { options: ['file', 'store_dir'] }
+                },
+                variable: {
+                    diff: { options: ['file', 'store_dir'] }
+                },
+                queue: { options: ['from', 'to', 'store_dir', 'since', 'tenant', 'queue'] },
+                index_space: { options: ['tenant_name', 'database', 'table_name', 'index_name', 'column_names'] },
+                memory: { options: ['from', 'to', 'files', 'store_dir', 'since', 'temp_dir', 'version'] }
+            },
+            check: {
+                run: { options: ['cases', 'obproxy_cases', 'observer_tasks', 'obproxy_tasks', 'store_dir', 'report_type', 'env'] },
+                list: { options: ['all'] }
+            },
+            rca: {
+                run: {
+                    // 将场景作为三级命令
+                    lock_conflict: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '锁冲突问题排查' },
+                    major_hold: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '合并卡住问题排查' },
+                    tenant_memory_throttling: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '租户内存限速问题排查' },
+                    log_error: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '日志相关问题排查' },
+                    memory_full: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '内存爆问题排查' },
+                    replay_hold: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '回放卡住问题排查' },
+                    disconnection: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '连接断开问题排查' },
+                    suspend_transaction: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务挂起问题排查' },
+                    schema_leak: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'Schema 泄漏问题排查' },
+                    transaction_wait_timeout: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务等待超时问题排查' },
+                    transaction_rollback: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务回滚问题排查' },
+                    transaction_execute_timeout: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务执行超时问题排查' },
+                    transaction_disconnection: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务连接断开问题排查' },
+                    transaction_not_ending: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务未结束问题排查' },
+                    transaction_other_error: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '事务其他错误问题排查' },
+                    ddl_failure: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'DDL 失败问题排查' },
+                    ddl_disk_full: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'DDL 磁盘满问题排查' },
+                    clog_disk_full: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'Clog 磁盘满问题排查' },
+                    index_ddl_error: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '索引 DDL 错误问题排查' },
+                    split_schedule_error: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '分裂调度错误问题排查' },
+                    delete_server_error: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '删除服务器错误问题排查' },
+                    unit_gc: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'Unit GC 问题排查' },
+                    gc_troubleshooting: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'GC 问题排查' },
+                    weak_read_troubleshooting: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: '弱读问题排查' },
+                    oms_obcdc: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'OMS OBCDC 问题排查' },
+                    oms_full_trans: { options: ['store_dir', 'env_db', 'env_custom', 'report_type'], description: 'OMS 全量事务问题排查' },
+                    // 保留原有的 scene 选项作为备选（手动输入）
+                    _manual_scene: { options: ['scene', 'store_dir', 'env_db', 'env_custom', 'report_type'], required: ['scene'], description: '手动输入场景名称' }
+                },
+                list: { options: [] }
+            },
+            config: { options: ['h', 'u', 'p', 'P'] },
+            update: { options: ['file', 'force'] },
+            tool: {
+                crypto_config: { options: ['key', 'file', 'encrypted_file'] },
+                io_performance: { options: ['disk', 'date'] },
+                ai_assistant: { options: [] },
+                config_check: { options: [] }
+            },
+            'display-trace': { options: ['trace_id'] }
+        };
+
+        // 命令说明文档
+        const commandHelp = {
+            'gather': {
+                description: '收集 OceanBase 诊断信息',
+                examples: [
+                    'obdiag gather log --from "2024-01-01 00:00:00" --to "2024-01-01 23:59:59"',
+                    'obdiag gather all --since 1h --grep ERROR',
+                    'obdiag gather plan_monitor --trace_id xxx --env host=127.0.0.1 --env port=2881'
+                ]
+            },
+            'gather.log': {
+                description: '收集 OceanBase 日志',
+                params: {
+                    '--from': '开始时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--to': '结束时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--since': '时间范围，格式: <n><m|h|d>，例如: 1h, 30m, 2d',
+                    '--scope': '日志类型，可选: observer, election, rootservice, all',
+                    '--grep': '关键词过滤，可多次使用',
+                    '--store_dir': '存储目录，默认: ./'
+                },
+                example: 'obdiag gather log --since 1h --scope observer --grep ERROR --grep WARN'
+            },
+            'gather.plan_monitor': {
+                description: '收集 ParalleSQL 信息',
+                params: {
+                    '--trace_id': 'SQL trace ID（可选）',
+                    '--env': '数据库连接参数（必填），需要: host, port, user, password, database',
+                    '--store_dir': '存储目录，默认: ./',
+                    '--skip': '跳过类型，可选: dbms_xplan'
+                },
+                example: 'obdiag gather plan_monitor --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test'
+            },
+            'gather.scene.list': {
+                description: '显示可用的收集场景列表',
+                example: 'obdiag gather scene list'
+            },
+            'gather.scene.run': {
+                description: '运行指定的收集场景',
+                params: {
+                    '--scene': '场景名称（必填）',
+                    '--from': '开始时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--to': '结束时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--since': '时间范围，格式: <n><m|h|d>',
+                    '--env': '环境变量，格式: key=value，可多次使用',
+                    '--store_dir': '存储目录，默认: ./'
+                },
+                example: 'obdiag gather scene run --scene sql_err --env trace_id=xxx --env host=127.0.0.1 --env port=2881'
+            },
+            'display.scene.list': {
+                description: '显示可用的显示场景列表',
+                example: 'obdiag display scene list'
+            },
+            'display.scene.run': {
+                description: '运行指定的显示场景',
+                params: {
+                    '--scene': '场景名称（必填）',
+                    '--from': '开始时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--to': '结束时间，格式: yyyy-mm-dd hh:mm:ss',
+                    '--since': '时间范围，格式: <n><m|h|d>',
+                    '--env': '环境变量，格式: key=value，可多次使用'
+                },
+                example: 'obdiag display scene run --scene cluster_info --since 1h'
+            },
+            'check.run': {
+                description: '检查 OceanBase 集群',
+                params: {
+                    '--cases': "检查 observer 的案例",
+                    '--obproxy_cases': "检查 obproxy 的案例",
+                    '--observer_tasks': '选择 observer 任务',
+                    '--obproxy_tasks': '选择 obproxy 任务',
+                    '--store_dir': '存储目录，默认: ./check_report/',
+                    '--report_type': '报告类型: table, json, xml, yaml, html'
+                },
+                example: 'obdiag check run --cases all --report_type html'
+            }
+        };
+
+        // 选项说明
+        const optionDescriptions = {
+            from: { label: '开始时间 (--from)', placeholder: "格式: 'yyyy-mm-dd hh:mm:ss'", type: 'text', help: "指定时间范围的开始时间，格式: 'yyyy-mm-dd hh:mm:ss'，例如: '2024-01-01 00:00:00'" },
+            to: { label: '结束时间 (--to)', placeholder: "格式: 'yyyy-mm-dd hh:mm:ss'", type: 'text', help: "指定时间范围的结束时间，格式: 'yyyy-mm-dd hh:mm:ss'，例如: '2024-01-01 23:59:59'" },
+            since: { label: '时间范围 (--since)', placeholder: "例如: 1h, 30m, 2d", type: 'text', help: "指定从当前时间往前的时间范围，格式: <n><m|h|d>，m=分钟，h=小时，d=天。例如: 1h (1小时前到现在), 30m (30分钟前到现在), 2d (2天前到现在)" },
+            grep: { label: '关键词过滤 (--grep)', placeholder: '格式: 关键词', type: 'multi', multiple: true, help: '用于过滤日志中的关键词，可以多次使用。例如: --grep ERROR --grep WARN 会同时过滤包含 ERROR 或 WARN 的日志' },
+            store_dir: { label: '存储目录 (--store_dir)', placeholder: '默认: ./', type: 'text', help: '存储收集结果的目录路径，默认是当前目录（./）。例如: --store_dir /tmp/obdiag_result' },
+            temp_dir: { label: '临时目录 (--temp_dir)', placeholder: '默认: /tmp', type: 'text', help: '在节点上临时存储文件的目录，默认是 /tmp。确保该目录有足够的空间和写入权限' },
+            scope: { label: '范围 (--scope)', placeholder: '根据命令不同而不同', type: 'text', help: '根据命令不同，可选值也不同。对于 log 命令: observer, election, rootservice, all；对于 perf 命令: sample, flame, pstack, all；对于 obproxy_log 命令: obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all' },
+            recent_count: { label: '最近文件数 (--recent_count)', placeholder: '默认: 0', type: 'number', help: '只收集最近 N 个日志文件。默认值为 0（禁用）。当 > 0 时，只会收集最近 N 个文件，from/to/since 参数将被忽略' },
+            redact: { label: '脱敏选项 (--redact)', placeholder: '脱敏配置', type: 'text', help: '数据脱敏选项，用于隐藏敏感信息。可以配置需要脱敏的字段或模式' },
+            trace_id: { label: 'Trace ID', placeholder: 'Trace ID (display-trace命令需要)', type: 'text', help: 'SQL trace ID，用于追踪特定的 SQL 执行。对于 plan_monitor 命令，trace_id 是可选的；对于 display-trace 命令，trace_id 是必填的位置参数' },
+            skip: { label: '跳过类型 (--skip)', placeholder: '例如: dbms_xplan', type: 'text' },
+            env: { label: '环境变量 (--env)', placeholder: '格式: key=value', type: 'multi', multiple: true },
+            env_db: { label: '数据库连接环境变量 (--env)', placeholder: '数据库连接参数', type: 'db_env', required: true, help: '数据库连接参数（必填），需要填写: host（主机地址）、port（端口）、user（用户名，格式: user@tenant）、password（密码）、database（数据库名）。例如: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test' },
+            env_custom: { label: '自定义环境变量 (--env)', placeholder: '格式: key=value', type: 'multi', multiple: true, help: '自定义环境变量，格式: key=value。可以多次使用添加多个环境变量。例如: --env trace_id=xxx --env tenant_id=1' },
+            skip: { label: '跳过类型 (--skip)', placeholder: '例如: dbms_xplan', type: 'text' },
+            cluster_name: { label: '集群名称 (--cluster_name)', placeholder: 'OCP集群名称', type: 'text' },
+            cluster_id: { label: '集群ID (--cluster_id)', placeholder: 'OCP集群ID', type: 'text' },
+            oms_component_id: { label: 'OMS组件ID (--oms_component_id)', placeholder: '格式: x.x.x.x-123', type: 'text' },
+            scene: { label: '场景名称 (--scene)', placeholder: '请选择场景', type: 'select', options: null, required: false, help: '场景名称。可以从下拉列表中选择，也可以手动输入其他场景名称。可以使用 "obdiag gather scene list" 或 "obdiag display scene list" 查看所有可用的场景列表' },
+            skip_type: { label: '跳过类型 (--skip_type)', placeholder: 'choices=[ssh, sql]', type: 'text', help: '跳过某些类型的收集，可选值: ssh（跳过SSH收集）、sql（跳过SQL收集）。例如: --skip_type ssh 会跳过所有SSH相关的收集操作' },
+            sql_id: { label: 'SQL ID (--sql_id)', placeholder: 'SQL ID', type: 'text' },
+            wait_class: { label: '等待类型 (--wait_class)', placeholder: '事件类型', type: 'text' },
+            report_type: { label: '报告类型 (--report_type)', placeholder: 'table/json/xml/yaml/html', type: 'text', help: '报告的输出格式，可选值: table（表格，默认）、json、xml、yaml、html。table 格式适合终端查看，html 格式适合浏览器查看' },
+            svr_ip: { label: '服务器IP (--svr_ip)', placeholder: '需要4.3.5.0或更高版本', type: 'text' },
+            svr_port: { label: '服务器端口 (--svr_port)', placeholder: '需要4.3.5.0或更高版本', type: 'text' },
+            tenant_id: { label: '租户ID (--tenant_id)', placeholder: '需要4.3.5.0或更高版本', type: 'text' },
+            database: { label: '数据库名 (--database)', placeholder: '数据库名称', type: 'text' },
+            table: { label: '表名 (--table)', placeholder: '表名称', type: 'text' },
+            user: { label: '用户名 (--user)', placeholder: '数据库用户名', type: 'text' },
+            password: { label: '密码 (--password)', placeholder: '数据库密码', type: 'password' },
+            count: { label: '采样次数 (--count)', placeholder: '>= 1000000', type: 'number' },
+            log_level: { label: '日志级别 (--log_level)', placeholder: 'DEBUG/TRACE/INFO/WDIAG/WARN/EDIAG/ERROR', type: 'text' },
+            files: { label: '文件列表 (--files)', placeholder: '文件路径', type: 'multi', multiple: true, help: '指定要分析的文件路径，可以多次使用指定多个文件。主要用于离线分析场景。例如: --files /path/to/log1.log --files /path/to/log2.log' },
+            top: { label: 'Top数量 (--top)', placeholder: '默认: 5', type: 'number' },
+            recursion: { label: '递归深度 (--recursion)', placeholder: '默认: 8', type: 'number' },
+            output: { label: '输出格式 (--output)', placeholder: '默认: 60', type: 'number' },
+            file: { label: '文件路径 (--file)', placeholder: '文件路径', type: 'text' },
+            tenant_name: { label: '租户名 (--tenant_name)', placeholder: '租户名称', type: 'text' },
+            table_name: { label: '表名 (--table_name)', placeholder: '表名称', type: 'text' },
+            index_name: { label: '索引名 (--index_name)', placeholder: '索引名称', type: 'text' },
+            column_names: { label: '列名 (--column_names)', placeholder: '例如: c1,c2,c3', type: 'text' },
+            host: { label: '主机 (--host)', placeholder: '连接主机', type: 'text' },
+            port: { label: '端口 (--port)', placeholder: '连接端口', type: 'text' },
+            level: { label: '告警级别 (--level)', placeholder: 'critical/warn/notice/ok', type: 'text' },
+            limit: { label: '限制数量 (--limit)', placeholder: '默认: 2000', type: 'number' },
+            elapsed_time: { label: '执行时间阈值 (--elapsed_time)', placeholder: '微秒，默认: 100000', type: 'number' },
+            cases: { label: '检查案例 (--cases)', placeholder: "observer's cases", type: 'text' },
+            obproxy_cases: { label: 'OBProxy案例 (--obproxy_cases)', placeholder: "obproxy's cases", type: 'text' },
+            observer_tasks: { label: 'Observer任务 (--observer_tasks)', placeholder: 'observer tasks', type: 'text' },
+            obproxy_tasks: { label: 'OBProxy任务 (--obproxy_tasks)', placeholder: 'obproxy tasks', type: 'text' },
+            queue: { label: '队列大小 (--queue)', placeholder: '默认: 50', type: 'number' },
+            version: { label: '版本 (--version)', placeholder: 'OceanBase版本', type: 'text' },
+            h: { label: '数据库主机 (-h)', placeholder: '数据库主机', type: 'text' },
+            u: { label: '系统用户 (-u)', placeholder: '默认: root@sys', type: 'text' },
+            p: { label: '密码 (-p)', placeholder: '密码', type: 'password' },
+            P: { label: '端口 (-P)', placeholder: '端口', type: 'text' },
+            force: { label: '强制更新 (--force)', placeholder: '', type: 'checkbox' },
+            key: { label: '密钥 (--key)', placeholder: '加密/解密密钥', type: 'text' },
+            encrypted_file: { label: '加密文件 (--encrypted_file)', placeholder: '加密文件路径', type: 'text' },
+            disk: { label: '磁盘设备 (--disk)', placeholder: '例如: sda, sdb, clog, data', type: 'text' },
+            date: { label: '日期 (--date)', placeholder: '格式: YYYYMMDD', type: 'text' },
+            all: { label: '显示全部 (--all)', placeholder: '', type: 'checkbox' }
+        };
+
+        // 格式验证函数
+        function validateIP(ip) {
+            const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            if (!ipRegex.test(ip)) return false;
+            const parts = ip.split('.');
+            return parts.every(part => {
+                const num = parseInt(part, 10);
+                return num >= 0 && num <= 255;
+            });
+        }
+
+        function validateUsername(username) {
+            // 用户名不能是IP地址格式
+            if (validateIP(username)) {
+                return { valid: false, message: '用户名不能是IP地址格式' };
+            }
+            // 用户名通常只包含字母、数字、下划线、连字符
+            const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+            if (!usernameRegex.test(username)) {
+                return { valid: false, message: '用户名只能包含字母、数字、下划线和连字符' };
+            }
+            return { valid: true };
+        }
+
+        function validatePort(port) {
+            const portNum = parseInt(port, 10);
+            return portNum >= 1 && portNum <= 65535;
+        }
+
+        function showValidationError(input, message) {
+            // 移除之前的错误提示
+            const existingError = input.parentElement.querySelector('.validation-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // 添加错误样式
+            input.style.borderColor = '#dc3545';
+            
+            // 添加错误提示
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'validation-error';
+            errorDiv.style.color = '#dc3545';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.marginTop = '5px';
+            errorDiv.textContent = '⚠️ ' + message;
+            input.parentElement.appendChild(errorDiv);
+        }
+
+        function clearValidationError(input) {
+            input.style.borderColor = '';
+            const existingError = input.parentElement.querySelector('.validation-error');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+
+        function updateSubCommands() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmdGroup = document.getElementById('subCommandGroup');
+            const subSubCmdGroup = document.getElementById('subSubCommandGroup');
+            const subCmdSelect = document.getElementById('subCommand');
+            
+            subCmdSelect.innerHTML = '';
+            subSubCmdGroup.style.display = 'none';
+            document.getElementById('subSubCommand').innerHTML = '';
+            
+            if (!mainCmd || !commandStructure[mainCmd]) {
+                subCmdGroup.style.display = 'none';
+                updateCommandOutput();
+                return;
+            }
+
+            const subCommands = commandStructure[mainCmd];
+            
+            if (typeof subCommands === 'object' && !subCommands.options) {
+                // 有子命令
+                subCmdGroup.style.display = 'block';
+                subCmdSelect.innerHTML = '<option value="">请选择...</option>';
+                
+                for (const [key, value] of Object.entries(subCommands)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    // 添加功能说明
+                    const descKey = `${mainCmd}.${key}`;
+                    const description = subCommandDescriptions[descKey] || '';
+                    option.textContent = description ? `${key} - ${description}` : key;
+                    subCmdSelect.appendChild(option);
+                }
+            } else {
+                // 没有子命令
+                subCmdGroup.style.display = 'none';
+            }
+            
+            updateSubSubCommands();
+        }
+
+        function updateSubCommandTooltip() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const tooltipWrapper = document.getElementById('subCommandTooltip');
+            const tooltipContent = document.getElementById('subCommandTooltipContent');
+            
+            if (!mainCmd || !subCmd) {
+                tooltipWrapper.style.display = 'none';
+                return;
+            }
+            
+            const helpKey = `${mainCmd}.${subCmd}`;
+            const help = commandHelp[helpKey];
+            
+            if (help) {
+                tooltipWrapper.style.display = 'inline-block';
+                let html = `<div class="tooltip-title">${help.description || subCmd}</div>`;
+                
+                if (help.params) {
+                    html += '<div style="margin-top: 8px;"><strong>参数说明：</strong></div>';
+                    for (const [param, desc] of Object.entries(help.params)) {
+                        html += `<div class="tooltip-param"><strong>${param}</strong>: ${desc}</div>`;
+                    }
+                }
+                
+                if (help.example) {
+                    html += `<div class="tooltip-example" style="margin-top: 10px;"><strong>示例：</strong><br>${help.example}</div>`;
+                }
+                
+                tooltipContent.innerHTML = html;
+            } else {
+                tooltipWrapper.style.display = 'none';
+            }
+        }
+
+        function updateSubSubCommands() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const subSubCmdGroup = document.getElementById('subSubCommandGroup');
+            const subSubCmdSelect = document.getElementById('subSubCommand');
+            
+            subSubCmdSelect.innerHTML = '';
+            
+            // 如果没有主命令或子命令，隐藏三级命令选择框
+            if (!mainCmd || !subCmd) {
+                subSubCmdGroup.style.display = 'none';
+                updateCommandOptions();
+                return;
+            }
+            
+            // 检查命令结构是否存在
+            if (!commandStructure[mainCmd] || !commandStructure[mainCmd][subCmd]) {
+                subSubCmdGroup.style.display = 'none';
+                updateCommandOptions();
+                return;
+            }
+
+            const subSubCommands = commandStructure[mainCmd][subCmd];
+            
+            // 特殊处理：rca run 的场景作为三级命令
+            if (mainCmd === 'rca' && subCmd === 'run') {
+                subSubCmdGroup.style.display = 'block';
+                subSubCmdSelect.innerHTML = '<option value="">请选择场景...</option>';
+                
+                // 添加所有 RCA 场景
+                for (const [sceneKey, sceneInfo] of Object.entries(rcaScenes)) {
+                    const option = document.createElement('option');
+                    option.value = sceneKey;
+                    option.textContent = `${sceneInfo.name} - ${sceneInfo.description}`;
+                    subSubCmdSelect.appendChild(option);
+                }
+                
+                // 添加手动输入选项
+                const manualOption = document.createElement('option');
+                manualOption.value = '_manual_scene';
+                manualOption.textContent = '手动输入场景名称';
+                subSubCmdSelect.appendChild(manualOption);
+            }
+            // 检查是否有三级命令（如 scene.list, scene.run）
+            // 如果 subSubCommands 是一个对象，且不是直接的命令选项（没有 options 属性），则说明有三级命令
+            else if (typeof subSubCommands === 'object' && subSubCommands !== null && !subSubCommands.options && !Array.isArray(subSubCommands)) {
+                // 检查是否有子命令（list, run等）
+                // 遍历所有键，检查是否有对象类型的值（这些就是三级命令）
+                const subSubCmdKeys = Object.keys(subSubCommands).filter(key => {
+                    const value = subSubCommands[key];
+                    return typeof value === 'object' && value !== null && (value.options !== undefined || value.description !== undefined);
+                });
+                
+                if (subSubCmdKeys.length > 0) {
+                    // 显示三级命令选择框
+                    subSubCmdGroup.style.display = 'block';
+                    subSubCmdSelect.innerHTML = '<option value="">请选择...</option>';
+                    
+                    for (const key of subSubCmdKeys) {
+                        const value = subSubCommands[key];
+                        const option = document.createElement('option');
+                        option.value = key;
+                        const desc = value.description ? `${key} - ${value.description}` : key;
+                        option.textContent = desc;
+                        subSubCmdSelect.appendChild(option);
+                    }
+                } else {
+                    // 没有三级命令，隐藏选择框
+                    subSubCmdGroup.style.display = 'none';
+                }
+            } else {
+                // 不是三级命令结构，隐藏选择框
+                subSubCmdGroup.style.display = 'none';
+            }
+            
+            updateSubSubSubCommands();
+            updateSubCommandTooltip();
+            updateSubSubCommandTooltip();
+        }
+
+        function updateSubSubSubCommands() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const subSubCmd = document.getElementById('subSubCommand').value;
+            const subSubSubCmdGroup = document.getElementById('subSubSubCommandGroup');
+            const subSubSubCmdSelect = document.getElementById('subSubSubCommand');
+            
+            subSubSubCmdSelect.innerHTML = '';
+            
+            // 如果没有主命令、子命令或三级命令，隐藏四级命令选择框
+            if (!mainCmd || !subCmd || !subSubCmd) {
+                subSubSubCmdGroup.style.display = 'none';
+                updateCommandOptions();
+                return;
+            }
+            
+            // 特殊处理：gather scene run 的场景作为四级命令
+            if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run') {
+                subSubSubCmdGroup.style.display = 'block';
+                subSubSubCmdSelect.innerHTML = '<option value="">请选择场景...</option>';
+                
+                // 添加所有 Gather 场景
+                for (const [sceneKey, sceneInfo] of Object.entries(gatherScenes)) {
+                    const option = document.createElement('option');
+                    option.value = sceneKey;
+                    option.textContent = `${sceneInfo.name} - ${sceneInfo.description}`;
+                    subSubSubCmdSelect.appendChild(option);
+                }
+                
+                // 添加手动输入选项
+                const manualOption = document.createElement('option');
+                manualOption.value = '_manual_scene';
+                manualOption.textContent = '手动输入场景名称';
+                subSubSubCmdSelect.appendChild(manualOption);
+            }
+            // 特殊处理：display scene run 的场景作为四级命令
+            else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run') {
+                subSubSubCmdGroup.style.display = 'block';
+                subSubSubCmdSelect.innerHTML = '<option value="">请选择场景...</option>';
+                
+                // 添加所有 Display 场景
+                for (const [sceneKey, sceneInfo] of Object.entries(displayScenes)) {
+                    const option = document.createElement('option');
+                    option.value = sceneKey;
+                    option.textContent = `${sceneInfo.name} - ${sceneInfo.description}`;
+                    subSubSubCmdSelect.appendChild(option);
+                }
+                
+                // 添加手动输入选项
+                const manualOption = document.createElement('option');
+                manualOption.value = '_manual_scene';
+                manualOption.textContent = '手动输入场景名称';
+                subSubSubCmdSelect.appendChild(manualOption);
+            }
+            else {
+                // 没有四级命令，隐藏选择框
+                subSubSubCmdGroup.style.display = 'none';
+            }
+            
+            updateCommandOptions();
+            updateSubSubSubCommandTooltip();
+        }
+
+        // 获取环境变量描述
+        function getEnvVarDescription(envVar) {
+            const envVarDescriptions = {
+                'host': '数据库主机地址',
+                'port': '数据库端口',
+                'user': '数据库用户名（格式: user@tenant）',
+                'password': '数据库密码',
+                'database': '数据库名称',
+                'trace_id': 'SQL Trace ID',
+                'tenant_id': '租户ID',
+                'tenant_name': '租户名称',
+                'database_name': '数据库名称',
+                'table_name': '表名称',
+                'tablename': '表名称',
+                'estimated_time': '预估时间（格式: YYYY-MM-DD HH:MM:SS）',
+                'perf_count': 'Perf采样次数（默认: 100000000）',
+                'from_time': '开始时间（格式: YYYY-MM-DD HH:MM:SS）',
+                'to_time': '结束时间（格式: YYYY-MM-DD HH:MM:SS）',
+                'since': '时间范围（格式: <n><m|h|d>，例如: 1h, 30m, 2d）',
+                'svr_ip': '服务器IP地址',
+                'svr_port': '服务器端口',
+                'plan_id': '执行计划ID',
+                'sqlid': 'SQL ID',
+                'level': '级别（all 或 tenant_id 或 table_name）',
+                'mtime': '时间（分钟）',
+                'wait_time': '等待时间（秒）'
+            };
+            return envVarDescriptions[envVar] || envVar;
+        }
+
+        function updateSubSubSubCommandTooltip() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const subSubCmd = document.getElementById('subSubCommand').value;
+            const subSubSubCmd = document.getElementById('subSubSubCommand').value;
+            const tooltipWrapper = document.getElementById('subSubSubCommandTooltip');
+            const tooltipContent = document.getElementById('subSubSubCommandTooltipContent');
+            
+            if (!mainCmd || !subCmd || !subSubCmd || !subSubSubCmd) {
+                tooltipWrapper.style.display = 'none';
+                return;
+            }
+            
+            // 特殊处理：gather scene run + 场景
+            if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = gatherScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    tooltipWrapper.style.display = 'inline-block';
+                    let html = `<div class="tooltip-title">${sceneInfo.description}</div>`;
+                    html += `<div style="margin-top: 8px;">场景名称: <strong>${sceneInfo.name}</strong></div>`;
+                    
+                    // 显示必需的环境变量
+                    if (sceneInfo.requiredEnv && sceneInfo.requiredEnv.length > 0) {
+                        html += `<div style="margin-top: 8px;"><strong>必需的环境变量：</strong></div>`;
+                        sceneInfo.requiredEnv.forEach(envVar => {
+                            const envVarDesc = getEnvVarDescription(envVar);
+                            html += `<div class="tooltip-param"><strong>--env ${envVar}=</strong> ${envVarDesc}</div>`;
+                        });
+                    }
+                    
+                    // 显示可选的环境变量
+                    if (sceneInfo.optionalEnv && sceneInfo.optionalEnv.length > 0) {
+                        html += `<div style="margin-top: 8px;"><strong>可选的环境变量：</strong></div>`;
+                        sceneInfo.optionalEnv.forEach(envVar => {
+                            const envVarDesc = getEnvVarDescription(envVar);
+                            html += `<div class="tooltip-param"><strong>--env ${envVar}=</strong> ${envVarDesc}（可选）</div>`;
+                        });
+                    }
+                    
+                    html += `<div class="tooltip-example" style="margin-top: 10px;"><strong>示例命令：</strong><br>obdiag gather scene run --scene=${sceneInfo.name}</div>`;
+                    tooltipContent.innerHTML = html;
+                } else {
+                    tooltipWrapper.style.display = 'none';
+                }
+                return;
+            }
+            // 特殊处理：display scene run + 场景
+            if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = displayScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    tooltipWrapper.style.display = 'inline-block';
+                    let html = `<div class="tooltip-title">${sceneInfo.description}</div>`;
+                    html += `<div style="margin-top: 8px;">场景名称: <strong>${sceneInfo.name}</strong></div>`;
+                    
+                    // 显示必需的环境变量
+                    if (sceneInfo.requiredEnv && sceneInfo.requiredEnv.length > 0) {
+                        html += `<div style="margin-top: 8px;"><strong>必需的环境变量：</strong></div>`;
+                        sceneInfo.requiredEnv.forEach(envVar => {
+                            const envVarDesc = getEnvVarDescription(envVar);
+                            html += `<div class="tooltip-param"><strong>--env ${envVar}=</strong> ${envVarDesc}</div>`;
+                        });
+                    }
+                    
+                    // 显示可选的环境变量
+                    if (sceneInfo.optionalEnv && sceneInfo.optionalEnv.length > 0) {
+                        html += `<div style="margin-top: 8px;"><strong>可选的环境变量：</strong></div>`;
+                        sceneInfo.optionalEnv.forEach(envVar => {
+                            const envVarDesc = getEnvVarDescription(envVar);
+                            html += `<div class="tooltip-param"><strong>--env ${envVar}=</strong> ${envVarDesc}（可选）</div>`;
+                        });
+                    }
+                    
+                    html += `<div class="tooltip-example" style="margin-top: 10px;"><strong>示例命令：</strong><br>obdiag display scene run --scene=${sceneInfo.name}</div>`;
+                    tooltipContent.innerHTML = html;
+                } else {
+                    tooltipWrapper.style.display = 'none';
+                }
+                return;
+            }
+            
+            tooltipWrapper.style.display = 'none';
+        }
+
+        function updateSubSubCommandTooltip() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const subSubCmd = document.getElementById('subSubCommand').value;
+            const tooltipWrapper = document.getElementById('subSubCommandTooltip');
+            const tooltipContent = document.getElementById('subSubCommandTooltipContent');
+            
+            if (!mainCmd || !subCmd || !subSubCmd) {
+                tooltipWrapper.style.display = 'none';
+                return;
+            }
+            
+            // 特殊处理：rca run + 场景
+            if (mainCmd === 'rca' && subCmd === 'run' && subSubCmd && subSubCmd !== '_manual_scene') {
+                const sceneInfo = rcaScenes[subSubCmd];
+                if (sceneInfo) {
+                    tooltipWrapper.style.display = 'inline-block';
+                    let html = `<div class="tooltip-title">${sceneInfo.description}</div>`;
+                    html += `<div style="margin-top: 8px;">场景名称: <strong>${sceneInfo.name}</strong></div>`;
+                    html += `<div class="tooltip-example" style="margin-top: 10px;"><strong>示例命令：</strong><br>obdiag rca run --scene=${sceneInfo.name}</div>`;
+                    tooltipContent.innerHTML = html;
+                } else {
+                    tooltipWrapper.style.display = 'none';
+                }
+                return;
+            }
+            
+            const cmdStruct = commandStructure[mainCmd];
+            if (!cmdStruct || !cmdStruct[subCmd] || !cmdStruct[subCmd][subSubCmd]) {
+                tooltipWrapper.style.display = 'none';
+                return;
+            }
+            
+            const cmdInfo = cmdStruct[subCmd][subSubCmd];
+            const helpKey = `${mainCmd}.${subCmd}.${subSubCmd}`;
+            const help = commandHelp[helpKey];
+            
+            if (cmdInfo.description || help) {
+                tooltipWrapper.style.display = 'inline-block';
+                let html = `<div class="tooltip-title">${cmdInfo.description || help?.description || subSubCmd}</div>`;
+                
+                if (help && help.params) {
+                    html += '<div style="margin-top: 8px;"><strong>参数说明：</strong></div>';
+                    for (const [param, desc] of Object.entries(help.params)) {
+                        html += `<div class="tooltip-param"><strong>${param}</strong>: ${desc}</div>`;
+                    }
+                }
+                
+                if (help && help.example) {
+                    html += `<div class="tooltip-example" style="margin-top: 10px;"><strong>示例：</strong><br>${help.example}</div>`;
+                } else if (cmdInfo.options && cmdInfo.options.length > 0) {
+                    html += `<div style="margin-top: 8px;"><strong>可用参数：</strong> ${cmdInfo.options.join(', ')}</div>`;
+                }
+                
+                tooltipContent.innerHTML = html;
+            } else {
+                tooltipWrapper.style.display = 'none';
+            }
+        }
+
+        function updateCommandOptions() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            const subCmd = document.getElementById('subCommand').value;
+            const subSubCmd = document.getElementById('subSubCommand').value;
+            const subSubSubCmd = document.getElementById('subSubSubCommand').value;
+            const optionsDiv = document.getElementById('commandOptions');
+            
+            optionsDiv.innerHTML = '';
+            
+            if (!mainCmd) {
+                return;
+            }
+
+            let options = [];
+            const cmdStruct = commandStructure[mainCmd];
+            
+            // 特殊处理：rca run + 场景
+            if (mainCmd === 'rca' && subCmd === 'run' && subSubCmd && subSubCmd !== '_manual_scene') {
+                // 使用场景对应的选项
+                if (cmdStruct && cmdStruct[subCmd] && cmdStruct[subCmd][subSubCmd] && cmdStruct[subCmd][subSubCmd].options) {
+                    options = cmdStruct[subCmd][subSubCmd].options;
+                }
+            } else if (subSubCmd && subCmd && cmdStruct && cmdStruct[subCmd] && cmdStruct[subCmd][subSubCmd]) {
+                // 三级命令，如 gather scene list
+                if (cmdStruct[subCmd][subSubCmd].options) {
+                    options = cmdStruct[subCmd][subSubCmd].options;
+                }
+            } else if (subCmd && cmdStruct && cmdStruct[subCmd]) {
+                // 二级命令
+                if (cmdStruct[subCmd].options) {
+                    options = cmdStruct[subCmd].options;
+                }
+            } else if (cmdStruct && cmdStruct.options) {
+                // 一级命令
+                options = cmdStruct.options;
+            }
+
+            // 检查是否有场景必需的环境变量
+            let sceneRequiredEnv = [];
+            let sceneOptionalEnv = [];
+            if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = gatherScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    sceneRequiredEnv = sceneInfo.requiredEnv || [];
+                    sceneOptionalEnv = sceneInfo.optionalEnv || [];
+                }
+            } else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = displayScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    sceneRequiredEnv = sceneInfo.requiredEnv || [];
+                    sceneOptionalEnv = sceneInfo.optionalEnv || [];
+                }
+            }
+
+            if (options.length === 0 && sceneRequiredEnv.length === 0 && sceneOptionalEnv.length === 0) {
+                optionsDiv.innerHTML = '<p style="color: #6c757d;">此命令无需额外参数</p>';
+            } else {
+            // 特殊处理：rca run + 手动输入场景时，scene 参数是必填的
+            const isManualScene = (mainCmd === 'rca' && subCmd === 'run' && subSubCmd === '_manual_scene');
+            
+            // 如果场景有必需的环境变量，先显示它们
+            if (sceneRequiredEnv.length > 0 || sceneOptionalEnv.length > 0) {
+                const sceneEnvSection = document.createElement('div');
+                sceneEnvSection.style.marginBottom = '20px';
+                sceneEnvSection.style.padding = '15px';
+                sceneEnvSection.style.background = '#fff3cd';
+                sceneEnvSection.style.border = '1px solid #ffc107';
+                sceneEnvSection.style.borderRadius = '6px';
+                
+                const sceneEnvTitle = document.createElement('div');
+                sceneEnvTitle.style.fontWeight = 'bold';
+                sceneEnvTitle.style.marginBottom = '10px';
+                sceneEnvTitle.style.color = '#856404';
+                sceneEnvTitle.textContent = '📋 场景必需的环境变量';
+                sceneEnvSection.appendChild(sceneEnvTitle);
+                
+                // 显示必需的环境变量
+                if (sceneRequiredEnv.length > 0) {
+                    sceneRequiredEnv.forEach(envVar => {
+                        const envGroup = document.createElement('div');
+                        envGroup.className = 'form-group';
+                        envGroup.style.marginBottom = '10px';
+                        
+                        const envLabel = document.createElement('label');
+                        envLabel.style.fontSize = '14px';
+                        envLabel.style.fontWeight = '500';
+                        const envVarDesc = getEnvVarDescription(envVar);
+                        envLabel.innerHTML = `--env ${envVar}= <span style="color: red;">*</span> <span style="color: #6c757d; font-weight: normal;">(${envVarDesc})</span>`;
+                        envGroup.appendChild(envLabel);
+                        
+                        const envInput = document.createElement('input');
+                        envInput.type = envVar === 'password' ? 'password' : 'text';
+                        envInput.className = `scene-env-input scene-env-${envVar}`;
+                        envInput.dataset.envVar = envVar;
+                        envInput.placeholder = `请输入 ${envVar}`;
+                        envInput.style.marginTop = '5px';
+                        envInput.oninput = updateCommandOutput;
+                        envGroup.appendChild(envInput);
+                        
+                        sceneEnvSection.appendChild(envGroup);
+                    });
+                }
+                
+                // 显示可选的环境变量
+                if (sceneOptionalEnv.length > 0) {
+                    const optionalTitle = document.createElement('div');
+                    optionalTitle.style.fontWeight = 'bold';
+                    optionalTitle.style.marginTop = '15px';
+                    optionalTitle.style.marginBottom = '10px';
+                    optionalTitle.style.color = '#856404';
+                    optionalTitle.textContent = '📋 场景可选的环境变量';
+                    sceneEnvSection.appendChild(optionalTitle);
+                    
+                    sceneOptionalEnv.forEach(envVar => {
+                        const envGroup = document.createElement('div');
+                        envGroup.className = 'form-group';
+                        envGroup.style.marginBottom = '10px';
+                        
+                        const envLabel = document.createElement('label');
+                        envLabel.style.fontSize = '14px';
+                        envLabel.style.fontWeight = '500';
+                        const envVarDesc = getEnvVarDescription(envVar);
+                        envLabel.innerHTML = `--env ${envVar}= <span style="color: #6c757d; font-weight: normal;">(${envVarDesc}，可选)</span>`;
+                        envGroup.appendChild(envLabel);
+                        
+                        const envInput = document.createElement('input');
+                        envInput.type = envVar === 'password' ? 'password' : 'text';
+                        envInput.className = `scene-env-input scene-env-${envVar}`;
+                        envInput.dataset.envVar = envVar;
+                        envInput.placeholder = `请输入 ${envVar}（可选）`;
+                        envInput.style.marginTop = '5px';
+                        envInput.oninput = updateCommandOutput;
+                        envGroup.appendChild(envInput);
+                        
+                        sceneEnvSection.appendChild(envGroup);
+                    });
+                }
+                
+                optionsDiv.appendChild(sceneEnvSection);
+            }
+            
+            options.forEach(opt => {
+                const desc = optionDescriptions[opt] || { label: opt, placeholder: '', type: 'text' };
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                const label = document.createElement('label');
+                // 检查是否为必填参数（复用上面的cmdStruct变量）
+                let isRequired = false;
+                if (subSubCmd && subCmd && cmdStruct && cmdStruct[subCmd] && cmdStruct[subCmd][subSubCmd] && cmdStruct[subCmd][subSubCmd].required) {
+                    isRequired = cmdStruct[subCmd][subSubCmd].required.includes(opt);
+                } else if (subCmd && cmdStruct && cmdStruct[subCmd] && cmdStruct[subCmd].required) {
+                    isRequired = cmdStruct[subCmd].required.includes(opt);
+                } else if (cmdStruct && cmdStruct.required) {
+                    isRequired = cmdStruct.required.includes(opt);
+                }
+                // 特殊处理：手动输入场景时，scene 参数必填
+                if (isManualScene && opt === 'scene') {
+                    isRequired = true;
+                }
+                if (desc.required) {
+                    isRequired = true;
+                }
+                
+                // 特殊处理：如果已经选择了场景，隐藏 scene 输入框或显示为只读
+                if (opt === 'scene' && mainCmd === 'rca' && subCmd === 'run' && subSubCmd && subSubCmd !== '_manual_scene') {
+                    // 已选择场景，不显示 scene 输入框
+                    return;
+                }
+                // 特殊处理：gather scene run + 场景（四级命令）
+                if (opt === 'scene' && mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                    // 已选择场景，不显示 scene 输入框
+                    return;
+                }
+                // 特殊处理：display scene run + 场景（四级命令）
+                if (opt === 'scene' && mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                    // 已选择场景，不显示 scene 输入框
+                    return;
+                }
+                    
+                    label.innerHTML = (desc.label || opt) + (isRequired ? ' <span style="color: red;">*</span>' : '');
+                    
+                    // 添加帮助提示图标
+                    if (desc.help) {
+                        const tooltipWrapper = document.createElement('span');
+                        tooltipWrapper.className = 'tooltip-wrapper';
+                        const tooltipIcon = document.createElement('span');
+                        tooltipIcon.className = 'tooltip-icon';
+                        tooltipIcon.textContent = '?';
+                        const tooltipContent = document.createElement('div');
+                        tooltipContent.className = 'tooltip-content';
+                        tooltipContent.innerHTML = `<div class="tooltip-title">参数说明</div><div>${desc.help}</div>`;
+                        
+                        // 动态定位tooltip，避免遮挡
+                        let tooltipTimeout;
+                        tooltipWrapper.addEventListener('mouseenter', function(e) {
+                            clearTimeout(tooltipTimeout);
+                            // 延迟显示，避免快速移动时闪烁
+                            tooltipTimeout = setTimeout(function() {
+                                const rect = tooltipIcon.getBoundingClientRect();
+                                const viewportWidth = window.innerWidth;
+                                const viewportHeight = window.innerHeight;
+                                
+                                // 先显示以获取tooltip的实际尺寸
+                                tooltipContent.style.visibility = 'visible';
+                                tooltipContent.style.opacity = '0';
+                                const tooltipRect = tooltipContent.getBoundingClientRect();
+                                
+                                let top = rect.top - tooltipRect.height - 10;
+                                let left = rect.left + rect.width / 2;
+                                
+                                // 如果上方空间不足，显示在下方
+                                if (top < 10) {
+                                    top = rect.bottom + 10;
+                                }
+                                
+                                // 如果下方空间也不足，显示在右侧
+                                if (top + tooltipRect.height > viewportHeight - 10) {
+                                    top = Math.max(10, viewportHeight - tooltipRect.height - 10);
+                                    left = rect.right + 15;
+                                }
+                                
+                                // 调整水平位置，避免超出视口
+                                if (left + tooltipRect.width / 2 > viewportWidth - 10) {
+                                    left = viewportWidth - tooltipRect.width / 2 - 10;
+                                }
+                                if (left - tooltipRect.width / 2 < 10) {
+                                    left = tooltipRect.width / 2 + 10;
+                                }
+                                
+                                tooltipContent.style.top = top + 'px';
+                                tooltipContent.style.left = left + 'px';
+                                tooltipContent.style.transform = 'translateX(-50%)';
+                                tooltipContent.style.opacity = '1';
+                            }, 100);
+                        });
+                        
+                        tooltipWrapper.addEventListener('mouseleave', function() {
+                            clearTimeout(tooltipTimeout);
+                            tooltipContent.style.visibility = 'hidden';
+                            tooltipContent.style.opacity = '0';
+                        });
+                        
+                        tooltipWrapper.appendChild(tooltipIcon);
+                        tooltipWrapper.appendChild(tooltipContent);
+                        label.appendChild(tooltipWrapper);
+                    }
+                    
+                    formGroup.appendChild(label);
+                    
+                    if (isRequired) {
+                        formGroup.style.borderLeft = '4px solid #dc3545';
+                    }
+                    
+                    if (desc.type === 'checkbox') {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `opt_${opt}`;
+                        checkbox.name = opt;
+                        formGroup.appendChild(checkbox);
+                    } else if (desc.type === 'db_env') {
+                        // 数据库连接环境变量输入框
+                        const dbEnvDiv = document.createElement('div');
+                        dbEnvDiv.className = 'db-env-container';
+                        dbEnvDiv.id = `opt_${opt}_container`;
+                        
+                        const dbFields = [
+                            { key: 'host', label: '主机 (host)', placeholder: '例如: 127.0.0.1', required: true },
+                            { key: 'port', label: '端口 (port)', placeholder: '例如: 2881', required: true },
+                            { key: 'user', label: '用户 (user)', placeholder: '例如: test@test', required: true },
+                            { key: 'password', label: '密码 (password)', placeholder: '输入密码', required: true, type: 'password' },
+                            { key: 'database', label: '数据库 (database)', placeholder: '例如: test', required: true }
+                        ];
+                        
+                        dbFields.forEach(field => {
+                            const fieldGroup = document.createElement('div');
+                            fieldGroup.className = 'form-group';
+                            fieldGroup.style.marginBottom = '10px';
+                            
+                            const fieldLabel = document.createElement('label');
+                            fieldLabel.innerHTML = field.label + (field.required ? ' <span style="color: red;">*</span>' : '');
+                            fieldLabel.style.fontSize = '14px';
+                            fieldGroup.appendChild(fieldLabel);
+                            
+                            const fieldInput = document.createElement('input');
+                            fieldInput.type = field.type || 'text';
+                            fieldInput.className = `db-env-input db-env-${field.key}`;
+                            fieldInput.dataset.key = field.key;
+                            fieldInput.placeholder = field.placeholder;
+                            fieldInput.required = field.required;
+                            fieldInput.oninput = updateCommandOutput;
+                            fieldGroup.appendChild(fieldInput);
+                            
+                            dbEnvDiv.appendChild(fieldGroup);
+                        });
+                        
+                        formGroup.appendChild(dbEnvDiv);
+                    } else if (desc.type === 'multi' && desc.multiple) {
+                        // 支持多个输入的类型（如 --env, --grep, --files）
+                        const listDiv = document.createElement('div');
+                        listDiv.className = 'node-list';
+                        listDiv.id = `opt_${opt}_list`;
+                        
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'node-item';
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = `multi-input-${opt}`;
+                        input.placeholder = desc.placeholder || '';
+                        input.oninput = updateCommandOutput;
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn remove-node-btn';
+                        removeBtn.textContent = '删除';
+                        removeBtn.onclick = function() { removeMultiInput(this, opt); };
+                        
+                        itemDiv.appendChild(input);
+                        itemDiv.appendChild(removeBtn);
+                        listDiv.appendChild(itemDiv);
+                        
+                        const addBtn = document.createElement('button');
+                        addBtn.type = 'button';
+                        addBtn.className = 'btn add-node-btn';
+                        addBtn.textContent = '添加';
+                        addBtn.onclick = function() { addMultiInput(opt, desc.placeholder || ''); };
+                        
+                        formGroup.appendChild(listDiv);
+                        formGroup.appendChild(addBtn);
+                    } else if (desc.type === 'select') {
+                        // 下拉选择框类型
+                        // 根据命令类型动态选择场景列表
+                        let sceneOptions = null;
+                        if (opt === 'scene') {
+                            if (mainCmd === 'gather' && subCmd === 'scene') {
+                                sceneOptions = gatherScenes;
+                            } else if (mainCmd === 'display' && subCmd === 'scene') {
+                                sceneOptions = displayScenes;
+                            }
+                        } else if (desc.options) {
+                            sceneOptions = desc.options;
+                        }
+                        
+                        if (sceneOptions) {
+                            const select = document.createElement('select');
+                            select.id = `opt_${opt}`;
+                            select.name = opt;
+                            select.onchange = updateCommandOutput;
+                            
+                            // 添加空选项
+                            const emptyOption = document.createElement('option');
+                            emptyOption.value = '';
+                            emptyOption.textContent = desc.placeholder || '请选择...';
+                            select.appendChild(emptyOption);
+                            
+                            // 添加所有选项
+                            for (const [key, sceneInfo] of Object.entries(sceneOptions)) {
+                                const option = document.createElement('option');
+                                option.value = sceneInfo.name;
+                                option.textContent = `${sceneInfo.name} - ${sceneInfo.description}`;
+                                select.appendChild(option);
+                            }
+                            
+                            // 添加手动输入选项
+                            const manualOption = document.createElement('option');
+                            manualOption.value = '__manual__';
+                            manualOption.textContent = '手动输入...';
+                            select.appendChild(manualOption);
+                            
+                            formGroup.appendChild(select);
+                            
+                            // 添加手动输入框（默认隐藏）
+                            const manualInput = document.createElement('input');
+                            manualInput.type = 'text';
+                            manualInput.id = `opt_${opt}_manual`;
+                            manualInput.name = `${opt}_manual`;
+                            manualInput.placeholder = '手动输入场景名称';
+                            manualInput.style.display = 'none';
+                            manualInput.style.marginTop = '10px';
+                            manualInput.oninput = updateCommandOutput;
+                            formGroup.appendChild(manualInput);
+                            
+                            // 监听选择变化，显示/隐藏手动输入框
+                            select.addEventListener('change', function() {
+                                if (this.value === '__manual__') {
+                                    manualInput.style.display = 'block';
+                                    manualInput.focus();
+                                } else {
+                                    manualInput.style.display = 'none';
+                                    manualInput.value = '';
+                                }
+                                updateCommandOutput();
+                            });
+                        } else {
+                            // 如果没有场景列表，使用普通文本输入框
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.id = `opt_${opt}`;
+                            input.name = opt;
+                            input.placeholder = desc.placeholder || '';
+                            input.oninput = updateCommandOutput;
+                            formGroup.appendChild(input);
+                        }
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = desc.type || 'text';
+                        input.id = `opt_${opt}`;
+                        input.name = opt;
+                        input.placeholder = desc.placeholder || '';
+                        input.oninput = updateCommandOutput;
+                        formGroup.appendChild(input);
+                    }
+                    
+                    optionsDiv.appendChild(formGroup);
+                });
+            }
+            
+            updateCommandOutput();
+        }
+
+        function addObserverNode() {
+            const nodesDiv = document.getElementById('observerNodes');
+            const nodeItem = document.createElement('div');
+            nodeItem.className = 'node-item';
+            nodeItem.innerHTML = `
+                <input type="text" class="node-ip" placeholder="节点 IP 地址" oninput="updateCommandOutput()">
+                <input type="text" class="node-data-dir" placeholder="data_dir (可选)" oninput="updateCommandOutput()">
+                <input type="text" class="node-redo-dir" placeholder="redo_dir (可选)" oninput="updateCommandOutput()">
+                <button type="button" class="btn remove-node-btn" onclick="removeObserverNode(this)">删除</button>
+            `;
+            nodesDiv.appendChild(nodeItem);
+            updateCommandOutput();
+        }
+
+        function removeObserverNode(btn) {
+            btn.parentElement.remove();
+            updateCommandOutput();
+        }
+
+        function addObproxyNode() {
+            const nodesDiv = document.getElementById('obproxyNodes');
+            const nodeItem = document.createElement('div');
+            nodeItem.className = 'node-item';
+            nodeItem.innerHTML = `
+                <input type="text" class="proxy-node-ip" placeholder="节点 IP 地址" oninput="updateCommandOutput()">
+                <button type="button" class="btn remove-node-btn" onclick="removeObproxyNode(this)">删除</button>
+            `;
+            nodesDiv.appendChild(nodeItem);
+            updateCommandOutput();
+        }
+
+        function removeObproxyNode(btn) {
+            btn.parentElement.remove();
+            updateCommandOutput();
+        }
+
+        function addMultiInput(opt, placeholder) {
+            const listDiv = document.getElementById(`opt_${opt}_list`);
+            if (!listDiv) return;
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'node-item';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = `multi-input-${opt}`;
+            input.placeholder = placeholder;
+            input.oninput = updateCommandOutput;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn remove-node-btn';
+            removeBtn.textContent = '删除';
+            removeBtn.onclick = function() { removeMultiInput(this, opt); };
+            
+            itemDiv.appendChild(input);
+            itemDiv.appendChild(removeBtn);
+            listDiv.appendChild(itemDiv);
+            updateCommandOutput();
+        }
+
+        function removeMultiInput(btn, opt) {
+            btn.parentElement.remove();
+            updateCommandOutput();
+        }
+
+        function updateCommandOutput() {
+            const mainCmd = document.getElementById('mainCommand').value;
+            if (!mainCmd) {
+                document.getElementById('commandOutput').textContent = '请选择功能并填写配置...';
+                return;
+            }
+
+            let command = 'obdiag';
+            const parts = [];
+
+            // 添加主命令
+            parts.push(mainCmd);
+
+            // 添加子命令
+            const subCmd = document.getElementById('subCommand').value;
+            if (subCmd) {
+                parts.push(subCmd);
+            }
+
+            // 添加三级命令
+            const subSubCmd = document.getElementById('subSubCommand').value;
+            if (subSubCmd) {
+                // 特殊处理：rca run + 场景，场景作为 --scene 参数，不是位置参数
+                if (mainCmd === 'rca' && subCmd === 'run' && subSubCmd !== '_manual_scene') {
+                    // 场景会在参数部分添加为 --scene
+                } else {
+                    parts.push(subSubCmd);
+                }
+            }
+
+            // 添加四级命令（场景选择）
+            const subSubSubCmd = document.getElementById('subSubSubCommand').value;
+            if (subSubSubCmd) {
+                // 特殊处理：gather scene run + 场景，场景作为 --scene 参数，不是位置参数
+                if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd !== '_manual_scene') {
+                    // 场景会在参数部分添加为 --scene
+                }
+                // 特殊处理：display scene run + 场景，场景作为 --scene 参数，不是位置参数
+                else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd !== '_manual_scene') {
+                    // 场景会在参数部分添加为 --scene
+                }
+            }
+
+            // 添加配置参数
+            const configs = [];
+
+            // 数据库配置
+            const dbHost = document.getElementById('dbHost').value;
+            const dbPort = document.getElementById('dbPort').value;
+            const dbUser = document.getElementById('dbUser').value;
+            const dbPassword = document.getElementById('dbPassword').value;
+
+            if (dbHost) configs.push(`db_host=${dbHost}`);
+            if (dbPort) configs.push(`db_port=${dbPort}`);
+            if (dbUser) configs.push(`tenant_sys.user=${dbUser}`);
+            if (dbPassword) configs.push(`tenant_sys.password=${dbPassword}`);
+
+            // Observer配置
+            const observerSshUsername = document.getElementById('observerSshUsername').value;
+            const observerSshPassword = document.getElementById('observerSshPassword').value;
+            const observerSshKeyFile = document.getElementById('observerSshKeyFile').value;
+            const observerSshPort = document.getElementById('observerSshPort').value;
+            const observerHomePath = document.getElementById('observerHomePath').value;
+
+            if (observerSshUsername) configs.push(`obcluster.servers.global.ssh_username=${observerSshUsername}`);
+            if (observerSshPassword) configs.push(`obcluster.servers.global.ssh_password=${observerSshPassword}`);
+            if (observerSshKeyFile) configs.push(`obcluster.servers.global.ssh_key_file=${observerSshKeyFile}`);
+            if (observerSshPort && observerSshPort !== '22') configs.push(`obcluster.servers.global.ssh_port=${observerSshPort}`);
+            if (observerHomePath) configs.push(`obcluster.servers.global.home_path=${observerHomePath}`);
+
+            // Observer节点
+            const observerNodes = document.querySelectorAll('#observerNodes .node-ip');
+            observerNodes.forEach((node, index) => {
+                const ip = node.value;
+                if (ip) {
+                    configs.push(`obcluster.servers.nodes[${index}].ip=${ip}`);
+                    
+                    const dataDir = node.parentElement.querySelector('.node-data-dir').value;
+                    const redoDir = node.parentElement.querySelector('.node-redo-dir').value;
+                    if (dataDir) configs.push(`obcluster.servers.nodes[${index}].data_dir=${dataDir}`);
+                    if (redoDir) configs.push(`obcluster.servers.nodes[${index}].redo_dir=${redoDir}`);
+                }
+            });
+
+            // OBProxy配置
+            const obproxySshUsername = document.getElementById('obproxySshUsername').value;
+            const obproxySshPassword = document.getElementById('obproxySshPassword').value;
+            const obproxySshKeyFile = document.getElementById('obproxySshKeyFile').value;
+            const obproxyHomePath = document.getElementById('obproxyHomePath').value;
+
+            if (obproxySshUsername) configs.push(`obproxy.servers.global.ssh_username=${obproxySshUsername}`);
+            if (obproxySshPassword) configs.push(`obproxy.servers.global.ssh_password=${obproxySshPassword}`);
+            if (obproxySshKeyFile) configs.push(`obproxy.servers.global.ssh_key_file=${obproxySshKeyFile}`);
+            if (obproxyHomePath) configs.push(`obproxy.servers.global.home_path=${obproxyHomePath}`);
+
+            // OBProxy节点
+            const obproxyNodes = document.querySelectorAll('#obproxyNodes .proxy-node-ip');
+            obproxyNodes.forEach((node, index) => {
+                const ip = node.value;
+                if (ip) {
+                    configs.push(`obproxy.servers.nodes[${index}].ip=${ip}`);
+                }
+            });
+
+            // 添加场景必需的环境变量（在添加命令参数之前）
+            if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = gatherScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    // 收集场景必需和可选的环境变量
+                    const allSceneEnv = [...(sceneInfo.requiredEnv || []), ...(sceneInfo.optionalEnv || [])];
+                    allSceneEnv.forEach(envVar => {
+                        const envInput = document.querySelector(`.scene-env-${envVar}`);
+                        if (envInput && envInput.value.trim()) {
+                            parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                        }
+                    });
+                }
+            } else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                const sceneInfo = displayScenes[subSubSubCmd];
+                if (sceneInfo) {
+                    // 收集场景必需和可选的环境变量
+                    const allSceneEnv = [...(sceneInfo.requiredEnv || []), ...(sceneInfo.optionalEnv || [])];
+                    allSceneEnv.forEach(envVar => {
+                        const envInput = document.querySelector(`.scene-env-${envVar}`);
+                        if (envInput && envInput.value.trim()) {
+                            parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                        }
+                    });
+                }
+            }
+
+            // 添加命令参数
+            const cmdStructForOptions = commandStructure[mainCmd];
+            let options = [];
+            
+            // 特殊处理：rca run + 场景
+            if (mainCmd === 'rca' && subCmd === 'run' && subSubCmd && subSubCmd !== '_manual_scene') {
+                // 使用场景对应的选项，并自动添加 --scene 参数
+                if (cmdStructForOptions && cmdStructForOptions[subCmd] && cmdStructForOptions[subCmd][subSubCmd] && cmdStructForOptions[subCmd][subSubCmd].options) {
+                    options = cmdStructForOptions[subCmd][subSubCmd].options;
+                    // 自动添加场景参数
+                    parts.push(`--scene ${subSubCmd}`);
+                }
+            }
+            // 特殊处理：gather scene run + 场景（四级命令）
+            else if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                // 使用场景对应的选项，并自动添加 --scene 参数
+                if (cmdStructForOptions && cmdStructForOptions[subCmd] && cmdStructForOptions[subCmd][subSubCmd] && cmdStructForOptions[subCmd][subSubCmd].options) {
+                    options = cmdStructForOptions[subCmd][subSubCmd].options;
+                    // 自动添加场景参数
+                    parts.push(`--scene ${subSubSubCmd}`);
+                }
+            }
+            // 特殊处理：display scene run + 场景（四级命令）
+            else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run' && subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                // 使用场景对应的选项，并自动添加 --scene 参数
+                if (cmdStructForOptions && cmdStructForOptions[subCmd] && cmdStructForOptions[subCmd][subSubCmd] && cmdStructForOptions[subCmd][subSubCmd].options) {
+                    options = cmdStructForOptions[subCmd][subSubCmd].options;
+                    // 自动添加场景参数
+                    parts.push(`--scene ${subSubSubCmd}`);
+                }
+            }
+            else if (subSubCmd && subCmd && cmdStructForOptions && cmdStructForOptions[subCmd] && cmdStructForOptions[subCmd][subSubCmd]) {
+                // 三级命令
+                if (cmdStructForOptions[subCmd][subSubCmd].options) {
+                    options = cmdStructForOptions[subCmd][subSubCmd].options;
+                }
+            } else if (subCmd && cmdStructForOptions && cmdStructForOptions[subCmd]) {
+                // 二级命令
+                if (cmdStructForOptions[subCmd].options) {
+                    options = cmdStructForOptions[subCmd].options;
+                }
+            } else if (cmdStructForOptions && cmdStructForOptions.options) {
+                // 一级命令
+                options = cmdStructForOptions.options;
+            }
+
+            options.forEach(opt => {
+                const desc = optionDescriptions[opt] || {};
+                
+                // 处理数据库连接环境变量
+                if (desc.type === 'db_env') {
+                    const container = document.getElementById(`opt_${opt}_container`);
+                    if (container) {
+                        const host = container.querySelector('.db-env-host')?.value.trim();
+                        const port = container.querySelector('.db-env-port')?.value.trim();
+                        const user = container.querySelector('.db-env-user')?.value.trim();
+                        const password = container.querySelector('.db-env-password')?.value.trim();
+                        const database = container.querySelector('.db-env-database')?.value.trim();
+                        
+                        if (host) parts.push(`--env host=${host}`);
+                        if (port) parts.push(`--env port=${port}`);
+                        if (user) parts.push(`--env user=${user}`);
+                        if (password) parts.push(`--env password=${password}`);
+                        if (database) parts.push(`--env database=${database}`);
+                    }
+                } else if (desc.type === 'multi' && desc.multiple) {
+                    // 处理支持多个输入的类型（--env, --grep, --files）
+                    const inputs = document.querySelectorAll(`.multi-input-${opt}`);
+                    inputs.forEach(input => {
+                        const value = input.value.trim();
+                        if (value) {
+                            parts.push(`--${opt} ${value}`);
+                        }
+                    });
+                } else if (desc.type === 'select') {
+                    // 处理下拉选择框类型
+                    const select = document.getElementById(`opt_${opt}`);
+                    const manualInput = document.getElementById(`opt_${opt}_manual`);
+                    
+                    if (select) {
+                        const selectedValue = select.value.trim();
+                        if (selectedValue && selectedValue !== '__manual__') {
+                            // 从下拉列表中选择的值
+                            parts.push(`--${opt} ${selectedValue}`);
+                        } else if (selectedValue === '__manual__' && manualInput) {
+                            // 手动输入的值
+                            const manualValue = manualInput.value.trim();
+                            if (manualValue) {
+                                parts.push(`--${opt} ${manualValue}`);
+                            }
+                        }
+                    }
+                } else {
+                    const input = document.getElementById(`opt_${opt}`);
+                    if (input) {
+                        if (input.type === 'checkbox') {
+                            if (input.checked) {
+                                parts.push(`--${opt}`);
+                            }
+                        } else {
+                            const value = input.value.trim();
+                            if (value) {
+                                // display-trace的trace_id是位置参数，不是选项
+                                if (mainCmd === 'display-trace' && opt === 'trace_id') {
+                                    parts.push(value);
+                                } else {
+                                    parts.push(`--${opt} ${value}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 构建最终命令
+            command = 'obdiag ' + parts.join(' ');
+            
+            if (configs.length > 0) {
+                configs.forEach(config => {
+                    command += ` \\\n    --config ${config}`;
+                });
+            }
+
+            // 检查必填参数
+            const cmdStructForRequired = commandStructure[mainCmd];
+            let requiredOptions = [];
+            // 特殊处理：rca run + 场景
+            if (mainCmd === 'rca' && subCmd === 'run') {
+                if (subSubCmd && subSubCmd !== '_manual_scene') {
+                    // 已选择场景，场景已自动添加，不需要检查 scene 参数
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required.filter(opt => opt !== 'scene');
+                    }
+                } else if (subSubCmd === '_manual_scene') {
+                    // 手动输入场景，scene 参数必填
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required;
+                    }
+                }
+            }
+            // 特殊处理：gather scene run + 场景（四级命令）
+            else if (mainCmd === 'gather' && subCmd === 'scene' && subSubCmd === 'run') {
+                if (subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                    // 已选择场景，场景已自动添加，不需要检查 scene 参数
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required.filter(opt => opt !== 'scene');
+                    }
+                    // 检查场景必需的环境变量
+                    const sceneInfo = gatherScenes[subSubSubCmd];
+                    if (sceneInfo && sceneInfo.requiredEnv && sceneInfo.requiredEnv.length > 0) {
+                        sceneInfo.requiredEnv.forEach(envVar => {
+                            requiredOptions.push(`env_${envVar}`);
+                        });
+                    }
+                } else if (subSubSubCmd === '_manual_scene') {
+                    // 手动输入场景，scene 参数必填
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required;
+                    }
+                }
+            }
+            // 特殊处理：display scene run + 场景（四级命令）
+            else if (mainCmd === 'display' && subCmd === 'scene' && subSubCmd === 'run') {
+                if (subSubSubCmd && subSubSubCmd !== '_manual_scene') {
+                    // 已选择场景，场景已自动添加，不需要检查 scene 参数
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required.filter(opt => opt !== 'scene');
+                    }
+                    // 检查场景必需的环境变量
+                    const sceneInfo = displayScenes[subSubSubCmd];
+                    if (sceneInfo && sceneInfo.requiredEnv && sceneInfo.requiredEnv.length > 0) {
+                        sceneInfo.requiredEnv.forEach(envVar => {
+                            requiredOptions.push(`env_${envVar}`);
+                        });
+                    }
+                } else if (subSubSubCmd === '_manual_scene') {
+                    // 手动输入场景，scene 参数必填
+                    if (cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                        requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required;
+                    }
+                }
+            }
+            else if (subSubCmd && subCmd && cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd][subSubCmd] && cmdStructForRequired[subCmd][subSubCmd].required) {
+                requiredOptions = cmdStructForRequired[subCmd][subSubCmd].required;
+            } else if (subCmd && cmdStructForRequired && cmdStructForRequired[subCmd] && cmdStructForRequired[subCmd].required) {
+                requiredOptions = cmdStructForRequired[subCmd].required;
+            } else if (cmdStructForRequired && cmdStructForRequired.required) {
+                requiredOptions = cmdStructForRequired.required;
+            }
+            
+            let missingRequired = [];
+            requiredOptions.forEach(reqOpt => {
+                // 特殊处理：场景环境变量（格式：env_<envVar>）
+                if (reqOpt.startsWith('env_')) {
+                    const envVar = reqOpt.substring(4); // 移除 'env_' 前缀
+                    const envInput = document.querySelector(`.scene-env-${envVar}`);
+                    if (!envInput || !envInput.value.trim()) {
+                        missingRequired.push(`--env ${envVar}=`);
+                    }
+                    return;
+                }
+                
+                const desc = optionDescriptions[reqOpt] || {};
+                if (desc.type === 'db_env') {
+                    const container = document.getElementById(`opt_${reqOpt}_container`);
+                    if (container) {
+                        const host = container.querySelector('.db-env-host')?.value.trim();
+                        const port = container.querySelector('.db-env-port')?.value.trim();
+                        const user = container.querySelector('.db-env-user')?.value.trim();
+                        const password = container.querySelector('.db-env-password')?.value.trim();
+                        const database = container.querySelector('.db-env-database')?.value.trim();
+                        if (!host || !port || !user || !password || !database) {
+                            missingRequired.push(reqOpt);
+                        }
+                    } else {
+                        missingRequired.push(reqOpt);
+                    }
+                } else if (desc.type === 'select') {
+                    // 处理下拉选择框类型的必填参数
+                    const select = document.getElementById(`opt_${reqOpt}`);
+                    const manualInput = document.getElementById(`opt_${reqOpt}_manual`);
+                    if (select) {
+                        const selectedValue = select.value.trim();
+                        if (!selectedValue || selectedValue === '__manual__') {
+                            // 如果选择了手动输入，检查手动输入框
+                            if (!manualInput || !manualInput.value.trim()) {
+                                missingRequired.push(reqOpt);
+                            }
+                        }
+                        // 如果选择了有效值，则不需要检查
+                    } else {
+                        missingRequired.push(reqOpt);
+                    }
+                } else {
+                    const input = document.getElementById(`opt_${reqOpt}`);
+                    if (!input || !input.value.trim()) {
+                        missingRequired.push(reqOpt);
+                    }
+                }
+            });
+            
+            if (missingRequired.length > 0) {
+                const missingNames = missingRequired.map(opt => {
+                    const desc = optionDescriptions[opt] || {};
+                    return desc.label || opt;
+                }).join(', ');
+                command += '\n\n⚠️ 警告: 以下必填参数未填写: ' + missingNames;
+            }
+            
+            document.getElementById('commandOutput').textContent = command || '请填写配置...';
+        }
+
+        function copyCommand() {
+            const commandText = document.getElementById('commandOutput').textContent;
+            navigator.clipboard.writeText(commandText).then(() => {
+                const alert = document.getElementById('copyAlert');
+                alert.classList.remove('hidden');
+                setTimeout(() => {
+                    alert.classList.add('hidden');
+                }, 2000);
+            });
+        }
+
+        // 监听所有输入变化
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateCommandOutput);
+                input.addEventListener('change', updateCommandOutput);
+                
+                // 添加格式验证
+                if (input.id === 'observerSshUsername' || input.id === 'obproxySshUsername') {
+                    input.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value) {
+                            const validation = validateUsername(value);
+                            if (!validation.valid) {
+                                showValidationError(this, validation.message);
+                            } else {
+                                clearValidationError(this);
+                            }
+                        } else {
+                            clearValidationError(this);
+                        }
+                    });
+                }
+                
+                if (input.classList.contains('node-ip') || input.classList.contains('proxy-node-ip')) {
+                    input.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value) {
+                            if (!validateIP(value)) {
+                                showValidationError(this, '请输入有效的IP地址格式（例如: 192.168.1.1）');
+                            } else {
+                                clearValidationError(this);
+                            }
+                        } else {
+                            clearValidationError(this);
+                        }
+                    });
+                }
+                
+                if (input.id === 'observerSshPort' || input.id === 'dbPort') {
+                    input.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value) {
+                            if (!validatePort(value)) {
+                                showValidationError(this, '端口号必须在 1-65535 之间');
+                            } else {
+                                clearValidationError(this);
+                            }
+                        } else {
+                            clearValidationError(this);
+                        }
+                    });
+                }
+            });
+            
+            // 确保主命令选择框的事件绑定正确
+            const mainCommandSelect = document.getElementById('mainCommand');
+            if (mainCommandSelect) {
+                mainCommandSelect.addEventListener('change', updateSubCommands);
+            }
+        });
+    </script>
+</body>
+</html>

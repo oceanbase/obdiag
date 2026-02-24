@@ -35,6 +35,7 @@ def check_task(
     max_ob_version: Optional[str] = None,
     supported_os: Optional[List[str]] = None,
     requires: Optional[List[str]] = None,
+    dependencies: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
     configurable: Optional[Dict[str, Any]] = None,
 ):
@@ -55,6 +56,7 @@ def check_task(
         max_ob_version: Maximum OceanBase version supported
         supported_os: List of supported OS (e.g., ["linux"])
         requires: Required resources (e.g., ["db", "ssh"])
+        dependencies: List of task names that must execute before this task (e.g., ["observer.system.python_version"])
         tags: Task tags for categorization
         configurable: Configurable parameters with defaults
 
@@ -89,6 +91,7 @@ def check_task(
             'max_ob_version': max_ob_version,
             'supported_os': supported_os or ['linux'],
             'requires': requires or [],
+            'dependencies': dependencies or [],
             'tags': tags or [],
             'configurable': configurable or {},
         }
@@ -153,6 +156,9 @@ def check_task(
                 'name': meta['name'],
                 'info': meta['description'],
                 'supported_os': meta['supported_os'],
+                'min_ob_version': meta['min_ob_version'],
+                'max_ob_version': meta['max_ob_version'],
+                'dependencies': meta['dependencies'],
                 'tags': meta['tags'],
             }
 
