@@ -340,7 +340,30 @@ check_error_log  "obdiag gather scene run --scene=observer.base"
 check_error_log  "obdiag gather scene run --scene=observer.base --skip_type ssh" &
 check_error_log  "obdiag gather scene run --scene=observer.base --skip_type sql" &
 check_error_log  "obdiag gather scene run --scene=observer.base --redact password" &
-check_error_log  "obdiag gather scene run --scene=observer.base --from '2025-01-01 00:00:00' --to '2025-01-02 00:00:00'" &
+check_error_log  "obdiag gather scene run --scene=observer.base --from '2025-01-01 00:00:00' --to '2025-01-02 00:00:00'" 
+
+
+# observer.perf_sql: prerequisite SQL to produce a trace_id, then gather perf_sql scene
+# Connection defaults for CI: 127.0.0.1:2881, user root, empty password. Override via OB_HOST, OB_PORT, OB_USER, OB_PASSWORD.
+PERF_SQL_HOST="${OB_HOST:-127.0.0.1}"
+PERF_SQL_PORT="${OB_PORT:-2881}"
+PERF_SQL_USER="${OB_USER:-root}"
+PERF_SQL_PWD="${OB_PASSWORD:-}"
+PERF_SQL_DB="${OB_DATABASE:-oceanbase}"
+PERF_SQL_TRACE_ID=""
+if command -v obclient >/dev/null 2>&1; then
+  obclient -h"$PERF_SQL_HOST" -P"$PERF_SQL_PORT" -u"$PERF_SQL_USER" ${PERF_SQL_PWD:+-p"$PERF_SQL_PWD"} "$PERF_SQL_DB" -N -e "CREATE TABLE IF NOT EXISTS game ( round INT PRIMARY KEY, team VARCHAR(10), score INT ) PARTITION BY HASH(round) PARTITIONS 3;" 2>/dev/null || true
+  obclient -h"$PERF_SQL_HOST" -P"$PERF_SQL_PORT" -u"$PERF_SQL_USER" ${PERF_SQL_PWD:+-p"$PERF_SQL_PWD"} "$PERF_SQL_DB" -N -e "INSERT IGNORE INTO game VALUES (1, 'CN', 4),(2, 'CN', 5), (3, 'JP', 3),(4, 'CN', 4),(5, 'US', 4),(6, 'JP', 4);" 2>/dev/null || true
+  obclient -h"$PERF_SQL_HOST" -P"$PERF_SQL_PORT" -u"$PERF_SQL_USER" ${PERF_SQL_PWD:+-p"$PERF_SQL_PWD"} "$PERF_SQL_DB" -N -e "select /*+ parallel(3) */ team, sum(score) total from game group by team;" 2>/dev/null || true
+  PERF_SQL_TRACE_ID=$(obclient -h"$PERF_SQL_HOST" -P"$PERF_SQL_PORT" -u"$PERF_SQL_USER" ${PERF_SQL_PWD:+-p"$PERF_SQL_PWD"} "$PERF_SQL_DB" -N -e "SELECT last_trace_id();" 2>/dev/null | tail -1 | tr -d '\r\n ')
+fi
+if [ -n "$PERF_SQL_TRACE_ID" ]; then
+  check_error_log  "obdiag gather scene run --scene=observer.perf_sql --env host=$PERF_SQL_HOST --env port=$PERF_SQL_PORT --env user=$PERF_SQL_USER --env password=$PERF_SQL_PWD --env database=$PERF_SQL_DB --env trace_id=$PERF_SQL_TRACE_ID"
+else
+  echo "Skipping obdiag gather scene run --scene=observer.perf_sql (obclient not found or last_trace_id() empty)"
+fi
+
+
 # gather ash commands
 # Basic ash commands (all versions)
 # TODO: Need trace_id or sql_id parameter
