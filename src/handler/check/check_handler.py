@@ -15,7 +15,7 @@
 @file: check_handler.py
 @desc: Handler for executing Python check tasks
 """
-
+# todo refactor
 import os
 import queue
 import traceback
