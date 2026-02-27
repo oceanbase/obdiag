@@ -15,7 +15,7 @@
 @file: gather_component_log.py
 @desc: Component log gathering - main entry point
 """
-
+# todo refactor
 import copy
 import datetime
 import os
