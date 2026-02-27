@@ -24,8 +24,11 @@ check:
   ignore_version: false
   work_path: "~/.obdiag/check"
   max_workers: 12
+  ssh_manager:
+    max_connections_per_node: 5
+    idle_timeout: 300
   report:
-    report_path: "./check_report/"
+    report_path: "./obdiag_check_report/"
     export_type: table
   tasks_base_path: "~/.obdiag/check/tasks/"
 gather:

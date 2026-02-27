@@ -15,7 +15,6 @@
 @file: upper_trans_version.py
 @desc:
 """
-from src.common.tool import StringUtils
 from src.handler.check.check_task import TaskBase
 
 
@@ -31,8 +30,8 @@ class UpperTransVersion(TaskBase):
             """
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
-            # check version [4.2.5.0, 4.2.5.3)
-            if super().check_ob_version_min("4.2.5.0") and StringUtils.compare_versions_greater("4.2.5.3", self.observer_version):
+            # check version >= 4.0.0.0
+            if super().check_ob_version_min("4.0.0.0"):
                 error_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
                 if error_data and len(error_data) > 0:
                     self.report.add_critical(
@@ -46,7 +45,7 @@ class UpperTransVersion(TaskBase):
     def get_task_info(self):
         return {
             "name": "upper_trans_version",
-            "info": "If the OB version is within the range [4.2.5.0, 4.2.5.3), when executing the SQL query in the sys tenant returns non-empty results, prompt the user to upgrade to version ob425_bp3 or higher",
+            "info": "If the OB version is 4.0.0.0 or higher, when executing the SQL query in the sys tenant returns non-empty results, prompt the user to upgrade to fix the upper_trans_version issue",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/838",
         }
 

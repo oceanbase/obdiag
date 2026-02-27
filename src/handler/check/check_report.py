@@ -19,14 +19,13 @@
 from prettytable import PrettyTable
 import datetime
 import os
-import yaml
+import oyaml as yaml
 import xmltodict
 import json
 import threading
 from io import open
 
 from src.common.command import get_obproxy_version, get_observer_version, get_observer_commit_id
-from src.handler.check.check_exception import CheckException
 from src.telemetry.telemetry import telemetry
 from jinja2 import Template
 from src.common.version import OBDIAG_VERSION
@@ -45,7 +44,7 @@ class CheckReport:
                 os.makedirs(export_report_path)
         except Exception as e:
             self.stdio.error("init check_report {0}".format(e))
-            raise CheckReportException("int check_report {0}".format(e))
+            raise Exception("int check_report {0}".format(e))
         self.export_report_type = export_report_type
 
         now = datetime.datetime.now()
@@ -78,11 +77,11 @@ class CheckReport:
             elif self.export_report_type == "html":
                 self.export_report_html()
             else:
-                raise CheckReportException("export_report_type: {0} is not support".format(self.export_report_type))
+                raise Exception("export_report_type: {0} is not support".format(self.export_report_type))
             self.export_report_path = self.export_report_path + "." + self.export_report_type
         except Exception as e:
             self.stdio.error("export_report Exception : {0}".format(e))
-            raise CheckReportException(e)
+            raise Exception(e)
 
     def get_report_path(self):
         return self.report_path + "." + self.export_report_type
@@ -211,7 +210,7 @@ class CheckReport:
             fp.close()
             self.stdio.verbose("export report end")
         except Exception as e:
-            raise CheckReportException("export report {0}".format(e))
+            raise Exception("export report {0}".format(e))
 
     def export_report_html(self):
         try:
@@ -415,7 +414,7 @@ class CheckReport:
             fp.close()
             self.stdio.verbose("export report end")
         except Exception as e:
-            raise CheckReportException("export report {0}".format(e))
+            raise Exception("export report {0}".format(e))
 
 
 class TaskReport:
@@ -485,8 +484,3 @@ class TaskReport:
 
     def all_normal(self):
         return self.normal
-
-
-class CheckReportException(CheckException):
-    def __init__(self, msg=None, obj=None):
-        super(CheckReportException, self).__init__(msg)
