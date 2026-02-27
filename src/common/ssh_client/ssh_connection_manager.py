@@ -91,17 +91,11 @@ class SSHConnectionManager:
                     ssher = SshClient(self.context, node)
                     pool["count"] += 1
                     if self.stdio:
-                        self.stdio.verbose(
-                            "SSH connection created for {0} (pool {1}/{2})".format(
-                                key[0], pool["count"], self.max_per_node
-                            )
-                        )
+                        self.stdio.verbose("SSH connection created for {0} (pool {1}/{2})".format(key[0], pool["count"], self.max_per_node))
                     return ssher
                 except Exception as e:
                     if self.stdio:
-                        self.stdio.warn(
-                            "SSH connection failed for {0}: {1}".format(key[0], e)
-                        )
+                        self.stdio.warn("SSH connection failed for {0}: {1}".format(key[0], e))
                     return None
 
         # Wait for released connection
@@ -110,9 +104,7 @@ class SSHConnectionManager:
             return ssher
         except queue.Empty:
             if self.stdio:
-                self.stdio.warn(
-                    "SSH connection timeout waiting for {0}".format(key[0])
-                )
+                self.stdio.warn("SSH connection timeout waiting for {0}".format(key[0]))
             return None
 
     def release_connection(self, ssher):

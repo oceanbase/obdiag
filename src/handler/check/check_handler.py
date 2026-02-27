@@ -91,12 +91,8 @@ class CheckHandler:
         report_config = check_config.get("report", {})
 
         self.max_workers = check_config.get("max_workers", DEFAULT_MAX_WORKERS)
-        self.work_path = os.path.expanduser(
-            check_config.get("work_path") or "~/.obdiag/check"
-        )
-        self.export_report_path = os.path.expanduser(
-            report_config.get("report_path") or "./check_report/"
-        )
+        self.work_path = os.path.expanduser(check_config.get("work_path") or "~/.obdiag/check")
+        self.export_report_path = os.path.expanduser(report_config.get("report_path") or "./check_report/")
         self.export_report_type = report_config.get("export_type") or "table"
         self.ignore_version = check_config.get("ignore_version") or False
 
@@ -108,12 +104,8 @@ class CheckHandler:
         else:
             self.nodes = None
 
-        self.tasks_base_path = os.path.expanduser(
-            os.path.join(self.work_path, "tasks", "")
-        )
-        self.input_env = StringUtils.parse_env_display(
-            Util.get_option(self.options, "env")
-        ) or {}
+        self.tasks_base_path = os.path.expanduser(os.path.join(self.work_path, "tasks", ""))
+        self.input_env = StringUtils.parse_env_display(Util.get_option(self.options, "env")) or {}
 
         self.stdio.verbose(
             "CheckHandler input. ignore_version={0}, cluster={1}, nodes={2}, "
@@ -136,13 +128,9 @@ class CheckHandler:
             raise Exception("check_target_type is null. Please check the conf")
 
         # Package file: {work_path}/{observer|obproxy}_check_package.yaml
-        self.package_file_name = os.path.expanduser(
-            os.path.join(self.work_path, self.check_target_type + PACKAGE_FILE_SUFFIX)
-        )
+        self.package_file_name = os.path.expanduser(os.path.join(self.work_path, self.check_target_type + PACKAGE_FILE_SUFFIX))
         if not os.path.exists(self.package_file_name):
-            raise Exception(
-                "case_package_file {0} does not exist".format(self.package_file_name)
-            )
+            raise Exception("case_package_file {0} does not exist".format(self.package_file_name))
         self.stdio.verbose("case_package_file is " + self.package_file_name)
 
         # Tasks directory: {work_path}/tasks/{observer|obproxy}
@@ -164,9 +152,7 @@ class CheckHandler:
             self.stdio.warn("check cases is build_before, skip getting version")
             return
 
-        self.version = get_version_by_type(
-            self.context, self.check_target_type, self.stdio
-        )
+        self.version = get_version_by_type(self.context, self.check_target_type, self.stdio)
         # Cache version in context for tasks and other modules
         if self.check_target_type == TARGET_OBSERVER:
             self.context.set_variable("check_observer_version", self.version)
@@ -175,9 +161,7 @@ class CheckHandler:
         ob_connector_pool = None
         try:
             pool_size = min(self.max_workers, MAX_DB_POOL_SIZE)
-            ob_connector_pool = CheckOBConnectorPool(
-                self.context, pool_size, self.cluster
-            )
+            ob_connector_pool = CheckOBConnectorPool(self.context, pool_size, self.cluster)
         except Exception as e:
             self.stdio.warn("obConnector init error: {0}".format(e))
         finally:
@@ -199,11 +183,7 @@ class CheckHandler:
             idle_timeout=idle_timeout,
         )
         self.context.set_variable("check_ssh_manager", ssh_manager)
-        self.stdio.verbose(
-            "SSHConnectionManager init: max_per_node={0}, idle_timeout={1}".format(
-                max_per_node, idle_timeout
-            )
-        )
+        self.stdio.verbose("SSHConnectionManager init: max_per_node={0}, idle_timeout={1}".format(max_per_node, idle_timeout))
 
     def handle(self):
         """
@@ -244,10 +224,7 @@ class CheckHandler:
 
     def _should_skip_obproxy(self):
         """Skip obproxy check when cases=build_before."""
-        if (
-            Util.get_option(self.options, "cases") == CASE_BUILD_BEFORE
-            and self.check_target_type == TARGET_OBPROXY
-        ):
+        if Util.get_option(self.options, "cases") == CASE_BUILD_BEFORE and self.check_target_type == TARGET_OBPROXY:
             self.stdio.print("when cases is build_before, not check obproxy")
             return True
         return False
@@ -256,9 +233,7 @@ class CheckHandler:
         """Prepare export path and report type from options."""
         if Util.get_option(self.options, "store_dir"):
             self.export_report_path = Util.get_option(self.options, "store_dir")
-            self.stdio.verbose(
-                "export_report_path overridden to " + self.export_report_path
-            )
+            self.stdio.verbose("export_report_path overridden to " + self.export_report_path)
         self.export_report_path = os.path.expanduser(self.export_report_path)
         if not os.path.exists(self.export_report_path):
             self.stdio.warn("{0} not exists, creating".format(self.export_report_path))
@@ -266,20 +241,14 @@ class CheckHandler:
 
         # Create timestamp subdir: obdiag_check_YYYYMMDDHHmmss
         ts = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        self.export_report_path = os.path.join(
-            self.export_report_path, "obdiag_check_{0}".format(ts)
-        )
+        self.export_report_path = os.path.join(self.export_report_path, "obdiag_check_{0}".format(ts))
         os.makedirs(self.export_report_path, exist_ok=True)
         self.stdio.verbose("report output dir: " + self.export_report_path)
 
         if Util.get_option(self.options, "report_type"):
             self.export_report_type = Util.get_option(self.options, "report_type")
             if self.export_report_type not in SUPPORTED_REPORT_TYPES:
-                raise Exception(
-                    "report_type must be one of: {0}".format(
-                        ", ".join(SUPPORTED_REPORT_TYPES)
-                    )
-                )
+                raise Exception("report_type must be one of: {0}".format(", ".join(SUPPORTED_REPORT_TYPES)))
         self.stdio.verbose("export_report_path is " + self.export_report_path)
 
     def _load_and_filter_tasks(self, input_tasks, package_name):
@@ -325,11 +294,7 @@ class CheckHandler:
                 elif current_os in supported:
                     compatible[task_name] = task_cls
                 else:
-                    self.stdio.verbose(
-                        "Task {0} skipped (requires {1}, current OS: {2})".format(
-                            task_name, supported, current_os
-                        )
-                    )
+                    self.stdio.verbose("Task {0} skipped (requires {1}, current OS: {2})".format(task_name, supported, current_os))
             except Exception as e:
                 self.stdio.warn("get_task_info for {0} failed: {1}, keeping task".format(task_name, e))
                 compatible[task_name] = task_cls
@@ -339,7 +304,7 @@ class CheckHandler:
         """Strip leading check_target_type (e.g. observer.) from pattern for path consistency."""
         prefix = self.check_target_type + "."
         if pattern.startswith(prefix):
-            return pattern[len(prefix):]
+            return pattern[len(prefix) :]
         return pattern
 
     def _load_tasks_by_patterns(self, patterns):
@@ -364,10 +329,7 @@ class CheckHandler:
         """Exclude tasks that match any filter pattern."""
         new_tasks = {}
         for task_name, task_value in self.tasks.items():
-            matched = any(
-                re.match(p.strip(), task_name.strip())
-                for p in filter_patterns
-            )
+            matched = any(re.match(p.strip(), task_name.strip()) for p in filter_patterns)
             if not matched:
                 new_tasks[task_name] = task_value
         self.tasks = new_tasks
@@ -394,11 +356,7 @@ class CheckHandler:
                     task_module = DynamicLoading.import_module(file[:-3], self.stdio)
                     attr_name = task_name.split(".")[-1]
                     if task_module is None:
-                        self.stdio.error(
-                            "{0} import_module failed: module is None".format(
-                                task_name
-                            )
-                        )
+                        self.stdio.error("{0} import_module failed: module is None".format(task_name))
                         continue
                     if not hasattr(task_module, attr_name):
                         self.stdio.error(
@@ -411,12 +369,8 @@ class CheckHandler:
                         continue
                     tasks[task_name] = getattr(task_module, attr_name)
                 except Exception as e:
-                    self.stdio.error(
-                        "import_module {0} failed: {1}".format(task_name, e)
-                    )
-                    raise Exception(
-                        "import_module {0} failed: {1}".format(task_name, e)
-                    )
+                    self.stdio.error("import_module {0} failed: {1}".format(task_name, e))
+                    raise Exception("import_module {0} failed: {1}".format(task_name, e))
 
         if not tasks:
             raise Exception("No tasks found in {0}".format(current_path))
@@ -443,11 +397,7 @@ class CheckHandler:
             raise Exception("no cases name is {0}".format(package_name))
 
         tasks = package_data[package_name].get("tasks")
-        self.stdio.verbose(
-            "by cases name: {0}, get cases: {1}".format(
-                package_name, package_data[package_name]
-            )
-        )
+        self.stdio.verbose("by cases name: {0}, get cases: {1}".format(package_name, package_data[package_name]))
         return tasks if tasks else []
 
     def __execute_one(self, task_name):
@@ -469,24 +419,14 @@ class CheckHandler:
             if supported_os:
                 current_os = self.__get_current_os()
                 if current_os not in supported_os:
-                    self.stdio.verbose(
-                        "Task {0} skipped: requires {1}, current OS is {2}".format(
-                            task_name, supported_os, current_os
-                        )
-                    )
-                    report.add_warning(
-                        "Task skipped: requires OS {0}, current is {1}".format(
-                            supported_os, current_os
-                        )
-                    )
+                    self.stdio.verbose("Task {0} skipped: requires {1}, current OS is {2}".format(task_name, supported_os, current_os))
+                    report.add_warning("Task skipped: requires OS {0}, current is {1}".format(supported_os, current_os))
                     return report
 
             # Version check (skip when ignore_version or build_before)
             if not self.ignore_version:
                 version = self.version
-                if not version and Util.get_option(
-                    self.options, "cases"
-                ) != CASE_BUILD_BEFORE:
+                if not version and Util.get_option(self.options, "cases") != CASE_BUILD_BEFORE:
                     self.stdio.error("can't get version")
                     return report
                 self.cluster["version"] = version
@@ -517,11 +457,7 @@ class CheckHandler:
         """
         try:
             task_count = len(self.tasks)
-            self.stdio.verbose(
-                "execute_all_tasks. count={0}, tasks={1}".format(
-                    task_count, list(self.tasks.keys())
-                )
-            )
+            self.stdio.verbose("execute_all_tasks. count={0}, tasks={1}".format(task_count, list(self.tasks.keys())))
             self.report = CheckReport(
                 self.context,
                 export_report_path=self.export_report_path,
@@ -530,11 +466,7 @@ class CheckHandler:
             )
 
             actual_workers = min(self.max_workers, task_count) if task_count > 0 else 1
-            self.stdio.verbose(
-                "Starting concurrent execution with {0} workers".format(
-                    actual_workers
-                )
-            )
+            self.stdio.verbose("Starting concurrent execution with {0} workers".format(actual_workers))
 
             task_names = list(self.tasks.keys())
             failed_tasks = []
@@ -550,10 +482,7 @@ class CheckHandler:
 
             try:
                 with ThreadPoolExecutor(max_workers=actual_workers) as executor:
-                    future_to_task = {
-                        executor.submit(self.__execute_one_safe, name): name
-                        for name in task_names
-                    }
+                    future_to_task = {executor.submit(self.__execute_one_safe, name): name for name in task_names}
                     for future in as_completed(future_to_task):
                         task_name = future_to_task[future]
                         try:
@@ -562,9 +491,7 @@ class CheckHandler:
                                 self.report.add_task_report(t_report)
                         except Exception as e:
                             failed_tasks.append(task_name)
-                            self.stdio.error(
-                                "Task {0} failed: {1}".format(task_name, e)
-                            )
+                            self.stdio.error("Task {0} failed: {1}".format(task_name, e))
                         completed_count += 1
                         if not self.stdio.silent:
                             self.stdio.update_progressbar(completed_count)
@@ -590,11 +517,7 @@ class CheckHandler:
         try:
             return self.__execute_one(task_name)
         except Exception as e:
-            self.stdio.error(
-                "execute_one_safe Exception for task {0}: {1}".format(
-                    task_name, e
-                )
-            )
+            self.stdio.error("execute_one_safe Exception for task {0}: {1}".format(task_name, e))
             report = TaskReport(self.context, task_name)
             report.add_fail("Task execution failed: {0}".format(str(e)))
             return report
@@ -602,6 +525,7 @@ class CheckHandler:
     def __get_current_os(self):
         """Return current OS: 'linux', 'darwin', or 'unknown'."""
         import platform
+
         system = platform.system().lower()
         if system == "linux":
             return "linux"
