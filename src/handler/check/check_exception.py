@@ -11,19 +11,9 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2024/12/29
 @file: check_exception.py
-@desc: Exception classes for check module
+@desc: Backward-compatibility alias. CheckException = Exception for legacy plugins.
 """
 
-
-class CheckException(Exception):
-    """Base exception for check module"""
-
-    pass
-
-
-class TaskException(Exception):
-    """Exception raised during task execution"""
-
-    pass
+# Alias for backward compatibility with plugins that import CheckException
+CheckException = Exception

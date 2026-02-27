@@ -19,7 +19,6 @@ from decimal import Decimal
 
 from src.handler.check.check_task import TaskBase
 from src.common.tool import StringUtils
-from src.handler.check.check_exception import CheckException
 
 
 class SessionLimit(TaskBase):

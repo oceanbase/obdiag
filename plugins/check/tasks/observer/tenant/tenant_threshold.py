@@ -18,7 +18,6 @@
 
 from collections import defaultdict
 from src.common.tool import StringUtils
-from src.handler.check.check_exception import CheckException
 from src.handler.check.check_task import TaskBase
 
 

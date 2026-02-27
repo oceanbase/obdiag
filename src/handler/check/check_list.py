@@ -17,7 +17,7 @@
 """
 
 import os
-import yaml
+import oyaml as yaml
 
 from src.common.result_type import ObdiagResult
 from src.common.tool import Util, DynamicLoading
