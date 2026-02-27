@@ -59,19 +59,16 @@ class GatherPerfHandler(BaseHandler):
         if new_nodes:
             self.nodes = new_nodes
 
-        # Use ConfigAccessor if available
+        # Use ConfigAccessor if available (file_number_limit is from BaseHandler @property)
         if self.config:
-            self.file_number_limit = self.config.gather_file_number_limit
             self.file_size_limit = self.config.gather_file_size_limit
             self.config_path = self.config.basic_config_path
         else:
             # Fallback to direct config access
             if self.context.inner_config is None:
-                self.file_number_limit = 20
                 self.file_size_limit = 2 * 1024 * 1024 * 1024
             else:
                 basic_config = self.context.inner_config['obdiag']['basic']
-                self.file_number_limit = int(basic_config["file_number_limit"])
                 self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
                 self.config_path = basic_config['config_path']
 
@@ -545,7 +542,7 @@ class GatherPerfHandler(BaseHandler):
             is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
             if is_empty_file_res:
                 error_msg = "The server {host_ip} file {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path)
-                self.stdio.warn(error_msg)
+                self.stdio.verbose(error_msg)
                 raise Exception(error_msg)
         except Exception as e:
             # Re-raise the exception to trigger retry mechanism

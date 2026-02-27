@@ -106,7 +106,8 @@ class SQLErr(SafeStdio):
             self.stdio.verbose("gather sql info start")
             self.stdio.verbose("gather sql info set_variable, key: gather_plan_monitor_trace_id, value:{0}".format(self.trace_id))
             self.context.set_variable('gather_plan_monitor_trace_id', self.trace_id)
-            handler = GatherPlanMonitorHandler(self.context, gather_pack_dir=self.report_path, is_scene=True)
+            handler = GatherPlanMonitorHandler()
+            handler.init(self.context, gather_pack_dir=self.report_path, is_scene=True)
             handler.handle()
             self.stdio.verbose("gather sql info end")
         except Exception as e:

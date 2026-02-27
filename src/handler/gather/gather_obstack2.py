@@ -53,19 +53,16 @@ class GatherObstack2Handler(BaseHandler):
         if new_nodes:
             self.nodes = new_nodes
 
-        # Use ConfigAccessor if available
+        # Use ConfigAccessor if available (file_number_limit is from BaseHandler @property)
         if self.config:
-            self.file_number_limit = self.config.gather_file_number_limit
             self.file_size_limit = self.config.gather_file_size_limit
             self.config_path = self.config.basic_config_path
         else:
             # Fallback to direct config access
             if self.context.inner_config is None:
-                self.file_number_limit = 20
                 self.file_size_limit = 2 * 1024 * 1024 * 1024
             else:
                 basic_config = self.context.inner_config['obdiag']['basic']
-                self.file_number_limit = int(basic_config["file_number_limit"])
                 self.file_size_limit = int(FileUtil.size(basic_config["file_size_limit"]))
                 self.config_path = basic_config['config_path']
 
