@@ -149,6 +149,33 @@ class TestSQLTableExtractor(unittest.TestCase):
         result = self.parser.parse("SELECT * FROM;")
         self.assertEqual(result, [])
 
+    def test_comma_join(self):
+        # Issue #1109: FROM t1, t2 should extract both tables
+        sql = "SELECT * FROM db15.table_a, db15.table_b WHERE table_a.id = table_b.id"
+        result = self.parser.parse(sql)
+        self.assertEqual(result, [('db15', 'table_a'), ('db15', 'table_b')])
+
+    def test_comma_join_no_db(self):
+        sql = "SELECT * FROM t1, t2, t3"
+        result = self.parser.parse(sql)
+        self.assertEqual(result, [(None, 't1'), (None, 't2'), (None, 't3')])
+
+    def test_values_string_literal_not_table(self):
+        # Issue #1109: VALUES (1, 'test') must not parse 'test' as table
+        sql = "INSERT INTO db16.tbl (a, b) VALUES (1, 'test')"
+        result = self.parser.parse(sql)
+        self.assertEqual(result, [('db16', 'tbl')])
+
+    def test_derived_table_not_extracted(self):
+        # Issue #1109: (SELECT ...) alias - subquery body should not add spurious tables from nested content
+        sql = "SELECT * FROM (SELECT id FROM db17.real_table) AS sub"
+        result = self.parser.parse(sql)
+        self.assertIn(('db17', 'real_table'), result)
+        # Should not have ( or ) as table names
+        for db, tbl in result:
+            self.assertNotIn('(', tbl)
+            self.assertNotIn(')', tbl)
+
 
 if __name__ == '__main__':
     unittest.main()
