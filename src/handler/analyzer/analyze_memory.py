@@ -300,7 +300,8 @@ class AnalyzeMemoryHandler(object):
                                         mod_memory_info_dict[key_name] = dict()
                                         mod_memory_info_dict[key_name][t] = mod['mod_hold_bytes']
                     fig_combined = make_subplots(
-                        rows=3, cols=1,
+                        rows=3,
+                        cols=1,
                         subplot_titles=(
                             '租户-{0} hold内存曲线图'.format(tenant_id),
                             '租户-{0} ctx hold内存曲线图'.format(tenant_id),
@@ -474,7 +475,7 @@ class AnalyzeMemoryHandler(object):
                     </html>
                     '''.format(
                     ''.join('<li><a href="tenant-{0}_hold_memory.html">租户 {0}</a></li>'.format(tid) for tid in tenant_ids_for_index)
-                    )
+                )
                 with open('{0}/index.html'.format(local_store_dir), 'w') as f:
                     f.write(index_html)
                 fig.update_layout(title='TOP 15租户hold内存曲线图', xaxis_title='时间', yaxis_title='值(MB)')
