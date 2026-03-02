@@ -319,6 +319,24 @@ class GatherPlanMonitorHandler(object):
             self.stdio.warn(e)
             return None
 
+    def _deduplicate_parse_tables(self, parse_tables, default_db=None):
+        """
+        Deduplicate parse_tables by (db_name, table_name). Keep first occurrence.
+        When SQL references same table multiple times (e.g. FROM t1 JOIN t1), only process once.
+        See: https://github.com/oceanbase/obdiag/issues/1054
+        """
+        if not parse_tables:
+            return []
+        seen = set()
+        result = []
+        for db_name, table_name in parse_tables:
+            db_resolved = db_name if db_name else (default_db or (self.db_conn.get("database") if self.db_conn else None))
+            key = (db_resolved, table_name)
+            if key not in seen:
+                seen.add(key)
+                result.append((db_name, table_name))
+        return result
+
     def report_schema(self, sql, tenant_name):
         try:
             schemas = ""
@@ -326,6 +344,7 @@ class GatherPlanMonitorHandler(object):
             if self.enable_dump_db:
                 parser = SQLTableExtractor()
                 parse_tables = parser.parse(sql)
+                parse_tables = self._deduplicate_parse_tables(parse_tables, self.db_conn.get("database") if self.db_conn else None)
                 for t in parse_tables:
                     db_name, table_name = t
                     try:
@@ -1209,8 +1228,10 @@ class GatherPlanMonitorHandler(object):
 
     def get_stat_stale_yes_tables(self, sql):
         try:
+            self.db_tables = []
             parser = SQLTableExtractor()
             parse_tables = parser.parse(sql)
+            parse_tables = self._deduplicate_parse_tables(parse_tables)
             for t in parse_tables:
                 db_name, table_name = t
                 if not db_name:
@@ -1248,6 +1269,7 @@ class GatherPlanMonitorHandler(object):
         try:
             parser = SQLTableExtractor()
             parse_tables = parser.parse(sql)
+            parse_tables = self._deduplicate_parse_tables(parse_tables, default_db_name)
             if not parse_tables:
                 self.stdio.verbose("No tables found in SQL, skip collation check")
                 return
@@ -1406,6 +1428,7 @@ class GatherPlanMonitorHandler(object):
         try:
             parser = SQLTableExtractor()
             parse_tables = parser.parse(sql)
+            parse_tables = self._deduplicate_parse_tables(parse_tables, default_db_name)
             if not parse_tables:
                 self.stdio.verbose("No tables found in SQL, skip histogram report")
                 return
