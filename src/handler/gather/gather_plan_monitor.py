@@ -284,6 +284,7 @@ class GatherPlanMonitorHandler(object):
                 return False
 
             if StringUtils.validate_db_info(self.db_conn):
+                self.__validate_database()
                 self.__init_db_connector()
                 return True
             else:
@@ -292,6 +293,36 @@ class GatherPlanMonitorHandler(object):
         except Exception as e:
             self.db_connector = self.sys_connector
             self.stdio.exception("init db connector, error: {0}, please check --env option ".format(e))
+
+    def __validate_database(self):
+        """
+        Validate that the database in db_conn exists before creating db_connector.
+        Uses sys_connector (no database specified) to avoid connection failure when database is wrong.
+        When database name is wrong, report clear error and raise to terminate collection.
+        See: https://github.com/oceanbase/obdiag/issues/1155
+        """
+        if not getattr(self, 'db_conn', None) or not self.db_conn.get("database"):
+            return True
+        db_name = self.db_conn.get("database")
+        db_name_escaped = db_name.replace("'", "''")
+        try:
+            sql_mysql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '{0}'".format(db_name_escaped)
+            sql_oracle = "SELECT 1 FROM oceanbase.gv$database WHERE UPPER(database_name) = UPPER('{0}') LIMIT 1".format(db_name_escaped)
+            result = None
+            try:
+                result = self.sys_connector.execute_sql(sql_mysql)
+            except Exception:
+                result = self.sys_connector.execute_sql(sql_oracle)
+            if not result or len(result) == 0:
+                err_msg = "Database '{0}' does not exist. Please check --env database=.".format(db_name)
+                self.stdio.error(err_msg)
+                raise Exception(err_msg)
+        except Exception as e:
+            if "does not exist" in str(e):
+                raise
+            self.stdio.error("Failed to validate database '{0}': {1}".format(db_name, e))
+            raise Exception("Database '{0}' may not exist. Please check --env database=.".format(db_name)) from e
+        return True
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):
@@ -361,7 +392,10 @@ class GatherPlanMonitorHandler(object):
                         handler = GatherTableDumpHandler(self.context, self.local_stored_path, is_inner=True)
                         handler.handle()
                     except Exception as e:
-                        pass
+                        db_for_msg = db_name or (self.db_conn.get("database") if self.db_conn else "?")
+                        err_msg = "Database '{0}' may not exist or table '{1}' is missing. Please check --env database=.".format(db_for_msg, table_name)
+                        self.stdio.error("Failed to gather table schema for {0}.{1}: {2}".format(db_for_msg, table_name, e))
+                        raise Exception(err_msg) from e
             table_info_file = os.path.join(self.local_stored_path, "obdiag_tabledump_result_{0}.txt".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)))
             self.stdio.verbose("table info file path:{0}".format(table_info_file))
             table_info = self.get_table_info(table_info_file)
@@ -388,7 +422,7 @@ class GatherPlanMonitorHandler(object):
         except Exception as e:
             self.stdio.exception("report table schema failed %s" % sql)
             self.stdio.exception(repr(e))
-            pass
+            raise
 
     def report_pre(self, s):
         pre = f'''<pre style='margin:20px;border:1px solid gray;'>{s}</pre>'''

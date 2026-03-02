@@ -453,6 +453,48 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
         return []
 
 
+def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
+    """
+    get obproxy pid
+    :param ssh_client: ssh client
+    :param obproxy_install_dir: obproxy install directory (home_path)
+    :param stdio: stdio for logging
+    :return: list of obproxy pids
+    """
+    pid_file_path = "{obproxy_install_dir}/run/obproxy.pid".format(obproxy_install_dir=obproxy_install_dir)
+
+    try:
+        cmd = "cat {}".format(pid_file_path)
+        pids = ssh_client.exec_cmd(cmd)
+        pid_list = pids.split()
+        if stdio:
+            stdio.verbose("Get obproxy pid from file, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
+        if pid_list:
+            return pid_list
+    except Exception as e:
+        if stdio:
+            stdio.verbose("Failed to read obproxy pid file {0}, error: {1}".format(pid_file_path, e))
+
+    try:
+        cmd = "ps -ef | grep '{}/bin/obproxy' | grep -v grep".format(obproxy_install_dir)
+        result = ssh_client.exec_cmd(cmd)
+        processes = result.splitlines()
+
+        if processes:
+            pid_list = [process.split()[1] for process in processes]
+            if stdio:
+                stdio.verbose("Get obproxy pid using ps, run cmd = [{0}], result:{1}".format(cmd, pid_list))
+            return pid_list
+        else:
+            if stdio:
+                stdio.verbose("No obproxy process found at the specified path.")
+            return []
+    except Exception as e:
+        if stdio:
+            stdio.exception("Failed to execute ps command to find obproxy pid, error: {0}".format(e))
+        return []
+
+
 def delete_file_force(ssh_client, file_name, stdio=None):
     """
     delete file force
