@@ -44,6 +44,7 @@ class DDlDiskFullScene(RcaScene):
         self.estimated_size = None
         self.estimated_data_size = None
         self.index_name = None
+        self.index_names = []  # Support multiple indexes (Issue #228)
         self.action_type = None
         self.table_id = None
         self.tenant_id = None
@@ -76,6 +77,8 @@ class DDlDiskFullScene(RcaScene):
                 if index_name is not None and index_name.strip() != "":
                     self.verbose("index name is {0}.".format(index_name))
                     self.index_name = index_name.strip()
+                    # Support multiple indexes: comma-separated (Issue #228)
+                    self.index_names = [n.strip() for n in index_name.split(",") if n.strip()]
                 else:
                     self.action_type = None
                     self.stdio.error("action type is {0}. but index_name is None. Please input it.".format(action_type))
@@ -143,53 +146,55 @@ class DDlDiskFullScene(RcaScene):
             # get estimated_size to self.estimated_size
             if self.action_type is not None and self.action_type == "add_index":
                 self.verbose("start add_index_action")
-                self.record.add_record("index_name is {0}".format(self.index_name))
+                self.record.add_record("index_name(s) is {0}".format(self.index_name))
                 self.record.add_record("action_type is {0}".format(self.action_type))
-                sql = "select table_id from oceanbase.__all_virtual_table_history where tenant_id = '{0}' and data_table_id = '{1}' and table_name like '%{2}%';".format(self.tenant_id, self.table_id, self.index_name)
-                self.verbose("execute_sql is {0}".format(sql))
-                sql_tables_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
-                if len(sql_tables_data) == 0:
-                    self.stdio.error("can not find index table id by index name: {0}. Please check the index name.".format(self.index_name))
-                    return
-                self.index_table_id = sql_tables_data[0]["table_id"]
-                self.verbose("index_table_id is {0}".format(self.index_table_id))
-                self.record.add_record("index_table_id is {0}".format(self.index_table_id))
 
-                # Query the sum of the lengths of all columns in the main table
+                # Query the sum of the lengths of all columns in the main table (once)
                 sql = "select table_id, sum(data_length) as data_length from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, self.table_id)
                 self.verbose("execute_sql is {0}".format(sql))
                 main_table_sum_of_data_length = int(self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()[0]["data_length"])
                 self.record.add_record("main_table_sum_of_data_length is {0}".format(main_table_sum_of_data_length))
 
-                # The sum of the lengths of all columns in the query index
-                sql = "select table_id, sum(data_length) as data_length from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, self.index_table_id)
-                self.verbose("execute_sql is {0}".format(sql))
-                index_table_sum_of_data_length = int(self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()[0]["data_length"])
-                self.verbose("index_table_sum_of_data_length is {0}".format(index_table_sum_of_data_length))
-                self.record.add_record("index_table_sum_of_data_length is {0}".format(index_table_sum_of_data_length))
+                # Magnification factor (shared across indexes)
+                if self.observer_version == "4.2.3.0" or StringUtils.compare_versions_greater(self.observer_version, "4.2.3.0"):
+                    magnification = 1.5
+                else:
+                    magnification = 5.5
+                self.record.add_record("magnification is {0}".format(magnification))
 
-                #
+                # Per-node: accumulate estimated size across all indexes (Issue #228)
                 new_estimated_size = []
                 for node_estimated_size in self.estimated_size:
-                    new_node_estimated_size = {"svr_ip": node_estimated_size["svr_ip"], "svr_port": node_estimated_size["svr_port"]}
-                    estimiated_index_size = int(index_table_sum_of_data_length / main_table_sum_of_data_length * int(node_estimated_size["estimated_data_size"]))
-                    self.record.add_record(
-                        "estimated_index_size without magnification {0}B as {1} from: index_table_sum_of_data_length({2})/main_table_sum_of_data_length({3}) * estimated_data_size({4})".format(
-                            estimiated_index_size, translate_byte(estimiated_index_size), index_table_sum_of_data_length, main_table_sum_of_data_length, int(node_estimated_size["estimated_data_size"])
-                        )
-                    )
-                    if self.observer_version == "4.2.3.0" or StringUtils.compare_versions_greater(self.observer_version, "4.2.3.0"):
-                        self.record.add_record("magnification is 1.5")
-                        target_server_estimated_size = int(estimiated_index_size * 15 / 10)
-                    else:
-                        self.record.add_record("magnification is 5.5")
-                        target_server_estimated_size = int(estimiated_index_size * 55 / 10)
-                    self.record.add_record("estimated_index_size with magnification is {0}B as {1}".format(target_server_estimated_size, translate_byte(target_server_estimated_size)))
-                    new_node_estimated_size["estimiated_index_size"] = target_server_estimated_size
+                    node_total_estimated = 0
+                    for idx_name in self.index_names:
+                        sql = "select table_id from oceanbase.__all_virtual_table_history where tenant_id = '{0}' and data_table_id = '{1}' and table_name like '%{2}%';".format(self.tenant_id, self.table_id, idx_name)
+                        self.verbose("execute_sql is {0}".format(sql))
+                        sql_tables_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
+                        if len(sql_tables_data) == 0:
+                            self.stdio.error("can not find index table id by index name: {0}. Please check the index name.".format(idx_name))
+                            return
+                        index_table_id = sql_tables_data[0]["table_id"]
+                        self.record.add_record("index {0} -> index_table_id is {1}".format(idx_name, index_table_id))
+
+                        sql = "select table_id, sum(data_length) as data_length from oceanbase.__all_virtual_column_history where tenant_id = '{0}' and table_id = '{1}';".format(self.tenant_id, index_table_id)
+                        index_table_sum_of_data_length = int(self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()[0]["data_length"])
+                        estimiated_index_size = int(index_table_sum_of_data_length / main_table_sum_of_data_length * int(node_estimated_size["estimated_data_size"]))
+                        target_server_estimated_size = int(estimiated_index_size * magnification)
+                        node_total_estimated += target_server_estimated_size
+                        self.record.add_record("index {0}: estimated_size {1}B as {2}".format(idx_name, target_server_estimated_size, translate_byte(target_server_estimated_size)))
+
+                    new_node_estimated_size = {
+                        "svr_ip": node_estimated_size["svr_ip"],
+                        "svr_port": node_estimated_size["svr_port"],
+                        "estimiated_index_size": node_total_estimated,
+                    }
                     new_estimated_size.append(new_node_estimated_size)
                     self.record.add_record(
-                        "On target_server_ip is {0}, target_server_port is {1}, estimiated_index_size is {2}B as {3}".format(
-                            node_estimated_size["svr_ip"], node_estimated_size["svr_port"], target_server_estimated_size, translate_byte(target_server_estimated_size)
+                        "On target_server {0}:{1}, total estimiated_index_size (all indexes) is {2}B as {3}".format(
+                            node_estimated_size["svr_ip"],
+                            node_estimated_size["svr_port"],
+                            node_total_estimated,
+                            translate_byte(node_total_estimated),
                         )
                     )
                 for estimated_size in new_estimated_size:
@@ -229,8 +234,8 @@ class DDlDiskFullScene(RcaScene):
     def get_scene_info(self):
         return {
             "name": "ddl_disk_full",
-            "info_en": "Insufficient disk space reported during DDL process. ",
-            "info_cn": 'DDL过程中报磁盘空间不足的问题',
+            "info_en": "Insufficient disk space reported during DDL process. Supports multiple indexes (e.g. index_name=idx1,idx2,idx3). Issue #228",
+            "info_cn": "DDL过程中报磁盘空间不足的问题。支持一条DDL中多个索引（如 index_name=idx1,idx2,idx3）。Issue #228",
         }
 
 
