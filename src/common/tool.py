@@ -1921,8 +1921,12 @@ class SQLTableExtractor:
 
     def __init__(self):
         # Match FROM, JOIN, INTO, or UPDATE followed by table ref. Use capturing group for keyword to filter ON DUPLICATE KEY UPDATE.
-        self.pattern_db_table = re.compile(r'\b(FROM|JOIN|INTO|UPDATE)\s+([^\s.,;]+)(?:\.([^\s.,;]+))?', re.IGNORECASE)
+        # Exclude () from identifiers to avoid subquery/derived table. See #1109.
+        ident = r'([^\s.,;()]+)(?:\.([^\s.,;()]+))?'
+        self.pattern_db_table = re.compile(r'\b(FROM|JOIN|INTO|UPDATE)\s+' + ident, re.IGNORECASE)
+        self.pattern_comma_table = re.compile(r',\s*' + ident, re.IGNORECASE)
         self.pattern_on_duplicate_key = re.compile(r'\bON\s+DUPLICATE\s+KEY\b', re.IGNORECASE)
+        self._skip_keywords = frozenset({'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'VALUES', 'AS', 'ON', 'USING', 'WHERE'})
 
     def parse(self, sql):
         """
@@ -1944,8 +1948,47 @@ class SQLTableExtractor:
                 continue
             db_name = first if second else None
             table_name = second if second else first
-            results.append((db_name, table_name))
+            if self._is_valid_table_ref(db_name, table_name):
+                results.append((db_name, table_name))
+
+        # Match comma-separated tables only within FROM clause. See #1109.
+        from_clause_end = re.compile(
+            r'\b(WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|UNION|EXCEPT|INTERSECT|;)\b',
+            re.IGNORECASE,
+        )
+        for m in self.pattern_comma_table.finditer(sql):
+            comma_pos = m.start()
+            # Check if this comma is in FROM clause: has FROM/JOIN before, no end-keyword between
+            before = sql[:comma_pos]
+            last_from = max(
+                (m2.start() for m2 in re.finditer(r'\b(FROM|JOIN)\b', before, re.I)),
+                default=-1,
+            )
+            if last_from < 0:
+                continue
+            between = sql[last_from:comma_pos]
+            if from_clause_end.search(between):
+                continue
+            first, second = m.group(1), m.group(2)
+            db_name = first if second else None
+            table_name = second if second else first
+            if self._is_valid_table_ref(db_name, table_name):
+                results.append((db_name, table_name))
+
         return results
+
+    def _is_valid_table_ref(self, db_name, table_name):
+        """Filter invalid refs (subquery fragments, keywords, string literals). See #1109."""
+        if not table_name or '(' in table_name or ')' in table_name:
+            return False
+        if db_name and ('(' in db_name or ')' in db_name):
+            return False
+        if table_name.upper() in self._skip_keywords:
+            return False
+        # Reject string literals (e.g. VALUES (1, 'test')) - identifiers cannot start with quote
+        if table_name.startswith("'") or table_name.startswith('"'):
+            return False
+        return True
 
 
 def check_new_obdiag_version(stdio):
