@@ -43,6 +43,7 @@ class GatherTableDumpHandler(SafeStdio):
         self.result_list = []
         self.store_dir = store_dir
         self.is_innner = is_inner
+        self.create_tables_sql_file = None
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -99,6 +100,7 @@ class GatherTableDumpHandler(SafeStdio):
             )
             self.tenant_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=user, password=password, timeout=100)
             self.file_name = "{0}/obdiag_tabledump_result_{1}.txt".format(self.store_dir, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
+            self.create_tables_sql_file = "{0}/create_tables_{1}.sql".format(self.store_dir, TimeUtils.timestamp_to_filename_time(self.gather_timestamp))
             return True
         except Exception as e:
             self.stdio.error(e)
@@ -134,7 +136,9 @@ class GatherTableDumpHandler(SafeStdio):
             if result is None or len(result) == 0:
                 self.stdio.verbose("excute sql: {0},  result is None".format(sql))
             else:
-                self.__report_simple(sql, result[0][1])
+                create_table_ddl = result[0][1]
+                self.__report_simple(sql, create_table_ddl)
+                self.__append_create_table_sql(create_table_ddl)
             return True
         except Exception as e:
             self.stdio.verbose("show create table error: {0}".format(e))
@@ -250,6 +254,28 @@ class GatherTableDumpHandler(SafeStdio):
         except Exception as e:
             self.stdio.error("report sql result to file: {0} failed, error:{1} ".format(self.file_name, e))
 
+    def __append_create_table_sql(self, create_table_ddl):
+        """
+        Append CREATE TABLE DDL to create_tables.sql for direct execution.
+        See: https://github.com/oceanbase/obdiag/issues/1010
+        """
+        try:
+            if not getattr(self, 'create_tables_sql_file', None):
+                return
+            ddl = create_table_ddl.strip()
+            if not ddl:
+                return
+            if not ddl.rstrip().endswith(';'):
+                ddl = ddl + ';'
+            write_header = not os.path.exists(self.create_tables_sql_file)
+            with open(self.create_tables_sql_file, 'a', encoding='utf-8') as f:
+                if write_header and self.database:
+                    f.write("-- Directly executable create table script\n")
+                    f.write("USE `{0}`;\n\n".format(self.database.replace("`", "``")))
+                f.write(ddl + '\n\n')
+        except Exception as e:
+            self.stdio.verbose("append create table sql failed: {0}".format(e))
+
     def __extract_string(self, s):
         if '@' in s:
             at_index = s.index('@')
@@ -277,7 +303,10 @@ class GatherTableDumpHandler(SafeStdio):
     def __print_result(self):
         self.end_time = time.time()
         elapsed_time = self.end_time - self.start_time
-        data = [["Status", "Result Details", "Time"], ["Completed", self.file_name, f"{elapsed_time:.2f} s"]]
+        result_files = [self.file_name]
+        if getattr(self, "create_tables_sql_file", None) and os.path.exists(self.create_tables_sql_file):
+            result_files.append(self.create_tables_sql_file)
+        data = [["Status", "Result Details", "Time"], ["Completed", "\n".join(result_files), f"{elapsed_time:.2f} s"]]
         table = tabulate(data, headers="firstrow", tablefmt="grid")
         self.stdio.print("\nAnalyze SQL Summary:")
         self.stdio.print(table)

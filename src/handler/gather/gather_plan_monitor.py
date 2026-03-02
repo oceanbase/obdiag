@@ -350,6 +350,39 @@ class GatherPlanMonitorHandler(object):
             self.stdio.warn(e)
             return None
 
+    def __write_create_tables_sql(self, table_info):
+        """
+        Extract CREATE TABLE DDL from tabledump result and write to create_tables.sql
+        for direct execution. See: https://github.com/oceanbase/obdiag/issues/1010
+        """
+        try:
+            if not table_info or "CREATE TABLE" not in table_info:
+                return
+            out_dir = os.path.dirname(self.report_file_path)
+            create_tables_file = os.path.join(
+                out_dir,
+                "create_tables_{0}.sql".format(TimeUtils.timestamp_to_filename_time(self.gather_timestamp)),
+            )
+            ddls = []
+            for segment in table_info.split("obclient >")[1:]:
+                idx = segment.find("CREATE TABLE")
+                if idx >= 0:
+                    ddl = segment[idx:].strip()
+                    if ddl and not ddl.rstrip().endswith(";"):
+                        ddl = ddl + ";"
+                    if ddl:
+                        ddls.append(ddl)
+            if not ddls:
+                return
+            default_db = self.db_conn.get("database") if self.db_conn else None
+            with open(create_tables_file, "w", encoding="utf-8") as f:
+                f.write("-- Directly executable create table script (from plan-monitor)\n")
+                if default_db:
+                    f.write("USE `{0}`;\n\n".format(default_db.replace("`", "``")))
+                f.write("\n\n".join(ddls) + "\n\n")
+        except Exception as e:
+            self.stdio.verbose("write create_tables.sql failed: {0}".format(e))
+
     def _deduplicate_parse_tables(self, parse_tables, default_db=None):
         """
         Deduplicate parse_tables by (db_name, table_name). Keep first occurrence.
@@ -401,6 +434,7 @@ class GatherPlanMonitorHandler(object):
             table_info = self.get_table_info(table_info_file)
             if table_info:
                 schemas = schemas + "<pre style='margin:20px;border:1px solid gray;'>%s</pre>" % table_info
+                self.__write_create_tables_sql(table_info)
             if len(table_info_file) > 25:
                 FileUtil.rm(table_info_file)
             cursor = self.sys_connector.execute_sql_return_cursor("show variables like '%parallel%'")
