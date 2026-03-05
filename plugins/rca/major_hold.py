@@ -47,6 +47,7 @@ class MajorHoldScene(RcaScene):
     - https://open.oceanbase.com/blog/14847857236
     - https://www.oceanbase.com/knowledge-base/oceanbase-database-1000000001843060
     - https://github.com/oceanbase/obdiag/issues/1107
+    - https://ask.oceanbase.com/t/topic/35618367/7 (Issue #727)
     """
 
     # Configurable thresholds
@@ -433,6 +434,13 @@ class MajorHoldScene(RcaScene):
             self._check_memory_throttling(err_tenant_id, tenant_record)
         except Exception as e:
             tenant_record.add_record("Failed to check memory throttling: {0}".format(e))
+
+        # 13. Check column group schema issue (异步行转列, Issue #727)
+        try:
+            tenant_record.add_record("Step 13: Checking column group schema issue (heterogenous row-to-column)")
+            self._check_column_group_schema_issue(err_tenant_id, tenant_record)
+        except Exception as e:
+            tenant_record.add_record("Failed to check column group schema: {0}".format(e))
 
         tenant_record.add_suggest("Please review diagnostic files in {0} for detailed analysis".format(self.local_path))
         self.Result.records.append(tenant_record)
@@ -1379,6 +1387,111 @@ class MajorHoldScene(RcaScene):
             tenant_record.add_record("Error checking throttling-related timeouts: {0}".format(e))
             self.stdio.warn("Error checking throttling-related timeouts: {0}".format(e))
 
+    def _check_column_group_schema_issue(self, tenant_id, tenant_record):
+        """
+        Check column group schema issue causing merge to hang (异步行转列).
+        Reference: https://ask.oceanbase.com/t/topic/35618367/7, Issue #727
+
+        Scenario: After heterogenous row-to-column DDL (alter table add column group delayed),
+        __all_column_group_history and __all_column_group_mapping_history may have old all_cg
+        data that causes storage schema read error, leading to merge stuck.
+        """
+        try:
+            # Step 1: Check for long-running SSTABLE_MAJOR_MERGE tasks
+            # __all_virtual_sys_task_status may exist in 4.3+ for column store
+            sql_task = """
+                SELECT tenant_id, task_type, task_id, tablet_id, svr_ip, svr_port,
+                       create_time, start_time, status
+                FROM oceanbase.__all_virtual_sys_task_status
+                WHERE tenant_id = '{0}' AND task_type = 'SSTABLE_MAJOR_MERGE'
+                ORDER BY create_time DESC
+                LIMIT 20;
+            """.format(
+                tenant_id
+            )
+            task_data = self._execute_sql_safe(sql_task, "get sys task status")
+
+            if not task_data:
+                tenant_record.add_record("No SSTABLE_MAJOR_MERGE tasks found (view may not exist in this version)")
+                return
+
+            self._save_to_file("sys_task_sstable_major_merge.json", task_data, tenant_id)
+            tenant_record.add_record("Found {0} SSTABLE_MAJOR_MERGE tasks".format(len(task_data)))
+
+            # Get unique table_ids from tasks (tablet_id -> table_id mapping may need __all_table)
+            tablet_ids = [str(t.get("tablet_id") or t.get("TABLET_ID", "")) for t in task_data if t.get("tablet_id") or t.get("TABLET_ID")]
+            tablet_ids = list(set([tid for tid in tablet_ids if tid]))
+
+            if not tablet_ids:
+                return
+
+            # Step 2: Get table_id for each tablet from DBA_OB_TABLE_LOCATIONS
+            sql_table = """
+                SELECT table_id, tablet_id, table_name
+                FROM oceanbase.DBA_OB_TABLE_LOCATIONS
+                WHERE tenant_id = '{0}' AND tablet_id IN ({1})
+                LIMIT 50;
+            """.format(
+                tenant_id,
+                ",".join(["'{0}'".format(tid) for tid in tablet_ids[:20]]),
+            )
+            table_loc_data = self._execute_sql_safe(sql_table, "get tablet table mapping")
+
+            if table_loc_data:
+                self._save_to_file("tablet_table_mapping.json", table_loc_data, tenant_id)
+                table_ids = [str(t.get("table_id") or t.get("TABLE_ID", "")) for t in table_loc_data if t.get("table_id") or t.get("TABLE_ID")]
+                table_ids = list(set([tid for tid in table_ids if tid]))
+            else:
+                table_ids = []
+
+            # Step 3: Check __all_virtual_column_group_history for __co_all (old all_cg)
+            # These views may exist in 4.3+ with column store
+            for table_id in table_ids[:10]:
+                if not table_id:
+                    continue
+                try:
+                    sql_cg_history = """
+                        SELECT * FROM oceanbase.__all_virtual_column_group_history
+                        WHERE table_id = {0} AND tenant_id = {1}
+                          AND (COLUMN_GROUP_NAME = '__co_all' OR column_group_name = '__co_all')
+                          AND (IS_DELETED = 0 OR is_deleted = 0)
+                        LIMIT 20;
+                    """.format(
+                        table_id, tenant_id
+                    )
+                    cg_history = self._execute_sql_safe(sql_cg_history, "get column group history")
+
+                    if cg_history:
+                        self._save_to_file("column_group_history_all_cg_{0}.json".format(table_id), cg_history, tenant_id)
+                        tenant_record.add_record("WARNING: Found old __co_all (all column group) records for table_id={0}. " "This may indicate heterogenous row-to-column schema issue.".format(table_id))
+                        for row in cg_history[:3]:
+                            schema_ver = row.get("schema_version") or row.get("SCHEMA_VERSION", "N/A")
+                            cg_name = row.get("column_group_name") or row.get("COLUMN_GROUP_NAME", "N/A")
+                            tenant_record.add_record("  schema_version={0}, column_group_name={1}".format(schema_ver, cg_name))
+
+                        tenant_record.add_suggest(
+                            "Column group schema issue detected (异步行转列). Reference: https://ask.oceanbase.com/t/topic/35618367/7\n"
+                            "Root cause: Old all_cg data in __all_column_group_history/__all_column_group_mapping_history "
+                            "causes storage schema read error after heterogenous row-to-column DDL.\n\n"
+                            "Resolution (requires sys tenant):\n"
+                            "1. alter system change tenant tenant_id = {0};\n"
+                            "2. Find schema_version and column_group_id from __all_virtual_column_group_history "
+                            "where COLUMN_GROUP_NAME='__co_all' and is_deleted=0;\n"
+                            "3. UPDATE __all_column_group_history SET IS_DELETED=1 WHERE ...;\n"
+                            "4. UPDATE __all_column_group_mapping_history SET IS_DELETED=1 WHERE ...;\n"
+                            "5. alter system flush kvcache cache='schema_cache';\n"
+                            "6. Create new table, migrate data, drop old table.\n\n"
+                            "Before fix: For row store tables with all columns, use offline DDL to modify column group "
+                            "instead of heterogenous row-to-column (alter table add column group delayed).".format(tenant_id)
+                        )
+                        break
+                except Exception as e:
+                    self.verbose("Column group history check for table {0}: {1}".format(table_id, e))
+
+        except Exception as e:
+            tenant_record.add_record("Error checking column group schema: {0}".format(e))
+            self.stdio.warn("Error checking column group schema: {0}".format(e))
+
     def get_info__all_virtual_compaction_diagnose_info(self, tenant_record):
         """Legacy method for backward compatibility"""
         try:
@@ -1396,8 +1509,8 @@ class MajorHoldScene(RcaScene):
     def get_scene_info(self):
         return {
             "name": "major_hold",
-            "info_en": "Root cause analysis for major compaction hold issues. Checks for errors, suspensions, long-running tasks, duplicate index names, DDL task status, memory throttling issues (Issue #1107), and provides detailed diagnostics.",
-            "info_cn": "针对合并卡住场景的根因分析。检查合并错误、暂停状态、长时间运行的任务、同名索引冲突、DDL任务状态、内存限速问题（Issue #1107），并提供详细的诊断信息。",
+            "info_en": "Root cause analysis for major compaction hold issues. Checks for errors, suspensions, long-running tasks, duplicate index names, DDL task status, memory throttling (Issue #1107), column group schema issue from heterogenous row-to-column (Issue #727), and provides detailed diagnostics.",
+            "info_cn": "针对合并卡住场景的根因分析。检查合并错误、暂停状态、长时间运行的任务、同名索引冲突、DDL任务状态、内存限速问题（Issue #1107）、异步行转列导致的 column group schema 问题（Issue #727），并提供详细的诊断信息。",
         }
 
 
