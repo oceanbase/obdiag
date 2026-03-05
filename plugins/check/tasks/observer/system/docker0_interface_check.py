@@ -98,8 +98,7 @@ class Docker0InterfaceCheckTask(TaskBase):
     def get_task_info(self):
         return {
             "name": "docker0_interface_check",
-            "info": "Check for docker0-like network interface. When deploying obproxy via OCP, "
-            "docker0 may cause the displayed IP to be wrong. Remove docker0 if unused.",
+            "info": "Check for docker0-like network interface. When deploying obproxy via OCP, " "docker0 may cause the displayed IP to be wrong. Remove docker0 if unused.",
             "supported_os": ["linux"],
             "issue_link": "https://github.com/oceanbase/obdiag/issues/1198",
         }
