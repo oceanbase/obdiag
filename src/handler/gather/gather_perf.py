@@ -358,13 +358,27 @@ class GatherPerfHandler(BaseShellHandler):
             cmd = "cd {gather_path} && perf record -o sample.data -e cycles -c {count_option} -p {pid} -g -- sleep 20".format(gather_path=gather_path, count_option=self.count_option, pid=pid_observer)
             self.stdio.verbose("gather perf sample, run cmd = [{0}]".format(cmd))
             ssh_client.exec_cmd(cmd)
+            # Verify sample.data exists and has content before running perf script
+            sample_data_path = os.path.join(gather_path, 'sample.data')
+            try:
+                sample_size = get_file_size(ssh_client, sample_data_path, self.stdio)
+                sample_size_int = int(sample_size) if sample_size else 0
+            except (ValueError, TypeError):
+                sample_size_int = 0
+            if sample_size_int == 0:
+                self.stdio.error(
+                    "perf record produced empty sample.data on server [{0}]. "
+                    "Possible causes: 1) Permission denied (run as root or set kernel.perf_event_paranoid=-1); "
+                    "2) count too high for 20s (try --count 1000000)".format(ssh_client.get_name())
+                )
+                raise Exception("perf record produced empty output")
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf sample data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
             self.is_ready(ssh_client, os.path.join(gather_path, 'sample.viz'))
             self.stdio.stop_loading('gather perf sample')
-        except:
-            self.stdio.error("generate perf sample data on server [{0}] failed".format(ssh_client.get_name()))
+        except Exception as e:
+            self.stdio.error("generate perf sample data on server [{0}] failed: {1}".format(ssh_client.get_name(), e))
 
     def __perf_checker(self, ssh_client):
         cmd = "command -v perf"
@@ -383,14 +397,25 @@ class GatherPerfHandler(BaseShellHandler):
             perf_cmd = "cd {gather_path} && perf record -o flame.data -F 99 -p {pid} -g -- sleep 20".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather perf, run cmd = [{0}]".format(perf_cmd))
             ssh_client.exec_cmd(perf_cmd)
-
+            flame_data_path = os.path.join(gather_path, 'flame.data')
+            try:
+                flame_size = get_file_size(ssh_client, flame_data_path, self.stdio)
+                flame_size_int = int(flame_size) if flame_size else 0
+            except (ValueError, TypeError):
+                flame_size_int = 0
+            if flame_size_int == 0:
+                self.stdio.error(
+                    "perf record produced empty flame.data on server [{0}]. "
+                    "Possible causes: Permission denied (run as root or set kernel.perf_event_paranoid=-1)".format(ssh_client.get_name())
+                )
+                raise Exception("perf record produced empty output")
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
             ssh_client.exec_cmd(generate_data)
             self.is_ready(ssh_client, os.path.join(gather_path, 'flame.viz'))
             self.stdio.stop_loading('gather perf flame')
-        except:
-            self.stdio.error("generate perf data on server [{0}] failed".format(ssh_client.get_name()))
+        except Exception as e:
+            self.stdio.error("generate perf data on server [{0}] failed: {1}".format(ssh_client.get_name(), e))
 
     def __gather_top(self, ssh_client, gather_path, pid_observer):
         try:
@@ -406,7 +431,7 @@ class GatherPerfHandler(BaseShellHandler):
             self.stdio.verbose("check whether the file {remote_path} is empty".format(remote_path=remote_path))
             is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
             if is_empty_file_res:
-                self.stdio.warn("The server {host_ip} directory {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
+                self.stdio.warn("The server {host_ip} file {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
                 raise
         except Exception as e:
             raise e
