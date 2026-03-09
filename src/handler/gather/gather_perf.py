@@ -367,9 +367,7 @@ class GatherPerfHandler(BaseShellHandler):
                 sample_size_int = 0
             if sample_size_int == 0:
                 self.stdio.error(
-                    "perf record produced empty sample.data on server [{0}]. "
-                    "Possible causes: 1) Permission denied (run as root or set kernel.perf_event_paranoid=-1); "
-                    "2) count too high for 20s (try --count 1000000)".format(ssh_client.get_name())
+                    "perf record produced empty sample.data on server [{0}]. " "Possible causes: 1) Permission denied (run as root or set kernel.perf_event_paranoid=-1); " "2) count too high for 20s (try --count 1000000)".format(ssh_client.get_name())
                 )
                 raise Exception("perf record produced empty output")
             generate_data = "cd {gather_path} && perf script -i sample.data -F ip,sym -f > sample.viz".format(gather_path=gather_path)
@@ -404,10 +402,7 @@ class GatherPerfHandler(BaseShellHandler):
             except (ValueError, TypeError):
                 flame_size_int = 0
             if flame_size_int == 0:
-                self.stdio.error(
-                    "perf record produced empty flame.data on server [{0}]. "
-                    "Possible causes: Permission denied (run as root or set kernel.perf_event_paranoid=-1)".format(ssh_client.get_name())
-                )
+                self.stdio.error("perf record produced empty flame.data on server [{0}]. " "Possible causes: Permission denied (run as root or set kernel.perf_event_paranoid=-1)".format(ssh_client.get_name()))
                 raise Exception("perf record produced empty output")
             generate_data = "cd {gather_path} && perf script -i flame.data > flame.viz".format(gather_path=gather_path)
             self.stdio.verbose("generate perf data, run cmd = [{0}]".format(generate_data))
