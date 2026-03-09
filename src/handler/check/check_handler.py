@@ -175,7 +175,11 @@ class CheckHandler:
         """
         check_config = self.context.inner_config.get("check", {})
         ssh_config = check_config.get("ssh_manager", {})
-        max_per_node = ssh_config.get("max_connections_per_node", 5)
+        # Ensure at least max_workers connections per node to avoid pool exhaustion.
+        # Use max_workers * 2 for headroom when tasks hold multiple node connections.
+        configured = ssh_config.get("max_connections_per_node", 5)
+        min_required = self.max_workers * 2
+        max_per_node = max(configured, min_required)
         idle_timeout = ssh_config.get("idle_timeout", 300)
         ssh_manager = SSHConnectionManager(
             self.context,
@@ -183,6 +187,7 @@ class CheckHandler:
             idle_timeout=idle_timeout,
         )
         self.context.set_variable("check_ssh_manager", ssh_manager)
+        self.context.set_variable("check_target_type", self.check_target_type)
         self.stdio.verbose("SSHConnectionManager init: max_per_node={0}, idle_timeout={1}".format(max_per_node, idle_timeout))
 
     def handle(self):

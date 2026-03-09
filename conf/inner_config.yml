@@ -25,7 +25,7 @@ check:
   work_path: "~/.obdiag/check"
   max_workers: 12
   ssh_manager:
-    max_connections_per_node: 5
+    max_connections_per_node: 12
     idle_timeout: 300
   report:
     report_path: "./obdiag_check_report/"
