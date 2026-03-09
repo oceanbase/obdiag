@@ -94,7 +94,7 @@ class SshClient(SafeStdio):
             raise Exception("init ssh client error: {}".format(e))
 
     def _exec_cmd_with_timeout(self, cmd, timeout=None):
-        """Execute command with timeout detection"""
+        """Execute command with timeout detection. Retries once on connection failure."""
         if timeout is None:
             timeout = self.cmd_exec_timeout
 
@@ -117,6 +117,21 @@ class SshClient(SafeStdio):
             if self.stdio is not None:
                 self.stdio.error("Command execution timeout after {} seconds: {}".format(timeout, cmd))
             raise TimeoutException("node: {} Command execution timeout after {} seconds: {}".format(self.get_name(), timeout, cmd))
+
+        if exception[0] is not None:
+            err = exception[0]
+            # Retry once on connection failure (e.g. transport closed, open_session on None)
+            if "open_session" in str(err) or "NoneType" in str(type(err).__name__):
+                if self.stdio:
+                    self.stdio.verbose("SSH connection failed, reconnecting and retrying: {}".format(err))
+                try:
+                    self.ssh_reconnect()
+                    result[0] = self.client.exec_cmd(cmd)
+                    exception[0] = None
+                except Exception as retry_err:
+                    raise retry_err
+            else:
+                raise err
 
         if exception[0] is not None:
             raise exception[0]
