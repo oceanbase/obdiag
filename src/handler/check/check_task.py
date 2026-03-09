@@ -153,17 +153,18 @@ class TaskBase:
             self._using_pool_connection = False
 
         # get obproxy version (only once, reuse if available)
-        if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
-            self.stdio.verbose("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
-        else:
-            try:
-                self.obproxy_version = get_obproxy_version(self.context)
-            except Exception as e:
-                self.stdio.error("get obproxy_version fail: {0}".format(e))
-            try:
-                self.obproxy_full_version = get_obproxy_full_version(self.context)
-            except Exception as e:
-                self.stdio.error("get obproxy_full_version fail: {0}".format(e))
+        if check_target_type == "obproxy":
+            if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
+                self.stdio.verbose("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
+            else:
+                try:
+                    self.obproxy_version = get_obproxy_version(self.context)
+                except Exception as e:
+                    self.stdio.error("get obproxy_version fail: {0}".format(e))
+                try:
+                    self.obproxy_full_version = get_obproxy_full_version(self.context)
+                except Exception as e:
+                    self.stdio.error("get obproxy_full_version fail: {0}".format(e))
 
     def cleanup(self):
         """
