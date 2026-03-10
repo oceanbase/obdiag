@@ -422,17 +422,35 @@ def get_observer_version_by_sql(context, ob_cluster):
 def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
     """
     get observer pid
-    :return:
+    :return: list of observer pids (only valid integers for existing processes)
     """
     pid_file_path = "{ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
+
+    def _valid_pids(pid_list):
+        """Filter to valid positive integers only."""
+        return [p for p in pid_list if p.isdigit() and int(p) > 0]
+
+    def _verify_processes_exist(pid_list):
+        """Return only pids whose processes actually exist."""
+        if not pid_list:
+            return []
+        ps_cmd = "ps -p {} -o pid= 2>/dev/null".format(",".join(pid_list))
+        try:
+            result = ssh_client.exec_cmd(ps_cmd)
+            return [p.strip() for p in result.splitlines() if p and p.strip().isdigit()]
+        except Exception:
+            return []
 
     try:
         cmd = "cat {}".format(pid_file_path)
         pids = ssh_client.exec_cmd(cmd)
-        pid_list = pids.split()
+        pid_list = _valid_pids(pids.split())
         stdio.verbose("Get observer pid from file, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
         if pid_list:
-            return pid_list
+            existing = _verify_processes_exist(pid_list)
+            if existing:
+                return existing
+            stdio.verbose("observer pid(s) from file do not exist, falling back to ps")
     except Exception as e:
         stdio.exception(f"Failed to read observer pid file {pid_file_path}, error: {e}")
 
@@ -442,12 +460,13 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
         processes = result.splitlines()
 
         if processes:
-            pid_list = [process.split()[1] for process in processes]
-            stdio.verbose(f"Get observer pid using ps, run cmd = [{cmd}], result:{pid_list}")
-            return pid_list
-        else:
-            stdio.verbose("No observer process found at the specified path.")
-            return []
+            pid_list = [process.split()[1] for process in processes if len(process.split()) >= 2]
+            pid_list = _valid_pids(pid_list)
+            if pid_list:
+                stdio.verbose(f"Get observer pid using ps, run cmd = [{cmd}], result:{pid_list}")
+                return pid_list
+        stdio.verbose("No observer process found at the specified path.")
+        return []
     except Exception as e:
         stdio.exception(f"Failed to execute ps command to find observer pid, error: {e}")
         return []
@@ -455,25 +474,46 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
 
 def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
     """
-    get obproxy pid
+    get obproxy pid (excludes obproxyd)
+    Pid files in run dir: obproxy-{ip}-{port}.pid (obproxy), obproxyd-{ip}-{port}.pid (obproxyd, excluded)
     :param ssh_client: ssh client
     :param obproxy_install_dir: obproxy install directory (home_path)
     :param stdio: stdio for logging
-    :return: list of obproxy pids
+    :return: list of obproxy pids (only valid integers for existing processes)
     """
-    pid_file_path = "{obproxy_install_dir}/run/obproxy.pid".format(obproxy_install_dir=obproxy_install_dir)
+    run_dir = "{obproxy_install_dir}/run".format(obproxy_install_dir=obproxy_install_dir)
 
+    def _valid_pids(pid_list):
+        """Filter to valid positive integers only."""
+        return [p for p in pid_list if p.isdigit() and int(p) > 0]
+
+    def _verify_processes_exist(pid_list):
+        """Return only pids whose processes actually exist."""
+        if not pid_list:
+            return []
+        ps_cmd = "ps -p {} -o pid= 2>/dev/null".format(",".join(pid_list))
+        try:
+            result = ssh_client.exec_cmd(ps_cmd)
+            return [p.strip() for p in result.splitlines() if p and p.strip().isdigit()]
+        except Exception:
+            return []
+
+    # Read obproxy-*.pid only (excludes obproxyd-*.pid)
     try:
-        cmd = "cat {}".format(pid_file_path)
+        cmd = "find {run_dir} -maxdepth 1 -name 'obproxy-*.pid' -exec cat {{}} \\; 2>/dev/null".format(run_dir=run_dir)
         pids = ssh_client.exec_cmd(cmd)
-        pid_list = pids.split()
+        pid_list = _valid_pids(pids.split()) if pids else []
         if stdio:
-            stdio.verbose("Get obproxy pid from file, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
+            stdio.verbose("Get obproxy pid from obproxy-*.pid files, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
         if pid_list:
-            return pid_list
+            existing = _verify_processes_exist(pid_list)
+            if existing:
+                return existing
+            if stdio:
+                stdio.verbose("obproxy pid(s) from file do not exist, falling back to ps")
     except Exception as e:
         if stdio:
-            stdio.verbose("Failed to read obproxy pid file {0}, error: {1}".format(pid_file_path, e))
+            stdio.verbose("Failed to read obproxy pid files in {0}, error: {1}".format(run_dir, e))
 
     try:
         cmd = "ps -ef | grep '{}/bin/obproxy' | grep -v grep".format(obproxy_install_dir)
@@ -481,14 +521,15 @@ def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
         processes = result.splitlines()
 
         if processes:
-            pid_list = [process.split()[1] for process in processes]
-            if stdio:
-                stdio.verbose("Get obproxy pid using ps, run cmd = [{0}], result:{1}".format(cmd, pid_list))
-            return pid_list
-        else:
-            if stdio:
-                stdio.verbose("No obproxy process found at the specified path.")
-            return []
+            pid_list = [process.split()[1] for process in processes if len(process.split()) >= 2]
+            pid_list = _valid_pids(pid_list)
+            if pid_list:
+                if stdio:
+                    stdio.verbose("Get obproxy pid using ps, run cmd = [{0}], result:{1}".format(cmd, pid_list))
+                return pid_list
+        if stdio:
+            stdio.verbose("No obproxy process found at the specified path.")
+        return []
     except Exception as e:
         if stdio:
             stdio.exception("Failed to execute ps command to find obproxy pid, error: {0}".format(e))

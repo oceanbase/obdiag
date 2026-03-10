@@ -29,6 +29,23 @@ def _node_key(node):
     )
 
 
+def _is_connection_alive(ssher):
+    """Check if SSH connection is still usable (transport active)."""
+    if ssher is None:
+        return False
+    try:
+        client = getattr(ssher, "client", None)
+        if client is None:
+            return False
+        ssh_fd = getattr(client, "_ssh_fd", None)
+        if ssh_fd is None:
+            return True  # LocalClient has no _ssh_fd, assume alive
+        transport = ssh_fd.get_transport()
+        return transport is not None and transport.is_active()
+    except Exception:
+        return False
+
+
 class SSHConnectionManager:
     """
     Connection pool for SSH clients. Multiple tasks share connections per node.
@@ -78,11 +95,18 @@ class SSHConnectionManager:
             pool = self._pools[key]
 
         # Try to get from pool without blocking
-        try:
-            ssher = pool["queue"].get_nowait()
-            return ssher
-        except queue.Empty:
-            pass
+        while True:
+            try:
+                ssher = pool["queue"].get_nowait()
+                if _is_connection_alive(ssher):
+                    return ssher
+                # Connection dead, discard and decrement count
+                with pool["lock"]:
+                    pool["count"] = max(0, pool["count"] - 1)
+                if self.stdio:
+                    self.stdio.verbose("Discarded dead SSH connection for {0}".format(key[0]))
+            except queue.Empty:
+                break
 
         # Need to create new or wait
         with pool["lock"]:
@@ -101,7 +125,24 @@ class SSHConnectionManager:
         # Wait for released connection
         try:
             ssher = pool["queue"].get(timeout=60)
-            return ssher
+            if _is_connection_alive(ssher):
+                return ssher
+            # Connection dead, discard and try to create new
+            with pool["lock"]:
+                pool["count"] = max(0, pool["count"] - 1)
+                if self.stdio:
+                    self.stdio.verbose("Discarded dead SSH connection for {0}".format(key[0]))
+                if pool["count"] < self.max_per_node:
+                    try:
+                        ssher = SshClient(self.context, node)
+                        pool["count"] += 1
+                        if self.stdio:
+                            self.stdio.verbose("SSH connection created for {0} (pool {1}/{2})".format(key[0], pool["count"], self.max_per_node))
+                        return ssher
+                    except Exception as e:
+                        if self.stdio:
+                            self.stdio.warn("SSH connection failed for {0}: {1}".format(key[0], e))
+            return None
         except queue.Empty:
             if self.stdio:
                 self.stdio.warn("SSH connection timeout waiting for {0}".format(key[0]))
@@ -110,11 +151,22 @@ class SSHConnectionManager:
     def release_connection(self, ssher):
         """
         Return SSH connection to the pool. Does not close the connection.
+        Dead connections are discarded instead of being returned.
 
         Args:
             ssher: SshClient instance from get_connection
         """
         if ssher is None:
+            return
+        if not _is_connection_alive(ssher):
+            node = getattr(ssher, "node", None)
+            if node:
+                key = _node_key(node)
+                if key in self._pools:
+                    with self._pools[key]["lock"]:
+                        self._pools[key]["count"] = max(0, self._pools[key]["count"] - 1)
+                    if self.stdio:
+                        self.stdio.verbose("Discarded dead SSH connection on release for {0}".format(key[0]))
             return
         node = getattr(ssher, "node", None)
         if node is None:
