@@ -17,7 +17,7 @@ jobs:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.12.1
   build-rpm:
-    name: Run on CentOS 7
+    name: Run on CentOS 8
     needs: cancel
     runs-on: ubuntu-latest
     container:
