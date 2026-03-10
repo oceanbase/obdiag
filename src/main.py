@@ -27,6 +27,9 @@ if getattr(sys, 'frozen', False):
     if os.path.exists(_site_packages) and _site_packages not in sys.path:
         sys.path.insert(0, _site_packages)
 
+# Ensure charset_normalizer is loaded before requests (avoids RequestsDependencyWarning)
+import charset_normalizer  # noqa: F401
+
 from src.common.diag_cmd import MainCommand
 from src.common.stdio import IO
 
