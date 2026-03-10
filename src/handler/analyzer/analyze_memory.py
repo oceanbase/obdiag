@@ -307,7 +307,7 @@ class AnalyzeMemoryHandler(object):
                             '租户-{0} ctx hold内存曲线图'.format(tenant_id),
                             '租户-{0} top10 mod hold内存曲线图'.format(tenant_id),
                         ),
-                        vertical_spacing=0.08,
+                        vertical_spacing=0.15,
                     )
                     fig_combined.add_trace(go.Scatter(x=x_lines, y=tenant_hold_lines, mode='lines'), row=1, col=1)
                     for ctx_name in ctx_memory_info_dict:
@@ -335,7 +335,11 @@ class AnalyzeMemoryHandler(object):
                     fig_combined.update_yaxes(tickformat='.0f', row=1, col=1)
                     fig_combined.update_yaxes(tickformat='.0f', row=2, col=1)
                     fig_combined.update_yaxes(tickformat='.0f', row=3, col=1)
-                    fig_combined.update_layout(height=900, showlegend=True)
+                    fig_combined.update_layout(
+                        height=900,
+                        showlegend=True,
+                        margin=dict(t=60, b=80, l=60, r=60),
+                    )
                     html_fig_combined = pio.to_html(fig_combined, full_html=False)
                     html_combined = '''
                             <html>
@@ -478,7 +482,12 @@ class AnalyzeMemoryHandler(object):
                 )
                 with open('{0}/index.html'.format(local_store_dir), 'w') as f:
                     f.write(index_html)
-                fig.update_layout(title='TOP 15租户hold内存曲线图', xaxis_title='时间', yaxis_title='值(MB)')
+                fig.update_layout(
+                    title='TOP 15租户hold内存曲线图',
+                    xaxis_title='时间',
+                    yaxis_title='值(MB)',
+                    margin=dict(t=80, b=80, l=60, r=60),
+                )
                 fig.update_xaxes(tickvals=x_vals, ticktext=[str(x) for x in x_vals])
                 fig.update_yaxes(tickformat='.0f')
                 html_fig = pio.to_html(fig, full_html=False)
