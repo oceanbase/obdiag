@@ -98,7 +98,7 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.7.0|2025.08| 2025.09.09 |<ul><li> Support pip install obdiag-mcp </li><li> Check Scenario Expansion </li></ul>|
 |3.7.1|2025.09| 2025.10.22 |<ul><li> Check Scenario Expansion </li></ul>|
 |3.7.2|2025.10| 2025.11.27 |<ul><li> Check Scenario Expansion </li></ul>|
-|4.0.0|2025.12| 2026.01.07 |<ul><li> Add `obdiag tool ai_assistant` command, AI intelligent diagnostic assistant (BETA)</li><li> Add `obdiag tool io_performance` command, disk IO performance detection tool</li><li> Add `obdiag tool config_check` command, configuration validation tool</li><li> Add `obdiag display scene run --scene=observer.compaction` command, compaction status display scene</li><li> Root Cause Analysis Scenario Expansion </li></ul>|
+|4.0.0|2025.12| 2026.01.07 |<ul><li> Add `obdiag agent` command, intelligent diagnostic agent (BETA)</li><li> Add `obdiag tool io_performance` command, disk IO performance detection tool</li><li> Add `obdiag tool config_check` command, configuration validation tool</li><li> Add `obdiag display scene run --scene=observer.compaction` command, compaction status display scene</li><li> Root Cause Analysis Scenario Expansion </li></ul>|
 
 # Support
 

@@ -1,4 +1,4 @@
-# obdiag AI Assistant Configuration Example
+# obdiag agent Configuration Example
 # 
 # Usage: Copy this file to ~/.obdiag/ai.yml and modify as needed
 #   cp conf/ai.yml.example ~/.obdiag/ai.yml
@@ -32,8 +32,8 @@ llm:
   # Maximum tokens in response
   max_tokens: 2000
   
-  # System prompt for the AI assistant (optional)
-  # Defines the AI's role and behavior
+  # System prompt for the agent (optional)
+  # Defines the agent's role and behavior
   # If left empty, uses the default built-in system prompt
   # You can customize this to change how the AI responds
   system_prompt: ""
@@ -77,4 +77,4 @@ ui:
   clear_screen: true
   
   # Prompt string displayed before user input
-  prompt: "obdiag AI> "
+  prompt: "obdiag agent> "

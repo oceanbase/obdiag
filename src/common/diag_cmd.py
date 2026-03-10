@@ -1314,20 +1314,27 @@ class ObdiagToolIoPerformanceCommand(ObdiagOriginCommand):
         return obdiag.tool_io_performance(self.opts)
 
 
-class ObdiagToolAiAssistantCommand(ObdiagOriginCommand):
+class ObdiagAgentCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagToolAiAssistantCommand, self).__init__('ai_assistant', 'obdiag tool ai_assistant. Interactive AI assistant for obdiag diagnostic (BETA)')
+        super(ObdiagAgentCommand, self).__init__('agent', 'obdiag agent. Interactive diagnostic agent for obdiag (BETA)')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('-m', '--message', type='string', help='single-shot message to send to the agent', default=None)
 
     def init(self, cmd, args):
-        super(ObdiagToolAiAssistantCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        super(ObdiagAgentCommand, self).init(cmd, args)
+        self.parser.set_usage(
+            '%s [options]\n\n'
+            '  Interactive mode: obdiag agent\n'
+            '  Single-shot mode: obdiag agent -m "帮我巡检一下集群"\n'
+            '  Target cluster by short name: obdiag agent -c obdiag_test  (uses ~/.obdiag/obdiag_test.yml)'
+            % self.prev_cmd
+        )
         return self
 
     def _do_command(self, obdiag):
-        return obdiag.tool_ai_assistant(self.opts)
+        return obdiag.agent(self.opts)
 
 
 class ObdiagToolConfigCheckCommand(ObdiagOriginCommand):
@@ -1429,7 +1436,6 @@ class ToolCommand(MajorCommand):
         super(ToolCommand, self).__init__('tool', 'obdiag tool')
         self.register_command(ObdiagToolCryptoConfigCommand())
         self.register_command(ObdiagToolIoPerformanceCommand())
-        self.register_command(ObdiagToolAiAssistantCommand())
         self.register_command(ObdiagToolConfigCheckCommand())
 
 
@@ -1445,6 +1451,7 @@ class MainCommand(MajorCommand):
         self.register_command(ObdiagRCACommand())
         self.register_command(ObdiagConfigCommand())
         self.register_command(ObdiagUpdateCommand())
+        self.register_command(ObdiagAgentCommand())
         self.register_command(ToolCommand())
         self.parser.version = get_obdiag_version()
         self.parser._add_version_option()

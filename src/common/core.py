@@ -617,14 +617,14 @@ class ObdiagHome(object):
             handler = CryptoConfigHandler(self.context)
             return handler.handle()
 
-    def tool_ai_assistant(self, opt):
+    def agent(self, opt):
         config = self.config_manager
         if not config:
             self._call_stdio('error', 'No such custom config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custom config')
         else:
-            self.set_offline_context('tool_ai_assistant', 'tool_ai_assistant')
-            from src.handler.ai.ai_assistant_handler import AiAssistantHandler
+            self.set_offline_context('agent', 'agent')
+            from src.handler.agent import AiAssistantHandler
 
             handler = AiAssistantHandler(self.context)
             return handler.handle()
