@@ -70,7 +70,7 @@ from src.common.ob_connector import OBConnector
 
 class ObdiagHome(object):
 
-    def __init__(self, stdio=None, config_path=os.path.expanduser('~/.obdiag/config.yml'), inner_config_change_map=None, custom_config_env_list=None, config_password=None):
+    def __init__(self, stdio=None, config_path=None, inner_config_change_map=None, custom_config_env_list=None, config_password=None):
         self._optimize_manager = None
         self.stdio = None
         self._stdio_func = None

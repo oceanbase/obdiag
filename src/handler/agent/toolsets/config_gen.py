@@ -26,6 +26,7 @@ import yaml
 
 from pydantic_ai import FunctionToolset, RunContext
 
+from src.common.constant import obdiag_path
 from src.handler.agent.models import AgentDependencies
 
 config_gen_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
@@ -236,7 +237,7 @@ def generate_config(
         return err
 
     config = _build_config(args)
-    output_path = os.path.expanduser("~/.obdiag/config.yml")
+    output_path = obdiag_path("config.yml")
     output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)

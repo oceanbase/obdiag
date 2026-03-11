@@ -25,8 +25,10 @@ import yaml
 from src.handler.agent.cluster_resolve import OBDIAG_CONFIG_DIR, resolve_cluster_config_path
 from src.handler.agent.models import AgentConfig
 
-AGENT_CONFIG_PATH = os.path.expanduser("~/.obdiag/ai.yml")
-OBDIAG_CONFIG_PATH = os.path.expanduser("~/.obdiag/config.yml")
+from src.common.constant import obdiag_path
+
+AGENT_CONFIG_PATH = obdiag_path("ai.yml")
+OBDIAG_CONFIG_PATH = obdiag_path("config.yml")
 
 
 def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> Dict[str, Any]:

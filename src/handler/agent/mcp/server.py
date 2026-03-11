@@ -27,6 +27,8 @@ from typing import Dict, List, Any, Optional
 
 import yaml
 
+from src.common.constant import obdiag_path
+
 
 class MCPServer:
     """Built-in MCP server for obdiag tools"""
@@ -49,7 +51,7 @@ class MCPServer:
     }
 
     def __init__(self, config_path: Optional[str] = None, stdio=None, context=None):
-        self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
+        self.config_path = config_path or obdiag_path("config.yml")
         self.stdio = stdio
         self.context = context
         self.tools = self._register_tools()
@@ -385,8 +387,8 @@ class MCPServer:
             self.stdio.verbose("Building configuration from arguments...")
         config = self._build_config(arguments)
 
-        # Determine output path (always use ~/.obdiag/config.yml for local obdiag)
-        output_path = os.path.expanduser("~/.obdiag/config.yml")
+        # Determine output path (use obdiag workspace config.yml)
+        output_path = obdiag_path("config.yml")
         if self.stdio:
             self.stdio.verbose("Output path: {0}".format(output_path))
 

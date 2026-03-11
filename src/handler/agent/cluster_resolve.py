@@ -19,7 +19,9 @@
 import os
 from typing import Optional
 
-OBDIAG_CONFIG_DIR = os.path.expanduser("~/.obdiag")
+from src.common.constant import get_obdiag_workspace
+
+OBDIAG_CONFIG_DIR = get_obdiag_workspace()
 DEFAULT_CLUSTER_CONFIG = os.path.join(OBDIAG_CONFIG_DIR, "config.yml")
 
 

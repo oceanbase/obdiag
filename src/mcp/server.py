@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from src.common.constant import obdiag_path
 from src.common.obdiag_executor import OBDIAG_COMMANDS, execute_obdiag_command
 
 
@@ -35,7 +36,7 @@ class MCPServer:
     """Built-in MCP server for obdiag tools — runs in stdio mode."""
 
     def __init__(self, config_path: Optional[str] = None, stdio: Any = None, context: Any = None):
-        self.config_path = config_path or os.path.expanduser("~/.obdiag/config.yml")
+        self.config_path = config_path or obdiag_path("config.yml")
         self.stdio = stdio
         self.context = context
         self.tools = self._register_tools()
@@ -224,7 +225,7 @@ class MCPServer:
             return {"content": [{"type": "text", "text": err}], "isError": True}
 
         config = _build_config(arguments)
-        output_path = os.path.expanduser("~/.obdiag/config.yml")
+        output_path = obdiag_path("config.yml")
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
