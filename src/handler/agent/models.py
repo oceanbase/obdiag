@@ -118,10 +118,7 @@ class AgentDependencies:
             if "/" in config_path or config_path.strip().startswith("~"):
                 abs_path = os.path.abspath(os.path.expanduser(config_path))
                 return False, f"Config file not found: {abs_path}"
-            return False, (
-                f"Config file not found under ~/.obdiag/ "
-                f"(tried: {config_path.strip()}, {config_path.strip()}.yml)"
-            )
+            return False, (f"Config file not found under ~/.obdiag/ " f"(tried: {config_path.strip()}, {config_path.strip()}.yml)")
 
         cluster_config = _load_cluster_config_from_file(abs_path)
         if not cluster_config:

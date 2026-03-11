@@ -37,14 +37,18 @@ __all__ = [
 def __getattr__(name):
     if name in ('AiAgentHandler', 'AiAssistantHandler'):
         from src.handler.agent.handler import AiAgentHandler, AiAssistantHandler
+
         return AiAgentHandler if name == 'AiAgentHandler' else AiAssistantHandler
     elif name == 'create_agent':
         from src.handler.agent.agent import create_agent
+
         return create_agent
     elif name in ('AgentConfig', 'AgentDependencies'):
         from src.handler.agent import models as models_module
+
         return getattr(models_module, name)
     elif name in ('load_agent_config', 'load_ai_config', 'get_agent_config'):
         from src.handler.agent import config as config_module
+
         return getattr(config_module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

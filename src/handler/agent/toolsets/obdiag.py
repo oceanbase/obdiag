@@ -32,11 +32,7 @@ from src.handler.agent.models import AgentDependencies
 
 obdiag_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
 
-_CLUSTER_CONFIG_PARAM_DOC = (
-    "cluster_config_path: Optional path or short name (e.g., 'obdiag_test' for "
-    "~/.obdiag/obdiag_test.yml) for a non-default cluster. When omitted, the "
-    "current active cluster config is used."
-)
+_CLUSTER_CONFIG_PARAM_DOC = "cluster_config_path: Optional path or short name (e.g., 'obdiag_test' for " "~/.obdiag/obdiag_test.yml) for a non-default cluster. When omitted, the " "current active cluster config is used."
 
 
 def _config(ctx: RunContext[AgentDependencies], override: Optional[str]) -> str:
@@ -48,6 +44,7 @@ def _config(ctx: RunContext[AgentDependencies], override: Optional[str]) -> str:
         return resolved
     # Path-like or short name not found: return best-guess path for -c
     import os
+
     s = str(override).strip()
     if "/" in s or s.startswith("~"):
         return os.path.abspath(os.path.expanduser(s))
@@ -73,6 +70,7 @@ def _run(
 # ---------------------------------------------------------------------------
 # Gather tools
 # ---------------------------------------------------------------------------
+
 
 @obdiag_toolset.tool
 def gather_log(
@@ -110,10 +108,7 @@ def gather_log(
         args["grep"] = grep
     if store_dir:
         args["store_dir"] = store_dir
-    return _run(ctx, "gather_log", args,
-                "Log gathering completed successfully.",
-                "Log gathering failed.",
-                cluster_config_path)
+    return _run(ctx, "gather_log", args, "Log gathering completed successfully.", "Log gathering failed.", cluster_config_path)
 
 
 @obdiag_toolset.tool
@@ -132,10 +127,7 @@ def gather_sysstat(
     args: dict = {}
     if store_dir:
         args["store_dir"] = store_dir
-    return _run(ctx, "gather_sysstat", args,
-                "System statistics gathering completed successfully.",
-                "System statistics gathering failed.",
-                cluster_config_path)
+    return _run(ctx, "gather_sysstat", args, "System statistics gathering completed successfully.", "System statistics gathering failed.", cluster_config_path)
 
 
 @obdiag_toolset.tool
@@ -154,10 +146,7 @@ def gather_perf(
     args: dict = {}
     if store_dir:
         args["store_dir"] = store_dir
-    return _run(ctx, "gather_perf", args,
-                "Performance data gathering completed successfully.",
-                "Performance data gathering failed.",
-                cluster_config_path)
+    return _run(ctx, "gather_perf", args, "Performance data gathering completed successfully.", "Performance data gathering failed.", cluster_config_path)
 
 
 @obdiag_toolset.tool
@@ -178,15 +167,13 @@ def gather_plan_monitor(
     args: dict = {"trace_id": trace_id}
     if store_dir:
         args["store_dir"] = store_dir
-    return _run(ctx, "gather_plan_monitor", args,
-                "Plan monitor data gathering completed successfully.",
-                "Plan monitor data gathering failed.",
-                cluster_config_path)
+    return _run(ctx, "gather_plan_monitor", args, "Plan monitor data gathering completed successfully.", "Plan monitor data gathering failed.", cluster_config_path)
 
 
 # ---------------------------------------------------------------------------
 # Analyze tools
 # ---------------------------------------------------------------------------
+
 
 @obdiag_toolset.tool
 def analyze_log(
@@ -220,15 +207,13 @@ def analyze_log(
         args["scope"] = scope
     if log_level:
         args["log_level"] = log_level
-    return _run(ctx, "analyze_log", args,
-                "Log analysis completed successfully.",
-                "Log analysis failed.",
-                cluster_config_path)
+    return _run(ctx, "analyze_log", args, "Log analysis completed successfully.", "Log analysis failed.", cluster_config_path)
 
 
 # ---------------------------------------------------------------------------
 # Check tools
 # ---------------------------------------------------------------------------
+
 
 @obdiag_toolset.tool
 def check_cluster(
@@ -250,10 +235,7 @@ def check_cluster(
         args["cases"] = cases
     if store_dir:
         args["store_dir"] = store_dir
-    return _run(ctx, "check", args,
-                "Health check completed successfully.",
-                "Health check failed.",
-                cluster_config_path)
+    return _run(ctx, "check", args, "Health check completed successfully.", "Health check failed.", cluster_config_path)
 
 
 @obdiag_toolset.tool
@@ -270,6 +252,7 @@ def check_list(ctx: RunContext[AgentDependencies]) -> str:
 # RCA tools
 # ---------------------------------------------------------------------------
 
+
 @obdiag_toolset.tool
 def rca_run(
     ctx: RunContext[AgentDependencies],
@@ -283,10 +266,7 @@ def rca_run(
         scene: RCA scenario name to run
         cluster_config_path: Path to obdiag config.yml for a non-default cluster
     """
-    return _run(ctx, "rca_run", {"scene": scene},
-                "Root cause analysis completed successfully.",
-                "Root cause analysis failed.",
-                cluster_config_path)
+    return _run(ctx, "rca_run", {"scene": scene}, "Root cause analysis completed successfully.", "Root cause analysis failed.", cluster_config_path)
 
 
 @obdiag_toolset.tool
@@ -302,6 +282,7 @@ def rca_list(ctx: RunContext[AgentDependencies]) -> str:
 # ---------------------------------------------------------------------------
 # Utility tools
 # ---------------------------------------------------------------------------
+
 
 @obdiag_toolset.tool
 def tool_io_performance(
@@ -323,15 +304,13 @@ def tool_io_performance(
         args["disk"] = disk
     if date:
         args["date"] = date
-    return _run(ctx, "tool_io_performance", args,
-                "IO performance check completed successfully.",
-                "IO performance check failed.",
-                cluster_config_path)
+    return _run(ctx, "tool_io_performance", args, "IO performance check completed successfully.", "IO performance check failed.", cluster_config_path)
 
 
 # ---------------------------------------------------------------------------
 # Cluster info tool
 # ---------------------------------------------------------------------------
+
 
 @obdiag_toolset.tool
 def show_current_cluster(ctx: RunContext[AgentDependencies]) -> str:

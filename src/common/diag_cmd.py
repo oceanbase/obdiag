@@ -1325,11 +1325,7 @@ class ObdiagAgentCommand(ObdiagOriginCommand):
     def init(self, cmd, args):
         super(ObdiagAgentCommand, self).init(cmd, args)
         self.parser.set_usage(
-            '%s [options]\n\n'
-            '  Interactive mode: obdiag agent\n'
-            '  Single-shot mode: obdiag agent -m "帮我巡检一下集群"\n'
-            '  Target cluster by short name: obdiag agent -c obdiag_test  (uses ~/.obdiag/obdiag_test.yml)'
-            % self.prev_cmd
+            '%s [options]\n\n' '  Interactive mode: obdiag agent\n' '  Single-shot mode: obdiag agent -m "帮我巡检一下集群"\n' '  Target cluster by short name: obdiag agent -c obdiag_test  (uses ~/.obdiag/obdiag_test.yml)' % self.prev_cmd
         )
         return self
 

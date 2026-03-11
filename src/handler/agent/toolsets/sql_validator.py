@@ -63,11 +63,7 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
             break
 
     if starts_with_keyword is None:
-        return False, (
-            f"Error: Only read-only SQL statements are allowed "
-            f"(SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, WITH). "
-            f"Your query starts with: {sql_for_validation[:50]}"
-        )
+        return False, (f"Error: Only read-only SQL statements are allowed " f"(SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, WITH). " f"Your query starts with: {sql_for_validation[:50]}")
 
     if starts_with_keyword == 'WITH':
         if 'SELECT' not in sql_upper:
@@ -81,11 +77,7 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
     )
 
     if forbidden_keywords_pattern.search(sql_for_validation):
-        return False, (
-            "Error: Dangerous SQL operations are not allowed "
-            "(INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, etc.). "
-            "Only read-only queries are permitted."
-        )
+        return False, ("Error: Dangerous SQL operations are not allowed " "(INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, etc.). " "Only read-only queries are permitted.")
 
     if 'UNION' in sql_upper:
         union_parts = re.split(r'\bUNION\s+(?:ALL\s+)?', sql_upper, flags=re.IGNORECASE)
