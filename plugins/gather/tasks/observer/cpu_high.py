@@ -44,6 +44,7 @@ class CPUHigh(SafeStdio):
         self.nodes = self.context.cluster_config['servers']
         self.cluster = self.context.cluster_config
         self.ob_nodes = self.context.cluster_config['servers']
+        self.ob_version = get_observer_version(self.context)
 
     def execute(self):
         self.__gather_obstack()
@@ -155,8 +156,7 @@ class CPUHigh(SafeStdio):
     def __get_sql_audit_view(self):
         """Get the correct SQL audit view name based on OceanBase version"""
         try:
-            ob_version = get_observer_version(self.context)
-            is_ob4 = StringUtils.compare_versions_greater(ob_version, "4.0.0.0") or ob_version.startswith("4.")
+            is_ob4 = StringUtils.compare_versions_greater(self.ob_version, "4.0.0.0") or self.ob_version.startswith("4.")
             if is_ob4:
                 return "oceanbase.gv$ob_sql_audit"
             else:
@@ -326,8 +326,7 @@ class CPUHigh(SafeStdio):
 
             # Get GV$OB_SQL_PLAN information (only available in OceanBase 4.2.0.0 and later)
             try:
-                ob_version = get_observer_version(self.context)
-                is_ob420_or_later = StringUtils.compare_versions_greater(ob_version, "4.2.0.0") or ob_version == "4.2.0.0"
+                is_ob420_or_later = StringUtils.compare_versions_greater(self.ob_version, "4.2.0.0") or self.ob_version == "4.2.0.0"
             except Exception as e:
                 self.stdio.warn("Failed to get OceanBase version for GV$OB_SQL_PLAN check: {0}".format(e))
                 is_ob420_or_later = False
@@ -358,8 +357,7 @@ class CPUHigh(SafeStdio):
         try:
             # Get OceanBase version to determine SQL syntax
             try:
-                ob_version = get_observer_version(self.context)
-                is_ob4 = StringUtils.compare_versions_greater(ob_version, "4.0.0.0") or ob_version.startswith("4.")
+                is_ob4 = StringUtils.compare_versions_greater(self.ob_version, "4.0.0.0") or self.ob_version.startswith("4.")
             except Exception as e:
                 self.stdio.warn("Failed to get OceanBase version, assuming 4.x: {0}".format(e))
                 is_ob4 = True
