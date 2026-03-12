@@ -16,10 +16,12 @@
 @desc:
 """
 
+import json
 import os
 import re
 from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
+from src.common.version import OBDIAG_VERSION
 import datetime
 from src.handler.gather.scenes.base import SceneBase
 from src.common.obdiag_exception import OBDIAGFormatException
@@ -76,6 +78,7 @@ class GatherSceneHandler(SafeStdio):
         self.__init_report_path()
         self.__init_task_names()
         self.execute()
+        self.__write_manifest()
         if self.is_inner:
             result = self.__get_sql_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
@@ -249,6 +252,31 @@ class GatherSceneHandler(SafeStdio):
         except Exception as e:
             self.stdio.error(e)
             return None
+
+    def __write_manifest(self):
+        """Write manifest.json to pack root for SeekClaw/Agent to identify pack type."""
+        try:
+            ob_version = self.cluster.get("version", "") if self.cluster else ""
+            nodes = [n.get("ip", "") for n in self.nodes] if self.nodes else []
+            all_tasks = list(self.yaml_tasks.keys()) + list(self.code_tasks.keys())
+            components = list(set(self.__get_task_type(t) for t in all_tasks if self.__get_task_type(t)))
+            if not components:
+                components = ["observer"]
+            gather_time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ") if self.gather_timestamp else ""
+            manifest = {
+                "obdiag_version": OBDIAG_VERSION,
+                "scene": self.scene,
+                "ob_version": ob_version,
+                "nodes": nodes,
+                "components": components,
+                "gather_time": gather_time,
+            }
+            manifest_path = os.path.join(self.report_path, "manifest.json")
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, ensure_ascii=False, indent=2)
+            self.stdio.verbose("manifest written to {0}".format(manifest_path))
+        except Exception as e:
+            self.stdio.verbose("write manifest failed: {0}".format(e))
 
     def __print_result(self):
         if self.context.get_variable("adapted_version", default=True) == True:

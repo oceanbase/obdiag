@@ -17,6 +17,7 @@
 """
 import datetime
 import glob
+import json
 import os
 import re
 import tarfile
@@ -59,6 +60,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.config_path = const.DEFAULT_CONFIG_PATH
         self.by_tenant = True  # Default: enable tenant statistics
         self.tenant_id_filter = None  # If specified, only analyze this tenant
+        self.output_format = 'text'  # text or json
 
     def init_config(self):
         self.nodes = self.context.cluster_config['servers']
@@ -133,6 +135,9 @@ class AnalyzeLogHandler(BaseShellHandler):
         if tenant_id_option is not None:
             self.tenant_id_filter = tenant_id_option.strip()
             self.stdio.verbose("tenant_id filter: {0}".format(self.tenant_id_filter))
+        output_option = Util.get_option(options, 'output')
+        if output_option and output_option.lower() == 'json':
+            self.output_format = 'json'
         return True
 
     def handle(self):
@@ -159,6 +164,15 @@ class AnalyzeLogHandler(BaseShellHandler):
         resp, node_results, tenant_results_list = self.__handle_offline(local_store_parent_dir)
         analyze_tuples = [("127.0.0.1", False, resp["error"], node_results)]
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, True)
+        self.stdio.stop_loading('analyze result success')
+
+        if self.output_format == 'json':
+            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=True)
+            if resp.get("skip") and resp.get("error"):
+                json_data["error"] = resp["error"]
+            self.stdio.print(json.dumps(json_data, ensure_ascii=False, indent=2))
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"json": json_data, "store_dir": local_store_parent_dir})
+
         analyze_info_nodes = []
         for summary in summary_list:
             analyze_info_node = {}
@@ -170,7 +184,6 @@ class AnalyzeLogHandler(BaseShellHandler):
                     break
             analyze_info_nodes.append(analyze_info_node)
         table = tabulate.tabulate(summary_list, headers=field_names, tablefmt="grid", showindex=False)
-        self.stdio.stop_loading('analyze result success')
         self.stdio.print(title)
         self.stdio.print(table)
         with open(os.path.join(local_store_parent_dir, "result_details.txt"), 'a', encoding='utf-8') as fileobj:
@@ -266,6 +279,10 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         self.stdio.stop_loading("succeed")
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, False)
+        if self.output_format == 'json':
+            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=False)
+            self.stdio.print(json.dumps(json_data, ensure_ascii=False, indent=2))
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"json": json_data, "store_dir": local_store_parent_dir})
         analyze_info_nodes = []
         for summary in summary_list:
             analyze_info_node = {}
@@ -653,6 +670,70 @@ class AnalyzeLogHandler(BaseShellHandler):
                             if tid and tid not in m["trace_id_list"]:
                                 m["trace_id_list"].append(tid)
         return merged
+
+    def __build_json_export(self, analyze_tuples, tenant_results_list, is_files=False):
+        """
+        Build machine-readable JSON from analysis results.
+        Schema: by_ret_code, findings, summary
+        """
+        by_ret_code = {}
+        total_errors = 0
+        tenant_set = set()
+        time_range = {"first": None, "last": None}
+
+        for tup in analyze_tuples:
+            node, is_err, err_msg, node_results = tup[0], tup[1], tup[2], tup[3]
+            if is_err:
+                continue
+            for log_result in node_results:
+                for ret_code, rec in log_result.items():
+                    if ret_code is None:
+                        continue
+                    if ret_code not in by_ret_code:
+                        by_ret_code[ret_code] = {
+                            "count": 0,
+                            "sample": rec.get("file_name", ""),
+                            "first_time": rec.get("first_found_time", ""),
+                            "last_time": rec.get("last_found_time", ""),
+                        }
+                    by_ret_code[ret_code]["count"] += rec.get("count", 0)
+                    total_errors += rec.get("count", 0)
+                    ft = rec.get("first_found_time") or ""
+                    lt = rec.get("last_found_time") or ""
+                    if ft and (time_range["first"] is None or ft < time_range["first"]):
+                        time_range["first"] = ft
+                    if lt and (time_range["last"] is None or lt > time_range["last"]):
+                        time_range["last"] = lt
+
+        merged_tenant = self.__merge_tenant_results(tenant_results_list) if tenant_results_list else {}
+        for tenant in merged_tenant:
+            tenant_set.add(tenant)
+
+        findings = []
+        for ret_code, rec in by_ret_code.items():
+            error_code_info = OB_RET_DICT.get(ret_code, "")
+            message = ""
+            severity = "ERROR"
+            if ret_code == "CRASH_ERROR":
+                message = getattr(self, "crash_error", "") or "crash thread"
+            elif error_code_info:
+                message = error_code_info[1] if len(error_code_info) > 1 else ""
+            findings.append({
+                "ret_code": ret_code,
+                "severity": severity,
+                "summary": message,
+                "count": rec["count"],
+            })
+
+        return {
+            "by_ret_code": by_ret_code,
+            "findings": findings,
+            "summary": {
+                "total_errors": total_errors,
+                "tenant_count": len(tenant_set),
+                "time_range": time_range,
+            },
+        }
 
     def __get_tenant_summary(self, tenant_results_list):
         """
