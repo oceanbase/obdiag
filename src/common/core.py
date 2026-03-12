@@ -33,6 +33,7 @@ from src.common.config import ConfigManager, InnerConfigManager
 from src.common.err import CheckStatus, SUG_SSH_FAILED
 from src.handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from src.handler.analyzer.analyze_log import AnalyzeLogHandler
+from src.handler.analyzer.analyze_pack import AnalyzePackHandler
 from src.handler.analyzer.analyze_sql import AnalyzeSQLHandler
 from src.handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from src.handler.analyzer.analyze_parameter import AnalyzeParameterHandler
@@ -469,6 +470,16 @@ class ObdiagHome(object):
                 self.set_context_skip_cluster_conn(function_type, 'analyze', config)
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
+            elif function_type == 'analyze_pack':
+                pack_dir = Util.get_option(opt, 'pack_dir')
+                if not pack_dir:
+                    self._call_stdio('error', '--pack_dir is required')
+                    return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='--pack_dir is required')
+                setattr(opt, 'log_dir', pack_dir)
+                setattr(opt, 'output', Util.get_option(opt, 'output') or 'json')
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                handler = AnalyzePackHandler(self.context)
+                return handler.handle()
             elif function_type == 'analyze_queue':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeQueueHandler(self.context)
@@ -574,9 +585,20 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            self.set_context('rca_run', 'rca_run', config)
-            if config.get_ob_cluster_config.get("db_host") is not None and config.get_ob_cluster_config.get("servers") is not None:
-                self.update_obcluster_nodes(config)
+            log_dir = Util.get_option(opts, 'log_dir')
+            if log_dir:
+                setattr(opts, 'log_dir', log_dir)
+                self.set_context_skip_cluster_conn('rca_run', 'rca_run', config)
+                for attr in ("cluster_config", "obproxy_config", "oms_config"):
+                    cfg = getattr(self.context, attr, None)
+                    if cfg is None:
+                        setattr(self.context, attr, {"servers": []})
+                    elif not cfg.get("servers"):
+                        cfg["servers"] = []
+            else:
+                self.set_context('rca_run', 'rca_run', config)
+                if config.get_ob_cluster_config.get("db_host") is not None and config.get_ob_cluster_config.get("servers") is not None:
+                    self.update_obcluster_nodes(config)
             try:
                 handler = RCAHandler(self.context)
                 return handler.handle()

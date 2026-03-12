@@ -23,6 +23,7 @@ import re
 import tarfile
 
 import tabulate
+import yaml
 
 from src.common.ssh_client.local_client import LocalClient
 from src.handler.base_shell_handler import BaseShellHandler
@@ -173,13 +174,14 @@ class AnalyzeLogHandler(BaseShellHandler):
         DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
         self.stdio.print("analyze nodes's log start. Please wait a moment...")
         self.stdio.start_loading('analyze start')
-        resp, node_results, tenant_results_list = self.__handle_offline(local_store_parent_dir)
+        resp, node_results, tenant_results_list, parsed_paths = self.__handle_offline(local_store_parent_dir)
         analyze_tuples = [("127.0.0.1", False, resp["error"], node_results)]
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, True)
         self.stdio.stop_loading('analyze result success')
+        semantic_matches = self.__match_semantic_patterns(parsed_paths) if parsed_paths else []
 
         if self.output_format == 'json':
-            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=True)
+            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=True, semantic_matches=semantic_matches)
             if resp.get("skip") and resp.get("error"):
                 json_data["error"] = resp["error"]
             self.stdio.print(json.dumps(json_data, ensure_ascii=False, indent=2))
@@ -271,6 +273,7 @@ class AnalyzeLogHandler(BaseShellHandler):
 
         analyze_tuples = []
         tenant_results_list = []
+        parsed_paths = []
         self.stdio.start_loading("analyze log start")
         for name in os.listdir(local_store_parent_dir):
             node_dir = os.path.join(local_store_parent_dir, name)
@@ -285,14 +288,16 @@ class AnalyzeLogHandler(BaseShellHandler):
                     file_result, tenant_result = self.__parse_log_lines(full_path)
                     node_results.append(file_result)
                     tenant_results_list.append(tenant_result)
+                    parsed_paths.append(full_path)
                 except Exception as e:
                     self.stdio.verbose("parse log file {0} failed: {1}".format(full_path, e))
             analyze_tuples.append((node_name, False, "", node_results))
 
         self.stdio.stop_loading("succeed")
+        semantic_matches = self.__match_semantic_patterns(parsed_paths) if parsed_paths else []
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, False)
         if self.output_format == 'json':
-            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=False)
+            json_data = self.__build_json_export(analyze_tuples, tenant_results_list, is_files=False, semantic_matches=semantic_matches)
             self.stdio.print(json.dumps(json_data, ensure_ascii=False, indent=2))
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"json": json_data, "store_dir": local_store_parent_dir})
         analyze_info_nodes = []
@@ -329,6 +334,12 @@ class AnalyzeLogHandler(BaseShellHandler):
                     fileobj.write(u'{}'.format(tenant_title + str(tenant_table) + "\n\n"))
             elif self.tenant_id_filter:
                 self.stdio.warn("No errors found for tenant: {0}".format(self.tenant_id_filter))
+        if semantic_matches:
+            self.stdio.print("\nSemantic matches:")
+            for m in semantic_matches[:20]:
+                self.stdio.print("  [{0}] {1}:{2} - {3}".format(m.get("severity", ""), m.get("file", ""), m.get("line_num", 0), m.get("suggestion", "")))
+            if len(semantic_matches) > 20:
+                self.stdio.print("  ... and {0} more".format(len(semantic_matches) - 20))
         last_info = "For more details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(local_store_parent_dir, "result_details.txt"))
         self.stdio.print(last_info)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": analyze_info_nodes, "summary_details_list": summary_details_list_data, "store_dir": local_store_parent_dir})
@@ -356,23 +367,25 @@ class AnalyzeLogHandler(BaseShellHandler):
         if len(log_list) > self.file_number_limit:
             resp["skip"] = True
             resp["error"] = "Too many files {0} > {1}, Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
-            return resp, node_results, []
+            return resp, node_results, [], []
         if len(log_list) == 0:
             resp["skip"] = True
             resp["error"] = "No files found"
-            return resp, node_results, []
+            return resp, node_results, [], []
 
         self.stdio.print(FileUtil.show_file_list_tabulate("127.0.0.1", log_list, self.stdio))
         self.stdio.start_loading("analyze log start")
         tenant_results_list = []
+        parsed_paths = []
         for log_name in log_list:
             self.__pharse_offline_log_file(log_name=log_name, local_store_dir=local_store_dir)
             analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
             file_result, tenant_result = self.__parse_log_lines(analyze_log_full_path)
             node_results.append(file_result)
             tenant_results_list.append(tenant_result)
+            parsed_paths.append(analyze_log_full_path)
         self.stdio.stop_loading("succeed")
-        return resp, node_results, tenant_results_list
+        return resp, node_results, tenant_results_list, parsed_paths
 
     def __get_log_name_list_offline(self):
         """
@@ -683,7 +696,68 @@ class AnalyzeLogHandler(BaseShellHandler):
                                 m["trace_id_list"].append(tid)
         return merged
 
-    def __build_json_export(self, analyze_tuples, tenant_results_list, is_files=False):
+    def __load_log_patterns(self):
+        """Load semantic patterns from resources/log_patterns.yaml."""
+        try:
+            if getattr(__import__('sys'), 'frozen', False):
+                base = os.path.dirname(__import__('sys').executable)
+            else:
+                base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            path = os.path.join(base, "resources", "log_patterns.yaml")
+            if os.path.isfile(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+                    return data.get("patterns", [])
+        except Exception as e:
+            self.stdio.verbose("load log_patterns failed: {0}".format(e))
+        return []
+
+    def __match_semantic_patterns(self, file_paths):
+        """Match log lines against semantic patterns. Returns list of {file, line_num, pattern, severity, suggestion, context}."""
+        patterns = self.__load_log_patterns()
+        if not patterns:
+            return []
+        matches = []
+        for path in (file_paths or []):
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for i, line in enumerate(f):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        for p in patterns:
+                            pat = p.get("pattern", "")
+                            if not pat:
+                                continue
+                            try:
+                                if re.search(pat, line, re.IGNORECASE):
+                                    matches.append({
+                                        "file": os.path.basename(path),
+                                        "line_num": i + 1,
+                                        "pattern": pat,
+                                        "severity": p.get("severity", "P2"),
+                                        "suggestion": p.get("suggestion", ""),
+                                        "context": line[:150],
+                                    })
+                                    break
+                            except re.error:
+                                if pat in line:
+                                    matches.append({
+                                        "file": os.path.basename(path),
+                                        "line_num": i + 1,
+                                        "pattern": pat,
+                                        "severity": p.get("severity", "P2"),
+                                        "suggestion": p.get("suggestion", ""),
+                                        "context": line[:150],
+                                    })
+                                    break
+            except Exception as e:
+                self.stdio.verbose("semantic match {0} failed: {1}".format(path, e))
+        return matches
+
+    def __build_json_export(self, analyze_tuples, tenant_results_list, is_files=False, semantic_matches=None):
         """
         Build machine-readable JSON from analysis results.
         Schema: by_ret_code, findings, summary
@@ -737,7 +811,7 @@ class AnalyzeLogHandler(BaseShellHandler):
                 "count": rec["count"],
             })
 
-        return {
+        out = {
             "by_ret_code": by_ret_code,
             "findings": findings,
             "summary": {
@@ -746,6 +820,9 @@ class AnalyzeLogHandler(BaseShellHandler):
                 "time_range": time_range,
             },
         }
+        if semantic_matches:
+            out["semantic_matches"] = semantic_matches
+        return out
 
     def __get_tenant_summary(self, tenant_results_list):
         """

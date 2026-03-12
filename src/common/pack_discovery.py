@@ -12,7 +12,7 @@
 import fnmatch
 import os
 
-# Standard log file names in OB
+# Standard log file names in OB + OS logs for cluster_down RCA
 LOG_NAMES = [
     "observer.log",
     "observer.log.wf",
@@ -22,8 +22,11 @@ LOG_NAMES = [
     "election.log.wf",
     "trace.log",
     "trace.log.wf",
+    "dmesg",
+    "message.log",
+    "syslog",
 ]
-# Glob patterns for rotated logs
+# Glob patterns for rotated logs + coredump
 LOG_PATTERNS = [
     "observer.log.*",
     "observer.log.wf.*",
@@ -33,6 +36,8 @@ LOG_PATTERNS = [
     "election.log.wf.*",
     "trace.log.*",
     "trace.log.wf.*",
+    "core*",
+    "*.core",
 ]
 
 

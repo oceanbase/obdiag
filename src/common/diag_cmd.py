@@ -1162,6 +1162,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagRCARunCommand, self).__init__('run', 'root cause analysis')
         self.parser.add_option('--scene', type='string', help="rca scene name. The argument is required.")
+        self.parser.add_option('--log_dir', type='string', help='pack/log directory for offline RCA (e.g. cluster_down scene)')
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./obdiag_rca/')
         self.parser.add_option('--env', action='callback', type='string', callback=self._env_scene, help='env of scene')
         self.parser.add_option('--report_type', type='string', help='The type of the rca report, support "table", "json", "xml", "yaml", "html". default table', default='table')
@@ -1396,11 +1397,31 @@ class ObdiagGatherSceneCommand(MajorCommand):
         self.register_command(ObdiagGatherSceneRunCommand())
 
 
+class ObdiagAnalyzePackCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagAnalyzePackCommand, self).__init__('pack', 'Analyze obdiag gather pack, output unified diagnostic report')
+        self.parser.add_option('--pack_dir', type='string', help='path to unpacked obdiag gather pack directory')
+        self.parser.add_option('--output', type='string', help='output format: json (default) or text', default='json')
+        self.parser.add_option('--store_dir', type='string', help='dir to store intermediate results', default='./')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagAnalyzePackCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.analyze_fuction('analyze_pack', self.opts)
+
+
 class ObdiagAnalyzeCommand(MajorCommand):
 
     def __init__(self):
         super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze OceanBase diagnostic info')
         self.register_command(ObdiagAnalyzeLogCommand())
+        self.register_command(ObdiagAnalyzePackCommand())
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())
