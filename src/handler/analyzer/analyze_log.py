@@ -31,6 +31,7 @@ from src.common.constant import const
 from src.common.command import download_file
 from src.common.ob_log_level import OBLogLevel
 from src.handler.meta.ob_error import OB_RET_DICT
+from src.common.pack_discovery import discover_log_files
 from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
@@ -63,7 +64,8 @@ class AnalyzeLogHandler(BaseShellHandler):
         self.output_format = 'text'  # text or json
 
     def init_config(self):
-        self.nodes = self.context.cluster_config['servers']
+        cluster = self.context.cluster_config
+        self.nodes = cluster.get('servers', []) if cluster else []
         self.inner_config = self.context.inner_config
         if self.inner_config is None:
             self.file_number_limit = 20
@@ -85,8 +87,18 @@ class AnalyzeLogHandler(BaseShellHandler):
         scope_option = Util.get_option(options, 'scope')
         log_level_option = Util.get_option(options, 'log_level')
         files_option = Util.get_option(options, 'files')
+        log_dir_option = Util.get_option(options, 'log_dir')
         temp_dir_option = Util.get_option(options, 'temp_dir')
-        if files_option:
+        if log_dir_option:
+            discovered = discover_log_files(log_dir_option)
+            self.is_ssh = False
+            self.directly_analyze_files = True
+            self.analyze_files_list = discovered if discovered else []
+            if not discovered:
+                self.stdio.warn("No log files found in --log_dir={0}".format(log_dir_option))
+            else:
+                self.stdio.verbose("discovered {0} log files from --log_dir={1}".format(len(discovered), log_dir_option))
+        elif files_option:
             self.is_ssh = False
             self.directly_analyze_files = True
             self.analyze_files_list = files_option

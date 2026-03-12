@@ -884,6 +884,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--log_level', type='string', help="OceanBase logs greater than or equal to this level will be analyze, choices=[DEBUG, TRACE, INFO, WDIAG, WARN, EDIAG, ERROR]")
         self.parser.add_option('--files', action="append", type='string', help="specify files")
+        self.parser.add_option('--log_dir', type='string', help='specify pack/log directory to auto-discover log files (obdiag gather output)')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
@@ -899,7 +900,8 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
 
     def _do_command(self, obdiag):
         offline_args_sign = '--files'
-        if self.args and (offline_args_sign in self.args):
+        log_dir_sign = '--log_dir'
+        if self.args and (offline_args_sign in self.args or log_dir_sign in self.args):
             return obdiag.analyze_fuction('analyze_log_offline', self.opts)
         else:
             return obdiag.analyze_fuction('analyze_log', self.opts)
