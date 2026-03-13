@@ -35,6 +35,7 @@ from src.common.tool import FileUtil
 from src.common.tool import NetUtils
 from src.common.tool import TimeUtils
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 
 
 class GatherPerfHandler(BaseShellHandler):
@@ -155,7 +156,7 @@ class GatherPerfHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
-        # Persist the summary results to a file
+        ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
@@ -352,6 +353,29 @@ class GatherPerfHandler(BaseShellHandler):
         finally:
             shutil.rmtree(extract_dir, ignore_errors=True)
 
+    @staticmethod
+    def handle_offline_flame_graph(pack_dir, stdio):
+        """
+        Offline: scan pack_dir for perf *.tar.gz, generate flame.svg from flame.viz if present.
+        No cluster/SSH required. Use: obdiag gather perf --pack_dir=<path>
+        """
+        import glob
+        pack_dir = os.path.abspath(os.path.expanduser(pack_dir))
+        if not os.path.isdir(pack_dir):
+            stdio.error("pack_dir does not exist or is not a directory: {0}".format(pack_dir))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="pack_dir invalid")
+        tar_files = glob.glob(os.path.join(pack_dir, "*.tar.gz"))
+        if not tar_files:
+            stdio.warn("No *.tar.gz files found in {0}".format(pack_dir))
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir})
+        handler = GatherPerfHandler.__new__(GatherPerfHandler)
+        handler.stdio = stdio
+        handler.context = None
+        for tar_path in sorted(tar_files):
+            remote_dir_name = os.path.basename(tar_path).replace(".tar.gz", "")
+            handler._GatherPerfHandler__generate_flame_graph_svg(tar_path, remote_dir_name, pack_dir)
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir})
+
     def __gather_perf_sample(self, ssh_client, gather_path, pid_observer):
         try:
             self.stdio.start_loading('gather perf sample')
@@ -422,14 +446,11 @@ class GatherPerfHandler(BaseShellHandler):
 
     @Util.retry(3, 5)
     def is_ready(self, ssh_client, remote_path):
-        try:
-            self.stdio.verbose("check whether the file {remote_path} is empty".format(remote_path=remote_path))
-            is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
-            if is_empty_file_res:
-                self.stdio.warn("The server {host_ip} file {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
-                raise
-        except Exception as e:
-            raise e
+        self.stdio.verbose("check whether the file {remote_path} is empty".format(remote_path=remote_path))
+        is_empty_file_res = is_empty_file(ssh_client, remote_path, self.stdio)
+        if is_empty_file_res:
+            self.stdio.warn("The server {host_ip} file {remote_path} is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), remote_path=remote_path))
+            raise Exception("File {0} is empty, waiting for collection to complete".format(remote_path))
 
     @staticmethod
     def __get_overall_summary(node_summary_tuple):

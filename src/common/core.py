@@ -33,7 +33,6 @@ from src.common.config import ConfigManager, InnerConfigManager
 from src.common.err import CheckStatus, SUG_SSH_FAILED
 from src.handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from src.handler.analyzer.analyze_log import AnalyzeLogHandler
-from src.handler.analyzer.analyze_pack import AnalyzePackHandler
 from src.handler.analyzer.analyze_sql import AnalyzeSQLHandler
 from src.handler.analyzer.analyze_sql_review import AnalyzeSQLReviewHandler
 from src.handler.analyzer.analyze_parameter import AnalyzeParameterHandler
@@ -147,7 +146,9 @@ class ObdiagHome(object):
         )
         telemetry.set_cluster_conn(self.context, config.get_ob_cluster_config)
 
-    def set_context_skip_cluster_conn(self, handler_name, namespace, config):
+    def set_context_skip_cluster_conn(self, handler_name, namespace, config, offline_mode=False):
+        if offline_mode:
+            self._call_stdio('warn', 'Running in offline mode (no cluster connection). Analysis is based on local log files only.')
         self.context = HandlerContext(
             handler_name=handler_name,
             namespace=namespace,
@@ -255,6 +256,15 @@ class ObdiagHome(object):
         else:
             self.stdio.print("{0} start ...".format(function_type))
             self.set_context_stdio()
+            # Offline gather_perf: no cluster required
+            if function_type == 'gather_perf_offline_flame':
+                options = self.options
+                pack_dir = Util.get_option(options, 'pack_dir')
+                if not pack_dir:
+                    self._call_stdio('error', '--pack_dir is required for offline flame graph')
+                    return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='--pack_dir required')
+                self.set_offline_context('gather_perf_offline', 'gather')
+                return GatherPerfHandler.handle_offline_flame_graph(pack_dir, self.stdio)
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
             options = self.context.options
@@ -467,18 +477,8 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_log_offline':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config, offline_mode=True)
                 handler = AnalyzeLogHandler(self.context)
-                return handler.handle()
-            elif function_type == 'analyze_pack':
-                pack_dir = Util.get_option(opt, 'pack_dir')
-                if not pack_dir:
-                    self._call_stdio('error', '--pack_dir is required')
-                    return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='--pack_dir is required')
-                setattr(opt, 'log_dir', pack_dir)
-                setattr(opt, 'output', Util.get_option(opt, 'output') or 'json')
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
-                handler = AnalyzePackHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_queue':
                 self.set_context(function_type, 'analyze', config)
@@ -516,7 +516,7 @@ class ObdiagHome(object):
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_memory_offline':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config, offline_mode=True)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_memory':
@@ -588,7 +588,7 @@ class ObdiagHome(object):
             log_dir = Util.get_option(opts, 'log_dir')
             if log_dir:
                 setattr(opts, 'log_dir', log_dir)
-                self.set_context_skip_cluster_conn('rca_run', 'rca_run', config)
+                self.set_context_skip_cluster_conn('rca_run', 'rca_run', config, offline_mode=True)
                 for attr in ("cluster_config", "obproxy_config", "oms_config"):
                     cfg = getattr(self.context, attr, None)
                     if cfg is None:

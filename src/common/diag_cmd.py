@@ -281,6 +281,10 @@ class ObdiagOriginCommand(BaseCommand):
                 if custom_config:
                     if os.path.exists(os.path.abspath(custom_config)):
                         config_path = custom_config
+                    elif self._is_offline_command():
+                        # Offline commands (analyze log/memory --log_dir, gather perf --pack_dir, rca --log_dir) do not require cluster config
+                        config_path = os.path.expanduser('~/.obdiag/config.yml')
+                        ROOT_IO.verbose('Config file not found, using default for offline command')
                     else:
                         ROOT_IO.error('The option you provided with -c: {0} is not exist.'.format(custom_config))
                         return
@@ -344,6 +348,17 @@ class ObdiagOriginCommand(BaseCommand):
 
     def _do_command(self, obdiag):
         raise NotImplementedError
+
+    def _is_offline_command(self):
+        """True if command can run without cluster config (analyze log/memory --log_dir, gather perf --pack_dir, rca --log_dir)."""
+        opts = getattr(self, 'opts', None)
+        if opts is None:
+            return False
+        if Util.get_option(opts, 'log_dir') or Util.get_option(opts, 'files'):
+            return True
+        if Util.get_option(opts, 'pack_dir'):
+            return True
+        return False
 
     def get_white_ip_list(self):
         if self.opts.white:
@@ -561,6 +576,7 @@ class ObdiagGatherPerfCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--scope', type='string', help="perf type constrains, choices=[sample, flame, pstack, all]", default='all')
         self.parser.add_option('--count', type='int', help="perf event period to sample >= 1000000", default='100000000')
+        self.parser.add_option('--pack_dir', type='string', help='offline: generate flame graph from existing perf pack (no cluster required)')
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
@@ -570,6 +586,9 @@ class ObdiagGatherPerfCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
+        pack_dir = Util.get_option(self.opts, 'pack_dir')
+        if pack_dir:
+            return obdiag.gather_function('gather_perf_offline_flame', self.opts)
         return obdiag.gather_function('gather_perf', self.opts)
 
 
@@ -899,9 +918,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        offline_args_sign = '--files'
-        log_dir_sign = '--log_dir'
-        if self.args and (offline_args_sign in self.args or log_dir_sign in self.args):
+        if Util.get_option(self.opts, 'log_dir') or Util.get_option(self.opts, 'files'):
             return obdiag.analyze_fuction('analyze_log_offline', self.opts)
         else:
             return obdiag.analyze_fuction('analyze_log', self.opts)
@@ -1023,6 +1040,7 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--files', action="append", type='string', help="specify files")
+        self.parser.add_option('--log_dir', type='string', help='specify pack/log directory to auto-discover observer.log files')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
@@ -1036,8 +1054,7 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
         return self
 
     def _do_command(self, obdiag):
-        offline_args_sign = '--files'
-        if self.args and (offline_args_sign in self.args):
+        if Util.get_option(self.opts, 'log_dir') or Util.get_option(self.opts, 'files'):
             return obdiag.analyze_fuction('analyze_memory_offline', self.opts)
         else:
             return obdiag.analyze_fuction('analyze_memory', self.opts)
@@ -1397,31 +1414,11 @@ class ObdiagGatherSceneCommand(MajorCommand):
         self.register_command(ObdiagGatherSceneRunCommand())
 
 
-class ObdiagAnalyzePackCommand(ObdiagOriginCommand):
-
-    def __init__(self):
-        super(ObdiagAnalyzePackCommand, self).__init__('pack', 'Analyze obdiag gather pack, output unified diagnostic report')
-        self.parser.add_option('--pack_dir', type='string', help='path to unpacked obdiag gather pack directory')
-        self.parser.add_option('--output', type='string', help='output format: json (default) or text', default='json')
-        self.parser.add_option('--store_dir', type='string', help='dir to store intermediate results', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
-        self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
-
-    def init(self, cmd, args):
-        super(ObdiagAnalyzePackCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
-        return self
-
-    def _do_command(self, obdiag):
-        return obdiag.analyze_fuction('analyze_pack', self.opts)
-
-
 class ObdiagAnalyzeCommand(MajorCommand):
 
     def __init__(self):
         super(ObdiagAnalyzeCommand, self).__init__('analyze', 'Analyze OceanBase diagnostic info')
         self.register_command(ObdiagAnalyzeLogCommand())
-        self.register_command(ObdiagAnalyzePackCommand())
         self.register_command(ObdiagAnalyzeFltTraceCommand())
         self.register_command(ObdiagAnalyzeParameterCommand())
         self.register_command(ObdiagAnalyzeVariableCommand())

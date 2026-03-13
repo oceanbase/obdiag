@@ -254,7 +254,7 @@ class GatherSceneHandler(SafeStdio):
             return None
 
     def __write_manifest(self):
-        """Write manifest.json to pack root for SeekClaw/Agent to identify pack type."""
+        """Write manifest.json to pack root for downstream tools to identify pack type."""
         try:
             ob_version = self.cluster.get("version", "") if self.cluster else ""
             nodes = [n.get("ip", "") for n in self.nodes] if self.nodes else []
