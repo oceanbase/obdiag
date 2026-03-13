@@ -27,6 +27,7 @@ from prettytable import PrettyTable
 from src.common.constant import const
 from src.common.tool import FileUtil, TimeUtils
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 from src.handler.base_shell_handler import BaseShellHandler
 from src.handler.gather.plugins.redact import Redact
 from src.handler.gather.gather_log import (
@@ -334,6 +335,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 summary_tuples = self.__get_overall_summary(self.gather_tuples)
                 self.stdio.print(summary_tuples)
 
+                ensure_result_summary_header(self.store_dir, self.context)
                 with open(os.path.join(self.store_dir, "result_summary.txt"), 'a', encoding='utf-8') as fileobj:
                     fileobj.write(summary_tuples.get_string())
 

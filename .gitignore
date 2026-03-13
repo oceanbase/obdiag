@@ -13,3 +13,4 @@ obdiag_rca*
 obdiag_*
 dev_doc/*
 *.md
+build/*
