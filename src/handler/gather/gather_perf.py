@@ -360,6 +360,7 @@ class GatherPerfHandler(BaseShellHandler):
         No cluster/SSH required. Use: obdiag gather perf --pack_dir=<path>
         """
         import glob
+
         pack_dir = os.path.abspath(os.path.expanduser(pack_dir))
         if not os.path.isdir(pack_dir):
             stdio.error("pack_dir does not exist or is not a directory: {0}".format(pack_dir))

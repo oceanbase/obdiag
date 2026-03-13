@@ -718,7 +718,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         if not patterns:
             return []
         matches = []
-        for path in (file_paths or []):
+        for path in file_paths or []:
             if not os.path.isfile(path):
                 continue
             try:
@@ -733,25 +733,29 @@ class AnalyzeLogHandler(BaseShellHandler):
                                 continue
                             try:
                                 if re.search(pat, line, re.IGNORECASE):
-                                    matches.append({
-                                        "file": os.path.basename(path),
-                                        "line_num": i + 1,
-                                        "pattern": pat,
-                                        "severity": p.get("severity", "P2"),
-                                        "suggestion": p.get("suggestion", ""),
-                                        "context": line[:150],
-                                    })
+                                    matches.append(
+                                        {
+                                            "file": os.path.basename(path),
+                                            "line_num": i + 1,
+                                            "pattern": pat,
+                                            "severity": p.get("severity", "P2"),
+                                            "suggestion": p.get("suggestion", ""),
+                                            "context": line[:150],
+                                        }
+                                    )
                                     break
                             except re.error:
                                 if pat in line:
-                                    matches.append({
-                                        "file": os.path.basename(path),
-                                        "line_num": i + 1,
-                                        "pattern": pat,
-                                        "severity": p.get("severity", "P2"),
-                                        "suggestion": p.get("suggestion", ""),
-                                        "context": line[:150],
-                                    })
+                                    matches.append(
+                                        {
+                                            "file": os.path.basename(path),
+                                            "line_num": i + 1,
+                                            "pattern": pat,
+                                            "severity": p.get("severity", "P2"),
+                                            "suggestion": p.get("suggestion", ""),
+                                            "context": line[:150],
+                                        }
+                                    )
                                     break
             except Exception as e:
                 self.stdio.verbose("semantic match {0} failed: {1}".format(path, e))
@@ -804,12 +808,14 @@ class AnalyzeLogHandler(BaseShellHandler):
                 message = getattr(self, "crash_error", "") or "crash thread"
             elif error_code_info:
                 message = error_code_info[1] if len(error_code_info) > 1 else ""
-            findings.append({
-                "ret_code": ret_code,
-                "severity": severity,
-                "summary": message,
-                "count": rec["count"],
-            })
+            findings.append(
+                {
+                    "ret_code": ret_code,
+                    "severity": severity,
+                    "summary": message,
+                    "count": rec["count"],
+                }
+            )
 
         out = {
             "by_ret_code": by_ret_code,

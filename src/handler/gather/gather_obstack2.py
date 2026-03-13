@@ -212,9 +212,7 @@ class GatherObstack2Handler(BaseShellHandler):
         is_empty_dir_res = is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio)
         is_empty_file_res = is_empty_file(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
         if is_empty_dir_res or is_empty_file_res:
-            self.stdio.warn(
-                "The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid)
-            )
+            self.stdio.warn("The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid))
             raise Exception("Directory or obstack file is empty, waiting for collection to complete")
 
     def __chmod_obstack2(self, ssh_client):
