@@ -42,7 +42,85 @@ jobs:
             /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
 
+  build-deb:
+    name: Build Ubuntu/Debian Package
+    needs: cancel
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev
+
+      - name: Get version and release info
+        id: version
+        run: |
+          VERSION=$(grep -E "^OBDIAG_VERSION" Makefile | head -1 | cut -d'=' -f2 | tr -d ' ' || echo "4.0.0")
+          RELEASE=$(date +%Y%m%d%H%M)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "release=${RELEASE}" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION}, release: ${RELEASE}"
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          pip3 install .[build]
+
+      - name: Build Ubuntu/Debian package
+        run: |
+          chmod +x ./ubuntu/build_ubuntu.sh
+          ./ubuntu/build_ubuntu.sh ${{ steps.version.outputs.version }} ${{ steps.version.outputs.release }}
+
+      - name: Upload DEB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obdiag-deb-package-native
+          path: ./oceanbase-diagnostic-tool_*.deb
+          retention-days: 3
+
+  test-deb-install:
+    name: Test DEB Installation on Ubuntu
+    needs: build-deb
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download DEB Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: obdiag-deb-package-native
+          path: .
+
+      - name: Install obdiag
+        run: |
+          sudo dpkg -i oceanbase-diagnostic-tool_*.deb
+          obdiag --version
+          obdiag --help
+
+      - name: Test obdiag commands
+        run: |
+          obdiag --version
+          obdiag --help
+          which obdiag
+
+      - name: Uninstall obdiag
+        run: |
+          sudo dpkg --remove oceanbase-diagnostic-tool
+          ! which obdiag || echo "obdiag still exists after uninstall"
+
   convert-to-deb:
+    name: Convert RPM to DEB (Legacy)
     needs: build-rpm
     runs-on: ubuntu-22.04
 

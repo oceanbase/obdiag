@@ -1,0 +1,25 @@
+Source: oceanbase-diagnostic-tool
+Section: devel
+Priority: optional
+Maintainer: OceanBase <oceanbase-public@list.alibaba-inc.com>
+Build-Depends: debhelper (>= 12), python3 (>= 3.11), python3-pip, python3-dev
+Standards-Version: 4.5.1
+Homepage: https://github.com/oceanbase/oceanbase-diagnostic-tool
+Vcs-Git: https://github.com/oceanbase/oceanbase-diagnostic-tool.git
+Vcs-Browser: https://github.com/oceanbase/oceanbase-diagnostic-tool
+
+Package: oceanbase-diagnostic-tool
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3 (>= 3.11)
+Recommends: openssh-client
+Description: OceanBase Diagnostic Tool
+ OceanBase Diagnostic Tool (obdiag) is a comprehensive diagnostic tool for
+ OceanBase database clusters. It provides cluster diagnosis, log gathering,
+ analysis, and various diagnostic features.
+ .
+ Features:
+  - Cluster health checking
+  - Log gathering and analysis
+  - Performance diagnostics
+  - Root cause analysis
+  - Configuration management

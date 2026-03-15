@@ -1,0 +1,41 @@
+#!/bin/bash
+# Post-install script for oceanbase-diagnostic-tool
+
+set -e
+
+# Create symlink
+if [ ! -e /usr/bin/obdiag ]; then
+    ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
+fi
+
+# Set permissions
+chmod -R 755 /opt/oceanbase-diagnostic-tool/*
+chmod +x /opt/oceanbase-diagnostic-tool/obdiag
+
+# Install bash completion
+if [ -f /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh ]; then
+    cp -f /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
+fi
+
+# Run backup script (handles existing config)
+if [ -f /opt/oceanbase-diagnostic-tool/obdiag_backup.sh ]; then
+    /opt/oceanbase-diagnostic-tool/obdiag_backup.sh || true
+fi
+
+# Run init script
+if [ -f /opt/oceanbase-diagnostic-tool/init.sh ]; then
+    /opt/oceanbase-diagnostic-tool/init.sh || true
+fi
+
+echo ""
+echo "=============================================="
+echo "OceanBase Diagnostic Tool installed successfully!"
+echo ""
+echo "Please run the following command to initialize:"
+echo ""
+echo "  source /opt/oceanbase-diagnostic-tool/init.sh"
+echo ""
+echo "Or restart your terminal."
+echo "=============================================="
+
+exit 0
