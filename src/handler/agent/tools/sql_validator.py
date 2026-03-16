@@ -23,24 +23,24 @@ from typing import Tuple
 def validate_sql(sql: str) -> Tuple[bool, str]:
     """
     Validate SQL query for safety - only allow read-only operations
-    
+
     Args:
         sql: SQL query string
-        
+
     Returns:
         Tuple of (is_valid, error_message)
     """
     if not sql or not sql.strip():
         return False, "Error: SQL query cannot be empty"
-    
+
     sql_normalized = sql.strip()
-    
+
     # Check for multiple statements
     semicolon_count = 0
     in_single_quote = False
     in_double_quote = False
     in_backtick = False
-    
+
     for char in sql_normalized:
         if char == "'" and not in_double_quote and not in_backtick:
             in_single_quote = not in_single_quote
@@ -50,13 +50,13 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
             in_backtick = not in_backtick
         elif char == ';' and not in_single_quote and not in_double_quote and not in_backtick:
             semicolon_count += 1
-    
+
     if semicolon_count > 1:
         return False, "Error: Only one SQL statement is allowed per query. Multiple statements detected."
-    
+
     sql_for_validation = sql_normalized.rstrip(';').strip()
     sql_upper = sql_for_validation.upper().strip()
-    
+
     # Allowed read-only SQL keywords
     allowed_keywords = [
         'SELECT',
@@ -66,7 +66,7 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
         'EXPLAIN',
         'WITH',
     ]
-    
+
     sql_starts_with_allowed = False
     starts_with_keyword = None
     for keyword in allowed_keywords:
@@ -74,10 +74,10 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
             sql_starts_with_allowed = True
             starts_with_keyword = keyword
             break
-    
+
     if not sql_starts_with_allowed:
         return False, f"Error: Only read-only SQL statements are allowed (SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, WITH). Your query starts with: {sql_for_validation[:50]}"
-    
+
     # WITH statements must be followed by SELECT
     if starts_with_keyword == 'WITH':
         if 'SELECT' not in sql_upper:
@@ -86,16 +86,13 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
         select_pos = sql_upper.find('SELECT', with_pos)
         if select_pos == -1:
             return False, "Error: WITH statements must contain a SELECT statement"
-    
+
     # Check for forbidden keywords
-    forbidden_keywords_pattern = re.compile(
-        r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b',
-        re.IGNORECASE
-    )
-    
+    forbidden_keywords_pattern = re.compile(r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b', re.IGNORECASE)
+
     if forbidden_keywords_pattern.search(sql_for_validation):
         return False, "Error: Dangerous SQL operations are not allowed (INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, etc.). Only read-only queries are permitted."
-    
+
     # Check UNION statements
     if 'UNION' in sql_upper:
         union_parts = re.split(r'\bUNION\s+(?:ALL\s+)?', sql_upper, flags=re.IGNORECASE)
@@ -103,5 +100,5 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
             part_stripped = part.strip()
             if not any(part_stripped.startswith(kw) for kw in allowed_keywords):
                 return False, "Error: UNION queries must only contain SELECT statements"
-    
+
     return True, ""

@@ -51,9 +51,7 @@ def _validate_config_args(arguments: Dict[str, Any]) -> Optional[str]:
             if not node.get("ip"):
                 missing.append(f"nodes[{i}].ip")
 
-    has_global_ssh = arguments.get("global_ssh_username") and (
-        arguments.get("global_ssh_password") or arguments.get("global_ssh_key_file")
-    )
+    has_global_ssh = arguments.get("global_ssh_username") and (arguments.get("global_ssh_password") or arguments.get("global_ssh_key_file"))
     has_global_home = arguments.get("global_home_path")
 
     if nodes and not has_global_ssh:
@@ -61,11 +59,7 @@ def _validate_config_args(arguments: Dict[str, Any]) -> Optional[str]:
             if not node.get("ssh_username") and not arguments.get("global_ssh_username"):
                 missing.append(f"global_ssh_username or nodes[{i}].ssh_username")
                 break
-            if (
-                not node.get("ssh_password")
-                and not arguments.get("global_ssh_password")
-                and not arguments.get("global_ssh_key_file")
-            ):
+            if not node.get("ssh_password") and not arguments.get("global_ssh_password") and not arguments.get("global_ssh_key_file"):
                 missing.append(f"global_ssh_password/global_ssh_key_file or nodes[{i}].ssh_password")
                 break
 

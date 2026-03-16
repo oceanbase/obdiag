@@ -34,11 +34,11 @@ OBDIAG_CONFIG_PATH = obdiag_path("config.yml")
 def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> Dict[str, Any]:
     """
     Load agent configuration from ~/.obdiag/ai.yml
-    
+
     Args:
         config_path: Optional path to config file (defaults to ~/.obdiag/ai.yml)
         stdio: Optional stdio for logging
-        
+
     Returns:
         Configuration dictionary with default values merged
     """
@@ -63,10 +63,10 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
             "prompt": "obdiag agent> ",
         },
     }
-    
+
     path = config_path or AGENT_CONFIG_PATH
     agent_config = {}
-    
+
     if os.path.exists(path):
         try:
             with open(path, 'r', encoding='utf-8') as f:
@@ -79,18 +79,18 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
     else:
         if stdio:
             stdio.verbose(f"Agent config file not found: {path}, using defaults")
-    
+
     # Merge configurations
     llm_config = {**default_config["llm"], **agent_config.get("llm", {})}
     ui_config = {**default_config["ui"], **agent_config.get("ui", {})}
-    
+
     # Handle MCP configuration
     mcp_config = {**default_config["mcp"]}
     user_mcp_config = agent_config.get("mcp", {})
-    
+
     if "enabled" in user_mcp_config:
         mcp_config["enabled"] = user_mcp_config["enabled"]
-    
+
     # Parse MCP servers - supports JSON string format
     if "servers" in user_mcp_config:
         servers_value = user_mcp_config["servers"]
@@ -105,7 +105,7 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
                 mcp_config["servers"] = {}
         elif isinstance(servers_value, dict) and servers_value:
             mcp_config["servers"] = servers_value
-    
+
     return {
         "llm": llm_config,
         "mcp": mcp_config,
@@ -116,11 +116,11 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
 def get_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> AgentConfig:
     """
     Load and return AgentConfig instance
-    
+
     Args:
         config_path: Optional path to config file
         stdio: Optional stdio for logging
-        
+
     Returns:
         AgentConfig instance
     """
@@ -131,19 +131,20 @@ def get_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> Ag
 # Backward compatibility alias
 load_ai_config = load_agent_config
 
+
 def get_model_string(config: AgentConfig) -> str:
     """
     Get the model string for Pydantic-AI based on provider and model name
-    
+
     Args:
         config: AgentConfig instance
-        
+
     Returns:
         Model string in format "provider:model" or custom base_url format
     """
     provider = config.provider.lower()
     model = config.model
-    
+
     # Map provider names to pydantic-ai model prefixes
     provider_map = {
         "openai": "openai",
@@ -152,6 +153,6 @@ def get_model_string(config: AgentConfig) -> str:
         "google": "gemini",
         "deepseek": "openai",  # DeepSeek uses OpenAI-compatible API
     }
-    
+
     prefix = provider_map.get(provider, "openai")
     return f"{prefix}:{model}"

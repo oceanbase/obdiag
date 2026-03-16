@@ -29,11 +29,14 @@ def __getattr__(name):
     """Lazy import for tool registration functions"""
     if name == 'register_database_tools':
         from src.handler.agent.tools.database import register_database_tools
+
         return register_database_tools
     elif name == 'register_file_tools':
         from src.handler.agent.tools.file_ops import register_file_tools
+
         return register_file_tools
     elif name == 'register_obdiag_tools':
         from src.handler.agent.tools.obdiag_commands import register_obdiag_tools
+
         return register_obdiag_tools
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

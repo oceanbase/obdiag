@@ -46,7 +46,7 @@ def expand_obdiag_path(path):
     用于处理配置中存储的 ~/.obdiag/xxx 格式路径。
     """
     if path and isinstance(path, str) and path.startswith("~/.obdiag"):
-        suffix = path[len("~/.obdiag"):].lstrip("/")
+        suffix = path[len("~/.obdiag") :].lstrip("/")
         return obdiag_path(suffix) if suffix else get_obdiag_workspace()
     return os.path.expanduser(path) if path else path
 

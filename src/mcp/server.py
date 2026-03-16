@@ -113,11 +113,7 @@ class MCPServer:
             },
             {
                 "name": "generate_config",
-                "description": (
-                    "Generate obdiag configuration file for OceanBase cluster. "
-                    "The config will be written to ~/.obdiag/config.yml. "
-                    "Existing config is automatically backed up."
-                ),
+                "description": ("Generate obdiag configuration file for OceanBase cluster. " "The config will be written to ~/.obdiag/config.yml. " "Existing config is automatically backed up."),
                 "inputSchema": {
                     "type": "object",
                     "properties": {

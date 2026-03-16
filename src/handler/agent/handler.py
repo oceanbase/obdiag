@@ -39,6 +39,7 @@ from src.handler.agent.models import AgentConfig, AgentDependencies
 try:
     from rich.console import Console
     from rich.markdown import Markdown
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -46,6 +47,7 @@ except ImportError:
 try:
     from prompt_toolkit import prompt as pt_prompt
     from prompt_toolkit.history import InMemoryHistory
+
     PROMPT_TOOLKIT_AVAILABLE = True
 except ImportError:
     PROMPT_TOOLKIT_AVAILABLE = False
@@ -118,10 +120,7 @@ class AiAgentHandler:
 
         api_key = config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError(
-                "OpenAI API key is required. "
-                "Set OPENAI_API_KEY or configure it in ~/.obdiag/ai.yml"
-            )
+            raise ValueError("OpenAI API key is required. " "Set OPENAI_API_KEY or configure it in ~/.obdiag/ai.yml")
         config.api_key = api_key
 
         if not config.base_url:
@@ -191,7 +190,8 @@ class AiAgentHandler:
             self.stdio.print("")
 
     def _show_help(self):
-        self.stdio.print("""
+        self.stdio.print(
+            """
 Available commands:
   help, ?                  - Show this help message
   exit, quit, q            - Exit the agent
@@ -212,7 +212,8 @@ You can also ask me questions in natural language, such as:
   - "执行根因分析"
   - "帮我生成obdiag配置文件"
   - "对 obdiag_test 集群巡检"  (agent 会传递 cluster_config_path="obdiag_test")
-""")
+"""
+        )
 
     def _use_cluster(self, config_path: str):
         """Switch the active cluster for the current session."""
