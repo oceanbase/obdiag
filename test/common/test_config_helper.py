@@ -54,8 +54,7 @@ class TestConfigHelper(unittest.TestCase):
         # 调用需要测试的方法
         config_helper.save_old_configuration(sample_config)
 
-        # 验证路径扩展是否被正确调用
-        mock_expanduser.assert_any_call('~/.obdiag/config.yml')
+        # 验证路径扩展是否被正确调用（save_old_configuration 仅对 config_backup_dir 调用 expand_obdiag_path -> expanduser）
         mock_expanduser.assert_any_call('~/mock/backup/dir')
 
         # 验证目录创建是否被正确调用
