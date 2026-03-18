@@ -297,7 +297,9 @@ class GatherPlanMonitorHandler(object):
     def __validate_database(self):
         """
         Validate that the database in db_conn exists before creating db_connector.
-        Uses sys_connector (no database specified) to avoid connection failure when database is wrong.
+        Uses user tenant connection (db_conn) because information_schema.SCHEMATA is
+        tenant-scoped in OceanBase: sys tenant can only see sys schemas, while user
+        databases (e.g. ad_marketing) live in user tenants (e.g. t_ad_marketing).
         When database name is wrong, report clear error and raise to terminate collection.
         See: https://github.com/oceanbase/obdiag/issues/1155
         """
@@ -306,13 +308,25 @@ class GatherPlanMonitorHandler(object):
         db_name = self.db_conn.get("database")
         db_name_escaped = db_name.replace("'", "''")
         try:
+            # Use user tenant connector (no database) to avoid connection failure when
+            # database is wrong. information_schema.SCHEMATA is tenant-level,
+            # sys tenant only sees sys schemas, user databases are in user tenants.
+            db_conn = OBConnector(
+                context=self.context,
+                ip=self.db_conn.get("host"),
+                port=self.db_conn.get("port"),
+                username=self.db_conn.get("user"),
+                password=self.db_conn.get("password") or "",
+                database=None,
+                timeout=100,
+            )
             sql_mysql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '{0}'".format(db_name_escaped)
             sql_oracle = "SELECT 1 FROM oceanbase.gv$database WHERE UPPER(database_name) = UPPER('{0}') LIMIT 1".format(db_name_escaped)
             result = None
             try:
-                result = self.sys_connector.execute_sql(sql_mysql)
+                result = db_conn.execute_sql(sql_mysql)
             except Exception:
-                result = self.sys_connector.execute_sql(sql_oracle)
+                result = db_conn.execute_sql(sql_oracle)
             if not result or len(result) == 0:
                 err_msg = "Database '{0}' does not exist. Please check --env database=.".format(db_name)
                 self.stdio.error(err_msg)
