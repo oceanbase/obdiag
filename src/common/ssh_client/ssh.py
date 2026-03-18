@@ -18,9 +18,7 @@
 import os
 import re
 import socket
-import signal
 import threading
-import time
 from src.common.ssh_client.docker_client import DockerClient
 from src.common.ssh_client.kubernetes_client import KubernetesClient
 from src.common.ssh_client.local_client import LocalClient

@@ -35,7 +35,7 @@ class LocalClient(object):
             if stderr:
                 self.stdio.error("run cmd = [{0}] on localhost, stderr=[{1}]".format(cmd, stderr))
             return stdout
-        except:
+        except (subprocess.SubprocessError, OSError):
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
 
     def run_get_stderr(self, cmd):
@@ -44,7 +44,7 @@ class LocalClient(object):
             out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
             stdout, stderr = out.communicate()
             return stderr
-        except:
+        except (subprocess.SubprocessError, OSError):
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
 
 
@@ -216,7 +216,7 @@ def is_support_arch(ssh_client):
             return True
         else:
             return False
-    except:
+    except Exception:
         return False
 
 
@@ -231,7 +231,7 @@ def get_observer_version(context):
         obcluster = context.cluster_config
         # by sql
         observer_version = get_observer_version_by_sql(context, obcluster)
-    except Exception as e:
+    except Exception:
         try:
             stdio.verbose("get observer version, by sql fail. by ssh")
             nodes = context.cluster_config.get("servers")
@@ -239,7 +239,7 @@ def get_observer_version(context):
                 sshclient = SshClient(context, nodes[0])
                 ob_install_dir = nodes[0].get("home_path")
                 observer_version = get_observer_version_by_ssh(sshclient, ob_install_dir, stdio)
-        except Exception as e:
+        except Exception:
             raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
     if observer_version == "":
         raise Exception("get observer version fail. Please check conf about observer's node or obconnector's info.")
@@ -258,7 +258,7 @@ def get_observer_commit_id(context):
         # by sql
         observer_commit_id = get_observer_commit_id_by_sql(context, obcluster)
         return observer_commit_id
-    except Exception as e:
+    except Exception:
         try:
             stdio.verbose("get observer commit id, by sql fail. by ssh")
             nodes = context.cluster_config.get("servers")
@@ -267,7 +267,7 @@ def get_observer_commit_id(context):
                 ob_install_dir = nodes[0].get("home_path")
                 observer_commit_id = get_observer_commit_id_by_ssh(sshclient, ob_install_dir, stdio)
                 return observer_commit_id
-        except Exception as e:
+        except Exception:
             raise Exception("get observer commit id fail. Please check conf about observer's node or obconnector's info.")
     if observer_commit_id == "":
         raise Exception("get observer commit id fail. Please check conf about observer's node or obconnector's info.")
@@ -330,7 +330,6 @@ def get_obproxy_version(context):
     get obproxy version
     :return:
     """
-    obproxy_version = ""
     stdio = context.stdio
     obproxy_nodes = context.obproxy_config.get("servers")
     if len(obproxy_nodes) < 1:

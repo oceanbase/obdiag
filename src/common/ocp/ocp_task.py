@@ -62,7 +62,7 @@ class Task:
 
     def retry(self):
         path = ocp_api.task + "/%s/retry" % self.id
-        response = requests.post(self.url + path, auth=self.auth)
+        requests.post(self.url + path, auth=self.auth)
 
     def get(self):
         path = ocp_api.task + "/%s" % self.id

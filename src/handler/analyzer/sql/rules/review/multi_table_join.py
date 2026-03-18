@@ -55,7 +55,7 @@ class MultiTableJoinRule(AbstractRule):
         try:
             visitor = Visitor()
             visitor.process(root, None)
-        except Exception as e:
+        except Exception:
             pass
 
         return visitor.match
@@ -80,7 +80,7 @@ class MultiTableJoinRule(AbstractRule):
         try:
             visitor = CountJoinVisitor()
             visitor.process(root, None)
-        except Exception as e:
+        except Exception:
             pass
         return visitor.join_count
 

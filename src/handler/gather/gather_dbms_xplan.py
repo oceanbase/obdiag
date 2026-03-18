@@ -278,7 +278,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
             ssh_client = None
             try:
                 ssh_client = SshClient(self.context, node)
-            except Exception as e:
+            except Exception:
                 self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
                 ssh_failed = True
                 resp["skip"] = True
@@ -404,7 +404,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
             pack_path = tup[5]
             try:
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
-            except:
+            except Exception:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather dbms_xplan.enable_opt_trace:\n" + tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

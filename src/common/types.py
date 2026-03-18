@@ -43,7 +43,7 @@ class ConfigItemType(object):
             self._format()
             if self.value == self.NULL:
                 self.value = self._origin
-        except:
+        except (ValueError, TypeError):
             raise Exception("'%s' is not %s" % (self._origin, self._type_str))
 
     @property
@@ -314,7 +314,7 @@ class Integer(ConfigItemType):
             _origin = str(self._origin)
             try:
                 self.value = self._value = int(_origin)
-            except:
+            except ValueError:
                 raise Exception('%s is not Integer' % _origin)
 
 

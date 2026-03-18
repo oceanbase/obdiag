@@ -197,7 +197,7 @@ class HttpTransport(MCPTransport):
     def start(self):
         # Test connection
         try:
-            response = requests.get(self.url, headers=self.headers, timeout=5)
+            requests.get(self.url, headers=self.headers, timeout=5)
             self._connected = True
         except Exception as e:
             raise RuntimeError(f"Failed to connect to {self.url}: {e}")

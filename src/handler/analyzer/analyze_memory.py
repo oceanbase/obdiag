@@ -195,7 +195,7 @@ class AnalyzeMemoryHandler(object):
             DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
             local_store_dir = "{0}/{1}".format(local_store_parent_dir, ssh_client.get_name().replace(":", "_"))
             DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
-        except Exception as e:
+        except Exception:
             resp["skip"] = True
             resp["error"] = "Please check the node conf about {0}".format(remote_ip)
             raise Exception("Please check the node conf about {0}".format(remote_ip))
