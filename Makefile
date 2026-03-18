@@ -16,7 +16,7 @@ OBUTILS_X64_URL := https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/downl
 PYTHON_MIN_MAJOR := 3
 PYTHON_MIN_MINOR := 11
 
-.PHONY: all help pack clean init format download_obstack clean_rpm check_python install_requirements copy_files backup_obdiag build_update_package
+.PHONY: all help pack clean init format download_obstack clean_rpm check_python install_requirements copy_files backup_obdiag build_update_package pack_ubuntu clean_deb
 
 # Default target
 all: help
@@ -27,9 +27,11 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  pack                 - Build RPM package"
+	@echo "  pack_ubuntu          - Build Ubuntu/Debian package (.deb)"
 	@echo "  build_update_package - Build plugins update package (data.tar + version.yaml)"
 	@echo "  clean                - Clean result files (gather/analyze packs)"
 	@echo "  clean_rpm            - Clean old RPM build data"
+	@echo "  clean_deb            - Clean old Debian build data"
 	@echo "  init                 - Initialize development environment"
 	@echo "  format               - Format code with black"
 	@echo "  download_obstack     - Download obstack tools"
@@ -50,6 +52,25 @@ pack: clean_rpm download_obstack
 	echo "rpm cp to: $$(pwd)/$$(basename $${rpm_path})"
 
 	@echo "Build RPM package success"
+
+# Build Ubuntu/Debian package
+# Note: requires dpkg-dev package, install with: sudo apt install dpkg-dev -y
+# Alternatively use: ./ubuntu/build_ubuntu.sh
+pack_ubuntu: clean_deb download_obstack
+	@echo "Building Ubuntu/Debian package (version: $(OBDIAG_VERSION))..."
+	@command -v dpkg-deb >/dev/null 2>&1 || (echo "Error: dpkg-deb not found. Please install: sudo apt install dpkg-dev -y" && exit 1)
+	@chmod +x $(PROJECT_PATH)/ubuntu/build_ubuntu.sh
+	@$(PROJECT_PATH)/ubuntu/build_ubuntu.sh $(OBDIAG_VERSION) $(RELEASE)
+
+# Clean old Debian build data
+clean_deb:
+	@echo "Cleaning old Debian build data..."
+	@rm -rf ./build_deb ./debian/oceanbase-diagnostic-tool
+	@rm -rf ./debian/*.debhelper ./debian/*.substvars ./debian/files
+	@rm -rf ./debian/debhelper-build-stamp
+	@rm -f ../*.deb ../*.changes ../*.buildinfo ./*.deb
+	@rm -rf ./dist ./build ./src/obdiag.py
+	@echo "Clean old Debian build data success"
 
 # Build plugins update package
 build_update_package:

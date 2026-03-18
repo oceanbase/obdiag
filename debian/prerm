@@ -1,0 +1,16 @@
+#!/bin/bash
+# Pre-remove script for oceanbase-diagnostic-tool
+
+set -e
+
+# Remove symlink
+if [ -L /usr/bin/obdiag ]; then
+    rm -f /usr/bin/obdiag
+fi
+
+# Remove bash completion
+if [ -f /etc/profile.d/obdiag.sh ]; then
+    rm -f /etc/profile.d/obdiag.sh
+fi
+
+exit 0

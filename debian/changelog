@@ -1,0 +1,6 @@
+oceanbase-diagnostic-tool (4.2.0-1) stable; urgency=medium
+
+  * Initial Ubuntu/Debian package release
+  * Support for Ubuntu 20.04+ and Debian 11+
+
+ -- OceanBase <oceanbase-public@list.alibaba-inc.com>  Sat, 15 Mar 2025 00:00:00 +0800
