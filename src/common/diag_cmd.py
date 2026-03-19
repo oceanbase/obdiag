@@ -24,6 +24,7 @@ import re
 import json
 from uuid import uuid1 as uuid, UUID
 from optparse import OptionParser, BadOptionError, Option, IndentedHelpFormatter
+from src.common.constant import get_obdiag_workspace, obdiag_path
 from src.common.core import ObdiagHome
 from src.common.result_type import ObdiagResult
 from src.common.stdio import IO
@@ -249,9 +250,9 @@ class ObdiagOriginCommand(BaseCommand):
 
     def start_check(self):
         current_work_path = os.getcwd()
-        home_path = os.path.expanduser("~")
+        workspace = get_obdiag_workspace()
         if '.' in OBDIAG_VERSION:
-            if current_work_path.startswith(home_path + "/.obdiag"):
+            if current_work_path.startswith(workspace):
                 if StringUtils.compare_versions_lower(OBDIAG_VERSION, "3.0.0"):
                     ROOT_IO.warn("Currently executing in obdiag home directory!")
                 else:
@@ -264,7 +265,7 @@ class ObdiagOriginCommand(BaseCommand):
         trace_id = uuid()
         ret = False
         try:
-            log_directory = os.path.join(os.path.expanduser("~"), ".obdiag", "log")
+            log_directory = obdiag_path("log")
             if not os.path.exists(log_directory):
                 os.makedirs(log_directory, exist_ok=True)
             log_path = os.path.join(log_directory, 'obdiag.log')
@@ -274,7 +275,7 @@ class ObdiagOriginCommand(BaseCommand):
             ROOT_IO.verbose('cmd: %s' % self.prev_cmd)
             ROOT_IO.verbose('opts: %s' % self.opts)
             custom_config_env_list = Util.get_option(self.opts, 'config')
-            config_path = os.path.expanduser('~/.obdiag/config.yml')
+            config_path = obdiag_path('config.yml')
             config_password = Util.get_option(self.opts, 'config_password')
             if custom_config_env_list is None:
                 custom_config = Util.get_option(self.opts, 'c')
@@ -370,7 +371,7 @@ class DisplayTraceCommand(ObdiagOriginCommand):
 
         if not self.cmds:
             return self._show_help()
-        log_dir = os.path.expanduser('~/.obdiag/log')
+        log_dir = obdiag_path('log')
         trace_id = self.cmds[0]
         ROOT_IO.verbose('Get log by trace_id')
         try:
@@ -447,7 +448,7 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -471,7 +472,7 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--redact', type='string', help='desensitization options', default='')
 
@@ -489,7 +490,7 @@ class ObdiagGatherParameterCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherParameterCommand, self).__init__('parameter', 'Gather OceanBase parameters from OceanBase database')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -506,7 +507,7 @@ class ObdiagGatherVariableCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherVariableCommand, self).__init__('variable', 'Gather OceanBase variables from OceanBase database')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -523,7 +524,7 @@ class ObdiagGatherSysStatCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherSysStatCommand, self).__init__('sysstat', 'Gather Host information')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -541,7 +542,7 @@ class ObdiagGatherStackCommand(ObdiagOriginCommand):
         super(ObdiagGatherStackCommand, self).__init__('stack', 'Gather stack')
 
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -561,7 +562,7 @@ class ObdiagGatherPerfCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--scope', type='string', help="perf type constrains, choices=[sample, flame, pstack, all]", default='all')
         self.parser.add_option('--count', type='int', help="perf event period to sample >= 1000000", default='100000000')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -581,7 +582,7 @@ class ObdiagGatherSlogCommand(ObdiagOriginCommand):
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -601,7 +602,7 @@ class ObdiagGatherClogCommand(ObdiagOriginCommand):
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -623,7 +624,7 @@ class ObdiagGatherAwrCommand(ObdiagOriginCommand):
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -648,7 +649,7 @@ class ObdiagGatherPlanMonitorCommand(ObdiagOriginCommand):
             help='env options Format: --env key=value. Multiple --env options can be specified. For database connection, use: --env host=127.0.0.1 --env port=2881 --env user=test@test --env password=****** --env database=test',
         )
         self.parser.add_option('--skip', type='string', help="choices=[dbms_xplan]")
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -671,7 +672,7 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--grep', action="append", type='string', help="specify keywords constrain")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -696,7 +697,7 @@ class ObdiagGatherOmsLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--recent_count', type='int', help='gather only the most recent N log files. default: 0 (disabled). when > 0, only the most recent N files will be gathered, and from/to/since parameters will be ignored', default=0)
         self.parser.add_option('--oms_component_id', type='string', help='OMS component id for CDC logs, format: x.x.x.x-123')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -738,7 +739,7 @@ class ObdiagGatherSceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--skip_type', type='string', help='The types of gather to be skipped, choices=[ssh, sql]')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--redact', type='string', help='desensitization options', default='')
 
@@ -765,7 +766,7 @@ class ObdiagGatherAshReportCommand(ObdiagOriginCommand):
         self.parser.add_option('--svr_ip', type='string', help='The IP address of the observer to be sampled. (need 4.3.5.0 or higher)')
         self.parser.add_option('--svr_port', type='string', help='The port of the observer to be sampled. (need 4.3.5.0 or higher)')
         self.parser.add_option('--tenant_id', type='string', help='The tenant ID to be sampled. (need 4.3.5.0 or higher)')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -785,7 +786,7 @@ class ObdiagGatherTableDumpHandler(ObdiagOriginCommand):
         self.parser.add_option('--user', type='string', help="The username to use for the database connection.")
         self.parser.add_option('--password', type='string', help="The password for the database user. If not specified, an attempt will be made to connect without a password.", default='')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./obdiag_gather_report')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -811,7 +812,7 @@ class ObdiagGatherDBMSXPLANHandler(ObdiagOriginCommand):
             type='string',
             help='env options Format: --env key=value. Multiple --env options can be specified.',
         )
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -829,7 +830,7 @@ class ObdiagGatherCoreCommand(ObdiagOriginCommand):
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes before to now. format: <n><m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -863,7 +864,7 @@ class ObdiagDisplaySceneRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--env', action="append", type='string', help='env options Format: --env key=value')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -888,7 +889,7 @@ class ObdiagAnalyzeLogCommand(ObdiagOriginCommand):
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
         self.parser.add_option('--tenant_id', type='string', help='filter errors by specific tenant_id. By default, statistics are shown for all tenants.')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -911,7 +912,7 @@ class ObdiagAnalyzeQueueCommand(ObdiagOriginCommand):
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--tenant', type='string', help="Specify tenantname ")
         self.parser.add_option('--queue', type='int', help="quene size ", default=50)
@@ -937,7 +938,7 @@ class ObdiagAnalyzeFltTraceCommand(ObdiagOriginCommand):
         self.parser.add_option('--output', type='string', help="Print the result to the maximum output line on the screen", default=60)
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -954,7 +955,7 @@ class ObdiagAnalyzeParameterDiffCommand(ObdiagOriginCommand):
         super(ObdiagAnalyzeParameterDiffCommand, self).__init__('diff', 'Analyze the parameter configurations between observers and identify the parameters with different values among the observers')
         self.parser.add_option('--file', type='string', help="specify initialization parameter file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -971,7 +972,7 @@ class ObdiagAnalyzeParameterDefaultCommand(ObdiagOriginCommand):
         super(ObdiagAnalyzeParameterDefaultCommand, self).__init__('default', 'Analyze the parameter to identify parameters with non-default values')
         self.parser.add_option('--file', type='string', help="specify initialization parameter file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -995,7 +996,7 @@ class ObdiagAnalyzeVariableDiffCommand(ObdiagOriginCommand):
         super(ObdiagAnalyzeVariableDiffCommand, self).__init__('diff', 'Analyze and identify variables that have changed compared to the specified variable file')
         self.parser.add_option('--file', type='string', help="specify initialization variable file")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1023,7 +1024,7 @@ class ObdiagAnalyzeMemoryCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--version', type="string", help='specify the OceanBase version of the log file to be analyzed.This option is only used for offline analysis.')
 
@@ -1048,7 +1049,7 @@ class ObdiagAnalyzeIndexSpaceCommand(ObdiagOriginCommand):
         self.parser.add_option('--table_name', type='string', help="table name")
         self.parser.add_option('--index_name', type='string', help="specify the index name if an index already exists in the table")
         self.parser.add_option('--column_names', type='string', help="specify the column names of index that have not been created yet;eg:--column_names=c1,c2,c3")
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1077,7 +1078,7 @@ class ObdiagAnalyzeSQLCommand(ObdiagOriginCommand):
         self.parser.add_option('--limit', type='string', help="The limit on the number of data rows returned by sql_audit for the tenant.", default=2000)
         self.parser.add_option('--store_dir', type='string', help='the dir to store result, current dir by default.', default='./obdiag_analyze/')
         self.parser.add_option('--elapsed_time', type='string', help='The minimum threshold for filtering execution time, measured in microseconds.', default=100000)
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1101,7 +1102,7 @@ class ObdiagAnalyzeSQLReviewCommand(ObdiagOriginCommand):
         self.parser.add_option('--level', type='string', help="The alarm level, optional parameters [critical, warn, notice, ok]", default='notice')
         self.parser.add_option('--output', type='string', help="The format of the output results, choices=[json, html]", default='html')
         self.parser.add_option('--store_dir', type='string', help='the dir to store result, current dir by default.', default='./obdiag_analyze/')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1123,7 +1124,7 @@ class ObdiagCheckRunCommand(ObdiagOriginCommand):
         self.parser.add_option('--obproxy_tasks', type='string', help="select obproxy_tasks. when select 'obproxy_tasks', ignore 'obproxy_cases'")
         self.parser.add_option('--store_dir', type='string', help='the dir to store check result, current dir by default.', default='./check_report/')
         self.parser.add_option('--report_type', type='string', help='The type of the check report, support "table", "json", "xml", "yaml". "html", default table', default='table')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--env', action="append", type='string', help='env of scene')
 
@@ -1141,7 +1142,7 @@ class ObdiagCheckListCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagCheckListCommand, self).__init__('list', 'check list')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('--all', action='store_true', help='show all task amd all cases details including task info')
 
@@ -1162,7 +1163,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
         self.parser.add_option('--store_dir', type='string', help='the dir to store rca result, current dir by default.', default='./obdiag_rca/')
         self.parser.add_option('--env', action='callback', type='string', callback=self._env_scene, help='env of scene')
         self.parser.add_option('--report_type', type='string', help='The type of the rca report, support "table", "json", "xml", "yaml", "html". default table', default='table')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.scene_input_param_map = {}
 
@@ -1302,7 +1303,7 @@ class ObdiagToolIoPerformanceCommand(ObdiagOriginCommand):
         super(ObdiagToolIoPerformanceCommand, self).__init__('io_performance', 'obdiag tool io_performance. Check disk IO performance (await) using tsar')
         self.parser.add_option('--disk', type='string', help="disk device name (e.g., sda, sdb) or 'clog' or 'data' to auto-detect")
         self.parser.add_option('--date', type='string', help="date for historical data collection (format: YYYYMMDD, e.g., 20250808)")
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1314,27 +1315,37 @@ class ObdiagToolIoPerformanceCommand(ObdiagOriginCommand):
         return obdiag.tool_io_performance(self.opts)
 
 
-class ObdiagToolAiAssistantCommand(ObdiagOriginCommand):
+class ObdiagAgentCommand(ObdiagOriginCommand):
 
     def __init__(self):
-        super(ObdiagToolAiAssistantCommand, self).__init__('ai_assistant', 'obdiag tool ai_assistant. Interactive AI assistant for obdiag diagnostic (BETA)')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        super(ObdiagAgentCommand, self).__init__('agent', 'obdiag agent. Interactive diagnostic agent for obdiag (BETA)')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
+        self.parser.add_option('-m', '--message', type='string', help='single-shot message to send to the agent', default=None)
+        self.parser.add_option('--resume', type='string', help='resume a previous session by ID (see "sessions" command)', default=None)
+        self.parser.add_option('-y', '--yolo', action='store_true', dest='yolo', help='auto-approve all tools (for testing with -m)', default=False)
 
     def init(self, cmd, args):
-        super(ObdiagToolAiAssistantCommand, self).init(cmd, args)
-        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        super(ObdiagAgentCommand, self).init(cmd, args)
+        self.parser.set_usage(
+            '%s [options]\n\n'
+            '  Interactive mode:   obdiag agent\n'
+            '  Single-shot mode:   obdiag agent -m "帮我巡检一下集群"\n'
+            '  Resume session:     obdiag agent --resume 20260313_142055\n'
+            '  Resume + message:   obdiag agent --resume 20260313_142055 -m "这些文件有多大"  (for testing)\n'
+            '  Target cluster:     obdiag agent -c obdiag_test' % self.prev_cmd
+        )
         return self
 
     def _do_command(self, obdiag):
-        return obdiag.tool_ai_assistant(self.opts)
+        return obdiag.agent(self.opts)
 
 
 class ObdiagToolConfigCheckCommand(ObdiagOriginCommand):
 
     def __init__(self):
         super(ObdiagToolConfigCheckCommand, self).__init__('config_check', 'obdiag tool config_check. Check if --config parameters are valid')
-        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options to check. Format: --config key=value')
 
     def init(self, cmd, args):
@@ -1429,7 +1440,6 @@ class ToolCommand(MajorCommand):
         super(ToolCommand, self).__init__('tool', 'obdiag tool')
         self.register_command(ObdiagToolCryptoConfigCommand())
         self.register_command(ObdiagToolIoPerformanceCommand())
-        self.register_command(ObdiagToolAiAssistantCommand())
         self.register_command(ObdiagToolConfigCheckCommand())
 
 
@@ -1445,6 +1455,7 @@ class MainCommand(MajorCommand):
         self.register_command(ObdiagRCACommand())
         self.register_command(ObdiagConfigCommand())
         self.register_command(ObdiagUpdateCommand())
+        self.register_command(ObdiagAgentCommand())
         self.register_command(ToolCommand())
         self.parser.version = get_obdiag_version()
         self.parser._add_version_option()

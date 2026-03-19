@@ -27,6 +27,7 @@ import oyaml as yaml
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from src.common.constant import expand_obdiag_path
 from src.common.ob_connector import OBConnector
 from src.common.scene import get_version_by_type
 from src.common.ssh_client.ssh_connection_manager import SSHConnectionManager
@@ -91,7 +92,7 @@ class CheckHandler:
         report_config = check_config.get("report", {})
 
         self.max_workers = check_config.get("max_workers", DEFAULT_MAX_WORKERS)
-        self.work_path = os.path.expanduser(check_config.get("work_path") or "~/.obdiag/check")
+        self.work_path = expand_obdiag_path(check_config.get("work_path") or "~/.obdiag/check")
         self.export_report_path = os.path.expanduser(report_config.get("report_path") or "./check_report/")
         self.export_report_type = report_config.get("export_type") or "table"
         self.ignore_version = check_config.get("ignore_version") or False

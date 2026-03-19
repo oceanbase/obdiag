@@ -19,6 +19,7 @@
 import os
 import oyaml as yaml
 
+from src.common.constant import expand_obdiag_path
 from src.common.result_type import ObdiagResult
 from src.common.tool import Util, DynamicLoading
 
@@ -30,7 +31,7 @@ class CheckListHandler:
         self.context = context
         self.options = self.context.options
         self.stdio = context.stdio
-        self.work_path = os.path.expanduser(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
+        self.work_path = expand_obdiag_path(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
 
     def handle(self):
         """List all available check cases and tasks."""
@@ -132,7 +133,7 @@ class CheckListHandler:
             dict: Task name -> task info mapping (includes 'info' and optional 'issue_link')
         """
         self.stdio.verbose("get all tasks by target: {0}".format(target))
-        current_path = os.path.join(os.path.expanduser("~/.obdiag/check/tasks"), target)
+        current_path = os.path.join(self.work_path, "tasks", target)
         tasks_info = {}
 
         for root, dirs, files in os.walk(current_path):

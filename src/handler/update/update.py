@@ -18,7 +18,7 @@
 import os
 import shutil
 import time
-from src.common.constant import const
+from src.common.constant import const, obdiag_path
 from src.common.tool import FileUtil
 from src.common.tool import NetUtils
 from src.common.tool import StringUtils
@@ -52,16 +52,16 @@ class UpdateHandler:
             force = self.force
             remote_server = const.UPDATE_REMOTE_SERVER
             remote_version_file_name = const.UPDATE_REMOTE_VERSION_FILE_NAME
-            local_version_file_name = os.path.expanduser('~/.obdiag/remote_version.yaml')
+            local_version_file_name = obdiag_path('remote_version.yaml')
             remote_update_file_name = const.UPDATE_REMOTE_UPDATE_FILE_NAME
-            local_update_file_name = os.path.expanduser('~/.obdiag/data.tar')
-            local_update_log_file_name = os.path.expanduser('~/.obdiag/data_version.yaml')
+            local_update_file_name = obdiag_path('data.tar')
+            local_update_log_file_name = obdiag_path('data_version.yaml')
             if file_path and file_path != "":
                 return self.handle_update_offline(file_path)
             if NetUtils.network_connectivity(remote_server) is False:
                 self.stdio.warn("[update] network connectivity failed. Please check your network connection.")
                 return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="network connectivity failed. Please check your network connection.")
-            NetUtils.download_file(remote_version_file_name, os.path.expanduser(local_version_file_name))
+            NetUtils.download_file(remote_version_file_name, local_version_file_name)
             with open(local_version_file_name, 'r') as file:
                 remote_data = yaml.safe_load(file)
             if remote_data.get("obdiag_version") is None:
@@ -89,8 +89,8 @@ class UpdateHandler:
             # need update?
             # get local sha
             if force is False:
-                if os.path.exists(os.path.expanduser(local_update_log_file_name)):
-                    with open(os.path.expanduser(local_update_log_file_name), 'r') as file:
+                if os.path.exists(local_update_log_file_name):
+                    with open(local_update_log_file_name, 'r') as file:
                         local_data = yaml.safe_load(file)
                     if local_data.get("remote_tar_sha") is not None and local_data.get("remote_tar_sha") == self.remote_tar_sha:
                         self.stdio.warn("[update] remote_tar_sha as local_tar_sha. No need to update.")
@@ -108,25 +108,30 @@ class UpdateHandler:
                 return
             # move old files
             ## check_old_files
-            if os.path.exists(os.path.expanduser("~/.obdiag/check.d")):
-                shutil.rmtree(os.path.expanduser("~/.obdiag/check.d"))
-            if os.path.exists(os.path.expanduser("~/.obdiag/check")):
-                os.rename(os.path.expanduser("~/.obdiag/check"), os.path.expanduser("~/.obdiag/check.d"))
+            check_d = obdiag_path("check.d")
+            check_dir = obdiag_path("check")
+            if os.path.exists(check_d):
+                shutil.rmtree(check_d)
+            if os.path.exists(check_dir):
+                os.rename(check_dir, check_d)
             ## gather
-            if os.path.exists(os.path.expanduser("~/.obdiag/gather.d")):
-                shutil.rmtree(os.path.expanduser("~/.obdiag/gather.d"))
-            if os.path.exists(os.path.expanduser("~/.obdiag/gather")):
-                os.rename(os.path.expanduser("~/.obdiag/gather"), os.path.expanduser("~/.obdiag/gather.d"))
-
+            gather_d = obdiag_path("gather.d")
+            gather_dir = obdiag_path("gather")
+            if os.path.exists(gather_d):
+                shutil.rmtree(gather_d)
+            if os.path.exists(gather_dir):
+                os.rename(gather_dir, gather_d)
             ## rca
-            if os.path.exists(os.path.expanduser("~/.obdiag/rca.d")):
-                shutil.rmtree(os.path.expanduser("~/.obdiag/rca.d"))
-            if os.path.exists(os.path.expanduser("~/.obdiag/rca")):
-                os.rename(os.path.expanduser("~/.obdiag/rca"), os.path.expanduser("~/.obdiag/rca.d"))
+            rca_d = obdiag_path("rca.d")
+            rca_dir = obdiag_path("rca")
+            if os.path.exists(rca_d):
+                shutil.rmtree(rca_d)
+            if os.path.exists(rca_dir):
+                os.rename(rca_dir, rca_d)
             # decompression remote files
-            FileUtil.extract_tar(os.path.expanduser(local_update_file_name), os.path.expanduser("~/.obdiag"))
+            FileUtil.extract_tar(local_update_file_name, obdiag_path())
             # update data save
-            with open(os.path.expanduser("~/.obdiag/data_version.yaml"), 'w') as f:
+            with open(obdiag_path("data_version.yaml"), 'w') as f:
                 yaml.dump({"data_update_time": int(time.time()), "remote_tar_sha": self.remote_tar_sha}, f)
             self.stdio.print("[update] Successfully updated. The original data is stored in the *. d folder.")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "Successfully updated. The original data is stored in the *. d folder."})
@@ -145,24 +150,30 @@ class UpdateHandler:
             self.stdio.error('{0} is not a tar file.'.format(file))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="{0} is not a tar file.".format(file))
         ## check_old_files
-        if os.path.exists(os.path.expanduser("~/.obdiag/check.d")):
-            shutil.rmtree(os.path.expanduser("~/.obdiag/check.d"))
-        if os.path.exists(os.path.expanduser("~/.obdiag/check")):
-            os.rename(os.path.expanduser("~/.obdiag/check"), os.path.expanduser("~/.obdiag/check.d"))
+        check_d = obdiag_path("check.d")
+        check_dir = obdiag_path("check")
+        if os.path.exists(check_d):
+            shutil.rmtree(check_d)
+        if os.path.exists(check_dir):
+            os.rename(check_dir, check_d)
         ## gather
-        if os.path.exists(os.path.expanduser("~/.obdiag/gather.d")):
-            shutil.rmtree(os.path.expanduser("~/.obdiag/gather.d"))
-        if os.path.exists(os.path.expanduser("~/.obdiag/gather")):
-            os.rename(os.path.expanduser("~/.obdiag/gather"), os.path.expanduser("~/.obdiag/gather.d"))
+        gather_d = obdiag_path("gather.d")
+        gather_dir = obdiag_path("gather")
+        if os.path.exists(gather_d):
+            shutil.rmtree(gather_d)
+        if os.path.exists(gather_dir):
+            os.rename(gather_dir, gather_d)
         ## rca
-        if os.path.exists(os.path.expanduser("~/.obdiag/rca.d")):
-            shutil.rmtree(os.path.expanduser("~/.obdiag/rca.d"))
-        if os.path.exists(os.path.expanduser("~/.obdiag/rca")):
-            os.rename(os.path.expanduser("~/.obdiag/rca"), os.path.expanduser("~/.obdiag/rca.d"))
+        rca_d = obdiag_path("rca.d")
+        rca_dir = obdiag_path("rca")
+        if os.path.exists(rca_d):
+            shutil.rmtree(rca_d)
+        if os.path.exists(rca_dir):
+            os.rename(rca_dir, rca_d)
         # decompression remote files
-        FileUtil.extract_tar(os.path.expanduser(file), os.path.expanduser("~/.obdiag"))
+        FileUtil.extract_tar(file, obdiag_path())
         # update data save
-        with open(os.path.expanduser("~/.obdiag/data_version.yaml"), 'w') as f:
+        with open(obdiag_path("data_version.yaml"), 'w') as f:
             yaml.dump({"data_update_time": int(time.time()), "remote_tar_sha": self.remote_tar_sha}, f)
         self.stdio.print("[update] Successfully updated. The original data is stored in the *. d folder.")
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"msg": "Successfully updated. The original data is stored in the *. d folder."})

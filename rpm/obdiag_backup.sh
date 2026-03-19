@@ -37,7 +37,7 @@ mkdir -p "$BACKUP_DIR"
 DIRS=("display" "check" "gather" "rca")
 
 # List of files to be backed up
-FILES=("ai.yml" "config.yml")
+FILES=("config/agent.yml" "config.yml")
 
 # Check if any of the directories contain files or backup files exist
 should_backup=false
@@ -99,8 +99,14 @@ done
 for file in "${FILES[@]}"; do
     # Check if the source file exists
     if [ -f "$SOURCE_DIR$file" ]; then
-        # Copy the file into the top-level directory within the temporary backup directory
-        cp -p "$SOURCE_DIR$file" "$TOP_LEVEL_DIR/"
+        # Preserve directory structure (e.g. config/agent.yml)
+        file_dir=$(dirname "$file")
+        if [ -n "$file_dir" ] && [ "$file_dir" != "." ]; then
+            mkdir -p "$TOP_LEVEL_DIR/$file_dir"
+            cp -p "$SOURCE_DIR$file" "$TOP_LEVEL_DIR/$file_dir/"
+        else
+            cp -p "$SOURCE_DIR$file" "$TOP_LEVEL_DIR/"
+        fi
         echo "Copied $file to temporary backup directory under ${BASE_NAME}_$TIMESTAMP."
     else
         echo "Source file $SOURCE_DIR$file does not exist. Skipping."

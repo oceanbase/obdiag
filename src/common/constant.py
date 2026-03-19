@@ -17,6 +17,39 @@
 """
 import os
 
+# 环境变量名，用于覆盖 obdiag 工作空间路径
+OBDIAG_HOME_ENV = "OBDIAG_HOME"
+# 默认工作空间路径（当 OBDIAG_HOME 未设置时使用）
+OBDIAG_WORKSPACE_DEFAULT = "~/.obdiag"
+
+
+def get_obdiag_workspace():
+    """
+    获取 obdiag 工作空间路径（已展开的绝对路径）。
+    优先使用环境变量 OBDIAG_HOME，未设置时使用默认值 ~/.obdiag。
+    """
+    return os.path.expanduser(os.environ.get(OBDIAG_HOME_ENV, OBDIAG_WORKSPACE_DEFAULT))
+
+
+def obdiag_path(*parts):
+    """
+    基于 obdiag 工作空间构建路径。
+    例如: obdiag_path("config.yml") -> {workspace}/config.yml
+         obdiag_path("log", "obdiag.log") -> {workspace}/log/obdiag.log
+    """
+    return os.path.join(get_obdiag_workspace(), *parts)
+
+
+def expand_obdiag_path(path):
+    """
+    展开路径中的 ~/.obdiag 为实际工作空间路径。
+    用于处理配置中存储的 ~/.obdiag/xxx 格式路径。
+    """
+    if path and isinstance(path, str) and path.startswith("~/.obdiag"):
+        suffix = path[len("~/.obdiag") :].lstrip("/")
+        return obdiag_path(suffix) if suffix else get_obdiag_workspace()
+    return os.path.expanduser(path) if path else path
+
 
 class _const:
     class ConstError(TypeError):
@@ -58,7 +91,7 @@ const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK = "2.0.0"
 
 const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN = "4.0.0"
 
-const.DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser('~'), ".obdiag/config.yml")
+const.DEFAULT_CONFIG_PATH = obdiag_path("config.yml")
 
 const.FLT_TRACE_TREE_MAX_RECURSION = 5
 const.FLT_TRACE_TREE_TOP_LEAF = 5
@@ -81,11 +114,11 @@ const.OBDIAG_RCA_DEFAULT_CONFIG = {
         "result_path": "./obdiag_rca/",
     }
 }
-const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemetry.txt")
+const.OBDIAG_TELEMETRY_FILE_NAME = obdiag_path(".obdiag_telemetry.txt")
 const.TELEMETRY_CONTENT_REPORTER = "obdiag"
 const.TELEMETRY_URL = "openwebapi.oceanbase.com"
 const.TELEMETRY_PATH = "/api/web/oceanbase/report"
 const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
 const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
 const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'
-const.RCA_WORK_PATH = '~/.obdiag/rca'
+const.RCA_WORK_PATH = obdiag_path("rca")

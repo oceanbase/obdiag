@@ -16,7 +16,7 @@
 @desc:
 """
 import os.path
-from src.common.constant import const
+from src.common.constant import const, expand_obdiag_path
 from src.common.tool import DynamicLoading
 from src.common.tool import Util
 from src.common.result_type import ObdiagResult
@@ -29,8 +29,9 @@ class RcaScenesListHandler:
 
         if not work_path:
             work_path = const.RCA_WORK_PATH
-        if os.path.exists(os.path.expanduser(work_path)):
-            self.work_path = os.path.expanduser(work_path)
+        expanded = expand_obdiag_path(work_path) if isinstance(work_path, str) else work_path
+        if os.path.exists(expanded):
+            self.work_path = expanded
         else:
             self.stdio.warn("input rca work_path not exists: {0}, use default path {1}".format(work_path, const.RCA_WORK_PATH))
             self.work_path = const.RCA_WORK_PATH

@@ -11,11 +11,10 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/12/08
+@time: 2026/03/10
 @file: __init__.py
-@desc: AI Assistant module initialization
+@desc: MCP (Model Context Protocol) server module for obdiag.
+
+       This package exposes obdiag capabilities over MCP so that external
+       agents (Cursor, Claude Desktop, etc.) can use obdiag as a tool server.
 """
-
-from src.handler.ai.obi_client import OBIClient
-
-__all__ = ['OBIClient']

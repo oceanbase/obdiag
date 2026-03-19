@@ -15,20 +15,56 @@
 @file: bug_469.py
 @desc: Check glibc version - must be less than 2.34
        GitHub issue: https://github.com/oceanbase/obdiag/issues/469
+       Default: skip check. Only check when version in affected ranges.
+       See _needs_glibc_check() for check ranges.
 """
 
 from src.handler.check.check_task import TaskBase
+from src.common.tool import StringUtils
 
 
 class Bug469Task(TaskBase):
     def init(self, context, report):
         super().init(context, report)
 
+    def _needs_glibc_check(self):
+        """
+        Default: skip. Returns True only when version is in affected range (need check).
+        Below 4.0.0.0: skip. 4.0.0.0 ~ 4.2.1.9: check (4.2.1.10 skip).
+        Check ranges:
+          - 4.0.0.0 ~ 4.2.1.9
+          - 4.2.5.0
+          - 4.2.2.x, 4.2.3.x, 4.2.4.x (all)
+          - 4.3.0.x, 4.3.1.x, 4.3.2.x, 4.3.3.x (all)
+        Skip: < 4.0.0.0, 4.2.1.10+, 4.2.5.1+, 4.3.4.x (entire branch)
+        """
+        if not self.observer_version:
+            return False
+        if not super().check_ob_version_min("4.0.0.0"):
+            return False
+        try:
+            parts = self.observer_version.split(".")
+            if len(parts) < 4:
+                return False
+            # Skip 4.2.1.10+
+            if parts[0] == "4" and parts[1] == "2" and parts[2] == "1":
+                return not StringUtils.compare_versions_greater(self.observer_version, "4.2.1.9")
+            # Skip 4.2.5.1+, check only 4.2.5.0
+            if parts[0] == "4" and parts[1] == "2" and parts[2] == "5":
+                return not StringUtils.compare_versions_greater(self.observer_version, "4.2.5.0")
+            # Skip 4.3.4.x entirely
+            if parts[0] == "4" and parts[1] == "3" and parts[2] == "4":
+                return False
+            # Check all other versions (4.2.2, 4.2.3, 4.2.4, 4.3.0, 4.3.1, 4.3.2, 4.3.3, etc.)
+            return True
+        except (ValueError, IndexError):
+            return False
+
     def execute(self):
         try:
-            # Check version requirement: >= 3.0.0
-            if not super().check_ob_version_min("3.0.0.0"):
-                self.stdio.verbose("Version not supported, skip check")
+            # Default: skip. Only check when in affected range
+            if not self._needs_glibc_check():
+                self.stdio.verbose("OB {0} not in glibc check range, skip".format(self.observer_version))
                 return
 
             for node in self.observer_nodes:
@@ -70,7 +106,7 @@ class Bug469Task(TaskBase):
     def get_task_info(self):
         return {
             "name": "bug_469",
-            "info": "Check glibc version - must be less than 2.34",
+            "info": "Check glibc version - must be less than 2.34 (default skip, check only in affected ranges)",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/469",
         }
 

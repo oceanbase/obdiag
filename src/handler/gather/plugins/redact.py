@@ -18,6 +18,7 @@ import os
 import shutil
 import tarfile
 
+from src.common.constant import obdiag_path
 from src.common.import_module import import_modules
 import multiprocessing as mp
 
@@ -30,7 +31,7 @@ class Redact:
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
         self.stdio.verbose("Redact output_file_dir: {0}".format(self.output_file_dir))
-        self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
+        self.module_dir = obdiag_path('gather', 'redact')
         self.inner_config = self.context.inner_config
 
         # init all redact

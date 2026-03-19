@@ -52,7 +52,8 @@ mkdir -p ${OBDIAG_HOME}/display
 find ${OBDIAG_HOME}/rca -maxdepth 1 -name "*_scene.py" -type f -exec rm -f {} + 2>/dev/null
 
 \cp -rf ${WORK_DIR}/plugins/*  ${OBDIAG_HOME}/
-\cp -rf ${WORK_DIR}/conf/ai.yml.example ${OBDIAG_HOME}/ai.yml.example
+mkdir -p ${OBDIAG_HOME}/config
+\cp -rf ${WORK_DIR}/conf/agent.yml.example ${OBDIAG_HOME}/config/agent.yml.example
 \cp -rf ${WORK_DIR}/example ${OBDIAG_HOME}/
 
 bashrc_file=~/.bashrc

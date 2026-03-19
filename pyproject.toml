@@ -60,10 +60,11 @@ dependencies = [
     "sqlgpt-parser>=0.0.1a5",
     "pyminizip>=0.2.6",
     "plotly>=5.24.1",
-    # AI Assistant
+    # obdiag agent
     "openai>=1.0.0",
     "rich>=13.0.0",
     "prompt_toolkit>=3.0.0",
+    "pydantic-ai-slim[openai,mcp]>=0.1.0",
 ]
 
 [project.optional-dependencies]
