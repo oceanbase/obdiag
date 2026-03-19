@@ -77,10 +77,7 @@ def _is_tool_only_message(msg: Any) -> bool:
     parts = getattr(msg, "parts", ())
     if not parts:
         return False
-    return all(
-        getattr(p, "part_kind", None) in _TOOL_ROLE_PART_KINDS
-        for p in parts
-    )
+    return all(getattr(p, "part_kind", None) in _TOOL_ROLE_PART_KINDS for p in parts)
 
 
 def _is_user_message(msg: Any) -> bool:
@@ -395,9 +392,7 @@ class AiAgentHandler:
                         self.stdio.print(chunk, end="")
                     self.stdio.print("\n")
                     was_streamed = True
-                self._history = _truncate_history_safe(
-                    list(run_result.all_messages()), MAX_HISTORY_MESSAGES
-                )
+                self._history = _truncate_history_safe(list(run_result.all_messages()), MAX_HISTORY_MESSAGES)
                 return (output or "", was_streamed)
 
     # ------------------------------------------------------------------
