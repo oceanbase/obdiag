@@ -91,7 +91,7 @@ const.MIN_OB_VERSION_SUPPORT_GATHER_OBSTACK = "2.0.0"
 
 const.MAX_OB_VERSION_SUPPORT_GATHER_OBADMIN = "4.0.0"
 
-const.DEFAULT_CONFIG_PATH = obdiag_path("config.yml")
+const.DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser('~'), ".obdiag/config.yml")
 
 const.FLT_TRACE_TREE_MAX_RECURSION = 5
 const.FLT_TRACE_TREE_TOP_LEAF = 5
@@ -114,11 +114,11 @@ const.OBDIAG_RCA_DEFAULT_CONFIG = {
         "result_path": "./obdiag_rca/",
     }
 }
-const.OBDIAG_TELEMETRY_FILE_NAME = obdiag_path(".obdiag_telemetry.txt")
+const.OBDIAG_TELEMETRY_FILE_NAME = os.path.expanduser("~/.obdiag/.obdiag_telemetry.txt")
 const.TELEMETRY_CONTENT_REPORTER = "obdiag"
 const.TELEMETRY_URL = "openwebapi.oceanbase.com"
 const.TELEMETRY_PATH = "/api/web/oceanbase/report"
 const.UPDATE_REMOTE_SERVER = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com'
 const.UPDATE_REMOTE_VERSION_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/version.yaml'
 const.UPDATE_REMOTE_UPDATE_FILE_NAME = 'https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/obdiag/data.tar'
-const.RCA_WORK_PATH = obdiag_path("rca")
+const.RCA_WORK_PATH = '~/.obdiag/rca'

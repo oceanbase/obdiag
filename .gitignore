@@ -10,6 +10,6 @@ dependencies/bin/obstack*
 obdiag_gather_pack_*
 obdiag_analyze_pack_*
 obdiag_rca*
-./obdiag_*
+obdiag_*
 dev_doc/*
 *.md
