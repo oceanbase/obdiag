@@ -21,10 +21,15 @@
        class is needed.
 """
 
+import json
 import os
+import time
 from typing import Any, Dict, List, Optional
 
 from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.output import DeferredToolRequests
+from pydantic_ai.tools import DeferredToolResults, ToolDenied
 
 from src.common.result_type import ObdiagResult
 from src.common.tool import Util
@@ -35,6 +40,8 @@ from src.handler.agent.config import (
     resolve_cluster_config_path,
 )
 from src.handler.agent.models import AgentConfig, AgentDependencies
+
+SESSIONS_DIR = os.path.expanduser("~/.obdiag/sessions")
 
 try:
     from rich.console import Console
@@ -54,6 +61,96 @@ except ImportError:
 
 
 MAX_HISTORY_MESSAGES = 20
+# Limit for resumed sessions to reduce Qwen API "tool_call_id" errors with long tool chains
+MAX_HISTORY_WHEN_RESUMED = 10
+
+# Part kinds that make a ModelRequest a "tool" role message (must follow assistant with tool_calls)
+_TOOL_ROLE_PART_KINDS = frozenset({"tool-return", "retry-prompt", "builtin-tool-return"})
+# Part kinds that indicate tool calls (must be followed by tool responses)
+_TOOL_CALL_PART_KINDS = frozenset({"tool-call", "builtin-tool-call"})
+
+
+def _is_tool_only_message(msg: Any) -> bool:
+    """True if message becomes role='tool' in API (must have preceding tool_calls)."""
+    if getattr(msg, "kind", None) != "request":
+        return False
+    parts = getattr(msg, "parts", ())
+    if not parts:
+        return False
+    return all(
+        getattr(p, "part_kind", None) in _TOOL_ROLE_PART_KINDS
+        for p in parts
+    )
+
+
+def _is_user_message(msg: Any) -> bool:
+    """True if message is a user message (safe to start history with)."""
+    if getattr(msg, "kind", None) != "request":
+        return False
+    parts = getattr(msg, "parts", ())
+    return any(getattr(p, "part_kind", None) == "user-prompt" for p in parts)
+
+
+def _has_tool_calls(msg: Any) -> bool:
+    """True if message has tool_calls (must be followed by tool responses).
+    Checks both msg.tool_calls and parts for tool-call part kinds.
+    """
+    # Direct tool_calls attribute (ModelResponse)
+    tc = getattr(msg, "tool_calls", None)
+    if callable(tc):
+        if tc():
+            return True
+    elif tc:
+        return True
+    # Check parts for ToolCallPart (part_kind 'tool-call' or 'builtin-tool-call')
+    parts = getattr(msg, "parts", ()) or ()
+    for p in parts:
+        if getattr(p, "part_kind", None) in _TOOL_CALL_PART_KINDS:
+            return True
+    # Dict-style (e.g. from JSON round-trip)
+    if isinstance(msg, dict) and msg.get("tool_calls"):
+        return True
+    return False
+
+
+def _message_has_any_tool_content(msg: Any) -> bool:
+    """True if message or its parts contain any tool-related content (defensive check)."""
+    if _has_tool_calls(msg):
+        return True
+    if _is_tool_only_message(msg):
+        return True
+    if isinstance(msg, dict):
+        return bool(msg.get("tool_calls") or msg.get("tool_call_id"))
+    # Check parts recursively for tool_call_id
+    parts = getattr(msg, "parts", ()) or ()
+    for p in parts:
+        if getattr(p, "tool_call_id", None):
+            return True
+        if isinstance(p, dict) and p.get("tool_call_id"):
+            return True
+    return False
+
+
+def _truncate_history_safe(history: List[Any], max_messages: int) -> List[Any]:
+    """Truncate history without breaking tool_calls/tool response pairs.
+    Strips tool messages and assistant-with-tool_calls to avoid API errors
+    (e.g. Qwen 'Tool call id not found in messages').
+    """
+    if not history:
+        return []
+    # Filter out any message with tool-related content
+    filtered: List[Any] = []
+    for msg in history:
+        if _message_has_any_tool_content(msg):
+            continue
+        filtered.append(msg)
+    if len(filtered) <= max_messages:
+        return filtered
+    truncated = list(filtered[-max_messages:])
+    # Drop leading until we hit a user message
+    while truncated and not _is_user_message(truncated[0]):
+        truncated.pop(0)
+    return truncated
 
 
 class AiAgentHandler:
@@ -102,6 +199,7 @@ class AiAgentHandler:
         self._agent: Optional[Agent[AgentDependencies, str]] = None
         self._deps: Optional[AgentDependencies] = None
         self._history: List[Any] = []
+        self._session_id: Optional[str] = None
 
         self.console = Console() if RICH_AVAILABLE else None
         self.input_history = InMemoryHistory() if PROMPT_TOOLKIT_AVAILABLE else None
@@ -114,13 +212,77 @@ class AiAgentHandler:
         """Load agent configuration from disk."""
         return load_agent_config(stdio=self.stdio)
 
+    # ------------------------------------------------------------------
+    # Session persistence
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _ensure_sessions_dir():
+        os.makedirs(SESSIONS_DIR, exist_ok=True)
+
+    def _session_path(self, session_id: str) -> str:
+        return os.path.join(SESSIONS_DIR, f"{session_id}.json")
+
+    def _generate_session_id(self) -> str:
+        return time.strftime("%Y%m%d_%H%M%S")
+
+    def _save_session(self):
+        """Save current history to disk."""
+        if not self._history:
+            return
+        self._ensure_sessions_dir()
+        if not self._session_id:
+            self._session_id = self._generate_session_id()
+        path = self._session_path(self._session_id)
+        try:
+            data = ModelMessagesTypeAdapter.dump_json(self._history)
+            with open(path, "wb") as f:
+                f.write(data)
+        except Exception as e:
+            self.stdio.verbose(f"Failed to save session: {e}")
+
+    def _load_session(self, session_id: str) -> bool:
+        """Load history from a saved session. Returns True on success."""
+        path = self._session_path(session_id)
+        if not os.path.exists(path):
+            self.stdio.print(f"Session not found: {session_id}\n")
+            return False
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+            loaded = list(ModelMessagesTypeAdapter.validate_json(data))
+            self._history = _truncate_history_safe(loaded, MAX_HISTORY_WHEN_RESUMED)
+            self._session_id = session_id
+            return True
+        except Exception as e:
+            self.stdio.print(f"Failed to load session: {e}\n")
+            return False
+
+    def _list_sessions(self):
+        """List saved sessions."""
+        self._ensure_sessions_dir()
+        files = sorted(
+            [f for f in os.listdir(SESSIONS_DIR) if f.endswith(".json")],
+            reverse=True,
+        )
+        if not files:
+            self.stdio.print("No saved sessions.\n")
+            return
+        self.stdio.print("\nSaved sessions:\n")
+        for f in files[:20]:
+            sid = f.removesuffix(".json")
+            path = os.path.join(SESSIONS_DIR, f)
+            size = os.path.getsize(path)
+            self.stdio.print(f"  {sid}  ({size} bytes)")
+        self.stdio.print(f"\nResume with: obdiag agent --resume <session_id>\n")
+
     def _init_agent(self, config_dict: Dict):
         """Build the agent and dependencies from the config dictionary."""
         config = AgentConfig.from_dict(config_dict)
 
         api_key = config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OpenAI API key is required. " "Set OPENAI_API_KEY or configure it in ~/.obdiag/ai.yml")
+            raise ValueError("OpenAI API key is required. " "Set OPENAI_API_KEY or configure it in ~/.obdiag/config/agent.yml")
         config.api_key = api_key
 
         if not config.base_url:
@@ -149,17 +311,94 @@ class AiAgentHandler:
     # Chat
     # ------------------------------------------------------------------
 
-    def _chat_sync(self, message: str) -> str:
-        """Run a single synchronous turn, managing history."""
-        result = self._agent.run_sync(
-            message,
-            deps=self._deps,
-            message_history=self._history or None,
-        )
-        self._history = list(result.new_messages())
-        if len(self._history) > MAX_HISTORY_MESSAGES:
-            self._history = self._history[-MAX_HISTORY_MESSAGES:]
-        return result.output
+    def _chat_sync(self, message: str, config_dict: Optional[Dict] = None) -> tuple[str, bool]:
+        """Run a single synchronous turn, managing history. Handles tool approval and streaming."""
+        ui = (config_dict or {}).get("ui", {})
+        tool_approval = ui.get("tool_approval", True)
+        if Util.get_option(self.options, "yolo"):
+            tool_approval = False
+        stream_output = ui.get("stream_output", False)
+
+        output_type = [str, DeferredToolRequests]
+        history = _truncate_history_safe(list(self._history), MAX_HISTORY_MESSAGES) if self._history else None
+        if history is not None and len(history) == 0:
+            history = None
+        deferred_results = None
+
+        while True:
+            if stream_output:
+                run_result = self._agent.run_stream_sync(
+                    message if deferred_results is None else "Continue",
+                    output_type=output_type,
+                    deps=self._deps,
+                    message_history=history,
+                    deferred_tool_results=deferred_results,
+                )
+                output = run_result.output
+            else:
+                run_result = self._agent.run_sync(
+                    message if deferred_results is None else "Continue",
+                    output_type=output_type,
+                    deps=self._deps,
+                    message_history=history,
+                    deferred_tool_results=deferred_results,
+                )
+                output = run_result.output
+
+            if isinstance(output, DeferredToolRequests):
+                # Stop loading spinner so the approval prompt is visible
+                self.stdio.stop_loading("succeed")
+                self.stdio.print("\r" + " " * 20 + "\r", end="")
+                # Gather approvals
+                deferred_results = DeferredToolResults()
+                for call in output.approvals:
+                    tool_name = call.tool_name
+                    args = call.args
+                    call_id = call.tool_call_id
+                    if tool_approval:
+                        self.stdio.print(f"\n[Tool] {tool_name}({args})")
+                        try:
+                            if PROMPT_TOOLKIT_AVAILABLE:
+                                ans = pt_prompt("Execute? [y/n/all/deny]: ", history=None).strip().lower()
+                            else:
+                                ans = input("Execute? [y/n/all/deny]: ").strip().lower()
+                        except (EOFError, KeyboardInterrupt):
+                            ans = "n"
+                        if ans == "all":
+                            deferred_results.approvals[call_id] = True
+                            # Auto-approve remaining
+                            for c in output.approvals:
+                                if c.tool_call_id not in deferred_results.approvals:
+                                    deferred_results.approvals[c.tool_call_id] = True
+                            break
+                        elif ans == "deny":
+                            deferred_results.approvals[call_id] = ToolDenied("User denied")
+                            for c in output.approvals:
+                                if c.tool_call_id not in deferred_results.approvals:
+                                    deferred_results.approvals[c.tool_call_id] = ToolDenied("User denied")
+                            break
+                        elif ans in ("y", "yes"):
+                            deferred_results.approvals[call_id] = True
+                        else:
+                            deferred_results.approvals[call_id] = ToolDenied("User skipped")
+                    else:
+                        deferred_results.approvals[call_id] = True
+                history = run_result.all_messages()
+                message = "Continue"
+                self.stdio.start_loading("Executing...")
+                continue
+            else:
+                was_streamed = False
+                if stream_output and hasattr(run_result, "stream_text"):
+                    self.stdio.print("")
+                    for chunk in run_result.stream_text(delta=True):
+                        self.stdio.print(chunk, end="")
+                    self.stdio.print("\n")
+                    was_streamed = True
+                self._history = _truncate_history_safe(
+                    list(run_result.all_messages()), MAX_HISTORY_MESSAGES
+                )
+                return (output or "", was_streamed)
 
     # ------------------------------------------------------------------
     # UI helpers
@@ -194,15 +433,23 @@ class AiAgentHandler:
             """
 Available commands:
   help, ?                  - Show this help message
-  exit, quit, q            - Exit the agent
+  exit, quit, q            - Exit the agent (auto-saves session)
   clear                    - Clear conversation history
   history                  - Show conversation history
   tools                    - List available diagnostic tools
   use <name|path>          - Switch active cluster (e.g., use obdiag_test or use /path/to/config.yml)
   cluster                  - Show current active cluster info
+  save                     - Save current session
+  sessions                 - List saved sessions
 
 Cluster: When not specified, ~/.obdiag/config.yml is used. Short names (e.g., obdiag_test for
 ~/.obdiag/obdiag_test.yml) are supported: use obdiag_test, or pass cluster_config_path="obdiag_test".
+
+Session: conversations are auto-saved on exit. Resume with: obdiag agent --resume <session_id>
+
+Configure tool_approval and stream_output in ~/.obdiag/config/agent.yml (ui section):
+  - tool_approval: prompt before SQL and bash execution; y/n/all/deny
+  - stream_output: stream LLM response as it arrives
 
 You can also ask me questions in natural language, such as:
   - "帮我检查数据库的健康状态"
@@ -295,6 +542,14 @@ You can also ask me questions in natural language, such as:
             self._init_agent(config_dict)
             self.stdio.verbose("Agent initialized successfully")
 
+            # Resume session if requested
+            resume_id = Util.get_option(self.options, "resume")
+            if resume_id:
+                if self._load_session(str(resume_id).strip()):
+                    self.stdio.print(f"Resumed session: {self._session_id}  ({len(self._history)} messages)\n")
+                else:
+                    self.stdio.print("Starting new session.\n")
+
             self._show_loaded_tools()
 
             ui = config_dict.get("ui", {})
@@ -312,6 +567,10 @@ You can also ask me questions in natural language, such as:
 
                     cmd = user_input.lower()
                     if cmd in ("exit", "quit", "q"):
+                        self._save_session()
+                        if self._session_id:
+                            self.stdio.print(f"\nSession saved: {self._session_id}")
+                            self.stdio.print(f"Resume with: obdiag agent --resume {self._session_id}")
                         self.stdio.print("\nGoodbye! Have a nice day!\n")
                         break
                     elif cmd in ("help", "?"):
@@ -319,6 +578,7 @@ You can also ask me questions in natural language, such as:
                         continue
                     elif cmd == "clear":
                         self._history.clear()
+                        self._session_id = None
                         self.stdio.print("Conversation history cleared.\n")
                         continue
                     elif cmd == "history":
@@ -333,23 +593,39 @@ You can also ask me questions in natural language, such as:
                     elif cmd.startswith("use "):
                         self._use_cluster(user_input[4:].strip())
                         continue
+                    elif cmd == "save":
+                        self._save_session()
+                        if self._session_id:
+                            self.stdio.print(f"Session saved: {self._session_id}\n")
+                        else:
+                            self.stdio.print("No history to save.\n")
+                        continue
+                    elif cmd == "sessions":
+                        self._list_sessions()
+                        continue
 
                     self.stdio.print("")
                     self.stdio.start_loading("Thinking...")
                     try:
-                        response = self._chat_sync(user_input)
+                        response, was_streamed = self._chat_sync(user_input, config_dict)
                         self.stdio.stop_loading("succeed")
                         self.stdio.print("\r" + " " * 20 + "\r", end="")
-                        self._render_markdown(response)
+                        if not was_streamed:
+                            self._render_markdown(response)
                         self.stdio.print("")
+                        self._save_session()
                     except Exception as e:
                         self.stdio.stop_loading("failed")
-                        self.stdio.print(f"\rError: {e}\n")
+                        err_msg = str(e)
+                        if hasattr(e, "__cause__") and e.__cause__ is not None:
+                            err_msg += f"\n  Cause: {e.__cause__}"
+                        self.stdio.print(f"\rError: {err_msg}\n")
                         self.stdio.error(f"Failed to get agent response: {e}")
 
                 except KeyboardInterrupt:
                     self.stdio.print("\n\nInterrupted. Type 'exit' to quit.\n")
                 except EOFError:
+                    self._save_session()
                     self.stdio.print("\n\nGoodbye!\n")
                     break
 
@@ -372,18 +648,32 @@ You can also ask me questions in natural language, such as:
             self._init_agent(config_dict)
             self.stdio.verbose("Agent initialized successfully")
 
+            resume_id = Util.get_option(self.options, "resume")
+            if resume_id:
+                if self._load_session(str(resume_id).strip()):
+                    self.stdio.verbose(f"Resumed session: {self._session_id} ({len(self._history)} messages)")
+
             self.stdio.start_loading("Thinking...")
             try:
-                response = self._chat_sync(message)
+                response, was_streamed = self._chat_sync(message, config_dict)
                 self.stdio.stop_loading("succeed")
                 self.stdio.print("\r" + " " * 20 + "\r", end="")
-                self._render_markdown(response)
+                if not was_streamed:
+                    self._render_markdown(response)
                 self.stdio.print("")
+                self._save_session()
+                if self._session_id:
+                    self.stdio.print(f"\nSession saved: {self._session_id}")
+                    self.stdio.print(f"Resume with: obdiag agent --resume {self._session_id} -m \"<message>\" --yolo\n")
                 return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"message": "Agent completed"})
             except Exception as e:
                 self.stdio.stop_loading("failed")
+                err_msg = str(e)
+                if hasattr(e, "__cause__") and e.__cause__ is not None:
+                    err_msg += f"\n  Cause: {e.__cause__}"
+                self.stdio.print(f"\rError: {err_msg}\n")
                 self.stdio.error(f"Failed to get agent response: {e}")
-                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
+                return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=err_msg)
         except Exception as e:
             self.stdio.error(f"Agent error: {e}")
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=f"Agent error: {e}")

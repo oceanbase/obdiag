@@ -47,9 +47,10 @@ if [ -d "$INSTALL_PATH/plugins" ]; then
     cp -rf "$INSTALL_PATH/plugins/"* "$OBDIAG_HOME/"
 fi
 
-if [ -f "$INSTALL_PATH/conf/ai.yml.example" ]; then
+if [ -f "$INSTALL_PATH/conf/agent.yml.example" ]; then
     echo -e "${YELLOW}Copying configuration examples...${NC}"
-    cp -f "$INSTALL_PATH/conf/ai.yml.example" "$OBDIAG_HOME/"
+    mkdir -p "$OBDIAG_HOME/config"
+    cp -f "$INSTALL_PATH/conf/agent.yml.example" "$OBDIAG_HOME/config/"
 fi
 
 if [ -d "$INSTALL_PATH/example" ]; then

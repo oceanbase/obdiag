@@ -21,7 +21,7 @@
        omitted, the active config_path from AgentDependencies is used.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic_ai import FunctionToolset, RunContext
 
@@ -72,26 +72,28 @@ def _run(
 # ---------------------------------------------------------------------------
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def gather_log(
     ctx: RunContext[AgentDependencies],
     since: Optional[str] = None,
     from_time: Optional[str] = None,
     to_time: Optional[str] = None,
     scope: str = "all",
-    grep: Optional[List[str]] = None,
+    grep: Optional[Union[str, List[str]]] = None,
     store_dir: Optional[str] = None,
     cluster_config_path: Optional[str] = None,
 ) -> str:
     """
-    Gather OceanBase logs from the cluster.
+    Gather OceanBase logs (observer, election, rootservice) from the cluster.
+    Use this when the user asks to collect "日志", "收集日志", or logs filtered by trace_id/keywords.
+    Pass grep=[trace_id] to filter logs containing a specific trace_id.
 
     Args:
         since: Time range from now (e.g., '1h', '30m', '2d')
         from_time: Start time (format: yyyy-mm-dd hh:mm:ss)
         to_time: End time (format: yyyy-mm-dd hh:mm:ss)
         scope: Log scope — 'observer', 'election', 'rootservice', or 'all'
-        grep: Keywords to filter logs
+        grep: Keyword(s) to filter logs — string or list (e.g., trace_id for "收集 traceid XXX 日志")
         store_dir: Directory to store collected logs
         cluster_config_path: Path to obdiag config.yml for a non-default cluster
     """
@@ -105,13 +107,13 @@ def gather_log(
     if scope:
         args["scope"] = scope
     if grep:
-        args["grep"] = grep
+        args["grep"] = [grep] if isinstance(grep, str) else grep
     if store_dir:
         args["store_dir"] = store_dir
     return _run(ctx, "gather_log", args, "Log gathering completed successfully.", "Log gathering failed.", cluster_config_path)
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def gather_sysstat(
     ctx: RunContext[AgentDependencies],
     store_dir: Optional[str] = None,
@@ -130,7 +132,7 @@ def gather_sysstat(
     return _run(ctx, "gather_sysstat", args, "System statistics gathering completed successfully.", "System statistics gathering failed.", cluster_config_path)
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def gather_perf(
     ctx: RunContext[AgentDependencies],
     store_dir: Optional[str] = None,
@@ -149,7 +151,7 @@ def gather_perf(
     return _run(ctx, "gather_perf", args, "Performance data gathering completed successfully.", "Performance data gathering failed.", cluster_config_path)
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def gather_plan_monitor(
     ctx: RunContext[AgentDependencies],
     trace_id: str,
@@ -157,10 +159,12 @@ def gather_plan_monitor(
     cluster_config_path: Optional[str] = None,
 ) -> str:
     """
-    Gather SQL plan monitor information for a specific trace ID.
+    Gather SQL plan monitor (执行计划监控) data for a specific trace ID.
+    Use ONLY when the user explicitly wants plan monitor/execution plan analysis, NOT for collecting logs.
+    For "收集日志" or "收集 traceid XXX 日志", use gather_log with grep=[trace_id] instead.
 
     Args:
-        trace_id: SQL trace ID to gather plan monitor data for
+        trace_id: SQL trace ID for plan monitor data
         store_dir: Directory to store collected data
         cluster_config_path: Path to obdiag config.yml for a non-default cluster
     """
@@ -175,7 +179,7 @@ def gather_plan_monitor(
 # ---------------------------------------------------------------------------
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def analyze_log(
     ctx: RunContext[AgentDependencies],
     files: Optional[List[str]] = None,
@@ -215,7 +219,7 @@ def analyze_log(
 # ---------------------------------------------------------------------------
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def check_cluster(
     ctx: RunContext[AgentDependencies],
     cases: Optional[str] = None,
@@ -253,7 +257,7 @@ def check_list(ctx: RunContext[AgentDependencies]) -> str:
 # ---------------------------------------------------------------------------
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def rca_run(
     ctx: RunContext[AgentDependencies],
     scene: str,
@@ -284,7 +288,7 @@ def rca_list(ctx: RunContext[AgentDependencies]) -> str:
 # ---------------------------------------------------------------------------
 
 
-@obdiag_toolset.tool
+@obdiag_toolset.tool(requires_approval=True, retries=2)
 def tool_io_performance(
     ctx: RunContext[AgentDependencies],
     disk: Optional[str] = None,
