@@ -58,7 +58,7 @@ class IsNullRule(AbstractRule):
             visitor = Visitor()
             visitor.process(root, None)
             return visitor.match
-        except Exception as e:
+        except Exception:
             pass
 
         return False

@@ -238,7 +238,7 @@ class LocalClient(SafeStdio):
                 f.write(content)
                 f.flush()
             return True
-        except:
+        except (OSError, IOError):
             stdio.exception('')
             return False
 
@@ -518,7 +518,7 @@ class SshClient(SafeStdio):
                 f.write(content)
                 f.flush()
                 return self.put_file(f.name, file_path, stdio=stdio)
-        except:
+        except (OSError, IOError):
             stdio.exception('')
             return False
 

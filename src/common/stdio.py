@@ -503,7 +503,7 @@ class IO(object):
         if self._before_critical:
             try:
                 self._before_critical(self)
-            except:
+            except Exception:
                 pass
 
     @property

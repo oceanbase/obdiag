@@ -166,7 +166,7 @@ class OBConnector(object):
             plan_result.align = 'l'
             cursor.close()
             return plan_result
-        except Exception as e:
+        except Exception:
             pass
         finally:
             cursor.close()

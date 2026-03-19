@@ -15,6 +15,7 @@
 @file: analyze_sql_review.py
 @desc:
 """
+import json
 import os
 import time
 import sqlparse
@@ -23,6 +24,7 @@ from src.common.constant import const
 from src.common.tool import StringUtils, Util
 from src.common.tool import TimeUtils
 from src.common.tool import FileUtil
+from src.common.tool import DirectoryUtil
 from src.common.ob_connector import OBConnector
 from src.handler.analyzer.sql.rule_manager import SQLReviewRuleManager
 from src.handler.meta.html_meta import GlobalHtmlMeta
@@ -40,6 +42,7 @@ class AnalyzeSQLReviewHandler(object):
         self.directly_analyze_files = False
         self.level = 'notice'
         self.local_store_path = None
+        self.local_stored_parrent_path = os.path.abspath('./obdiag_analyze/')
         self.output_type = 'html'
 
     def init_inner_config(self):
@@ -79,7 +82,7 @@ class AnalyzeSQLReviewHandler(object):
             self.directly_analyze_files = True
             self.analyze_files_list = files_option
         else:
-            self.stdio.error("option --file not found, please provide")
+            self.stdio.error("option --files not found, please provide")
             return False
         db_user_option = Util.get_option(options, 'user')
         db_password_option = Util.get_option(options, 'password')
@@ -115,8 +118,12 @@ class AnalyzeSQLReviewHandler(object):
             self.stdio.error('init config failed')
             return False
         self.init_db_connector()
-        self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_sql_review_result_{0}.html".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
-        self.stdio.verbose("use {0} as result store path.".format(self.local_store_path))
+        ext = "json" if self.output_type == "json" else "html"
+        pack_dir_name = "obdiag_sql_review_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp()))
+        self.pack_dir = os.path.join(self.local_stored_parrent_path, pack_dir_name)
+        DirectoryUtil.mkdir(path=self.pack_dir, stdio=self.stdio)
+        self.local_store_path = os.path.join(self.pack_dir, "result.{0}".format(ext))
+        self.stdio.verbose("use {0} as result store path.".format(self.pack_dir))
         all_results = self.__directly_analyze_files()
         if all_results is None:
             return
@@ -124,8 +131,11 @@ class AnalyzeSQLReviewHandler(object):
         if self.output_type == "html":
             html_result = self.__generate_html_result(results)
             FileUtil.write_append(self.local_store_path, html_result)
+        elif self.output_type == "json":
+            json_result = self.__generate_json_result(results)
+            FileUtil.write_append(self.local_store_path, json_result)
         else:
-            pass
+            self.stdio.error('Unsupported output type: {0}. Use --output html or json.'.format(self.output_type))
         self.__print_result()
 
     def __directly_analyze_files(self):
@@ -166,7 +176,16 @@ class AnalyzeSQLReviewHandler(object):
         with open(file_path, 'r') as file:
             sql_content = file.read()
         statements = sqlparse.split(sql_content)
-        sql_list = [stmt for stmt in statements if stmt.strip()]
+        sql_list = []
+        for stmt in statements:
+            s = stmt.strip()
+            if not s:
+                continue
+            if s.startswith('--'):
+                continue
+            if s.startswith('/*') and s.endswith('*/'):
+                continue
+            sql_list.append(stmt)
         return sql_list
 
     def __parse_results(self, results):
@@ -183,6 +202,53 @@ class AnalyzeSQLReviewHandler(object):
             report = {"command": "obdiag analyze sql_review", "options": {"files": file_name}, "diagnosticEntries": diagnostic_entries}
             reports.append(report)
         return reports
+
+    def __generate_json_result(self, results):
+        """
+        Generate JSON output following industry schema (Salesforce Code Analyzer / SQLFluff style).
+        Schema: runDir, command, options, violationCounts, reports
+        """
+        run_dir = os.getcwd()
+        total = critical = warn = notice = ok = 0
+        reports_json = []
+        for report in results:
+            entries = []
+            for entry in report["diagnosticEntries"]:
+                diags = []
+                for d in entry["diagnostics"]:
+                    level_str = d["ruleLevel"][1] if isinstance(d["ruleLevel"], (list, tuple)) else str(d["ruleLevel"])
+                    if level_str == "critical":
+                        critical += 1
+                    elif level_str == "warn":
+                        warn += 1
+                    elif level_str == "notice":
+                        notice += 1
+                    else:
+                        ok += 1
+                    total += 1
+                    diags.append(
+                        {
+                            "rule": d["ruleName"],
+                            "severity": level_str,
+                            "message": d["ruleDescription"],
+                            "suggestion": d["suggestion"],
+                        }
+                    )
+                entries.append({"sqlText": entry["sqlText"], "violations": diags})
+            reports_json.append(
+                {
+                    "file": report["options"]["files"],
+                    "diagnosticEntries": entries,
+                }
+            )
+        output = {
+            "runDir": run_dir,
+            "command": "obdiag analyze sql_review",
+            "options": {"files": [r["options"]["files"] for r in results]},
+            "violationCounts": {"total": total, "critical": critical, "warn": warn, "notice": notice, "ok": ok},
+            "reports": reports_json,
+        }
+        return json.dumps(output, ensure_ascii=False, indent=2)
 
     def __generate_html_table(self, sql_entry):
         diagnostics = sql_entry["diagnostics"]
@@ -233,7 +299,7 @@ class AnalyzeSQLReviewHandler(object):
     def __print_result(self):
         self.end_time = time.time()
         elapsed_time = self.end_time - self.start_time
-        data = [["Status", "Result Details", "Time"], ["Completed", self.local_store_path, f"{elapsed_time:.2f} s"]]
+        data = [["Status", "Result Details", "Time"], ["Completed", self.pack_dir, f"{elapsed_time:.2f} s"]]
         table = tabulate(data, headers="firstrow", tablefmt="grid")
         self.stdio.print("\nAnalyze SQL Review Summary:")
         self.stdio.print(table)

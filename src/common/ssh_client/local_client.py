@@ -71,7 +71,7 @@ class LocalClient(SsherClient):
             if stderr:
                 return stderr.decode('utf-8')
             return stdout.decode('utf-8')
-        except:
+        except (subprocess.SubprocessError, OSError):
             self.stdio.error("run cmd = [{0}] on localhost".format(cmd))
         raise Exception("the client type is not support ssh invoke shell switch user")
 

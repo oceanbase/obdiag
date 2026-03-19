@@ -62,7 +62,7 @@ class UpdateDeleteWithoutWhereOrTrueConditionRule(AbstractRule):
         try:
             visitor = Visitor()
             visitor.process(root, None)
-        except Exception as e:
+        except Exception:
             pass
 
         # Only consider it a match if there was no valid WHERE clause encountered

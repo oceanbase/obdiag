@@ -255,7 +255,7 @@ class LogEntry(object):
                     success_log_entries.append(log_entry)
                     n_read += 1
                     log_entry_begin_offset = line_offset
-                except Exception as e:
+                except Exception:
                     irregular_logs.append(log_entry_text)
                 break
             if len(line) > 28 and line[0] == '[' and line[5] == "-" and line[8] == "-":
@@ -270,7 +270,7 @@ class LogEntry(object):
                         success_log_entries.append(log_entry)
                         log_id += 1
                         n_read += 1
-                    except Exception as e:
+                    except Exception:
                         irregular_logs.append(log_entry_text)
                     parse_time_slice[5] += time.time() - st
                     log_entry_begin_offset = line_offset

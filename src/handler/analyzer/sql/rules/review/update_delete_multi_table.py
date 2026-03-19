@@ -54,7 +54,7 @@ class UpdateDeleteMultiTableRule(AbstractRule):
         try:
             visitor = Visitor()
             visitor.process(root, None)
-        except Exception as e:
+        except Exception:
             pass
 
         return visitor.match

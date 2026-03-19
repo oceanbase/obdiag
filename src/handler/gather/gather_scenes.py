@@ -77,7 +77,7 @@ class GatherSceneHandler(SafeStdio):
         self.__init_task_names()
         self.execute()
         if self.is_inner:
-            result = self.__get_sql_result()
+            self.__get_sql_result()
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": self.report_path})
         else:
             self.__print_result()
