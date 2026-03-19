@@ -227,6 +227,12 @@ class AgentConfig:
     mcp_enabled: bool = True
     mcp_servers: Dict[str, Any] = field(default_factory=dict)
 
+    # Skills (pydantic-ai-skills)
+    skills_enabled: bool = True
+    skills_directory: str = ""  # Resolved to ~/.obdiag/agent/skills when empty
+    skills_validate: bool = True
+    skills_script_timeout: int = 60
+
     # UI
     show_welcome: bool = True
     show_beta_warning: bool = True
@@ -240,6 +246,7 @@ class AgentConfig:
         """Create AgentConfig from a configuration dictionary."""
         llm = config_dict.get("llm", {})
         mcp = config_dict.get("mcp", {})
+        skills = config_dict.get("skills", {})
         ui = config_dict.get("ui", {})
 
         return cls(
@@ -252,6 +259,10 @@ class AgentConfig:
             system_prompt=llm.get("system_prompt") or None,
             mcp_enabled=mcp.get("enabled", True),
             mcp_servers=mcp.get("servers", {}),
+            skills_enabled=skills.get("enabled", True),
+            skills_directory=(skills.get("directory") or "").strip(),
+            skills_validate=skills.get("validate", True),
+            skills_script_timeout=skills.get("script_timeout", 60),
             show_welcome=ui.get("show_welcome", True),
             show_beta_warning=ui.get("show_beta_warning", True),
             clear_screen=ui.get("clear_screen", True),
