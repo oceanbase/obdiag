@@ -18,7 +18,6 @@
 
 import os
 
-from src.common.constant import expand_obdiag_path
 from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
 from src.common.tool import YamlUtils
@@ -34,7 +33,7 @@ class DisplayScenesListHandler(SafeStdio):
         self.obproxy_tasks = {}
         self.other_tasks = {}
         self.yaml_tasks_base_path = yaml_tasks_base_path
-        base_path = expand_obdiag_path(yaml_tasks_base_path)
+        base_path = os.path.expanduser(yaml_tasks_base_path)
         if os.path.exists(base_path):
             self.yaml_tasks_base_path = base_path
         else:
