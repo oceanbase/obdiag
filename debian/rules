@@ -28,7 +28,7 @@ override_dh_auto_install:
 	sed -i "s/<VERSION>/$$VERSION/" ./src/common/version.py
 
 	# Build binary with PyInstaller
-	pyinstaller --hidden-import=decimal -p ./src -F src/obdiag.py
+	pyinstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table -p ./src -F src/obdiag.py
 
 	# Cleanup temp file
 	rm -f src/obdiag.py
