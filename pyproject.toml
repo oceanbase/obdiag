@@ -83,5 +83,8 @@ macos = [
 where = ["."]
 include = ["src*"]
 
+[tool.setuptools.package-data]
+"src" = ["conf/*.yml", "conf/*.yaml"]
+
 [project.scripts]
 obdiag = "src.main:main"

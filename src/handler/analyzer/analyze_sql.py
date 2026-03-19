@@ -16,12 +16,16 @@
 @desc:
 """
 import datetime
+import html
+import json
+from decimal import Decimal
 import time
 import os
 from tabulate import tabulate
 from src.common.constant import const
 from src.common.tool import StringUtils, Util
 from src.common.tool import TimeUtils
+from src.common.tool import DirectoryUtil
 from src.common.ob_connector import OBConnector
 from src.handler.meta.sql_meta import GlobalSqlMeta
 from src.handler.meta.html_meta import GlobalHtmlMeta
@@ -44,7 +48,8 @@ class AnalyzeSQLHandler(object):
         self.to_timestamp = None
         self.config_path = const.DEFAULT_CONFIG_PATH
         self.db_connector_provided = False
-        self.tenant_name = 'sys'
+        self.tenant_name = None
+        self.tenant_name_specified = False
         self.db_user = None
         self.local_stored_parrent_path = os.path.abspath('./obdiag_analyze/')
         self.sql_audit_limit = 2000
@@ -156,6 +161,7 @@ class AnalyzeSQLHandler(object):
         tenant_name_option = Util.get_option(options, 'tenant_name')
         if tenant_name_option:
             self.tenant_name = tenant_name_option
+            self.tenant_name_specified = True
         level_option = Util.get_option(options, 'level')
         if level_option:
             self.level = level_option
@@ -220,16 +226,21 @@ class AnalyzeSQLHandler(object):
             self.stdio.error('init ob version failed')
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init ob version failed")
         self.init_db_connector()
-        self.local_store_path = os.path.join(self.local_stored_parrent_path, "obdiag_analyze_sql_result_{0}_{1}.html".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp)))
-        self.stdio.print("use {0} as result store path.".format(self.local_store_path))
+        ext = "json" if self.output_type == "json" else "html"
+        pack_dir_name = "obdiag_analyze_sql_{0}_{1}".format(TimeUtils.timestamp_to_filename_time(self.from_timestamp), TimeUtils.timestamp_to_filename_time(self.to_timestamp))
+        self.pack_dir = os.path.join(self.local_stored_parrent_path, pack_dir_name)
+        DirectoryUtil.mkdir(path=self.pack_dir, stdio=self.stdio)
+        self.local_store_path = os.path.join(self.pack_dir, "result.{0}".format(ext))
+        self.stdio.print("use {0} as result store path.".format(self.pack_dir))
         all_tenant_results = {}
-        if self.tenant_name:
+        if self.tenant_name_specified:
+            tenant_names = [(self.tenant_name,)]
+            self.stdio.print('select sql tenant name list: {0} (specified by --tenant_name)'.format(tenant_names))
+        else:
             meta = SysTenantMeta(self.sys_connector, self.stdio, self.ob_version)
             self.stdio.print('select sql tenant name list start')
             tenant_names = meta.get_ob_tenant_name_list()
             self.stdio.print('select sql tenant name list end, result:{0}'.format(tenant_names))
-        else:
-            tenant_names = [self.tenant_name]
         for tenant_name in tenant_names:
             self.stdio.print('select tenant:{0} sql audit start'.format(tenant_name[0]))
             inner_results = self.__select_sql_audit(tenant_name[0])
@@ -246,8 +257,14 @@ class AnalyzeSQLHandler(object):
             if html_result:
                 FileUtil.write_append(self.local_store_path, html_result)
                 self.__print_result()
+        elif self.output_type == "json":
+            data = self.__gather_cluster_info()
+            json_result = self.__generate_json_result(all_tenant_results, data)
+            if json_result:
+                FileUtil.write_append(self.local_store_path, json_result)
+                self.__print_result()
         else:
-            pass
+            self.stdio.error('Unsupported output type: {0}. Use --output html or json.'.format(self.output_type))
 
     def __extract_tenant_name(self, username):
         """
@@ -337,11 +354,21 @@ class AnalyzeSQLHandler(object):
         return headers_html
 
     def __generate_cluster_info_html(self, data):
+        if isinstance(data, ObdiagResult):
+            display_data = {
+                "code": data.code,
+                "store_dir": data.data.get("store_dir") if data.data else None,
+                "error_data": data.error_data,
+            }
+            display_str = json.dumps(display_data, ensure_ascii=False, indent=2)
+        else:
+            display_str = str(data)
+        display_str = html.escape(display_str)
         result = f"""
           <div id="collapsibleSection">
             <h3 class="header">Cluster Information</h3>
             <div class="content">
-                <pre class="markdown-code-block">{data}</pre>
+                <pre class="markdown-code-block">{display_str}</pre>
             </div>
         </div>
         """
@@ -349,7 +376,7 @@ class AnalyzeSQLHandler(object):
         return result
 
     def __gather_cluster_info(self):
-        handler = GatherSceneHandler(context=self.context, gather_pack_dir=self.local_stored_parrent_path, is_inner=True)
+        handler = GatherSceneHandler(context=self.context, gather_pack_dir=self.pack_dir, is_inner=True)
         return handler.handle()
 
     def __generate_html_result(self, all_results, cluster_data):
@@ -414,10 +441,70 @@ class AnalyzeSQLHandler(object):
         self.stdio.print('generate html result complete')
         return full_html
 
+    def __json_serializer(self, obj):
+        """Custom JSON serializer for datetime, Decimal, etc."""
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return float(obj)
+        raise TypeError("Object of type %s is not JSON serializable" % type(obj).__name__)
+
+    def __generate_json_result(self, all_results, cluster_data):
+        """
+        Generate JSON output following industry schema (Salesforce Code Analyzer style).
+        Schema: runDir, command, options, clusterInfo, violationCounts, tenants
+        """
+        run_dir = os.getcwd()
+        total = critical = warn = notice = ok = 0
+        cluster_info = {}
+        if isinstance(cluster_data, ObdiagResult):
+            cluster_info = {
+                "code": cluster_data.code,
+                "store_dir": cluster_data.data.get("store_dir") if cluster_data.data else None,
+                "error_data": cluster_data.error_data,
+            }
+        tenants_json = []
+        for tenant_key, rows in all_results.items():
+            tenant_name = tenant_key[0] if isinstance(tenant_key, (list, tuple)) else str(tenant_key)
+            entries = []
+            for row in rows:
+                diags = []
+                for d in row.get("diagnosticEntries", []):
+                    level_str = d.level.string
+                    if level_str == "critical":
+                        critical += 1
+                    elif level_str == "warn":
+                        warn += 1
+                    elif level_str == "notice":
+                        notice += 1
+                    else:
+                        ok += 1
+                    total += 1
+                    diags.append({
+                        "rule": d.rule_name,
+                        "severity": level_str,
+                        "message": d.description,
+                        "suggestion": d.suggestion,
+                    })
+                sql_row = {k: v for k, v in row.items() if k != "diagnosticEntries" and k in self.sql_audit_keys}
+                sql_row["violations"] = diags
+                sql_row["planCachePlanExplain"] = row.get("planCachePlanExplain", "")
+                entries.append(sql_row)
+            tenants_json.append({"tenant": tenant_name, "diagnosticEntries": entries})
+        output = {
+            "runDir": run_dir,
+            "command": "obdiag analyze sql",
+            "options": {"from": self.from_time_str, "to": self.to_time_str, "level": self.level},
+            "clusterInfo": cluster_info,
+            "violationCounts": {"total": total, "critical": critical, "warn": warn, "notice": notice, "ok": ok},
+            "tenants": tenants_json,
+        }
+        return json.dumps(output, ensure_ascii=False, indent=2, default=self.__json_serializer)
+
     def __print_result(self):
         self.end_time = time.time()
         elapsed_time = self.end_time - self.start_time
-        data = [["Status", "Result Details", "Time"], ["Completed", self.local_store_path, f"{elapsed_time:.2f} s"]]
+        data = [["Status", "Result Details", "Time"], ["Completed", self.pack_dir, f"{elapsed_time:.2f} s"]]
         table = tabulate(data, headers="firstrow", tablefmt="grid")
         self.stdio.print("\nAnalyze SQL Summary:")
         self.stdio.print(table)
