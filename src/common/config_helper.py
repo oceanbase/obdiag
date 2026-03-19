@@ -22,7 +22,7 @@ from collections import OrderedDict
 import yaml
 
 from src.common.command import get_observer_version
-from src.common.constant import const, obdiag_path, expand_obdiag_path
+from src.common.constant import const
 from src.common.ob_connector import OBConnector
 from src.common.ssh_client.base import SsherClient
 from src.common.tool import DirectoryUtil
@@ -41,7 +41,7 @@ class ConfigHelper(object):
         self.sys_tenant_password = Util.get_option(options, 'p')
         self.db_host = Util.get_option(options, 'h')
         self.db_port = Util.get_option(options, 'P')
-        self.config_path = obdiag_path('config.yml')
+        self.config_path = os.path.expanduser('~/.obdiag/config.yml')
         self.inner_config = self.context.inner_config
         self.ob_cluster = {
             "db_host": self.db_host,
@@ -86,9 +86,9 @@ class ConfigHelper(object):
     def build_configuration_by_file(self, file_path=""):
         if file_path == "":
             raise Exception("Please input the configure file path!!!")
-        if not os.path.exists(expand_obdiag_path(file_path)):
+        if not os.path.exists(os.path.expanduser(file_path)):
             raise Exception("The configure file path is not exist!!!")
-        file_path = expand_obdiag_path(file_path)
+        file_path = os.path.expanduser(file_path)
         if file_path.endswith(".ini"):
             self.build_configuration_by_ini(file_path)
         elif file_path.endswith(".yaml"):
@@ -236,13 +236,11 @@ class ConfigHelper(object):
         # print(json.dumps(config_yml_dict))
         # 将字典转换为YAML
         yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
-        config_yml = obdiag_path("config.yml")
-        config_yml_d = obdiag_path("config.yml.d")
-        if os.path.exists(config_yml):
-            if os.path.exists(config_yml_d):
-                os.remove(config_yml_d)
-            os.renames(config_yml, config_yml_d)
-        with open(config_yml, "w", encoding="utf-8") as f:
+        if os.path.exists(os.path.expanduser("~/.obdiag/config.yml")):
+            if os.path.exists(os.path.expanduser("~/.obdiag/config.yml.d")):
+                os.remove(os.path.expanduser("~/.obdiag/config.yml.d"))
+            os.renames(os.path.expanduser("~/.obdiag/config.yml"), os.path.expanduser("~/.obdiag/config.yml.d"))
+        with open(os.path.expanduser("~/.obdiag/config.yml"), "w", encoding="utf-8") as f:
             f.write(yaml_output)
             self.stdio.print("Build configuration success, please check ~/.obdiag/config.yml")
         return
@@ -323,13 +321,11 @@ class ConfigHelper(object):
             config_yml_dict["obproxy"] = config_yml_obproxy
         # dict to yaml
         yaml_output = yaml.dump(config_yml_dict, default_flow_style=False)
-        config_yml = obdiag_path("config.yml")
-        config_yml_d = obdiag_path("config.yml.d")
-        if os.path.exists(config_yml):
-            if os.path.exists(config_yml_d):
-                os.remove(config_yml_d)
-            os.renames(config_yml, config_yml_d)
-        with open(config_yml, "w", encoding="utf-8") as f:
+        if os.path.exists(os.path.expanduser("~/.obdiag/config.yml")):
+            if os.path.exists(os.path.expanduser("~/.obdiag/config.yml.d")):
+                os.remove(os.path.expanduser("~/.obdiag/config.yml.d"))
+            os.renames(os.path.expanduser("~/.obdiag/config.yml"), os.path.expanduser("~/.obdiag/config.yml.d"))
+        with open(os.path.expanduser("~/.obdiag/config.yml"), "w", encoding="utf-8") as f:
             f.write(yaml_output)
             self.stdio.print("Build configuration success, please check ~/.obdiag/config.yml")
         return
@@ -406,7 +402,7 @@ class ConfigHelper(object):
             pass
 
     def save_old_configuration(self, config):
-        backup_config_dir = expand_obdiag_path(self.inner_config["obdiag"]["basic"]["config_backup_dir"])
+        backup_config_dir = os.path.expanduser(self.inner_config["obdiag"]["basic"]["config_backup_dir"])
         filename = "config_backup_{0}.yml".format(TimeUtils.timestamp_to_filename_time(int(round(time.time() * 1000000))))
         backup_config_path = os.path.join(backup_config_dir, filename)
         DirectoryUtil.mkdir(path=backup_config_dir)

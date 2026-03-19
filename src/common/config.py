@@ -17,7 +17,6 @@
 
 from __future__ import absolute_import, division, print_function
 import os
-from src.common.constant import obdiag_path
 from src.common.file_crypto.file_crypto import FileEncryptor
 from src.common.tool import ConfigOptionsParserUtil, DirectoryUtil
 from src.common.stdio import SafeStdio
@@ -157,7 +156,7 @@ class Manager(SafeStdio):
 class ConfigManager(Manager):
 
     def __init__(self, config_file=None, stdio=None, config_env_list=[], config_password=None):
-        default_config_path = obdiag_path("config.yml")
+        default_config_path = os.path.join(os.path.expanduser("~"), ".obdiag", "config.yml")
         if config_env_list is None or len(config_env_list) == 0:
             if config_file is None or not os.path.exists(config_file):
                 config_file = default_config_path
