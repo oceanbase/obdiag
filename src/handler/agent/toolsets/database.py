@@ -27,7 +27,7 @@ from src.handler.agent.toolsets.sql_validator import validate_sql
 db_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
 
 
-@db_toolset.tool
+@db_toolset.tool(requires_approval=True, retries=2)
 def db_query(
     ctx: RunContext[AgentDependencies],
     sql: str,

@@ -1322,11 +1322,18 @@ class ObdiagAgentCommand(ObdiagOriginCommand):
         self.parser.add_option('-c', type='string', help='obdiag custom config', default=obdiag_path('config.yml'))
         self.parser.add_option('--config', action="append", type="string", help='config options Format: --config key=value')
         self.parser.add_option('-m', '--message', type='string', help='single-shot message to send to the agent', default=None)
+        self.parser.add_option('--resume', type='string', help='resume a previous session by ID (see "sessions" command)', default=None)
+        self.parser.add_option('-y', '--yolo', action='store_true', dest='yolo', help='auto-approve all tools (for testing with -m)', default=False)
 
     def init(self, cmd, args):
         super(ObdiagAgentCommand, self).init(cmd, args)
         self.parser.set_usage(
-            '%s [options]\n\n' '  Interactive mode: obdiag agent\n' '  Single-shot mode: obdiag agent -m "帮我巡检一下集群"\n' '  Target cluster by short name: obdiag agent -c obdiag_test  (uses ~/.obdiag/obdiag_test.yml)' % self.prev_cmd
+            '%s [options]\n\n'
+            '  Interactive mode:   obdiag agent\n'
+            '  Single-shot mode:   obdiag agent -m "帮我巡检一下集群"\n'
+            '  Resume session:     obdiag agent --resume 20260313_142055\n'
+            '  Resume + message:   obdiag agent --resume 20260313_142055 -m "这些文件有多大"  (for testing)\n'
+            '  Target cluster:     obdiag agent -c obdiag_test' % self.prev_cmd
         )
         return self
 

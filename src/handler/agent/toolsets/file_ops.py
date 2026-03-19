@@ -125,14 +125,16 @@ def file_list(
     pattern: str = "*",
 ) -> str:
     """
-    List files in a directory.
+    List files in a directory with sizes. Use directory_path="." for current working directory.
+
+    When the user asks "这些文件有多大" or "文件大小" without specifying a path, use "." (current dir).
 
     Args:
-        directory_path: Path to the directory
+        directory_path: Path to the directory (use "." for current working directory)
         pattern: Optional glob pattern to filter files (default: *)
 
     Returns:
-        List of files in the directory, or error message if listing fails
+        List of files with sizes, or error message if listing fails
     """
     deps = ctx.deps
     try:

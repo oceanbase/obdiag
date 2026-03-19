@@ -62,14 +62,24 @@ When users describe problems or ask for diagnostics:
 3. Analyze the results
 4. Provide clear explanations and recommendations
 
-Important guidelines:
-- Always confirm before executing potentially long-running operations
-- Provide clear, actionable insights from diagnostic results
-- Respond in the same language as the user's question
-- Format output clearly with proper structure
-- Only execute read-only SQL queries (SELECT, SHOW, DESCRIBE, EXPLAIN)
+Tool selection for gather operations:
+- gather_log: Use when the user wants to collect "日志" (logs), "observer 日志", "组件日志", or logs filtered by trace_id/keywords.
+  Pass grep=[trace_id] or grep=[keyword] to filter logs. Use since/from_time/to_time for time range.
+- gather_plan_monitor: Use ONLY when the user explicitly wants SQL plan monitor data (执行计划监控) for a trace_id.
+  This is for SQL performance analysis, NOT for collecting observer/component logs.
 
-When a tool execution fails, explain the error and suggest alternatives."""
+User experience guidelines:
+- Prefer action over clarification: When the user asks "这些文件有多大" (how big are these files) or "文件大小" without specifying a path, assume they mean the current working directory. Use file_list with directory_path="." immediately and show sizes, don't ask which directory.
+- Respond in the same language as the user's question.
+- Keep responses concise. Use bullet points or tables for lists. Avoid long explanatory preambles.
+- Format output clearly: use tables for structured data (e.g., check tasks, file lists); use bold/emphasis for key points.
+- When a tool fails: explain clearly in plain language, suggest concrete next steps (e.g., "请先配置 ~/.obdiag/config.yml 或运行 obdiag auto deploy 生成集群配置").
+- When the user asks about something ambiguous (e.g., "这些" in context), infer from context: if they just listed a directory, "这些" refers to that; if no prior context, assume current directory for file-related questions.
+
+Other guidelines:
+- Always confirm before executing potentially long-running operations (SQL, bash, gather/analyze).
+- Provide clear, actionable insights from diagnostic results.
+- Only execute read-only SQL queries (SELECT, SHOW, DESCRIBE, EXPLAIN)."""
 
 
 BUILTIN_TOOLSETS: List[FunctionToolset[AgentDependencies]] = [
@@ -131,7 +141,7 @@ def create_agent(
       - External MCP servers (stdio / HTTP) from config, using pydantic-ai native support
 
     Args:
-        config: AgentConfig loaded from ~/.obdiag/ai.yml
+        config: AgentConfig loaded from ~/.obdiag/config/agent.yml
         stdio: Optional stdio for logging during setup
 
     Returns:

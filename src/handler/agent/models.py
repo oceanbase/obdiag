@@ -212,7 +212,7 @@ class AgentDependencies:
 
 @dataclass
 class AgentConfig:
-    """Configuration for the obdiag agent, parsed from ~/.obdiag/ai.yml."""
+    """Configuration for the obdiag agent, parsed from ~/.obdiag/config/agent.yml."""
 
     # LLM
     provider: str = "openai"
@@ -232,6 +232,8 @@ class AgentConfig:
     show_beta_warning: bool = True
     clear_screen: bool = True
     prompt: str = "obdiag agent> "
+    tool_approval: bool = True  # Ask user before executing tools (human-in-the-loop)
+    stream_output: bool = False  # Stream agent response token by token
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "AgentConfig":
@@ -254,4 +256,6 @@ class AgentConfig:
             show_beta_warning=ui.get("show_beta_warning", True),
             clear_screen=ui.get("clear_screen", True),
             prompt=ui.get("prompt", "obdiag agent> "),
+            tool_approval=ui.get("tool_approval", True),
+            stream_output=ui.get("stream_output", False),
         )

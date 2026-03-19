@@ -27,16 +27,16 @@ from src.handler.agent.models import AgentConfig
 
 from src.common.constant import obdiag_path
 
-AGENT_CONFIG_PATH = obdiag_path("ai.yml")
+AGENT_CONFIG_PATH = obdiag_path("config", "agent.yml")
 OBDIAG_CONFIG_PATH = obdiag_path("config.yml")
 
 
 def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> Dict[str, Any]:
     """
-    Load agent configuration from ~/.obdiag/ai.yml
+    Load agent configuration from ~/.obdiag/config/agent.yml
 
     Args:
-        config_path: Optional path to config file (defaults to ~/.obdiag/ai.yml)
+        config_path: Optional path to config file (defaults to ~/.obdiag/config/agent.yml)
         stdio: Optional stdio for logging
 
     Returns:
@@ -61,6 +61,8 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
             "show_beta_warning": True,
             "clear_screen": True,
             "prompt": "obdiag agent> ",
+            "tool_approval": True,
+            "stream_output": False,
         },
     }
 
