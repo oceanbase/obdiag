@@ -99,6 +99,8 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.7.1|2025.09| 2025.10.22 |<ul><li> Check Scenario Expansion </li></ul>|
 |3.7.2|2025.10| 2025.11.27 |<ul><li> Check Scenario Expansion </li></ul>|
 |4.0.0|2025.12| 2026.01.07 |<ul><li> Add `obdiag agent` command, intelligent diagnostic agent (BETA)</li><li> Add `obdiag tool io_performance` command, disk IO performance detection tool</li><li> Add `obdiag tool config_check` command, configuration validation tool</li><li> Add `obdiag display scene run --scene=observer.compaction` command, compaction status display scene</li><li> Root Cause Analysis Scenario Expansion </li></ul>|
+|4.1.0|2026.02| 2026.02.11 |<ul><li> Add `obdiag display scene run --scene=observer.log_volume_statistics` command, CLOG log volume/capacity statistics</li><li> Add `obdiag display-trace` command for viewing detailed execution logs</li><li> `obdiag gather perf` supports flame graph SVG generation</li><li> `obdiag analyze log` adds `--tenant_id` parameter, `obdiag analyze flt_trace` supports filtering by client IP</li><li> `obdiag gather plan_monitor` includes histogram statistics</li><li> `obdiag check run` and `obdiag rca run` support HTML report format</li><li> Check framework refactored from checker to check (TaskBase, Python tasks)</li></ul>|
+|4.2.0|2026.03| 2026.03.13 |<ul><li> Check framework refactor</li><li> Support collecting perf information of obproxy processes</li><li> Deduplication of parse tables in GatherPlanMonitor</li><li> Improve SSH connection handling for check run</li><li> Check Scenario Expansion </li></ul>|
 
 # Support
 
