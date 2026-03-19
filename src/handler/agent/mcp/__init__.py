@@ -11,11 +11,18 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2025/12/08
+@time: 2026/03/09
 @file: __init__.py
-@desc: AI Assistant module initialization
+@desc: MCP (Model Context Protocol) module for obdiag agent
 """
 
-from src.handler.ai.obi_client import OBIClient
+from src.handler.agent.mcp.server import MCPServer
+from src.handler.agent.mcp.client import MCPClientManager
+from src.handler.agent.mcp.toolset_adapter import MCPServerToolset, MCPClientToolset
 
-__all__ = ['OBIClient']
+__all__ = [
+    'MCPServer',
+    'MCPClientManager',
+    'MCPServerToolset',
+    'MCPClientToolset',
+]

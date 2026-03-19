@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+# Copyright (c) 2022 OceanBase
+# OceanBase Diagnostic Tool is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+"""
+@time: 2026/03/10
+@file: database.py
+@desc: Database query toolset for obdiag agent
+"""
+
+import json
+from typing import Optional
+
+from pydantic_ai import FunctionToolset, RunContext
+
+from src.handler.agent.models import AgentDependencies
+from src.handler.agent.toolsets.sql_validator import validate_sql
+
+db_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
+
+
+@db_toolset.tool(requires_approval=True, retries=2)
+def db_query(
+    ctx: RunContext[AgentDependencies],
+    sql: str,
+    cluster_config_path: Optional[str] = None,
+) -> str:
+    """
+    Execute a read-only SQL query on an OceanBase database.
+
+    Only SELECT, SHOW, DESCRIBE, EXPLAIN, and WITH queries are allowed.
+
+    By default connects to the currently active cluster. To query a different
+    cluster, pass the path to its obdiag config.yml as ``cluster_config_path``.
+
+    Args:
+        sql: The SQL query to execute (must be read-only)
+        cluster_config_path: Optional path or short name (e.g., 'obdiag_test' for
+            ~/.obdiag/obdiag_test.yml) for a non-default cluster.
+
+    Returns:
+        Query results as formatted JSON, or error message if query fails
+    """
+    deps = ctx.deps
+
+    is_valid, error_msg = validate_sql(sql)
+    if not is_valid:
+        if deps.stdio:
+            deps.stdio.verbose(f"SQL validation failed: {error_msg}")
+        return error_msg
+
+    connector = deps.get_db_connector(cluster_config_path)
+    if not connector:
+        if cluster_config_path:
+            return f"Error: Cannot connect to cluster from config '{cluster_config_path}'. " "Please verify the file exists and contains valid 'obcluster' connection settings " "(db_host, db_port, tenant_sys.user, tenant_sys.password)."
+        return "Error: No database connection available. " "Use 'use <config_path>' to switch to a cluster, or pass cluster_config_path."
+
+    target = cluster_config_path or deps.config_path or "default cluster"
+    try:
+        if deps.stdio:
+            deps.stdio.verbose(f"Executing SQL on [{target}]: {sql[:100]}...")
+
+        cursor = connector.execute_sql_return_cursor_dictionary(sql)
+        results = cursor.fetchall()
+        cursor.close()
+
+        if not results:
+            return "Query executed successfully. No rows returned."
+
+        result_text = f"Query executed successfully on [{target}]. Returned {len(results)} row(s):\n\n"
+        result_text += json.dumps(results, indent=2, ensure_ascii=False, default=str)
+        return result_text
+
+    except Exception as e:
+        error_msg = f"SQL query execution failed on [{target}]: {e}"
+        if deps.stdio:
+            deps.stdio.verbose(error_msg)
+        return error_msg
