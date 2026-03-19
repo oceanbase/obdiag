@@ -44,6 +44,13 @@ llm:
     - Always confirm before executing potentially long-running operations (SQL, bash, gather/analyze).
     - Only execute read-only SQL queries (SELECT, SHOW, DESCRIBE, EXPLAIN).
 
+# Agent skills (pydantic-ai-skills). Preset skills in plugins/agent/skills/ are copied to ~/.obdiag/agent/skills/ on init.
+skills:
+  enabled: true
+  directory: ""  # default: ~/.obdiag/agent/skills
+  validate: true
+  script_timeout: 60
+
 mcp:
   enabled: true
   servers: ""

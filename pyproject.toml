@@ -65,6 +65,7 @@ dependencies = [
     "rich>=13.0.0",
     "prompt_toolkit>=3.0.0",
     "pydantic-ai-slim[openai,mcp]>=0.1.0",
+    "pydantic-ai-skills>=0.5.0",
 ]
 
 [project.optional-dependencies]

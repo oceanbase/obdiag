@@ -25,9 +25,10 @@ import yaml
 from src.handler.agent.cluster_resolve import OBDIAG_CONFIG_DIR, resolve_cluster_config_path
 from src.handler.agent.models import AgentConfig
 
-from src.common.constant import obdiag_path
+from src.common.constant import expand_obdiag_path, obdiag_path
 
 AGENT_CONFIG_PATH = obdiag_path("config", "agent.yml")
+DEFAULT_SKILLS_DIRECTORY = obdiag_path("agent", "skills")
 OBDIAG_CONFIG_PATH = obdiag_path("config.yml")
 
 
@@ -55,6 +56,12 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
         "mcp": {
             "enabled": True,
             "servers": {},
+        },
+        "skills": {
+            "enabled": True,
+            "directory": "",
+            "validate": True,
+            "script_timeout": 60,
         },
         "ui": {
             "show_welcome": True,
@@ -108,9 +115,18 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
         elif isinstance(servers_value, dict) and servers_value:
             mcp_config["servers"] = servers_value
 
+    # Handle skills configuration
+    skills_config = {**default_config["skills"], **agent_config.get("skills", {})}
+    dir_path = (skills_config.get("directory") or "").strip()
+    if dir_path:
+        skills_config["directory"] = expand_obdiag_path(dir_path)
+    else:
+        skills_config["directory"] = DEFAULT_SKILLS_DIRECTORY
+
     return {
         "llm": llm_config,
         "mcp": mcp_config,
+        "skills": skills_config,
         "ui": ui_config,
     }
 

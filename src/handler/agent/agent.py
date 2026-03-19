@@ -23,9 +23,9 @@
 import os
 from typing import Any, List, Optional
 
-from pydantic_ai import Agent, FunctionToolset
+from pydantic_ai import Agent, FunctionToolset, RunContext
 
-from src.handler.agent.config import get_model_string
+from src.handler.agent.config import DEFAULT_SKILLS_DIRECTORY, get_model_string
 from src.handler.agent.models import AgentConfig, AgentDependencies
 from src.handler.agent.toolsets import (
     config_gen_toolset,
@@ -88,6 +88,38 @@ BUILTIN_TOOLSETS: List[FunctionToolset[AgentDependencies]] = [
     file_toolset,
     config_gen_toolset,
 ]
+
+
+def _build_skills_toolset(config: AgentConfig, stdio: Any = None):
+    """Build SkillsToolset from pydantic-ai-skills when skills are enabled."""
+    if not config.skills_enabled:
+        return None
+
+    try:
+        from pydantic_ai_skills import SkillsToolset
+    except ImportError:
+        if stdio:
+            stdio.warn("pydantic-ai-skills not available; skills disabled")
+        return None
+
+    skills_dir = config.skills_directory or DEFAULT_SKILLS_DIRECTORY
+    if not os.path.isdir(skills_dir):
+        if stdio:
+            stdio.verbose(f"Skills directory not found: {skills_dir}, skills disabled")
+        return None
+
+    try:
+        toolset = SkillsToolset(
+            directories=[skills_dir],
+            validate=config.skills_validate,
+        )
+        if stdio:
+            stdio.verbose(f"Loaded skills from {skills_dir}")
+        return toolset
+    except Exception as e:
+        if stdio:
+            stdio.warn(f"Failed to create SkillsToolset: {e}")
+        return None
 
 
 def _build_mcp_toolsets(config: AgentConfig, stdio: Any = None) -> list:
@@ -156,6 +188,11 @@ def create_agent(
         os.environ["OPENAI_API_KEY"] = config.api_key
 
     all_toolsets: list = list(BUILTIN_TOOLSETS)
+
+    skills_toolset = _build_skills_toolset(config, stdio)
+    if skills_toolset:
+        all_toolsets.append(skills_toolset)
+
     all_toolsets.extend(_build_mcp_toolsets(config, stdio))
 
     agent: Agent[AgentDependencies, str] = Agent(
@@ -165,5 +202,12 @@ def create_agent(
         system_prompt=system_prompt,
         toolsets=all_toolsets,
     )
+
+    if skills_toolset:
+
+        @agent.instructions
+        async def add_skills_instructions(ctx: RunContext[AgentDependencies]) -> str | None:
+            """Inject skills overview into agent context."""
+            return await skills_toolset.get_instructions(ctx)
 
     return agent
