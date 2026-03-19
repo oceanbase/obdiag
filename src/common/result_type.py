@@ -86,7 +86,6 @@ class ObdiagResult:
 
     def get_result_md(self):
         result = {"code": self.code, "data": self.data, "error_data": self.error_data, "trace_id": self.trace_id, "command": self.command}
-        result_data = json.dumps(result, ensure_ascii=False)
 
         # 转换为Markdown格式
         md_content = "# Obdiag Result\n\n"

@@ -504,7 +504,7 @@ class GatherPlanMonitorHandler(object):
                 val = "%s.%06d" % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(item[v] / 1000000)), item[v] - (item[v] / 1000000) * 1000000)
             else:
                 val = str(item[v])
-        except Exception as e:
+        except Exception:
             val = str(item[v])
         return "" if item[n] == 0 else self.STAT_NAME[item[n]]["name"] + "(" + val + ");<br/>"
 
@@ -518,9 +518,9 @@ class GatherPlanMonitorHandler(object):
                 val = "%0.3fMB" % (float(item[v]) / 1024.0 / 1024)
             else:
                 val = None
-        except Exception as e:
+        except Exception:
             val = str(item[v])
-        return "" if val == None else self.STAT_NAME[item[n]]["name"] + "(" + val + ");<br/>"
+        return "" if val is None else self.STAT_NAME[item[n]]["name"] + "(" + val + ");<br/>"
 
     def detail_otherstat_explain(self, item):
         otherstat = ""
@@ -545,9 +545,9 @@ class GatherPlanMonitorHandler(object):
     def report_detail_graph_data(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = 0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
-            end = 0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
-            rows = 0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
+            start = 0 if None is item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
+            end = 0 if None is item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
+            rows = 0 if None is item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
             otherstat = self.detail_otherstat_explain(item)
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d, tag:'op', depth:%d, rescan:%d, svr_ip:'%s', otherstat:'%s'}," % (
                 start,
@@ -569,9 +569,9 @@ class GatherPlanMonitorHandler(object):
     def report_detail_graph_data_obversion4(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = 0 if None == item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
-            end = 0 if None == item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
-            rows = 0 if None == item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
+            start = 0 if None is item['FIRST_CHANGE_TS'] else item['FIRST_CHANGE_TS']
+            end = 0 if None is item['LAST_CHANGE_TS'] else item['LAST_CHANGE_TS']
+            rows = 0 if None is item['OUTPUT_ROWS'] else item['OUTPUT_ROWS']
             otherstat = self.detail_otherstat_explain(item)
             data = data + "{cpu:%f, io:%f, start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d, tag:'op', depth:%d, rescan:%d, svr_ip:'%s', otherstat:'%s'}," % (
                 item['MY_CPU_TIME'],
@@ -603,7 +603,6 @@ class GatherPlanMonitorHandler(object):
             op_id = item['PLAN_LINE_ID']
             op = item['PLAN_OPERATION']
             depth = item['PLAN_DEPTH']
-            est_rows = 0
             threads = item['THREAD_NUM']
             my_cpu_time = item['MY_CPU_TIME']
             my_io_time = item['MY_IO_TIME']
@@ -630,10 +629,10 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_agg_graph_data(self, cursor, title=''):
         data = "<script> var agg_serial = ["
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
-            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
-            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
+            start = 0 if None is item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None is item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            est_rows = 0 if None is item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', depth:%d, otherstat:'%s'}," % (
                 start,
@@ -654,11 +653,11 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_agg_graph_data_obversion4(self, cursor, title=''):
         data = "<script> var agg_serial = ["
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
-            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
-            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
-            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
+            start = 0 if None is item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None is item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None is item['SKEWNESS'] else item['SKEWNESS']
+            est_rows = 0 if None is item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', depth:%d, otherstat:'%s', skewness:%.2f}," % (
                 item['MY_CPU_TIME'],
@@ -682,10 +681,10 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_sched_agg_graph_data(self, cursor, title=''):
         data = "<script> var agg_sched_serial = ["
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
-            end = 0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
-            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
+            start = 0 if None is item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
+            end = 0 if None is item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            est_rows = 0 if None is item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, tag:'dfo', " "depth:%d, otherstat:'%s'}," % (
                 start,
@@ -706,11 +705,11 @@ class GatherPlanMonitorHandler(object):
     def report_dfo_sched_agg_graph_data_obversion4(self, cursor, title=''):
         data = "<script> var agg_sched_serial = ["
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
-            end = 0 if None == item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
-            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
-            est_rows = 0 if None == item['EST_ROWS'] else item['EST_ROWS']
+            start = 0 if None is item['MIN_FIRST_REFRESH_TS'] else item['MIN_FIRST_REFRESH_TS']
+            end = 0 if None is item['MAX_LAST_REFRESH_TS'] else item['MAX_LAST_REFRESH_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None is item['SKEWNESS'] else item['SKEWNESS']
+            est_rows = 0 if None is item['EST_ROWS'] else item['EST_ROWS']
             otherstat = self.dfo_otherstat_explain(item)
             data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',rows:%d,est_rows:%d, " "tag:'dfo', depth:%d, otherstat:'%s', skewness:%.2f}," % (
                 item['MY_CPU_TIME'],
@@ -735,9 +734,9 @@ class GatherPlanMonitorHandler(object):
     def report_svr_agg_graph_data(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
-            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            start = 0 if None is item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None is item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
             data = data + "{start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " "tag:'sqc', depth:%d}," % (
                 start,
                 end,
@@ -757,10 +756,10 @@ class GatherPlanMonitorHandler(object):
     def report_svr_agg_graph_data_obversion4(self, ident, cursor, title=''):
         data = "<script> var %s = [" % ident
         for item in cursor:
-            start = 0 if None == item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
-            end = 0 if None == item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
-            rows = 0 if None == item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
-            skewness = 0 if None == item['SKEWNESS'] else item['SKEWNESS']
+            start = 0 if None is item['MIN_FIRST_CHANGE_TS'] else item['MIN_FIRST_CHANGE_TS']
+            end = 0 if None is item['MAX_LAST_CHANGE_TS'] else item['MAX_LAST_CHANGE_TS']
+            rows = 0 if None is item['TOTAL_OUTPUT_ROWS'] else item['TOTAL_OUTPUT_ROWS']
+            skewness = 0 if None is item['SKEWNESS'] else item['SKEWNESS']
             data = data + "{cpu:%f,io:%f,start:%f, end:%f, diff:%f, opid:%s, op:'%s',tid:'%s',svr:'%s',rows:%d, " "tag:'sqc', depth:%d, skewness:%.2f}," % (
                 item['MY_CPU_TIME'],
                 item['MY_IO_TIME'],
@@ -835,7 +834,7 @@ class GatherPlanMonitorHandler(object):
                 return True
             else:
                 raise ValueError("Failed to match MySQL version")
-        except Exception as e:
+        except Exception:
             # Detect Oracle mode
             try:
                 data = self.sys_connector.execute_sql("select SUBSTR(BANNER, 11, 100) from V$VERSION;")

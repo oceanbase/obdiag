@@ -30,13 +30,13 @@ class GlobalSqlMeta:
     def get_value(self, key):
         try:
             return self._sql_dict[key]
-        except:
+        except KeyError:
             print('get' + key + 'failed\r\n')
 
     def rm_value(self, key):
         try:
             return self._sql_dict.pop(key)
-        except:
+        except KeyError:
             print('delete' + key + 'failed\r\n')
 
 

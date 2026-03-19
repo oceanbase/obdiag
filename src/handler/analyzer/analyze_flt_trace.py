@@ -181,9 +181,6 @@ class AnalyzeFltTraceHandler(object):
         resp = {"skip": False, "error": ""}
         remote_ip = node.get("ip") if self.is_ssh else '127.0.0.1'
         remote_user = node.get("ssh_username")
-        remote_password = node.get("ssh_password")
-        remote_port = node.get("ssh_port")
-        remote_private_key = node.get("ssh_key_file")
         node_files = []
         self.stdio.verbose("Sending Collect Shell Command to node {0} ...".format(remote_ip))
         DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
@@ -196,8 +193,7 @@ class AnalyzeFltTraceHandler(object):
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
-            ssh = None
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
@@ -350,14 +346,14 @@ class AnalyzeFltTraceHandler(object):
                         return json.loads(data_start + new_line + data_end)
                     else:
                         pass
-            except:
+            except Exception:
                 if line.endswith(']}\n'):
                     new_line_data = line[idx:-3] + "...\"}]}"
                 else:
                     new_line_data = line[idx:-1] + '}'
                 try:
                     return json.loads(data_start + new_line_data + data_end)
-                except:
+                except Exception:
                     new_line_data = line.replace('\t', '\\t')[idx:-5] + '..."}]}'
                     return json.loads(data_start + new_line_data + data_end)
 
@@ -557,7 +553,7 @@ class AnalyzeFltTraceHandler(object):
                             try:
                                 dt = datetime.strptime(match.group(), '%Y-%m-%d %H:%M:%S')
                                 timestamps.append(dt)
-                            except:
+                            except ValueError:
                                 pass
                         # Try pattern 2 & 3: timestamp in microseconds
                         for pattern in timestamp_patterns[1:]:
@@ -568,7 +564,7 @@ class AnalyzeFltTraceHandler(object):
                                     # Convert microseconds to datetime (assuming microseconds since epoch)
                                     dt = datetime.fromtimestamp(ts_us / 1000000)
                                     timestamps.append(dt)
-                                except:
+                                except (ValueError, OSError):
                                     pass
             except Exception as e:
                 self.stdio.verbose("Failed to read file {0}: {1}".format(file_path, str(e)))

@@ -160,7 +160,7 @@ class FullScanRule(AbstractRule):
             query_range_visitor = Query_Range_Visitor()
             query_range_visitor.process(root, None)
             return query_range_visitor.match
-        except Exception as e:
+        except Exception:
             pass
 
         return False

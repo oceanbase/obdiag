@@ -18,7 +18,6 @@
 
 import threading
 from src.common.result_type import ObdiagResult
-from src.common.tool import Util
 from src.common.ob_connector import OBConnector
 from src.common.ssh_client.ssh import SshClient
 from colorama import Fore, Style
@@ -361,7 +360,6 @@ class ConfigCheckHandler:
         self.stdio.print(Fore.CYAN + "=" * 70 + Style.RESET_ALL + "\n")
 
         summary = results["summary"]
-        total = summary["success"] + summary["failed"] + summary["skipped"]
 
         # Database connection
         db_result = results.get("db_connection", {})
@@ -376,7 +374,6 @@ class ConfigCheckHandler:
         # Observer nodes
         observer_nodes = results.get("observer_nodes", [])
         if observer_nodes:
-            success_count = len([n for n in observer_nodes if n.get("status") == "success"])
             failed_count = len([n for n in observer_nodes if n.get("status") == "failed"])
             if failed_count > 0:
                 self.stdio.print("  Observer Nodes:         " + Fore.RED + "{0}/{1} FAILED".format(failed_count, len(observer_nodes)) + Style.RESET_ALL)
@@ -391,7 +388,6 @@ class ConfigCheckHandler:
         # OBProxy nodes
         obproxy_nodes = results.get("obproxy_nodes", [])
         if obproxy_nodes:
-            success_count = len([n for n in obproxy_nodes if n.get("status") == "success"])
             failed_count = len([n for n in obproxy_nodes if n.get("status") == "failed"])
             if failed_count > 0:
                 self.stdio.print("  OBProxy Nodes:          " + Fore.RED + "{0}/{1} FAILED".format(failed_count, len(obproxy_nodes)) + Style.RESET_ALL)

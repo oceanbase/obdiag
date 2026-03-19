@@ -130,7 +130,7 @@ class GatherOsInfoHandler(BaseShellHandler):
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
@@ -170,7 +170,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             dmesg_cmd = "dmesg --ctime > {gather_path}/dmesg.human.current".format(gather_path=gather_path)
             self.stdio.verbose("gather dmesg current info, run cmd = [{0}]".format(dmesg_cmd))
             ssh_client.exec_cmd(dmesg_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather dmesg current info on server {0}".format(ssh_client.get_name()))
 
     def __gather_dmesg_boot_info(self, ssh_client, dir_path):
@@ -183,7 +183,7 @@ class GatherOsInfoHandler(BaseShellHandler):
                 ssh_client.exec_cmd(dmesg_cmd)
             else:
                 self.stdio.warn("the file /var/log/dmesg on server {0} not found ".format(ssh_client.get_name()))
-        except:
+        except Exception:
             self.stdio.error("Failed to gather the /var/log/dmesg on server {0}".format(ssh_client.get_name()))
 
     def __tsar_exit(self, ssh_client):
@@ -192,7 +192,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             exit = ssh_client.exec_cmd(cmd)
             if exit:
                 return True
-        except:
+        except Exception:
             self.stdio.warn("tsar not found")
 
     def __gather_cpu_info(self, ssh_client, gather_path):
@@ -200,7 +200,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar --cpu -i 1 > {gather_path}/one_day_cpu_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather cpu info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather cpu info use tsar on server {0}".format(ssh_client.get_name()))
 
     def __gather_mem_info(self, ssh_client, gather_path):
@@ -208,7 +208,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar --mem -i 1 > {gather_path}/one_day_mem_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather memory info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather memory info use tsar on server {0}".format(ssh_client.get_name()))
 
     def __gather_swap_info(self, ssh_client, gather_path):
@@ -216,7 +216,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar  --swap --load > {gather_path}/tsar_swap_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather swap info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather swap info use tsar on server {0}".format(ssh_client.get_name()))
 
     def __gather_io_info(self, ssh_client, gather_path):
@@ -224,7 +224,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar --io > {gather_path}/tsar_io_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather io info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather io info use tsar on server {0}".format(ssh_client.get_name()))
 
     def __gather_traffic_info(self, ssh_client, gather_path):
@@ -232,7 +232,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar  --traffic > {gather_path}/tsar_traffic_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather traffic info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather traffic info use tsar on server {0}".format(ssh_client.get_name()))
 
     def __gather_tcp_udp_info(self, ssh_client, gather_path):
@@ -240,7 +240,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             tsar_cmd = "tsar  --tcp --udp -d 1 > {gather_path}/tsar_tcp_udp_data.txt".format(gather_path=gather_path)
             self.stdio.verbose("gather tcp and udp info on server {0}, run cmd = [{1}]".format(ssh_client.get_name(), tsar_cmd))
             ssh_client.exec_cmd(tsar_cmd)
-        except:
+        except Exception:
             self.stdio.error("Failed to gather tcp and udp info use tsar on server {0}".format(ssh_client.get_name()))
 
     @staticmethod
@@ -255,7 +255,7 @@ class GatherOsInfoHandler(BaseShellHandler):
             pack_path = tup[5]
             try:
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
-            except:
+            except Exception:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Sysstat Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

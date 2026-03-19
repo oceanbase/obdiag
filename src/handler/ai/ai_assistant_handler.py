@@ -19,10 +19,9 @@
 import os
 import json
 import yaml
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from src.handler.ai.openai_client import ObdiagAIClient
-from src.handler.ai.obi_client import OBIClient
 from src.common.tool import Util
 from src.common.result_type import ObdiagResult
 
@@ -193,7 +192,6 @@ class AiAssistantHandler:
         """Initialize AI client"""
         llm_config = config["llm"]
         mcp_config = config["mcp"]
-        obi_config = config["obi"]
 
         # Check API key
         api_key = llm_config.get("api_key") or os.getenv("OPENAI_API_KEY")

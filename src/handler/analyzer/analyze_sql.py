@@ -180,7 +180,7 @@ class AnalyzeSQLHandler(object):
                 to_timestamp = TimeUtils.parse_time_str(to_option)
                 self.from_time_str = from_option
                 self.to_time_str = to_option
-            except:
+            except ValueError:
                 self.stdio.exception('Error: Datetime is invalid. Must be in format yyyy-mm-dd hh:mm:ss. from_datetime={0}, to_datetime={1}'.format(from_option, to_option))
                 return False
             if to_timestamp <= from_timestamp:
