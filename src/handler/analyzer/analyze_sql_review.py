@@ -226,17 +226,21 @@ class AnalyzeSQLReviewHandler(object):
                     else:
                         ok += 1
                     total += 1
-                    diags.append({
-                        "rule": d["ruleName"],
-                        "severity": level_str,
-                        "message": d["ruleDescription"],
-                        "suggestion": d["suggestion"],
-                    })
+                    diags.append(
+                        {
+                            "rule": d["ruleName"],
+                            "severity": level_str,
+                            "message": d["ruleDescription"],
+                            "suggestion": d["suggestion"],
+                        }
+                    )
                 entries.append({"sqlText": entry["sqlText"], "violations": diags})
-            reports_json.append({
-                "file": report["options"]["files"],
-                "diagnosticEntries": entries,
-            })
+            reports_json.append(
+                {
+                    "file": report["options"]["files"],
+                    "diagnosticEntries": entries,
+                }
+            )
         output = {
             "runDir": run_dir,
             "command": "obdiag analyze sql_review",

@@ -480,12 +480,14 @@ class AnalyzeSQLHandler(object):
                     else:
                         ok += 1
                     total += 1
-                    diags.append({
-                        "rule": d.rule_name,
-                        "severity": level_str,
-                        "message": d.description,
-                        "suggestion": d.suggestion,
-                    })
+                    diags.append(
+                        {
+                            "rule": d.rule_name,
+                            "severity": level_str,
+                            "message": d.description,
+                            "suggestion": d.suggestion,
+                        }
+                    )
                 sql_row = {k: v for k, v in row.items() if k != "diagnosticEntries" and k in self.sql_audit_keys}
                 sql_row["violations"] = diags
                 sql_row["planCachePlanExplain"] = row.get("planCachePlanExplain", "")
