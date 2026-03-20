@@ -29,6 +29,7 @@ from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 
 
 class GatherOsInfoHandler(BaseShellHandler):
@@ -113,7 +114,8 @@ class GatherOsInfoHandler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
-        # Persist the summary results to a file
+        # Persist the summary results to a file (with header: collect time, observer/obproxy version)
+        ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 

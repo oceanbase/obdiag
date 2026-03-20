@@ -32,6 +32,7 @@ from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import StringUtils
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 
 
 class GatherObstack2Handler(BaseShellHandler):
@@ -109,7 +110,7 @@ class GatherObstack2Handler(BaseShellHandler):
 
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
-        # Persist the summary results to a file
+        ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
@@ -205,17 +206,12 @@ class GatherObstack2Handler(BaseShellHandler):
 
     @Util.retry(10, 5)
     def is_ready(self, ssh_client, pid, remote_dir_name):
-        try:
-            self.stdio.verbose("Check whether the directory /tmp/{dir_name} or " "file /tmp/{dir_name}/observer_{pid}_obstack.txt is empty".format(dir_name=remote_dir_name, pid=pid))
-            is_empty_dir_res = is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio)
-            is_empty_file_res = is_empty_file(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
-            if is_empty_dir_res or is_empty_file_res:
-                self.stdio.warn(
-                    "The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid)
-                )
-                raise
-        except Exception as e:
-            raise e
+        self.stdio.verbose("Check whether the directory /tmp/{dir_name} or " "file /tmp/{dir_name}/observer_{pid}_obstack.txt is empty".format(dir_name=remote_dir_name, pid=pid))
+        is_empty_dir_res = is_empty_dir(ssh_client, "/tmp/{0}".format(remote_dir_name), self.stdio)
+        is_empty_file_res = is_empty_file(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=pid), self.stdio)
+        if is_empty_dir_res or is_empty_file_res:
+            self.stdio.warn("The server {host_ip} directory /tmp/{dir_name} or file /tmp/{dir_name}/observer_{pid}_obstack.txt" " is empty, waiting for the collection to complete".format(host_ip=ssh_client.get_name(), dir_name=remote_dir_name, pid=pid))
+            raise Exception("Directory or obstack file is empty, waiting for collection to complete")
 
     def __chmod_obstack2(self, ssh_client):
         cmd = "chmod a+x {file}".format(file=const.OBSTACK2_DEFAULT_INSTALL_PATH)

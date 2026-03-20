@@ -14,5 +14,5 @@ obdiag_*
 dev_doc/*
 dev_docs/
 *.md
-build/
 rpmbuild/
+build/*
