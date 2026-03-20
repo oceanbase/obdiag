@@ -351,7 +351,7 @@
             <p>根据您的需求自动生成 obdiag 诊断命令</p>
             <p style="font-size: 0.9em; opacity: 0.85; margin-top: 10px;">
                 <span style="background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 12px;">
-                    📌 本工具适配 obdiag 4.2.0 版本
+                    📌 本工具适配 obdiag 4.3.0 版本
                 </span>
             </p>
         </div>
@@ -359,7 +359,7 @@
         <div class="content">
             <!-- 版本提示 -->
             <div class="alert" style="background: #e7f3ff; color: #004085; border: 1px solid #b3d7ff; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-                <strong>📌 版本说明：</strong>本命令生成助手适配 <strong>obdiag 4.2.0</strong> 版本。如果您使用的是其他版本，部分命令参数可能有所不同，请参考对应版本的文档。
+                <strong>📌 版本说明：</strong>本命令生成助手适配 <strong>obdiag 4.3.0</strong> 版本。如果您使用的是其他版本，部分命令参数可能有所不同，请参考对应版本的文档。
             </div>
             
             <!-- 主命令选择 -->
@@ -390,6 +390,7 @@
                         <option value="config">config - 快速构建配置</option>
                         <option value="update">update - 更新插件</option>
                         <option value="tool">tool - 工具</option>
+                        <option value="agent">agent - 交互式诊断代理(BETA)</option>
                         <option value="display-trace">display-trace - 显示trace日志</option>
                     </select>
                 </div>
@@ -569,6 +570,8 @@
             'analyze.queue': '分析队列信息',
             'analyze.index_space': '分析索引空间',
             'analyze.memory': '分析内存使用情况',
+            'analyze.sql': '分析SQL性能',
+            'analyze.sql_review': 'SQL审核分析',
             'check.run': '运行集群检查任务',
             'check.list': '列出可用的检查任务',
             'rca.run': '运行根因分析场景',
@@ -992,7 +995,9 @@
                 },
                 queue: { options: ['from', 'to', 'store_dir', 'since', 'tenant', 'queue'] },
                 index_space: { options: ['tenant_name', 'database', 'table_name', 'index_name', 'column_names'] },
-                memory: { options: ['from', 'to', 'files', 'store_dir', 'since', 'temp_dir', 'version'] }
+                memory: { options: ['from', 'to', 'files', 'store_dir', 'since', 'temp_dir', 'version'] },
+                sql: { options: ['tenant_name', 'host', 'port', 'password', 'user', 'from', 'to', 'since', 'level', 'output', 'limit', 'store_dir', 'elapsed_time'] },
+                sql_review: { options: ['host', 'port', 'password', 'user', 'files', 'level', 'output', 'store_dir'] }
             },
             check: {
                 run: { options: ['cases', 'obproxy_cases', 'observer_tasks', 'obproxy_tasks', 'store_dir', 'report_type', 'env'] },
@@ -1038,9 +1043,9 @@
             tool: {
                 crypto_config: { options: ['key', 'file', 'encrypted_file'] },
                 io_performance: { options: ['disk', 'date'] },
-                ai_assistant: { options: [] },
                 config_check: { options: [] }
             },
+            agent: { options: ['message', 'resume', 'yolo'] },
             'display-trace': { options: ['trace_id'] }
         };
 
@@ -1129,7 +1134,7 @@
             grep: { label: '关键词过滤 (--grep)', placeholder: '格式: 关键词', type: 'multi', multiple: true, help: '用于过滤日志中的关键词，可以多次使用。例如: --grep ERROR --grep WARN 会同时过滤包含 ERROR 或 WARN 的日志' },
             store_dir: { label: '存储目录 (--store_dir)', placeholder: '默认: ./', type: 'text', help: '存储收集结果的目录路径，默认是当前目录（./）。例如: --store_dir /tmp/obdiag_result' },
             temp_dir: { label: '临时目录 (--temp_dir)', placeholder: '默认: /tmp', type: 'text', help: '在节点上临时存储文件的目录，默认是 /tmp。确保该目录有足够的空间和写入权限' },
-            scope: { label: '范围 (--scope)', placeholder: '根据命令不同而不同', type: 'text', help: '根据命令不同，可选值也不同。对于 log 命令: observer, election, rootservice, all；对于 perf 命令: sample, flame, pstack, all；对于 obproxy_log 命令: obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all' },
+            scope: { label: '范围 (--scope)', placeholder: '根据命令不同而不同', type: 'text', help: '根据命令不同，可选值也不同。对于 log 命令: observer, election, rootservice, all；对于 perf 命令: sample, flame, pstack, all；对于 obproxy_log 命令: obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all；对于 oms_log 命令: console, nginx, supervisord, drc, ghana, scheduler, web, alarm, api, gc, cm, supervisor, cdc, libobcdc, store, all' },
             recent_count: { label: '最近文件数 (--recent_count)', placeholder: '默认: 0', type: 'number', help: '只收集最近 N 个日志文件。默认值为 0（禁用）。当 > 0 时，只会收集最近 N 个文件，from/to/since 参数将被忽略' },
             redact: { label: '脱敏选项 (--redact)', placeholder: '脱敏配置', type: 'text', help: '数据脱敏选项，用于隐藏敏感信息。可以配置需要脱敏的字段或模式' },
             trace_id: { label: 'Trace ID', placeholder: 'Trace ID (display-trace命令需要)', type: 'text', help: 'SQL trace ID，用于追踪特定的 SQL 执行。对于 plan_monitor 命令，trace_id 是可选的；对于 display-trace 命令，trace_id 是必填的位置参数' },
@@ -1184,7 +1189,10 @@
             encrypted_file: { label: '加密文件 (--encrypted_file)', placeholder: '加密文件路径', type: 'text' },
             disk: { label: '磁盘设备 (--disk)', placeholder: '例如: sda, sdb, clog, data', type: 'text' },
             date: { label: '日期 (--date)', placeholder: '格式: YYYYMMDD', type: 'text' },
-            all: { label: '显示全部 (--all)', placeholder: '', type: 'checkbox' }
+            all: { label: '显示全部 (--all)', placeholder: '', type: 'checkbox' },
+            message: { label: '消息 (-m)', placeholder: '发送给代理的消息', type: 'text', help: '单次模式：发送一条消息给代理后退出。例如: -m "帮我巡检一下集群"' },
+            resume: { label: '恢复会话 (--resume)', placeholder: '会话ID', type: 'text', help: '恢复之前的会话。例如: --resume 20260313_142055' },
+            yolo: { label: '自动批准 (-y)', placeholder: '', type: 'checkbox', help: '自动批准所有工具调用（用于测试）' }
         };
 
         // 格式验证函数
@@ -2127,6 +2135,8 @@
 
             let command = 'obdiag';
             const parts = [];
+            // 存储需要用环境变量传入的密码，key为变量名，value为密码值
+            const passwordVars = {};
 
             // 添加主命令
             parts.push(mainCmd);
@@ -2173,7 +2183,10 @@
             if (dbHost) configs.push(`db_host=${dbHost}`);
             if (dbPort) configs.push(`db_port=${dbPort}`);
             if (dbUser) configs.push(`tenant_sys.user=${dbUser}`);
-            if (dbPassword) configs.push(`tenant_sys.password=${dbPassword}`);
+            if (dbPassword) {
+                configs.push(`tenant_sys.password=$DB_PASSWORD`);
+                passwordVars['DB_PASSWORD'] = dbPassword;
+            }
 
             // Observer配置
             const observerSshUsername = document.getElementById('observerSshUsername').value;
@@ -2183,7 +2196,10 @@
             const observerHomePath = document.getElementById('observerHomePath').value;
 
             if (observerSshUsername) configs.push(`obcluster.servers.global.ssh_username=${observerSshUsername}`);
-            if (observerSshPassword) configs.push(`obcluster.servers.global.ssh_password=${observerSshPassword}`);
+            if (observerSshPassword) {
+                configs.push(`obcluster.servers.global.ssh_password=$OBSERVER_SSH_PASSWORD`);
+                passwordVars['OBSERVER_SSH_PASSWORD'] = observerSshPassword;
+            }
             if (observerSshKeyFile) configs.push(`obcluster.servers.global.ssh_key_file=${observerSshKeyFile}`);
             if (observerSshPort && observerSshPort !== '22') configs.push(`obcluster.servers.global.ssh_port=${observerSshPort}`);
             if (observerHomePath) configs.push(`obcluster.servers.global.home_path=${observerHomePath}`);
@@ -2209,7 +2225,10 @@
             const obproxyHomePath = document.getElementById('obproxyHomePath').value;
 
             if (obproxySshUsername) configs.push(`obproxy.servers.global.ssh_username=${obproxySshUsername}`);
-            if (obproxySshPassword) configs.push(`obproxy.servers.global.ssh_password=${obproxySshPassword}`);
+            if (obproxySshPassword) {
+                configs.push(`obproxy.servers.global.ssh_password=$OBPROXY_SSH_PASSWORD`);
+                passwordVars['OBPROXY_SSH_PASSWORD'] = obproxySshPassword;
+            }
             if (obproxySshKeyFile) configs.push(`obproxy.servers.global.ssh_key_file=${obproxySshKeyFile}`);
             if (obproxyHomePath) configs.push(`obproxy.servers.global.home_path=${obproxyHomePath}`);
 
@@ -2231,7 +2250,13 @@
                     allSceneEnv.forEach(envVar => {
                         const envInput = document.querySelector(`.scene-env-${envVar}`);
                         if (envInput && envInput.value.trim()) {
-                            parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                            // password 使用环境变量方式传入
+                            if (envVar === 'password') {
+                                parts.push(`--env ${envVar}=$SCENE_PASSWORD`);
+                                passwordVars['SCENE_PASSWORD'] = envInput.value.trim();
+                            } else {
+                                parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                            }
                         }
                     });
                 }
@@ -2243,7 +2268,13 @@
                     allSceneEnv.forEach(envVar => {
                         const envInput = document.querySelector(`.scene-env-${envVar}`);
                         if (envInput && envInput.value.trim()) {
-                            parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                            // password 使用环境变量方式传入
+                            if (envVar === 'password') {
+                                parts.push(`--env ${envVar}=$SCENE_PASSWORD`);
+                                passwordVars['SCENE_PASSWORD'] = envInput.value.trim();
+                            } else {
+                                parts.push(`--env ${envVar}=${envInput.value.trim()}`);
+                            }
                         }
                     });
                 }
@@ -2297,7 +2328,7 @@
 
             options.forEach(opt => {
                 const desc = optionDescriptions[opt] || {};
-                
+
                 // 处理数据库连接环境变量
                 if (desc.type === 'db_env') {
                     const container = document.getElementById(`opt_${opt}_container`);
@@ -2307,11 +2338,15 @@
                         const user = container.querySelector('.db-env-user')?.value.trim();
                         const password = container.querySelector('.db-env-password')?.value.trim();
                         const database = container.querySelector('.db-env-database')?.value.trim();
-                        
+
                         if (host) parts.push(`--env host=${host}`);
                         if (port) parts.push(`--env port=${port}`);
                         if (user) parts.push(`--env user=${user}`);
-                        if (password) parts.push(`--env password=${password}`);
+                        // password 使用环境变量方式传入，避免特殊字符问题
+                        if (password) {
+                            parts.push(`--env password=$DB_PASSWORD`);
+                            passwordVars['DB_PASSWORD'] = password;
+                        }
                         if (database) parts.push(`--env database=${database}`);
                     }
                 } else if (desc.type === 'multi' && desc.multiple) {
@@ -2320,7 +2355,14 @@
                     inputs.forEach(input => {
                         const value = input.value.trim();
                         if (value) {
-                            parts.push(`--${opt} ${value}`);
+                            // 检查是否是 password 环境变量 (格式: password=xxx)
+                            if (opt === 'env' && value.startsWith('password=')) {
+                                const passwordValue = value.substring(9); // 移除 'password=' 前缀
+                                parts.push(`--env password=$ENV_PASSWORD`);
+                                passwordVars['ENV_PASSWORD'] = passwordValue;
+                            } else {
+                                parts.push(`--${opt} ${value}`);
+                            }
                         }
                     });
                 } else if (desc.type === 'select') {
@@ -2354,6 +2396,10 @@
                                 // display-trace的trace_id是位置参数，不是选项
                                 if (mainCmd === 'display-trace' && opt === 'trace_id') {
                                     parts.push(value);
+                                } else if (opt === 'password') {
+                                    // password 使用环境变量方式传入，避免特殊字符问题
+                                    parts.push(`--${opt} $CMD_PASSWORD`);
+                                    passwordVars['CMD_PASSWORD'] = value;
                                 } else {
                                     parts.push(`--${opt} ${value}`);
                                 }
@@ -2365,11 +2411,18 @@
 
             // 构建最终命令
             command = 'obdiag ' + parts.join(' ');
-            
+
             if (configs.length > 0) {
                 configs.forEach(config => {
                     command += ` \\\n    --config ${config}`;
                 });
+            }
+
+            // 如果有密码需要用环境变量传入，在命令前添加环境变量设置
+            if (Object.keys(passwordVars).length > 0) {
+                // 为每个密码变量生成环境变量设置
+                const envLines = Object.entries(passwordVars).map(([key, value]) => `${key}='${value}'`);
+                command = envLines.join('\n') + '\n' + command;
             }
 
             // 检查必填参数

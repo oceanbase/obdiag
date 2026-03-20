@@ -99,6 +99,8 @@ obdiag envisions an open community. We welcome your contributions in any form:
 |3.7.1|2025.09| 2025.10.22 |<ul><li> Check Scenario Expansion </li></ul>|
 |3.7.2|2025.10| 2025.11.27 |<ul><li> Check Scenario Expansion </li></ul>|
 |4.0.0|2025.12| 2026.01.07 |<ul><li> Add `obdiag agent` command, intelligent diagnostic agent (BETA)</li><li> Add `obdiag tool io_performance` command, disk IO performance detection tool</li><li> Add `obdiag tool config_check` command, configuration validation tool</li><li> Add `obdiag display scene run --scene=observer.compaction` command, compaction status display scene</li><li> Root Cause Analysis Scenario Expansion </li></ul>|
+|4.1.0|2026.02| 2026.02.11 |<ul><li> Transition to pyproject.toml for dependency management</li><li> Add `obdiag display-trace` command for execution log troubleshooting</li><li> Add `obdiag display scene run --scene=observer.log_volume_statistics` for CLOG capacity display</li><li> `obdiag gather perf` supports flame graph SVG generation</li><li> `obdiag check run` and `obdiag rca run` support HTML report output</li><li> Check Scenario Expansion, Gather Scenario Expansion </li></ul>|
+|4.2.0|2026.03| 2026.03.11 |<ul><li> Check refactor: improve SSH connection handling, add docker0 interface check</li><li> Support collecting perf information of OBProxy processes</li><li> Enhance deduplication and CREATE TABLE DDL handling in gather plan_monitor</li><li> Optimize analyze memory result style</li><li> Update obdiag command generator, ddl_disk_full and cpu_high RCA scenes </li></ul>|
 
 # Support
 
