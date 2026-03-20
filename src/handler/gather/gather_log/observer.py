@@ -239,7 +239,6 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
 
     def _filter_logs_by_recent_count(self, logs) -> list:
         """Filter logs by recent count."""
-        import datetime
 
         # Group by log type and path
         log_groups = {}

@@ -112,7 +112,6 @@ class GatherObstack2Handler(BaseShellHandler):
         self.stdio.print(summary_tuples)
         ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
-        last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, local_stored_path, node):
@@ -124,11 +123,10 @@ class GatherObstack2Handler(BaseShellHandler):
         now_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         remote_dir_name = "obstack2_{0}_{1}".format(remote_ip.replace(":", "_"), now_time)
         remote_dir_full_path = "/tmp/{0}".format(remote_dir_name)
-        ssh_failed = False
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             resp["skip"] = True
             resp["error"] = "Please check the node conf."
@@ -182,7 +180,7 @@ class GatherObstack2Handler(BaseShellHandler):
                 self.stdio.start_loading('gather obstack info')
                 self.is_ready(ssh_client, observer_pid, remote_dir_name)
                 self.stdio.stop_loading('gather obstack info sucess')
-            except:
+            except Exception:
                 self.stdio.stop_loading('gather info failed')
                 self.stdio.error("Gather obstack info on the host {0} observer pid {1}".format(remote_ip, observer_pid))
                 delete_file_force(ssh_client, "/tmp/{dir_name}/observer_{pid}_obstack.txt".format(dir_name=remote_dir_name, pid=observer_pid), self.stdio)
@@ -257,7 +255,7 @@ class GatherObstack2Handler(BaseShellHandler):
             pack_path = tup[5]
             try:
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
-            except:
+            except Exception:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Ob stack Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

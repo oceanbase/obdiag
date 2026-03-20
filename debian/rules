@@ -1,0 +1,65 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+
+override_dh_auto_build:
+
+override_dh_auto_install:
+	@echo "Building obdiag binary..."
+	# Install build dependencies
+	pip3 install .[build] --break-system-packages || pip3 install .[build]
+
+	# Prepare source
+	cp -f src/main.py src/obdiag.py
+
+	# Update version info
+	DATE=$$(date) && \
+	VERSION=$$(cat pyproject.toml | grep '^version =' | head -1 | sed 's/version = "\(.*\)"/\1/') && \
+	sed -i "s/<B_TIME>/$$DATE/" ./src/common/version.py && \
+	sed -i "s/<VERSION>/$$VERSION/" ./src/common/version.py
+
+	# Build binary with PyInstaller
+	pyinstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table -p ./src -F src/obdiag.py
+
+	# Cleanup temp file
+	rm -f src/obdiag.py
+
+	# Create installation directories
+	mkdir -p $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool
+	mkdir -p $(CURDIR)/debian/oceanbase-diagnostic-tool/usr/bin
+	mkdir -p $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/lib
+	mkdir -p $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/dependencies/bin
+
+	# Copy binary
+	cp -rf dist/obdiag $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+
+	# Copy resources
+	cp -rf $(CURDIR)/plugins $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/conf $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/example $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/resources $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/dependencies/bin $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/dependencies/
+
+	# Copy init scripts
+	cp -rf $(CURDIR)/rpm/init.sh $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/rpm/init_obdiag_cmd.sh $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+	cp -rf $(CURDIR)/rpm/obdiag_backup.sh $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/
+
+	# Copy src to lib for reference
+	cp -rf $(CURDIR)/src $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/lib/site-packages/
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/obdiag
+	chmod 755 $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/init.sh
+	chmod 755 $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh
+	chmod 755 $(CURDIR)/debian/oceanbase-diagnostic-tool/opt/oceanbase-diagnostic-tool/obdiag_backup.sh

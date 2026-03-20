@@ -261,7 +261,6 @@ class ObdiagOriginCommand(BaseCommand):
     def do_command(self):
         self.parse_command()
         self.start_check()
-        trace_id = uuid()
         ret = False
         try:
             log_directory = os.path.join(os.path.expanduser("~"), ".obdiag", "log")
@@ -295,12 +294,10 @@ class ObdiagOriginCommand(BaseCommand):
             ret = None
             try:
                 ret = self._do_command(obdiag)
-                exit_code = 0
             except Exception as e:
                 ROOT_IO.exception(e)
                 ROOT_IO.error('command failed. Please contact OceanBase community. e: {0}'.format(e))
                 ret = ObdiagResult(code=ObdiagResult.SERVER_ERROR_CODE, error_data="command failed. Please contact OceanBase community. e: {0}".format(e))
-                exit_code = 1
             # if silent is true ,print ret
             if ROOT_IO.silent:
                 if isinstance(ret, ObdiagResult) is False:
@@ -342,7 +339,7 @@ class ObdiagOriginCommand(BaseCommand):
             pass
         except KeyboardInterrupt:
             ROOT_IO.exception('Keyboard Interrupt')
-        except:
+        except Exception:
             e = sys.exc_info()[1]
             ROOT_IO.exception('Running Error: %s' % e)
 
@@ -392,7 +389,7 @@ class DisplayTraceCommand(ObdiagOriginCommand):
             if UUID(trace_id).version != 1:
                 ROOT_IO.critical('%s is not trace id' % trace_id)
                 return False
-        except:
+        except (ValueError, AttributeError):
             ROOT_IO.print('%s is not trace id' % trace_id)
             return False
         cmd = 'cd {} && grep -h "\[{}\]" $(ls -tr {}*) | sed "s/\[{}\] //g" '.format(log_dir, trace_id, log_dir, trace_id)
@@ -1196,7 +1193,7 @@ class ObdiagRCARunCommand(ObdiagOriginCommand):
             try:
                 self.scene_input_param_map = json.loads(value)
                 return
-            except Exception as e:
+            except Exception:
                 ROOT_IO.verbose("env option {0} is not json.".format(value))
 
             # env option is key=val format
@@ -1425,8 +1422,8 @@ class ObdiagAnalyzeCommand(MajorCommand):
         self.register_command(ObdiagAnalyzeQueueCommand())
         self.register_command(ObdiagAnalyzeIndexSpaceCommand())
         self.register_command(ObdiagAnalyzeMemoryCommand())
-        # self.register_command(ObdiagAnalyzeSQLCommand())
-        # self.register_command(ObdiagAnalyzeSQLReviewCommand())
+        self.register_command(ObdiagAnalyzeSQLCommand())
+        self.register_command(ObdiagAnalyzeSQLReviewCommand())
 
 
 class ObdiagRCACommand(MajorCommand):

@@ -18,7 +18,6 @@
 import os
 import time
 import datetime
-import re
 
 import tabulate
 from src.common.tool import TimeUtils
@@ -135,7 +134,7 @@ class GatherCoreHandler(BaseShellHandler):
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             resp["skip"] = True
             resp["error"] = "Please check the node conf."
@@ -429,7 +428,7 @@ class GatherCoreHandler(BaseShellHandler):
             pack_path = tup[5]
             try:
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
-            except:
+            except Exception:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Core Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

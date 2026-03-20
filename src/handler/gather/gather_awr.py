@@ -200,7 +200,7 @@ class GatherAwrHandler(object):
                 except KeyError:
                     self.stdio.error(f"Malformed snapshot data: {info}")
                     continue
-                except Exception as e:
+                except Exception:
                     continue
         except requests.exceptions.RequestException as e:
             self.stdio.error(f"Failed to fetch snapshot list from OCP: {e}")

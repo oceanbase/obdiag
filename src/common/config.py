@@ -32,10 +32,15 @@ else:
     absPath = os.path.dirname(os.path.abspath(__file__))
 inner_config_release_path = os.path.join(absPath, "conf/inner_config.yml")
 inner_config_dev_path = os.path.join(absPath, "../../conf/inner_config.yml")
-if os.path.exists(inner_config_release_path):
+inner_config_installed_path = os.path.join(absPath, "../conf/inner_config.yml")
+if os.path.isfile(inner_config_release_path):
     INNER_CONFIG_FILE = inner_config_release_path
-else:
+elif os.path.isfile(inner_config_dev_path):
     INNER_CONFIG_FILE = inner_config_dev_path
+elif os.path.isfile(inner_config_installed_path):
+    INNER_CONFIG_FILE = inner_config_installed_path
+else:
+    INNER_CONFIG_FILE = inner_config_installed_path
 
 DEFAULT_CONFIG_DATA = '''
 obcluster:
@@ -113,7 +118,13 @@ class Manager(SafeStdio):
     def __init__(self, home_path, stdio=None):
         self.stdio = stdio
         self.path = home_path
-        self.is_init = self._mkdir(self.path)
+        # For file paths (e.g. .yml, .yaml), create parent directory only to avoid
+        # creating the path as a directory. See: Errno 21 EISDIR when pip install
+        parent = os.path.dirname(home_path)
+        if parent and os.path.splitext(home_path)[1]:
+            self.is_init = DirectoryUtil.mkdir(parent, stdio=self.stdio)
+        else:
+            self.is_init = self._mkdir(self.path)
 
     def _mkdir(self, path):
         return DirectoryUtil.mkdir(path, stdio=self.stdio)

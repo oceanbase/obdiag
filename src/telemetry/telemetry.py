@@ -65,9 +65,9 @@ class Telemetry:
                     # self.threads.append(threading.Thread(None, self.get_tenant_info()))
                     for thread in self.threads:
                         thread.start()
-                except Exception as e:
+                except Exception:
                     pass
-        except Exception as e:
+        except Exception:
             pass
 
     def get_cluster_info(self):
@@ -77,20 +77,18 @@ class Telemetry:
                 version = str(self.cluster_conn.execute_sql("select version();")[0][0])
                 if "-v4" in version:
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary("select * from oceanbase.GV$OB_SERVERS;")
-                    columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         data_one["SVR_IP"] = ip_mix_by_sha256(data_one["SVR_IP"])
                 elif version.startswith("3."):
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary("select * from oceanbase.gv$unit u, oceanbase.__all_virtual_server_stat s where s.svr_ip=u.svr_ip and s.svr_port=u.svr_port")
-                    columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         data_one["svr_ip"] = ip_mix_by_sha256(data_one["svr_ip"])
                 self.obversion = version
                 self.cluster_info = json.dumps(data)
                 self.cluster_info["obversion"] = version
-            except Exception as e:
+            except Exception:
                 pass
         return
 
@@ -103,21 +101,19 @@ class Telemetry:
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary(
                         "SELECT * FROM OCEANBASE.DBA_OB_TENANTS t1,OCEANBASE.DBA_OB_UNITS t2,OCEANBASE.DBA_OB_UNIT_CONFIGS t3,OCEANBASE.DBA_OB_RESOURCE_POOLS t4 where t1.tenant_id = t4.tenant_id AND t4.resource_pool_id=t2.resource_pool_id AND t4.unit_config_id=t3.unit_config_id ORDER BY t1.tenant_name;"
                     )
-                    columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         if "SVR_IP" in data_one:
                             data_one["SVR_IP"] = ip_mix_by_sha256(data_one.get("SVR_IP"))
                 elif version.startswith("3."):
                     cursor = self.cluster_conn.execute_sql_return_cursor_dictionary("SELECT * FROM OCEANBASE.gv$tenant t1,OCEANBASE.gv$unit t2 where t1.tenant_id = t2.tenant_id;")
-                    columns = [column[0] for column in cursor.description]
                     data = cursor.fetchall()
                     for data_one in data:
                         if "svr_ip" in data_one:
                             data_one["svr_ip"] = ip_mix_by_sha256(data_one.get("svr_ip"))
 
                 self.tenant_info = json.dumps(data, cls=DateTimeEncoder)
-            except Exception as e:
+            except Exception:
                 pass
         return
 
@@ -158,7 +154,7 @@ class Telemetry:
                 f.write(json.dumps(re, ensure_ascii=False))
             self.put_info_to_oceanbase()
 
-        except Exception as e:
+        except Exception:
             pass
         return
 
@@ -171,8 +167,8 @@ class Telemetry:
                 payload = file.read()
             headers = {'Content-Encoding': 'application/gzip', 'Content-Type': 'application/json'}
             conn.request("POST", const.TELEMETRY_PATH, payload, headers)
-            res = conn.getresponse()
-        except:
+            conn.getresponse()
+        except (OSError, IOError):
             pass
 
 

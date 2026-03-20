@@ -25,7 +25,7 @@ import datetime
 
 import tabulate
 
-from src.common.command import get_observer_pid, get_obproxy_pid, mkdir, zip_dir, get_file_size, download_file, delete_file_force, is_empty_dir, is_empty_file
+from src.common.command import get_observer_pid, get_obproxy_pid, mkdir, get_file_size, download_file, delete_file_force, is_empty_file
 from src.common.command import SshClient
 from src.common.constant import const
 from src.handler.base_shell_handler import BaseShellHandler
@@ -158,7 +158,6 @@ class GatherPerfHandler(BaseShellHandler):
         self.stdio.print(summary_tuples)
         ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
-        last_info = "For result details, please run cmd \033[32m' cat {0} '\033[0m\n".format(os.path.join(pack_dir_this_command, "result_summary.txt"))
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
 
     def __handle_from_node(self, node, local_stored_path):
@@ -174,7 +173,7 @@ class GatherPerfHandler(BaseShellHandler):
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
@@ -228,7 +227,7 @@ class GatherPerfHandler(BaseShellHandler):
         ssh_client = None
         try:
             ssh_client = SshClient(self.context, node)
-        except Exception as e:
+        except Exception:
             self.stdio.exception("ssh {0}@{1}: failed, Please check the node conf.".format(remote_user, remote_ip))
             ssh_failed = True
             resp["skip"] = True
@@ -442,7 +441,7 @@ class GatherPerfHandler(BaseShellHandler):
             cmd = "cd {gather_path} && top -Hp {pid} -b -n 1 > top.txt".format(gather_path=gather_path, pid=pid_observer)
             self.stdio.verbose("gather top, run cmd = [{0}]".format(cmd))
             ssh_client.exec_cmd(cmd)
-        except:
+        except Exception:
             self.stdio.error("gather top on server failed [{0}]".format(ssh_client.get_name()))
 
     @Util.retry(3, 5)
@@ -465,7 +464,7 @@ class GatherPerfHandler(BaseShellHandler):
             pack_path = tup[5]
             try:
                 format_file_size = FileUtil.size_format(num=file_size, output_str=True)
-            except:
+            except Exception:
                 format_file_size = FileUtil.size_format(num=0, output_str=True)
             summary_tab.append((node, "Error:" + tup[2] if is_err else "Completed", format_file_size, "{0} s".format(int(consume_time)), pack_path))
         return "\nGather Perf Summary:\n" + tabulate.tabulate(summary_tab, headers=field_names, tablefmt="grid", showindex=False)

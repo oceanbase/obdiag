@@ -30,7 +30,6 @@ import signal
 import re
 import hashlib
 import uuid
-from src.common.constant import const
 import tabulate
 import socket
 import requests
@@ -44,7 +43,6 @@ import lzma
 import pymysql as mysql
 import shutil
 import tarfile
-import platform
 import os
 
 # Cross-platform zip compression support
@@ -136,7 +134,7 @@ class DynamicLoading(object):
             if DynamicLoading.LIBS_PATH[lib] == 0:
                 idx = sys.path.index(lib)
                 del sys.path[idx]
-        except:
+        except Exception:
             pass
 
     @staticmethod
@@ -200,7 +198,7 @@ class DynamicLoading(object):
                 stdio and getattr(stdio, 'verbose', print)('export %s' % name)
                 del sys.modules[name]
                 del DynamicLoading.MODULES[name]
-        except:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)('export %s failed' % name)
 
 
@@ -212,7 +210,7 @@ class ConfigUtil(object):
             # 不要使用 conf.get(key, default)来替换，这里还有类型转换的需求
             value = conf[key]
             return transform_func(value) if value is not None and transform_func else value
-        except:
+        except (KeyError, TypeError, ValueError):
             return default
 
     @staticmethod
@@ -223,7 +221,7 @@ class ConfigUtil(object):
                 return [transform_func(value) for value in return_list]
             else:
                 return return_list
-        except:
+        except (KeyError, TypeError, ValueError):
             return []
 
     @staticmethod
@@ -366,7 +364,7 @@ class DirectoryUtil(object):
             return False
         try:
             names = os.listdir(src)
-        except:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)("error listing files in '%s':" % (src))
             return False
 
@@ -404,7 +402,7 @@ class DirectoryUtil(object):
             else:
                 stdio and getattr(stdio, 'error', print)('failed to create directory %s', path)
             stdio and getattr(stdio, 'exception', print)('')
-        except:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)('')
             stdio and getattr(stdio, 'error', print)('failed to create directory %s', path)
         return False
@@ -419,7 +417,7 @@ class DirectoryUtil(object):
                 else:
                     shutil.rmtree(path)
             return True
-        except Exception as e:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)('')
             stdio and getattr(stdio, 'error', print)('failed to remove %s', path)
         return False
@@ -554,7 +552,7 @@ class FileUtil(object):
             else:
                 s_fn = open(source, 'r')
             return s_fn
-        except:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)('failed to unzip %s' % source)
         return None
 
@@ -565,7 +563,7 @@ class FileUtil(object):
         try:
             with tarfile.open(tar_path, 'r') as tar:
                 tar.extractall(path=output_path)
-        except:
+        except Exception:
             stdio and getattr(stdio, 'exception', print)('failed to extract tar file %s' % tar_path)
         return None
 
@@ -577,7 +575,7 @@ class FileUtil(object):
         try:
             os.remove(path)
             return True
-        except:
+        except OSError:
             stdio.warn('failed to remove %s' % path)
         return False
 
@@ -668,7 +666,7 @@ class FileUtil(object):
                         break
                     sha256.update(data)
             return sha256.hexdigest()
-        except Exception as e:
+        except Exception:
             return ""
 
     @staticmethod
@@ -864,7 +862,7 @@ class CommandEnv(SafeStdio):
             if os.path.exists(source_path):
                 with FileUtil.open(source_path, 'r') as f:
                     self._cmd_env = json.load(f)
-        except:
+        except (OSError, json.JSONDecodeError):
             stdio.exception("Failed to load environments from {}".format(source_path))
             return False
         return True
@@ -877,7 +875,7 @@ class CommandEnv(SafeStdio):
         try:
             with FileUtil.open(self.source_path, 'w', stdio=stdio) as f:
                 json.dump(self._cmd_env, f)
-        except:
+        except (OSError, json.JSONEncodeError):
             stdio.exception('Failed to save environment variables')
             return False
         return True
@@ -942,7 +940,7 @@ class NetUtils(object):
         try:
             localhost_ip = socket.gethostbyname(socket.gethostname())
             return localhost_ip
-        except Exception as e:
+        except Exception:
             return localhost_ip
 
     @staticmethod
@@ -954,7 +952,7 @@ class NetUtils(object):
                 return True
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
 
     @staticmethod
@@ -1075,7 +1073,7 @@ class TimeUtils(object):
             else:
                 dt = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
             return int(dt.timestamp() * 1000000)
-        except Exception as e:
+        except Exception:
             return 0
 
     @staticmethod
@@ -1098,7 +1096,7 @@ class TimeUtils(object):
         format_time = ''
         try:
             format_time = datetime.datetime.strptime(arg_time, "%Y-%m-%d %H:%M:%S")
-        except ValueError as e:
+        except ValueError:
             raise ValueError("time option {0} must be formatted as {1}".format(arg_time, '"%Y-%m-%d %H:%M:%S"'))
         return format_time
 
@@ -1130,7 +1128,7 @@ class TimeUtils(object):
             try:
                 format_time = datetime.datetime.strptime(time_without_us, "%Y-%m-%d %H:%M:%S")
                 format_time_str = time.strftime("%Y-%m-%d %H:%M:%S", format_time.timetuple())
-            except Exception as e:
+            except Exception:
                 format_time_str = ""
         else:
             format_time_str = ""
@@ -1532,7 +1530,7 @@ class StringUtils(object):
                         stats_time_str = match_stats_info.group(1)
                         stats_time = datetime.datetime.strptime(stats_time_str, '%Y-%m-%d %H:%M:%S.%f')
                         tables[current_table] = {'type': 'info', 'value': stats_time}
-            except Exception as e:
+            except Exception:
                 return None
 
         messages = []
@@ -1701,7 +1699,7 @@ class Cursor(SafeStdio):
             ip = ip if ip else self.ip
             port = port if port else self.port
             return Cursor(ip=ip, port=port, user=user, tenant=tenant, password=password, stdio=self.stdio)
-        except:
+        except Exception:
             print_exception and self.stdio.exception('')
             self.stdio.verbose('fail to connect %s -P%s -u%s@%s  -p%s' % (ip, port, user, tenant, password))
             return None
@@ -1759,7 +1757,7 @@ class Util(object):
         if isinstance(s, decimal.Decimal):
             try:
                 return float(s)
-            except:
+            except (ValueError, OverflowError):
                 return s
 
         if isinstance(s, str):

@@ -12,5 +12,7 @@ obdiag_analyze_pack_*
 obdiag_rca*
 obdiag_*
 dev_doc/*
+dev_docs/
 *.md
+rpmbuild/
 build/*

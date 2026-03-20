@@ -398,7 +398,7 @@ class ConfigHelper(object):
         try:
             data = YamlUtils.read_yaml_data(path)
             return data
-        except:
+        except (FileNotFoundError, yaml.YAMLError):
             pass
 
     def save_old_configuration(self, config):
