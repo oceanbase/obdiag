@@ -17,6 +17,39 @@
 """
 import os
 
+# 环境变量名，用于覆盖 obdiag 工作空间路径
+OBDIAG_HOME_ENV = "OBDIAG_HOME"
+# 默认工作空间路径（当 OBDIAG_HOME 未设置时使用）
+OBDIAG_WORKSPACE_DEFAULT = "~/.obdiag"
+
+
+def get_obdiag_workspace():
+    """
+    获取 obdiag 工作空间路径（已展开的绝对路径）。
+    优先使用环境变量 OBDIAG_HOME，未设置时使用默认值 ~/.obdiag。
+    """
+    return os.path.expanduser(os.environ.get(OBDIAG_HOME_ENV, OBDIAG_WORKSPACE_DEFAULT))
+
+
+def obdiag_path(*parts):
+    """
+    基于 obdiag 工作空间构建路径。
+    例如: obdiag_path("config.yml") -> {workspace}/config.yml
+         obdiag_path("log", "obdiag.log") -> {workspace}/log/obdiag.log
+    """
+    return os.path.join(get_obdiag_workspace(), *parts)
+
+
+def expand_obdiag_path(path):
+    """
+    展开路径中的 ~/.obdiag 为实际工作空间路径。
+    用于处理配置中存储的 ~/.obdiag/xxx 格式路径。
+    """
+    if path and isinstance(path, str) and path.startswith("~/.obdiag"):
+        suffix = path[len("~/.obdiag") :].lstrip("/")
+        return obdiag_path(suffix) if suffix else get_obdiag_workspace()
+    return os.path.expanduser(path) if path else path
+
 
 class _const:
     class ConstError(TypeError):
