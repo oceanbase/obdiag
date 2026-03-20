@@ -33,7 +33,7 @@ from src.common.command import download_file, get_logfile_name_list, mkdir, dele
 from src.common.command import SshClient
 from src.common.ssh_client.local_client import LocalClient
 from src.common.result_type import ObdiagResult
-from src.common.pack_discovery import discover_log_files
+from src.common.pack_discovery import discover_log_files_including_gather_archives
 
 
 class AnalyzeMemoryHandler(object):
@@ -97,7 +97,7 @@ class AnalyzeMemoryHandler(object):
         elif log_dir_option:
             self.is_ssh = False
             self.directly_analyze_files = True
-            discovered = discover_log_files(log_dir_option)
+            discovered = discover_log_files_including_gather_archives(log_dir_option, stdio=self.stdio)
             observer_logs = [p for p in discovered if os.path.basename(p).startswith('observer.log')]
             self.analyze_files_list = observer_logs
             if not observer_logs:

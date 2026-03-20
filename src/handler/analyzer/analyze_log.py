@@ -20,6 +20,7 @@ import glob
 import json
 import os
 import re
+import sys
 import tarfile
 
 import tabulate
@@ -32,12 +33,17 @@ from src.common.constant import const
 from src.common.command import download_file
 from src.common.ob_log_level import OBLogLevel
 from src.handler.meta.ob_error import OB_RET_DICT
-from src.common.pack_discovery import discover_log_files
+from src.common.pack_discovery import (
+    discover_log_files_including_gather_archives,
+    expand_offline_paths_with_archives,
+    path_under_internal_extract_cache,
+)
 from src.common.tool import Util
 from src.common.tool import DirectoryUtil
 from src.common.tool import FileUtil
 from src.common.tool import TimeUtils
 from src.common.result_type import ObdiagResult
+from src.common.stdio import IOProgressBar
 from src.handler.gather.gather_component_log import GatherComponentLogHandler
 
 
@@ -91,7 +97,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         log_dir_option = Util.get_option(options, 'log_dir')
         temp_dir_option = Util.get_option(options, 'temp_dir')
         if log_dir_option:
-            discovered = discover_log_files(log_dir_option)
+            discovered = discover_log_files_including_gather_archives(log_dir_option, stdio=self.stdio)
             self.is_ssh = False
             self.directly_analyze_files = True
             self.analyze_files_list = discovered if discovered else []
@@ -160,24 +166,22 @@ class AnalyzeLogHandler(BaseShellHandler):
         if not self.init_config():
             self.stdio.error('init config failed')
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
-        self.stdio.print("analyze nodes's log start. Please wait a moment...")
-        self.stdio.print('analyze start')
         local_store_parent_dir = os.path.join(self.gather_pack_dir, "obdiag_analyze_pack_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp())))
         self.stdio.verbose("Use {0} as pack dir.".format(local_store_parent_dir))
         analyze_tuples = []
 
         # When --files is not specified: use GatherComponentLogHandler to collect logs (compressed) first, then analyze locally
         if not self.directly_analyze_files:
+            self.stdio.print("analyze nodes's log start. Please wait a moment...")
+            self.stdio.print("analyze start")
             return self.__handle_with_gather(local_store_parent_dir)
 
-        # --files specified: analyze local files only (no SSH)
+        # --log_dir / --files: offline local analyze (progress in __handle_offline; do not duplicate lines or start_loading here — it blocks inner progressbar)
         DirectoryUtil.mkdir(path=local_store_parent_dir, stdio=self.stdio)
-        self.stdio.print("analyze nodes's log start. Please wait a moment...")
-        self.stdio.start_loading('analyze start')
+        self.stdio.print("analyze log (offline) start. Please wait a moment...")
         resp, node_results, tenant_results_list, parsed_paths = self.__handle_offline(local_store_parent_dir)
         analyze_tuples = [("127.0.0.1", False, resp["error"], node_results)]
         title, field_names, summary_list, summary_details_list = self.__get_overall_summary(analyze_tuples, True)
-        self.stdio.stop_loading('analyze result success')
         semantic_matches = self.__match_semantic_patterns(parsed_paths) if parsed_paths else []
 
         if self.output_format == 'json':
@@ -363,7 +367,8 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_store_dir = os.path.join(local_store_parent_dir, "127.0.0.1")
         DirectoryUtil.mkdir(path=local_store_dir, stdio=self.stdio)
 
-        log_list = self.__get_log_name_list_offline()
+        extract_base = os.path.join(local_store_parent_dir, "_gather_extract")
+        log_list = self.__get_log_name_list_offline(extract_base)
         if len(log_list) > self.file_number_limit:
             resp["skip"] = True
             resp["error"] = "Too many files {0} > {1}, Please adjust the number of incoming files".format(len(log_list), self.file_number_limit)
@@ -374,34 +379,49 @@ class AnalyzeLogHandler(BaseShellHandler):
             return resp, node_results, [], []
 
         self.stdio.print(FileUtil.show_file_list_tabulate("127.0.0.1", log_list, self.stdio))
-        self.stdio.start_loading("analyze log start")
         tenant_results_list = []
         parsed_paths = []
-        for log_name in log_list:
-            self.__pharse_offline_log_file(log_name=log_name, local_store_dir=local_store_dir)
-            analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
-            file_result, tenant_result = self.__parse_log_lines(analyze_log_full_path)
-            node_results.append(file_result)
-            tenant_results_list.append(tenant_result)
-            parsed_paths.append(analyze_log_full_path)
-        self.stdio.stop_loading("succeed")
+        total = len(log_list)
+        silent = getattr(self.stdio, "silent", False)
+        tty = getattr(sys.stdout, "isatty", lambda: False)()
+        use_pb = False
+        if not silent and total > 0:
+            self.stdio.print("Analyzing {0} log file(s)...".format(total))
+        if not silent and tty and total > 1:
+            self.stdio.start_progressbar("Analyze log files", total, widget_type="simple_progress")
+            use_pb = isinstance(getattr(self.stdio, "sync_obj", None), IOProgressBar)
+        try:
+            for i, log_name in enumerate(log_list, 1):
+                if not silent and not use_pb:
+                    self.stdio.print("  [{0}/{1}] {2}".format(i, total, os.path.basename(log_name)))
+                self.__pharse_offline_log_file(log_name=log_name, local_store_dir=local_store_dir)
+                analyze_log_full_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
+                file_result, tenant_result = self.__parse_log_lines(analyze_log_full_path)
+                node_results.append(file_result)
+                tenant_results_list.append(tenant_result)
+                parsed_paths.append(analyze_log_full_path)
+                if use_pb:
+                    self.stdio.update_progressbar(i)
+        finally:
+            if use_pb and isinstance(getattr(self.stdio, "sync_obj", None), IOProgressBar):
+                self.stdio.finish_progressbar()
         return resp, node_results, tenant_results_list, parsed_paths
 
-    def __get_log_name_list_offline(self):
+    def __get_log_name_list_offline(self, extract_base):
         """
-        :param:
-        :return: log_name_list
+        Build list of plain OB log paths. Expands gather *.tar.gz under extract_base when using --files.
         """
-        log_name_list = []
+        raw = []
         if self.analyze_files_list and len(self.analyze_files_list) > 0:
             for path in self.analyze_files_list:
                 if os.path.exists(path):
-                    if os.path.isfile(path):
-                        log_name_list.append(path)
+                    if os.path.isfile(path) and not path_under_internal_extract_cache(path):
+                        raw.append(path)
                     else:
                         log_names = FileUtil.find_all_file(path)
                         if len(log_names) > 0:
-                            log_name_list.extend(log_names)
+                            raw.extend(p for p in log_names if not path_under_internal_extract_cache(p))
+        log_name_list = expand_offline_paths_with_archives(raw, extract_base, stdio=self.stdio)
         self.stdio.verbose("get log list {}".format(log_name_list))
         return log_name_list
 
