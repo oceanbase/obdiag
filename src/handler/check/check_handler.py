@@ -78,8 +78,10 @@ def _execute_task_worker(args):
     # Platform check for SIGALRM (Unix only)
     use_sigalarm = hasattr(signal, 'SIGALRM')
     if use_sigalarm:
+
         def timeout_handler(signum, frame):
             raise TimeoutError(f"Task {task_name} exceeded {timeout_seconds} seconds timeout")
+
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_seconds)
 
@@ -90,6 +92,7 @@ def _execute_task_worker(args):
     try:
         # Import task module in subprocess
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(task_attr_name, task_module_path)
         task_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(task_module)
