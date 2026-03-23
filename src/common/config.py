@@ -94,7 +94,6 @@ DEFAULT_INNER_CONFIG = {
     },
     'analyze': {"thread_nums": 3},
     'check': {
-        'ignore_version': False,
         'work_path': '~/.obdiag/check',
         'max_workers': 12,
         'report': {
