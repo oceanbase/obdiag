@@ -21,9 +21,9 @@ obdiag:
 analyze:
   thread_nums: 3
 check:
-  ignore_version: false
   work_path: "~/.obdiag/check"
   max_workers: 12
+  task_timeout_seconds: 60
   ssh_manager:
     max_connections_per_node: 12
     idle_timeout: 300

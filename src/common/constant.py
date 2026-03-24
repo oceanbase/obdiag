@@ -105,7 +105,7 @@ const.OBDIAG_BASE_DEFAULT_CONFIG = {
     }
 }
 
-const.OBDIAG_CHECK_DEFAULT_CONFIG = {"check": {"ignore_version": "false", "report": {"report_path": "./check_report/", "export_type": "table"}, "package_file": "~/.obdiag/check/check_package.yaml", "tasks_base_path": "~/.obdiag/check/tasks/"}}
+const.OBDIAG_CHECK_DEFAULT_CONFIG = {"check": {"report": {"report_path": "./check_report/", "export_type": "table"}, "package_file": "~/.obdiag/check/check_package.yaml", "tasks_base_path": "~/.obdiag/check/tasks/"}}
 
 const.OBDIAG_GATHER_DEFAULT_CONFIG = {"gather": {"cases_base_path": "~/.obdiag/gather/tasks"}}
 
