@@ -38,8 +38,8 @@ from src.common.tool import StringUtils
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-DEFAULT_MAX_WORKERS = 12
-MAX_DB_POOL_SIZE = 12
+DEFAULT_MAX_WORKERS = 6
+MAX_DB_POOL_SIZE = 6
 TASK_TIMEOUT_SECONDS = 60  # Default timeout for each check task
 SUPPORTED_REPORT_TYPES = ("table", "json", "xml", "yaml", "html")
 TARGET_OBSERVER = "observer"
@@ -78,10 +78,8 @@ def _execute_task_worker(args):
     # Platform check for SIGALRM (Unix only)
     use_sigalarm = hasattr(signal, 'SIGALRM')
     if use_sigalarm:
-
         def timeout_handler(signum, frame):
             raise TimeoutError(f"Task {task_name} exceeded {timeout_seconds} seconds timeout")
-
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_seconds)
 
@@ -92,7 +90,6 @@ def _execute_task_worker(args):
     try:
         # Import task module in subprocess
         import importlib.util
-
         spec = importlib.util.spec_from_file_location(task_attr_name, task_module_path)
         task_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(task_module)
@@ -128,7 +125,7 @@ def _execute_task_worker(args):
         try:
             check_config = context_data.get('inner_config', {}).get('check', {})
             ssh_config = check_config.get('ssh_manager', {})
-            max_connections = ssh_config.get('max_connections_per_node', 5)
+            max_connections = ssh_config.get('max_connections_per_node', 6)
             idle_timeout = ssh_config.get('idle_timeout', 300)
             ssh_manager = SSHConnectionManager(
                 context,
@@ -144,7 +141,7 @@ def _execute_task_worker(args):
         try:
             cluster = context_data.get('cluster_config')
             if cluster and cluster.get('db_host'):
-                pool_size = min(context_data.get('max_workers', 12), 12)
+                pool_size = min(context_data.get('max_workers', MAX_DB_POOL_SIZE), MAX_DB_POOL_SIZE)
                 ob_connector_pool = CheckOBConnectorPool(context, pool_size, cluster)
                 context.set_variable("check_obConnector_pool", ob_connector_pool)
         except Exception as e:
