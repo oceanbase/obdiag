@@ -57,7 +57,7 @@ class GatherSceneHandler(SafeStdio):
 
     def init_config(self):
         self.cluster = self.context.cluster_config
-        self.obproxy_nodes = self.context.obproxy_config['servers']
+        self.obproxy_nodes = (self.context.obproxy_config or {}).get('servers', [])
         self.ob_nodes = self.context.cluster_config['servers']
         new_nodes = Util.get_nodes_list(self.context, self.ob_nodes, self.stdio)
         if new_nodes:
