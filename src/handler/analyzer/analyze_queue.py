@@ -22,7 +22,7 @@ from tabulate import tabulate
 from src.common.command import get_observer_version
 from src.common.ssh_client.local_client import LocalClient
 from src.handler.base_shell_handler import BaseShellHandler
-from src.common.obdiag_exception import OBDIAGFormatException, OBDIAGDBConnException
+from src.common.exception import OBDIAGFormatException, OBDIAGDBConnException
 from src.common.constant import const
 from src.common.command import SshClient
 from src.common.ob_log_level import OBLogLevel

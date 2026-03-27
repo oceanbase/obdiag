@@ -35,7 +35,7 @@ mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 mkdir -p ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool
 cp -rf $SRC_DIR/src $BUILD_DIR/SOURCES/site-packages/
-pyinstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table --copy-metadata genai_prices -p $BUILD_DIR/SOURCES/site-packages -F src/obdiag.py
+pyinstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table --copy-metadata genai_prices --copy-metadata pydantic-ai-slim --copy-metadata pydantic-ai-skills --copy-metadata pydantic --copy-metadata pydantic-core --copy-metadata pydantic-graph --copy-metadata pydantic-settings --copy-metadata openai -p $BUILD_DIR/SOURCES/site-packages -F src/obdiag.py
 rm -f obdiag.py oceanbase-diagnostic-tool.spec
 
 cd $SRC_DIR

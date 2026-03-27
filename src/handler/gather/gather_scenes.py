@@ -22,7 +22,7 @@ from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
 import datetime
 from src.handler.gather.scenes.base import SceneBase
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.handler.gather.scenes.list import GatherScenesListHandler
 from src.common.tool import DirectoryUtil
 from src.common.tool import StringUtils

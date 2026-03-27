@@ -21,7 +21,7 @@ from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
 import datetime
 from src.handler.display.scenes.base import SceneBase
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.handler.display.scenes.list import DisplayScenesListHandler
 from src.common.tool import StringUtils
 from src.common.scene import get_version_by_type

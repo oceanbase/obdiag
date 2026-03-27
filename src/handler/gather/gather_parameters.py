@@ -18,7 +18,7 @@
 import os
 from src.common.command import get_observer_version_by_sql
 from src.common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style

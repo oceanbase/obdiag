@@ -14,7 +14,7 @@
 @time: 2026/03/10
 @file: obdiag.py
 @desc: obdiag command toolset — wraps CLI commands as pydantic-ai tools using the
-       shared executor from src.common.obdiag_executor.
+       shared executor from src.common.executor.
 
        Every tool accepts an optional ``cluster_config_path`` so the agent can
        target a non-default cluster without changing the session state.  When
@@ -25,7 +25,7 @@ from typing import List, Optional, Union
 
 from pydantic_ai import FunctionToolset, RunContext
 
-from src.common.obdiag_executor import execute_obdiag_command, format_command_output
+from src.common.executor import execute_obdiag_command, format_command_output
 from src.handler.agent.cluster_resolve import DEFAULT_CLUSTER_CONFIG, OBDIAG_CONFIG_DIR
 from src.handler.agent.config import resolve_cluster_config_path
 from src.handler.agent.models import AgentDependencies
