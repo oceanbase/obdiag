@@ -18,6 +18,7 @@
 import re
 
 from prettytable import from_db_cursor
+
 import pymysql as mysql
 
 
