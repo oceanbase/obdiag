@@ -233,7 +233,7 @@ pack_macos:
 	@cp -f src/main.py src/obdiag.py
 	@sed -i '' "s/<B_TIME>/$$(date)/" ./src/common/version.py 2>/dev/null || sed -i "s/<B_TIME>/$$(date)/" ./src/common/version.py
 	@sed -i '' "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py 2>/dev/null || sed -i "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py
-	@pyinstaller --hidden-import=decimal --hidden-import=pyzipper -p $(PROJECT_PATH)/src -F src/obdiag.py --distpath $(PROJECT_PATH)/dist_macos
+	@pyinstaller --hidden-import=decimal --hidden-import=pyzipper --copy-metadata genai_prices -p $(PROJECT_PATH)/src -F src/obdiag.py --distpath $(PROJECT_PATH)/dist_macos
 	@rm -f src/obdiag.py
 	@echo "macOS binary built: $(PROJECT_PATH)/dist_macos/obdiag"
 	@echo ""
