@@ -1195,15 +1195,8 @@ class GatherPlanMonitorHandler(object):
 
     def report_plan_explain(self, db_name, raw_sql):
         if not self._sql_eligible_for_explain_extended(raw_sql):
-            self.stdio.warn(
-                "skip EXPLAIN extended: query_sql is not eligible (empty, too long, null/replacement chars, "
-                "high control-char ratio, or long INSERT; common with binary/blob). len=%s"
-                % (len(raw_sql) if raw_sql else 0)
-            )
-            self.__report(
-                "<pre>EXPLAIN extended skipped: query_sql not suitable for text EXPLAIN "
-                "(e.g. INSERT with large binary / blob in sql_audit).</pre>"
-            )
+            self.stdio.warn("skip EXPLAIN extended: query_sql is not eligible (empty, too long, null/replacement chars, " "high control-char ratio, or long INSERT; common with binary/blob). len=%s" % (len(raw_sql) if raw_sql else 0))
+            self.__report("<pre>EXPLAIN extended skipped: query_sql not suitable for text EXPLAIN " "(e.g. INSERT with large binary / blob in sql_audit).</pre>")
             return
         explain_sql = "explain extended %s" % raw_sql
         try:
@@ -1227,15 +1220,8 @@ class GatherPlanMonitorHandler(object):
         except Exception as e:
             err_no = e.args[0] if getattr(e, "args", None) else None
             if err_no == 1064:
-                self.stdio.warn(
-                    "skip EXPLAIN extended: server syntax error (1064); query_sql from sql_audit may contain "
-                    "binary or fragments not valid as SQL text. len=%s"
-                    % (len(raw_sql) if raw_sql else 0)
-                )
-                self.__report(
-                    "<pre>EXPLAIN extended skipped: syntax error 1064 (query_sql not valid for EXPLAIN, "
-                    "e.g. binary in audit text).</pre>"
-                )
+                self.stdio.warn("skip EXPLAIN extended: server syntax error (1064); query_sql from sql_audit may contain " "binary or fragments not valid as SQL text. len=%s" % (len(raw_sql) if raw_sql else 0))
+                self.__report("<pre>EXPLAIN extended skipped: syntax error 1064 (query_sql not valid for EXPLAIN, " "e.g. binary in audit text).</pre>")
                 self.stdio.verbose("EXPLAIN 1064 (truncated hint): %s" % self._truncate_sql_for_log(explain_sql, 256))
             else:
                 self.stdio.warn("plan explain failed: %s" % (e,))
