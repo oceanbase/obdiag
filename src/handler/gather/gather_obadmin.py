@@ -20,7 +20,7 @@ import time
 import datetime
 
 import tabulate
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.common.constant import const
 from src.common.command import SshClient, is_empty_dir
 from src.handler.base_shell_handler import BaseShellHandler

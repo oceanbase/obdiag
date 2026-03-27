@@ -22,7 +22,7 @@ import sys
 import time
 import paramiko
 from paramiko.ssh_exception import SSHException, AuthenticationException
-from src.common.obdiag_exception import OBDIAGShellCmdException, OBDIAGSSHConnException
+from src.common.exception import OBDIAGShellCmdException, OBDIAGSSHConnException
 from src.common.ssh_client.base import SsherClient
 
 ENV_DISABLE_RSA_ALGORITHMS = 0
