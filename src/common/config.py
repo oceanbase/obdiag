@@ -95,7 +95,7 @@ DEFAULT_INNER_CONFIG = {
     'analyze': {"thread_nums": 3},
     'check': {
         'work_path': '~/.obdiag/check',
-        'max_workers': 12,
+        'max_workers': 6,
         'report': {
             'report_path': './check_report/',
             'export_type': 'table',
