@@ -4,18 +4,17 @@ on:
   pull_request:
     branches:
       - master
+      - 430-ci-update
   push:
     branches:
       - master
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
+      - 430-ci-update
 jobs:
   cancel:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.1
+        uses: styfle/cancel-workflow-action@0.13.1
   build-rpm:
     name: Run on CentOS 8
     needs: cancel
@@ -25,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Install dependencies and build obdiag rpm
         run: |
@@ -35,7 +34,7 @@ jobs:
           make pack
 
       - name: "Upload rpm"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: obdiag-rpm-packages
           path: |
@@ -49,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -81,7 +80,7 @@ jobs:
           ./ubuntu/build_ubuntu.sh ${{ steps.version.outputs.version }} ${{ steps.version.outputs.release }}
 
       - name: Upload DEB Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: obdiag-deb-package-native
           path: ./oceanbase-diagnostic-tool_*.deb
@@ -94,10 +93,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Download DEB Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-deb-package-native
           path: .
@@ -126,10 +125,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-rpm-packages
           path: .
@@ -145,7 +144,7 @@ jobs:
           pwd
 
       - name: Upload DEB Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: obdiag-deb-package
           path: ./oceanbase-diagnostic-tool_*.deb
@@ -158,10 +157,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -264,7 +263,7 @@ jobs:
           shasum -a 256 ${PKG_NAME}.*
 
       - name: Upload macOS ARM64 Package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: obdiag-macos-arm64-package
           path: |
@@ -278,9 +277,9 @@ jobs:
     needs: build-rpm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-rpm-packages
           path: .
@@ -306,9 +305,9 @@ jobs:
     needs: build-rpm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-rpm-packages
           path: .
@@ -334,9 +333,9 @@ jobs:
     needs: build-rpm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-rpm-packages
           path: .
@@ -362,9 +361,9 @@ jobs:
     needs: build-rpm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Download RPM Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: obdiag-rpm-packages
           path: .
