@@ -146,7 +146,9 @@ class ObdiagHome(object):
         )
         telemetry.set_cluster_conn(self.context, config.get_ob_cluster_config)
 
-    def set_context_skip_cluster_conn(self, handler_name, namespace, config):
+    def set_context_skip_cluster_conn(self, handler_name, namespace, config, offline_mode=False):
+        if offline_mode:
+            self._call_stdio('warn', 'Running in offline mode (no cluster connection). Analysis is based on local log files only.')
         self.context = HandlerContext(
             handler_name=handler_name,
             namespace=namespace,
@@ -254,6 +256,15 @@ class ObdiagHome(object):
         else:
             self.stdio.print("{0} start ...".format(function_type))
             self.set_context_stdio()
+            # Offline gather_perf: no cluster required
+            if function_type == 'gather_perf_offline_flame':
+                options = self.options
+                pack_dir = Util.get_option(options, 'pack_dir')
+                if not pack_dir:
+                    self._call_stdio('error', '--pack_dir is required for offline flame graph')
+                    return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='--pack_dir required')
+                self.set_offline_context('gather_perf_offline', 'gather')
+                return GatherPerfHandler.handle_offline_flame_graph(pack_dir, self.stdio)
             self.update_obcluster_nodes(config)
             self.set_context(function_type, 'gather', config)
             options = self.context.options
@@ -466,7 +477,7 @@ class ObdiagHome(object):
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_log_offline':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config, offline_mode=True)
                 handler = AnalyzeLogHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_queue':
@@ -505,7 +516,7 @@ class ObdiagHome(object):
                 handler = AnalyzeIndexSpaceHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_memory_offline':
-                self.set_context_skip_cluster_conn(function_type, 'analyze', config)
+                self.set_context_skip_cluster_conn(function_type, 'analyze', config, offline_mode=True)
                 handler = AnalyzeMemoryHandler(self.context)
                 return handler.handle()
             elif function_type == 'analyze_memory':
@@ -575,9 +586,20 @@ class ObdiagHome(object):
             self._call_stdio('error', 'No such custum config')
             return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custum config')
         else:
-            self.set_context('rca_run', 'rca_run', config)
-            if config.get_ob_cluster_config.get("db_host") is not None and config.get_ob_cluster_config.get("servers") is not None:
-                self.update_obcluster_nodes(config)
+            log_dir = Util.get_option(opts, 'log_dir')
+            if log_dir:
+                setattr(opts, 'log_dir', log_dir)
+                self.set_context_skip_cluster_conn('rca_run', 'rca_run', config, offline_mode=True)
+                for attr in ("cluster_config", "obproxy_config", "oms_config"):
+                    cfg = getattr(self.context, attr, None)
+                    if cfg is None:
+                        setattr(self.context, attr, {"servers": []})
+                    elif not cfg.get("servers"):
+                        cfg["servers"] = []
+            else:
+                self.set_context('rca_run', 'rca_run', config)
+                if config.get_ob_cluster_config.get("db_host") is not None and config.get_ob_cluster_config.get("servers") is not None:
+                    self.update_obcluster_nodes(config)
             try:
                 handler = RCAHandler(self.context)
                 return handler.handle()

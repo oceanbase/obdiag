@@ -1,0 +1,25 @@
+# Semantic log patterns for analyze log (REQ-OBD-006)
+# severity: P0=critical, P1=high, P2=medium
+# pattern: string or regex
+patterns:
+  - pattern: "disk is almost full"
+    severity: P0
+    suggestion: "扩容数据盘或清理磁盘空间"
+  - pattern: "disk full|disk space"
+    severity: P0
+    suggestion: "检查数据盘/Clog盘空间，扩容或清理"
+  - pattern: "memory.*full|allocate.*fail|OB_ALLOCATE_MEMORY"
+    severity: P0
+    suggestion: "内存不足，检查租户内存配置或扩容"
+  - pattern: "ret=-4013|ret=-4138"
+    severity: P0
+    suggestion: "内存分配失败，参考 memory_full RCA"
+  - pattern: "CRASH ERROR|segmentation fault|abort"
+    severity: P0
+    suggestion: "进程崩溃，检查 coredump 和 dmesg"
+  - pattern: "connection refused|connect.*fail"
+    severity: P1
+    suggestion: "连接失败，检查网络和进程状态"
+  - pattern: "timeout|timed out"
+    severity: P1
+    suggestion: "超时，检查负载和网络延迟"

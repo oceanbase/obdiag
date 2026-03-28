@@ -15,6 +15,7 @@
 @file: analyze_memory.py
 @desc:
 """
+import json
 import os
 import time
 import plotly.graph_objects as go
@@ -32,6 +33,7 @@ from src.common.command import download_file, get_logfile_name_list, mkdir, dele
 from src.common.command import SshClient
 from src.common.ssh_client.local_client import LocalClient
 from src.common.result_type import ObdiagResult
+from src.common.pack_discovery import discover_log_files_including_gather_archives
 
 
 class AnalyzeMemoryHandler(object):
@@ -56,7 +58,9 @@ class AnalyzeMemoryHandler(object):
         self.version = None
 
     def init_config(self):
-        self.nodes = self.context.cluster_config['servers']
+        self.nodes = self.context.cluster_config.get('servers', []) if self.context.cluster_config else []
+        if self.directly_analyze_files and not self.nodes:
+            self.nodes = [{"ip": "127.0.0.1"}]
         self.inner_config = self.context.inner_config
         if self.inner_config is None:
             self.file_number_limit = 20
@@ -79,6 +83,7 @@ class AnalyzeMemoryHandler(object):
         store_dir_option = Util.get_option(options, 'store_dir')
         grep_option = Util.get_option(options, 'grep')
         files_option = Util.get_option(options, 'files')
+        log_dir_option = Util.get_option(options, 'log_dir')
         temp_dir_option = Util.get_option(options, 'temp_dir')
         if files_option:
             self.is_ssh = False
@@ -89,6 +94,26 @@ class AnalyzeMemoryHandler(object):
             else:
                 self.stdio.error('the option --files requires the --version option to be specified')
                 return False
+        elif log_dir_option:
+            self.is_ssh = False
+            self.directly_analyze_files = True
+            discovered = discover_log_files_including_gather_archives(log_dir_option, stdio=self.stdio)
+            observer_logs = [p for p in discovered if os.path.basename(p).startswith('observer.log')]
+            self.analyze_files_list = observer_logs
+            if not observer_logs:
+                self.stdio.warn("No observer.log* files found in --log_dir={0}".format(log_dir_option))
+            else:
+                self.stdio.verbose("discovered {0} observer.log* files from --log_dir={1}".format(len(observer_logs), log_dir_option))
+            if version:
+                self.version = version
+            else:
+                ob_version = self.__load_ob_version_from_manifest(log_dir_option)
+                if ob_version:
+                    self.version = ob_version
+                    self.stdio.verbose("ob_version from manifest.json: {0}".format(ob_version))
+                else:
+                    self.stdio.error('the option --log_dir requires --version when manifest.json is not present')
+                    return False
         if from_option is not None and to_option is not None:
             try:
                 from_timestamp = TimeUtils.parse_time_str(from_option)
@@ -136,6 +161,21 @@ class AnalyzeMemoryHandler(object):
             self.stdio.exception("failed to get observer version:{0}".format(e))
         self.stdio.verbose("get observer version: {0}".format(observer_version))
         return observer_version
+
+    def __load_ob_version_from_manifest(self, log_dir):
+        """Try to load ob_version from manifest.json in log_dir or parent."""
+        for base in (log_dir, os.path.dirname(os.path.abspath(log_dir))):
+            if not base:
+                continue
+            manifest_path = os.path.join(base, "manifest.json")
+            if os.path.isfile(manifest_path):
+                try:
+                    with open(manifest_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    return data.get("ob_version") or ""
+                except Exception:
+                    pass
+        return None
 
     def handle(self):
         if not self.init_option():

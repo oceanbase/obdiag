@@ -29,6 +29,7 @@ from src.common.tool import TimeUtils
 from src.common.ocp import ocp_api
 from src.common.ocp import ocp_task
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 
 
 class GatherAwrHandler(object):
@@ -99,7 +100,7 @@ class GatherAwrHandler(object):
         list(map(lambda x: x.join(), ocp_threads))
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
-        # 将汇总结果持久化记录到文件中
+        ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
 
         # return gather_tuples, gather_pack_path_dict

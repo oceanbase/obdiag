@@ -35,6 +35,7 @@ from src.common.tool import SQLTableExtractor
 from src.common.command import get_observer_commit_id
 from src.handler.gather.gather_tabledump import GatherTableDumpHandler
 from src.common.result_type import ObdiagResult
+from src.handler.gather.gather_result_summary import ensure_result_summary_header
 from src.common.version import OBDIAG_VERSION
 
 
@@ -265,7 +266,7 @@ class GatherPlanMonitorHandler(object):
         self.stdio.verbose("[sql plan monitor report task] end")
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
-        # 将汇总结果持久化记录到文件中
+        ensure_result_summary_header(pack_dir_this_command, self.context)
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         # return gather_tuples, gather_pack_path_dict
         return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
