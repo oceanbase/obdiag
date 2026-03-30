@@ -117,9 +117,7 @@ class FreezeDumpScene(RcaScene):
                 self.filter_tenant_id = None
 
             self.collect_logs = self._parse_collect_logs_flag()
-            self.record.add_record(
-                "freeze_dump init: tenant_filter={0}, collect_logs={1}".format(self.filter_tenant_id if self.filter_tenant_id is not None else "all", self.collect_logs)
-            )
+            self.record.add_record("freeze_dump init: tenant_filter={0}, collect_logs={1}".format(self.filter_tenant_id if self.filter_tenant_id is not None else "all", self.collect_logs))
         except RCAInitException:
             raise
         except Exception as e:
@@ -317,11 +315,7 @@ class FreezeDumpScene(RcaScene):
         return delta.total_seconds() > self.RUNNING_STUCK_MINUTES * 60
 
     def _drill_memstore_and_suggest(self, svr_ip, svr_port, tenant_id, context_label):
-        sql = (
-            "SELECT * FROM oceanbase.__all_virtual_memstore_info "
-            "WHERE svr_ip = '{0}' AND svr_port = {1} AND tenant_id = {2} AND is_active = 'NO' "
-            "ORDER BY start_scn LIMIT 3"
-        ).format(svr_ip, svr_port, tenant_id)
+        sql = ("SELECT * FROM oceanbase.__all_virtual_memstore_info " "WHERE svr_ip = '{0}' AND svr_port = {1} AND tenant_id = {2} AND is_active = 'NO' " "ORDER BY start_scn LIMIT 3").format(svr_ip, svr_port, tenant_id)
         rows = self._execute_sql_safe(sql, "memstore drill {0}".format(context_label))
         tag = "{0}_{1}_{2}".format(svr_ip, svr_port, tenant_id)
         self._save_to_file("memstore_drill_{0}.json".format(tag), rows)
@@ -357,10 +351,7 @@ class FreezeDumpScene(RcaScene):
                 self.record.add_suggest("Memtable released from mgr but refcount may block destruction; continue with OceanBase support if memory does not drop.")
 
     def _drill_dag_scheduler(self, svr_ip, svr_port, tenant_id):
-        sql = (
-            "SELECT * FROM oceanbase.__all_virtual_dag_scheduler "
-            "WHERE svr_ip = '{0}' AND svr_port = '{1}' AND tenant_id = '{2}'"
-        ).format(svr_ip, svr_port, tenant_id)
+        sql = ("SELECT * FROM oceanbase.__all_virtual_dag_scheduler " "WHERE svr_ip = '{0}' AND svr_port = '{1}' AND tenant_id = '{2}'").format(svr_ip, svr_port, tenant_id)
         data = self._execute_sql_safe(sql, "dag_scheduler")
         self._save_to_file("dag_scheduler_{0}_{1}_{2}.json".format(svr_ip, svr_port, tenant_id), data)
 
