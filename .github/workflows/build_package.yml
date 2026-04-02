@@ -4,11 +4,9 @@ on:
   pull_request:
     branches:
       - master
-      - 430-ci-update
   push:
     branches:
       - master
-      - 430-ci-update
 
 # Replaces separate cancel job: supersede in-flight runs on the same ref.
 concurrency:
