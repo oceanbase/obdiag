@@ -16,3 +16,4 @@ dev_docs/
 *.md
 build/
 rpmbuild/
+.cursor/
