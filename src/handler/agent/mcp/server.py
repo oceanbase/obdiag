@@ -48,6 +48,7 @@ class MCPServer:
         "rca_run": "obdiag rca run",
         "rca_list": "obdiag rca list",
         "tool_io_performance": "obdiag tool io_performance",
+        "tool_sql_syntax": "obdiag tool sql_syntax",
     }
 
     def __init__(self, config_path: Optional[str] = None, stdio=None, context=None):
@@ -103,6 +104,22 @@ class MCPServer:
                 "name": "tool_io_performance",
                 "description": "Check disk IO performance using tsar",
                 "inputSchema": {"type": "object", "properties": {"disk": {"type": "string", "description": "Disk device name (e.g., sda, clog, data)"}, "date": {"type": "string", "description": "Date for historical data (format: YYYYMMDD)"}}},
+            },
+            {
+                "name": "tool_sql_syntax",
+                "description": "Validate SQL syntax/semantics on OceanBase using EXPLAIN without executing the statement",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {"type": "string", "description": "Single SQL statement to validate"},
+                        "env": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Optional connection overrides as key=value (host, port, user, password, database)",
+                        },
+                    },
+                    "required": ["sql"],
+                },
             },
             {
                 "name": "generate_config",

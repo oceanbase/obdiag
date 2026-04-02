@@ -1353,6 +1353,27 @@ class ObdiagToolConfigCheckCommand(ObdiagOriginCommand):
         return obdiag.tool_config_check(self.opts)
 
 
+class ObdiagToolSqlSyntaxCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagToolSqlSyntaxCommand, self).__init__(
+            'sql_syntax',
+            'obdiag tool sql_syntax. Validate SQL against a live OceanBase instance using EXPLAIN (no execution of the original statement)',
+        )
+        self.parser.add_option('--sql', type='string', help='SQL statement to validate (single statement only)')
+        self.parser.add_option('--env', action='append', type='string', help='Connection override: --env key=value (host, port, user, password/pwd, database/db)')
+        self.parser.add_option('-c', type='string', help='obdiag custom config', default=os.path.expanduser('~/.obdiag/config.yml'))
+        self.parser.add_option('--config', action='append', type='string', help='config options Format: --config key=value')
+
+    def init(self, cmd, args):
+        super(ObdiagToolSqlSyntaxCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.tool_sql_syntax(self.opts)
+
+
 class ObdiagGatherCommand(MajorCommand):
 
     def __init__(self):
@@ -1437,6 +1458,7 @@ class ToolCommand(MajorCommand):
         self.register_command(ObdiagToolCryptoConfigCommand())
         self.register_command(ObdiagToolIoPerformanceCommand())
         self.register_command(ObdiagToolConfigCheckCommand())
+        self.register_command(ObdiagToolSqlSyntaxCommand())
 
 
 class MainCommand(MajorCommand):

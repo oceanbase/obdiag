@@ -38,6 +38,7 @@ OBDIAG_COMMANDS = {
     "rca_run": "obdiag rca run",
     "rca_list": "obdiag rca list",
     "tool_io_performance": "obdiag tool io_performance",
+    "tool_sql_syntax": "obdiag tool sql_syntax",
 }
 
 
