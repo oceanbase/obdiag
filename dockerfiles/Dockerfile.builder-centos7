@@ -27,7 +27,11 @@ RUN /opt/miniconda3/bin/conda init
 RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
 RUN source /opt/miniconda3/bin/activate obdiag
 RUN /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
-RUN yum install -y gcc gcc-c++ make
+# pydantic-ai stack often builds Rust extensions on el7 (no matching manylinux wheel); need cargo + link deps.
+RUN yum install -y gcc gcc-c++ make curl openssl-devel \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
+    && rm -rf /root/.rustup/toolchains/*/share/doc
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 COPY ./ ./
 RUN source /opt/miniconda3/bin/activate obdiag && make pack

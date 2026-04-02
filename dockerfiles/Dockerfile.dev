@@ -11,13 +11,17 @@ RUN rm -rf /etc/yum.repos.d/* \
 && curl -o /etc/yum.repos.d/CentOS-aliyun.repo http://mirrors.aliyun.com/repo/Centos-7.repo \
 && yum clean all \
 && yum makecache \
-&& yum install -y wget gcc git \
+&& yum install -y wget gcc gcc-c++ make git curl openssl-devel \
 && wget "https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh" -O /tmp/miniconda.sh \
 && bash /tmp/miniconda.sh -p /opt/miniconda -b \
 && rm -f /tmp/miniconda.sh \
 && conda create -n obdiag -y python=3.11 \
 && source /opt/miniconda/bin/activate obdiag \
-&& python3 -m pip install --upgrade pip wheel
+&& python3 -m pip install --upgrade pip wheel \
+&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
+&& rm -rf /root/.rustup/toolchains/*/share/doc
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 COPY ./pyproject.toml ./LICENSE /workspaces/obdiag/
 COPY ./src /workspaces/obdiag/src

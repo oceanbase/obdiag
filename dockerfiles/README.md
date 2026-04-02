@@ -94,6 +94,7 @@ docker build -f dockerfiles/Dockerfile.builder -t obdiag-builder:latest .
 
 **Features**:
 - Default **`vault.centos.org`** (HTTPS): right for GitHub-hosted runners (overseas). Stock `.repo` files contain commented `#baseurl=http://mirror.centos.org/...` lines only; the Dockerfile replaces that pattern — **yum does not use `mirror.centos.org` at runtime** (EOL / unavailable).
+- **Rust** (`rustup`, `stable`, minimal profile): `pydantic-ai` and related wheels often compile from source on CentOS 7; includes `openssl-devel`, `curl` for the toolchain.
 - Tunes `yum` for CI (`ip_resolve=4`, `minrate=0`, `retries=10`, fastestmirror off)
 - Pinned **Miniconda3 `py311_23.5.2-0`** installer (not `latest`): Anaconda’s current `Miniconda3-latest` requires **glibc ≥ 2.28**, while CentOS 7 only has **2.17**. After install, `conda create` still provides **Python 3.11** for the build env.
 - Then `make pack` during image build (RPM lands in image root as `oceanbase-diagnostic-tool-*.rpm`)
