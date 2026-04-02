@@ -62,7 +62,7 @@ jobs:
             -v "${GITHUB_WORKSPACE}/centos7-rpm-out:/out" \
             --entrypoint /bin/bash \
             obdiag-builder-centos7 \
-            -c 'shopt -s nullglob; rpms=(/oceanbase-diagnostic-tool-*.rpm); if [ ${#rpms[@]} -eq 0 ]; then echo "No oceanbase-diagnostic-tool-*.rpm under / in image"; ls -la /; exit 1; fi; cp -av "${rpms[@]}" /out/'
+            -c 'shopt -s nullglob; rpms=(/obdiag/oceanbase-diagnostic-tool-*.rpm); if [ ${#rpms[@]} -eq 0 ]; then echo "No RPM under /obdiag (WORKDIR where make pack runs)"; ls -la /obdiag; exit 1; fi; cp -av "${rpms[@]}" /out/'
 
       - name: Upload rpm (CentOS 7)
         uses: actions/upload-artifact@v6

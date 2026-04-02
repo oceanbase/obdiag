@@ -97,7 +97,7 @@ docker build -f dockerfiles/Dockerfile.builder -t obdiag-builder:latest .
 - **Rust** (`rustup`, `stable`, minimal profile): `pydantic-ai` and related wheels often compile from source on CentOS 7; includes `openssl-devel`, `curl` for the toolchain.
 - Tunes `yum` for CI (`ip_resolve=4`, `minrate=0`, `retries=10`, fastestmirror off)
 - Pinned **Miniconda3 `py311_23.5.2-0`** installer (not `latest`): Anaconda’s current `Miniconda3-latest` requires **glibc ≥ 2.28**, while CentOS 7 only has **2.17**. After install, `conda create` still provides **Python 3.11** for the build env.
-- Then `make pack` during image build (RPM lands in image root as `oceanbase-diagnostic-tool-*.rpm`)
+- Then `make pack` during image build; RPM is written to **`/obdiag/`** (Dockerfile `WORKDIR`, same as `make` cwd) as `oceanbase-diagnostic-tool-*.rpm`
 
 **Use Cases**:
 - GitHub Actions: job `build-rpm-centos7` in `.github/workflows/build_package.yml`
@@ -120,7 +120,7 @@ mkdir -p centos7-rpm-out
 docker run --rm \
   -v "$(pwd)/centos7-rpm-out:/out" \
   --entrypoint /bin/bash obdiag-builder-centos7 \
-  -c 'shopt -s nullglob; cp -av /oceanbase-diagnostic-tool-*.rpm /out/'
+  -c 'shopt -s nullglob; cp -av /obdiag/oceanbase-diagnostic-tool-*.rpm /out/'
 ```
 
 **Associated Workflow**: `.github/workflows/build_package.yml` (artifact `obdiag-rpm-packages-centos7`)
@@ -214,7 +214,7 @@ python3 src/main.py check
 docker build -f dockerfiles/Dockerfile.builder-centos7 -t obdiag-builder-centos7 .
 mkdir -p centos7-rpm-out
 docker run --rm -v "$(pwd)/centos7-rpm-out:/out" --entrypoint /bin/bash obdiag-builder-centos7 \
-  -c 'shopt -s nullglob; cp -av /oceanbase-diagnostic-tool-*.rpm /out/'
+  -c 'shopt -s nullglob; cp -av /obdiag/oceanbase-diagnostic-tool-*.rpm /out/'
 ```
 
 ### Test Local Modifications
