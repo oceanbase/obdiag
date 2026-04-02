@@ -33,5 +33,7 @@ RUN yum install -y gcc gcc-c++ make curl openssl-devel \
     && rm -rf /root/.rustup/toolchains/*/share/doc
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Never run `make pack` with cwd `/`: download_obstack ends with `rm -rf ./usr` which becomes `rm -rf /usr` and destroys the image.
+WORKDIR /obdiag
 COPY ./ ./
 RUN source /opt/miniconda3/bin/activate obdiag && make pack
