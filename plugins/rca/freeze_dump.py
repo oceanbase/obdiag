@@ -19,11 +19,21 @@
 import json
 import os
 from datetime import datetime
+from decimal import Decimal
 
 from src.handler.rca.rca_exception import RCAInitException, RCAExecuteException
 from src.handler.rca.rca_handler import RcaScene
 from src.common.tool import DateTimeEncoder
 from src.common.tool import StringUtils
+
+
+class _FreezeDumpJsonEncoder(DateTimeEncoder):
+    """JSON encoder for RCA dumps: DB drivers often return Decimal for numeric columns."""
+
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return int(obj) if obj % 1 == 0 else float(obj)
+        return super().default(obj)
 
 
 class FreezeDumpScene(RcaScene):
@@ -68,7 +78,7 @@ class FreezeDumpScene(RcaScene):
                 file_path = os.path.join(self.local_path, "rca_freeze_dump_{0}".format(filename))
             with open(file_path, "w", encoding="utf-8") as f:
                 if isinstance(data, (list, dict)):
-                    json.dump(data, f, cls=DateTimeEncoder, indent=2, ensure_ascii=False)
+                    json.dump(data, f, cls=_FreezeDumpJsonEncoder, indent=2, ensure_ascii=False)
                 else:
                     f.write(str(data))
             self.stdio.verbose("Saved data to {0}".format(file_path))
