@@ -41,6 +41,7 @@ OBDIAG_COMMANDS = {
     "rca_run": "obdiag rca run",
     "rca_list": "obdiag rca list",
     "tool_io_performance": "obdiag tool io_performance",
+    "tool_sql_syntax": "obdiag tool sql_syntax",
 }
 
 
@@ -523,3 +524,40 @@ def register_obdiag_tools(agent: Agent[AgentDependencies, str]):
             return f"IO performance check completed successfully.\n\n{output}"
         else:
             return f"IO performance check failed.\n\n{output}"
+
+    @agent.tool
+    def tool_sql_syntax(
+        ctx: RunContext[AgentDependencies],
+        sql: str,
+        env: Optional[List[str]] = None,
+    ) -> str:
+        """
+        Validate SQL on the cluster using EXPLAIN (does not execute the statement).
+
+        Args:
+            sql: Single SQL statement to check
+            env: Optional connection overrides as key=value strings (host, port, user, password, database)
+
+        Returns:
+            Validation result (VALID, SYNTAX_ERROR, or SEMANTIC_ERROR) or error message
+        """
+        deps = ctx.deps
+        arguments: Dict[str, Any] = {"sql": sql}
+        if env:
+            arguments["env"] = env
+
+        result = execute_obdiag_command(
+            "tool_sql_syntax",
+            arguments,
+            deps.config_path,
+            deps.stdio,
+        )
+
+        output = result.get("stdout", "")
+        if result.get("stderr"):
+            output += "\n" + result.get("stderr", "")
+
+        if result.get("success"):
+            return f"SQL syntax check completed.\n\n{output}"
+        else:
+            return f"SQL syntax check failed.\n\n{output}"

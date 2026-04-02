@@ -655,6 +655,18 @@ class ObdiagHome(object):
             handler = IoPerformanceHandler(self.context)
             return handler.handle()
 
+    def tool_sql_syntax(self, opt):
+        config = self.config_manager
+        if not config:
+            self._call_stdio('error', 'No such custom config')
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='No such custom config')
+        else:
+            self.set_context_skip_cluster_conn('tool_sql_syntax', 'tool_sql_syntax', config)
+            from src.handler.tools.sql_syntax_handler import SqlSyntaxHandler
+
+            handler = SqlSyntaxHandler(self.context)
+            return handler.handle()
+
     def config(self, opt):
         config = self.config_manager
         if not config:

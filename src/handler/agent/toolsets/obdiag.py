@@ -311,6 +311,29 @@ def tool_io_performance(
     return _run(ctx, "tool_io_performance", args, "IO performance check completed successfully.", "IO performance check failed.", cluster_config_path)
 
 
+@obdiag_toolset.tool
+def tool_sql_syntax(
+    ctx: RunContext[AgentDependencies],
+    sql: str,
+    env: Optional[List[str]] = None,
+    cluster_config_path: Optional[str] = None,
+) -> str:
+    """
+    Validate SQL syntax/semantics on the cluster using EXPLAIN (does not execute the statement).
+
+    Args:
+        sql: Single SQL statement to check
+        env: Optional connection overrides as key=value strings, e.g. host=127.0.0.1 port=2881 user=root@sys
+        cluster_config_path: Path to obdiag config.yml for a non-default cluster
+    """
+    args: dict = {"sql": sql}
+    if env:
+        args["env"] = env
+    valid = {"sql", "env"}
+    result = execute_obdiag_command("tool_sql_syntax", args, _config(ctx, cluster_config_path), ctx.deps.stdio, valid_params=valid)
+    return format_command_output(result, "SQL syntax check completed.", "SQL syntax check failed.")
+
+
 # ---------------------------------------------------------------------------
 # Cluster info tool
 # ---------------------------------------------------------------------------
