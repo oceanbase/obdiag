@@ -94,10 +94,7 @@ class SqlSyntaxHandler:
     def _get_sql(self):
         sql = Util.get_option(self.options, 'sql')
         if not sql or not sql.strip():
-            self.stdio.error(
-                "--sql is required. Usage: obdiag tool sql_syntax --sql 'SELECT ...' "
-                "[--env host=... --env port=... --env user=... --env password=... --env database=...]"
-            )
+            self.stdio.error("--sql is required. Usage: obdiag tool sql_syntax --sql 'SELECT ...' " "[--env host=... --env port=... --env user=... --env password=... --env database=...]")
             return None
         return sql.strip()
 
