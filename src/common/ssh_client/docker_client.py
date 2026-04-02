@@ -17,7 +17,7 @@
 """
 import docker
 
-from src.common.obdiag_exception import OBDIAGShellCmdException
+from src.common.exception import OBDIAGShellCmdException
 from src.common.ssh_client.base import SsherClient
 
 

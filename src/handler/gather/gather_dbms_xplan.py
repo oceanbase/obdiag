@@ -190,7 +190,7 @@ class GatherDBMSXPLANHandler(SafeStdio):
 
     def get_display_cursor(self):
         result = ''
-        display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=self.plan_id, svr_ip=self.svr_ip, svr_port=self.svr_port, tenant_id=self.tenant_id)
+        display_cursor_sql = "SELECT CONVERT(DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) USING utf8mb4) FROM DUAL".format(plan_id=self.plan_id, svr_ip=self.svr_ip, svr_port=self.svr_port, tenant_id=self.tenant_id)
         try:
             if not StringUtils.compare_versions_lower(self.version, "4.2.5.0"):
                 self.stdio.verbose("execute SQL: %s", display_cursor_sql)

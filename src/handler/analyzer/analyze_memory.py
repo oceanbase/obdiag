@@ -26,7 +26,7 @@ import threading
 import uuid
 from src.common.command import get_observer_version
 from src.common.tool import DirectoryUtil, TimeUtils, Util, NetUtils, FileUtil
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.common.constant import const
 from src.common.command import download_file, get_logfile_name_list, mkdir, delete_file
 from src.common.command import SshClient

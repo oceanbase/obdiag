@@ -17,7 +17,7 @@
 """
 import os
 from src.common.tool import DirectoryUtil, TimeUtils, Util
-from src.common.obdiag_exception import OBDIAGFormatException
+from src.common.exception import OBDIAGFormatException
 from src.common.ob_connector import OBConnector
 import csv
 from colorama import Fore, Style

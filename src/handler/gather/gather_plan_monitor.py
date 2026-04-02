@@ -60,6 +60,9 @@ class GatherPlanMonitorHandler(object):
         self.ob_version = "4.2.5.0"
         self.skip = None
         self.db_tables = []
+        # query_sql from sql_audit may be very long (e.g. INSERT with blob hex); cap EXPLAIN to avoid 1064 spam.
+        # See obdiag#1202.
+        self._max_explain_sql_chars = 65536
         if self.context.get_variable("gather_timestamp", None):
             self.gather_timestamp = self.context.get_variable("gather_timestamp")
         else:
@@ -132,8 +135,8 @@ class GatherPlanMonitorHandler(object):
             if len(result_sql_audit_by_trace_id_limit1) > 0:
                 trace = result_sql_audit_by_trace_id_limit1[0]
                 trace_id = trace[0]
-                user_sql = trace[1]
-                sql = trace[1]
+                user_sql = trace[1] or ""
+                sql = trace[1] or ""
                 tenant_name = trace[6]
                 db_name = trace[8]
                 plan_id = trace[9]
@@ -181,14 +184,14 @@ class GatherPlanMonitorHandler(object):
                 self.stdio.verbose("[sql plan monitor report task] report sql_audit")
                 if not self.report_sql_audit():
                     return
-                # 输出sql explain的信息
-                self.stdio.verbose("[sql plan monitor report task] report plan explain, sql: [{0}]".format(sql))
+                # 输出sql explain的信息（长 SQL / 含二进制时不要打全量，避免刷屏）
+                self.stdio.verbose("[sql plan monitor report task] report plan explain, sql (truncated): [{0}]".format(self._truncate_sql_for_log(sql)))
                 self.report_plan_explain(db_name, sql)
                 # 输出plan cache的信息
                 self.stdio.verbose("[sql plan monitor report task] report plan cache")
                 self.report_plan_cache(plan_explain_sql)
                 # dbms_xplan.display_cursor
-                display_cursor_sql = "SELECT DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) FROM DUAL".format(plan_id=plan_id, svr_ip=svr_ip, svr_port=svr_port, tenant_id=tenant_id)
+                display_cursor_sql = "SELECT CONVERT(DBMS_XPLAN.DISPLAY_CURSOR({plan_id}, 'all', '{svr_ip}',  {svr_port}, {tenant_id}) USING utf8mb4) FROM DUAL".format(plan_id=plan_id, svr_ip=svr_ip, svr_port=svr_port, tenant_id=tenant_id)
                 self.report_display_cursor_obversion4(display_cursor_sql)
                 # 输出表结构的信息
                 self.stdio.verbose("[sql plan monitor report task] report table schema")
@@ -468,7 +471,7 @@ class GatherPlanMonitorHandler(object):
             self.__report("<div><h2 id='schema_anchor'>SCHEMA 信息</h2><div id='schema' style='display: none'>" + schemas + "</div></div>")
             cursor.close()
         except Exception as e:
-            self.stdio.exception("report table schema failed %s" % sql)
+            self.stdio.exception("report table schema failed %s" % self._truncate_sql_for_log(sql, 512))
             self.stdio.exception(repr(e))
             raise
 
@@ -912,9 +915,17 @@ class GatherPlanMonitorHandler(object):
 
     def full_audit_sql_by_trace_id_sql(self, trace_id):
         if self.tenant_mode == 'mysql':
-            sql = "select /*+ sql_audit */ * from oceanbase.%s where trace_id = '%s' " "AND client_ip IS NOT NULL ORDER BY QUERY_SQL ASC, REQUEST_ID limit 1000" % (self.sql_audit_name, trace_id)
+            if self.ob_major_version >= 4:
+                cols = GlobalSqlMeta().get_value(key="sql_audit_item_mysql_obversion4")
+            else:
+                cols = GlobalSqlMeta().get_value(key="sql_audit_item_mysql")
+            sql = "select /*+ sql_audit */ %s from oceanbase.%s where trace_id = '%s' AND client_ip IS NOT NULL ORDER BY REQUEST_ID limit 1000" % (cols, self.sql_audit_name, trace_id)
         else:
-            sql = "select /*+ sql_audit */ * from sys.%s where trace_id = '%s' AND  " "length(client_ip) > 4 ORDER BY  REQUEST_ID limit 1000" % (self.sql_audit_name, trace_id)
+            if self.ob_major_version >= 4:
+                cols = GlobalSqlMeta().get_value(key="sql_audit_item_oracle_obversion4")
+            else:
+                cols = GlobalSqlMeta().get_value(key="sql_audit_item_oracle")
+            sql = "select /*+ sql_audit */ %s from sys.%s where trace_id = '%s' AND length(client_ip) > 4 ORDER BY REQUEST_ID limit 1000" % (cols, self.sql_audit_name, trace_id)
         return sql
 
     def sql_plan_monitor_dfo_op_sql(self, tenant_id, plan_id, trace_id, svr_ip, svr_port):
@@ -1152,11 +1163,45 @@ class GatherPlanMonitorHandler(object):
             self.stdio.exception("sql_audit> %s" % sql)
             self.stdio.exception(repr(e))
 
+    def _truncate_sql_for_log(self, raw_sql, max_len=512):
+        if raw_sql is None:
+            return ""
+        if len(raw_sql) <= max_len:
+            return raw_sql
+        return raw_sql[:max_len] + "...<truncated,len=%s>" % len(raw_sql)
+
+    def _sql_eligible_for_explain_extended(self, raw_sql):
+        """
+        EXPLAIN extended requires valid textual SQL. query_sql for INSERT with large literals
+        can exceed length limits or contain control chars that cause 1064 syntax errors.
+        """
+        if not raw_sql or not isinstance(raw_sql, str):
+            return False
+        if len(raw_sql) > self._max_explain_sql_chars:
+            return False
+        if "\x00" in raw_sql:
+            return False
+        # ASCII control chars (excluding tab/LF/CR) often indicate binary fragments in audit text
+        ctrl = sum(1 for c in raw_sql if ord(c) < 32 and c not in "\t\n\r")
+        if ctrl > 10:
+            return False
+        if len(raw_sql) > 1000 and (ctrl / float(len(raw_sql))) > 0.001:
+            return False
+        # Long INSERT from audit frequently embeds blob/hex; EXPLAIN usually fails even under length cap
+        lead = raw_sql.lstrip()
+        if len(lead) >= 6 and lead[:6].upper() == "INSERT" and len(raw_sql) > 8192:
+            return False
+        return True
+
     def report_plan_explain(self, db_name, raw_sql):
+        if not self._sql_eligible_for_explain_extended(raw_sql):
+            self.stdio.warn("skip EXPLAIN extended: query_sql is not eligible (empty, too long, null/replacement chars, " "high control-char ratio, or long INSERT; common with binary/blob). len=%s" % (len(raw_sql) if raw_sql else 0))
+            self.__report("<pre>EXPLAIN extended skipped: query_sql not suitable for text EXPLAIN " "(e.g. INSERT with large binary / blob in sql_audit).</pre>")
+            return
         explain_sql = "explain extended %s" % raw_sql
         try:
             sql_explain_cursor = self.db_connector.execute_sql_return_cursor(explain_sql)
-            self.stdio.verbose("execute SQL: %s", explain_sql)
+            self.stdio.verbose("execute SQL: %s", self._truncate_sql_for_log(explain_sql, 1024))
             sql_explain_result_sql = "%s" % explain_sql
             sql_explain_result = from_db_cursor(sql_explain_cursor)
 
@@ -1173,8 +1218,14 @@ class GatherPlanMonitorHandler(object):
             self.report_pre(sql_explain_result)
             self.stdio.verbose("report sql_explain_result complete")
         except Exception as e:
-            self.stdio.exception("plan explain> %s" % explain_sql)
-            self.stdio.exception(repr(e))
+            err_no = e.args[0] if getattr(e, "args", None) else None
+            if err_no == 1064:
+                self.stdio.warn("skip EXPLAIN extended: server syntax error (1064); query_sql from sql_audit may contain " "binary or fragments not valid as SQL text. len=%s" % (len(raw_sql) if raw_sql else 0))
+                self.__report("<pre>EXPLAIN extended skipped: syntax error 1064 (query_sql not valid for EXPLAIN, " "e.g. binary in audit text).</pre>")
+                self.stdio.verbose("EXPLAIN 1064 (truncated hint): %s" % self._truncate_sql_for_log(explain_sql, 256))
+            else:
+                self.stdio.warn("plan explain failed: %s" % (e,))
+                self.stdio.verbose("plan explain (truncated): %s" % self._truncate_sql_for_log(explain_sql, 1024))
             pass
 
     def report_sql_plan_monitor_dfo_op(self, sql):

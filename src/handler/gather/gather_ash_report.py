@@ -21,7 +21,7 @@ import traceback
 
 from src.common.command import get_observer_version
 from src.common.ob_connector import OBConnector
-from src.common.obdiag_exception import OBDIAGFormatException, OBDIAGException
+from src.common.exception import OBDIAGFormatException, OBDIAGException
 from src.common.tool import DirectoryUtil, TimeUtils, Util, StringUtils
 from src.common.result_type import ObdiagResult
 from src.common.stdio import SafeStdio
