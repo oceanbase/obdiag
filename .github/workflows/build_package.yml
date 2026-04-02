@@ -41,6 +41,37 @@ jobs:
             /github/home/rpmbuild/RPMS/x86_64/oceanbase-diagnostic-tool-*.rpm
           retention-days: 3
 
+  build-rpm-centos7:
+    name: Build RPM on CentOS 7
+    needs: cancel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Docker build (CentOS 7 image; make pack inside image)
+        run: |
+          set -eux
+          docker build -t obdiag-builder-centos7 -f dockerfiles/Dockerfile.builder-centos7 .
+
+      - name: Copy RPM out of image
+        run: |
+          set -eux
+          mkdir -p centos7-rpm-out
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/centos7-rpm-out:/out" \
+            --entrypoint /bin/bash \
+            obdiag-builder-centos7 \
+            -c 'shopt -s nullglob; rpms=(/oceanbase-diagnostic-tool-*.rpm); if [ ${#rpms[@]} -eq 0 ]; then echo "No oceanbase-diagnostic-tool-*.rpm under / in image"; ls -la /; exit 1; fi; cp -av "${rpms[@]}" /out/'
+
+      - name: Upload rpm (CentOS 7)
+        uses: actions/upload-artifact@v6
+        with:
+          name: obdiag-rpm-packages-centos7
+          path: centos7-rpm-out/oceanbase-diagnostic-tool-*.rpm
+          retention-days: 3
+
+
   build-deb:
     name: Build Ubuntu/Debian Package
     needs: cancel

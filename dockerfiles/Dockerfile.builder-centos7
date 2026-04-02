@@ -1,0 +1,30 @@
+FROM centos:centos7.9.2009
+# GitHub Actions: ubuntu-latest (overseas). Default yum archive is vault.centos.org — do not switch to CN mirrors.
+#
+# CentOS 7 is EOL: mirrorlist.centos.org is gone; mirror.centos.org is not used for downloads anymore.
+# The image only ships *commented* lines like #baseurl=http://mirror.centos.org/centos/... in *.repo files.
+# The sed below rewrites that template to an *enabled* baseurl=https://vault.centos.org/centos/... (default).
+# Yum never connects to mirror.centos.org at runtime.
+#
+# vault can be slow from CI; minrate=0 + retries reduce spurious failures. ip_resolve=4 avoids broken IPv6 in Docker.
+# Optional (slow vault on a laptop in mainland China only): --build-arg CENTOS_BASEURL_PREFIX=https://mirrors.aliyun.com/centos-vault
+ARG CENTOS_BASEURL_PREFIX=https://vault.centos.org/centos
+RUN sed -i '/^\[main\]/a retries=10' /etc/yum.conf \
+    && sed -i '/^\[main\]/a minrate=0' /etc/yum.conf \
+    && sed -i '/^\[main\]/a ip_resolve=4' /etc/yum.conf \
+    && sed -i 's/^enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf 2>/dev/null || true \
+    && sed -i 's/^mirrorlist=/#mirrorlist=/' /etc/yum.repos.d/CentOS-*.repo \
+    && sed -i "s|^#baseurl=http://mirror.centos.org/centos/|baseurl=${CENTOS_BASEURL_PREFIX}/|" /etc/yum.repos.d/CentOS-*.repo \
+    && yum clean all \
+    && yum install -y wget rpm-build
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
+RUN sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
+RUN export PATH=/opt/miniconda3/bin:$PATH
+RUN /opt/miniconda3/bin/conda init
+RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
+RUN source /opt/miniconda3/bin/activate obdiag
+RUN /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
+RUN yum install -y gcc gcc-c++ make
+
+COPY ./ ./
+RUN source /opt/miniconda3/bin/activate obdiag && make pack

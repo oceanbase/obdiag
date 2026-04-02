@@ -8,8 +8,9 @@ This directory contains all Dockerfile files for OceanBase Diagnostic Tool (obdi
 |------|---------|------------|
 | `Dockerfile.production` | Production image build | AnolisOS 8.9 |
 | `Dockerfile.release` | Official release image | AnolisOS 8.9 |
-| `Dockerfile.builder` | CI/CD builder image | AnolisOS 8.9 |
-| `Dockerfile.dev` | Development environment | CentOS 7.9 |
+| `Dockerfile.builder` | CI/CD builder image (Anolis / el8-style) | AnolisOS 8.9 |
+| `Dockerfile.builder-centos7` | CI RPM build on CentOS 7 (GitHub Actions) | `centos:centos7.9.2009` |
+| `Dockerfile.dev` | Development environment | CentOS 7.9 (Huawei SWR mirror) |
 | `Dockerfile.local` | Local code testing | AnolisOS 8.9 |
 
 ---
@@ -87,13 +88,51 @@ docker build -f dockerfiles/Dockerfile.builder -t obdiag-builder:latest .
 
 ---
 
-### 4. Dockerfile.dev
+### 4. Dockerfile.builder-centos7
+
+**Purpose**: Build an RPM on **CentOS 7** inside Docker (used when GitHub-hosted runners no longer provide CentOS 7)
+
+**Features**:
+- Default **`vault.centos.org`** (HTTPS): right for GitHub-hosted runners (overseas). Stock `.repo` files contain commented `#baseurl=http://mirror.centos.org/...` lines only; the Dockerfile replaces that pattern — **yum does not use `mirror.centos.org` at runtime** (EOL / unavailable).
+- Tunes `yum` for CI (`ip_resolve=4`, `minrate=0`, `retries=10`, fastestmirror off)
+- Miniconda + Python 3.11, then `make pack` during image build (RPM lands in image root as `oceanbase-diagnostic-tool-*.rpm`)
+
+**Use Cases**:
+- GitHub Actions: job `build-rpm-centos7` in `.github/workflows/build_package.yml`
+- Local verification of el7-compatible RPM packaging
+
+**Build Command** (default vault, suitable for GitHub-hosted runners):
+```bash
+docker build -f dockerfiles/Dockerfile.builder-centos7 -t obdiag-builder-centos7 .
+```
+
+**Build Command** (mainland China / slow vault; optional):
+```bash
+docker build -f dockerfiles/Dockerfile.builder-centos7 -t obdiag-builder-centos7 \
+  --build-arg CENTOS_BASEURL_PREFIX=https://mirrors.aliyun.com/centos-vault .
+```
+
+**Copy RPM to host** (after `docker build`):
+```bash
+mkdir -p centos7-rpm-out
+docker run --rm \
+  -v "$(pwd)/centos7-rpm-out:/out" \
+  --entrypoint /bin/bash obdiag-builder-centos7 \
+  -c 'shopt -s nullglob; cp -av /oceanbase-diagnostic-tool-*.rpm /out/'
+```
+
+**Associated Workflow**: `.github/workflows/build_package.yml` (artifact `obdiag-rpm-packages-centos7`)
+
+---
+
+### 5. Dockerfile.dev
 
 **Purpose**: Local development environment with complete toolchain
 
 **Features**:
-- Based on CentOS 7.9 (good compatibility)
-- Pre-installed Python 3.11 and all dependencies
+- Based on CentOS 7.9 (Huawei Cloud SWR mirror of `centos:centos7.9.2009`)
+- Yum configured via Aliyun CentOS 7 repo template
+- Pre-installed Python 3.11 (Miniconda under `/opt/miniconda`) and editable install of obdiag deps
 - Mount local code for development
 
 **Use Cases**:
@@ -123,7 +162,7 @@ python3 src/main.py --help
 
 ---
 
-### 5. Dockerfile.local
+### 6. Dockerfile.local
 
 **Purpose**: Build complete image using local code for testing local modifications
 
@@ -167,6 +206,15 @@ cd /workspaces/obdiag
 python3 src/main.py check
 ```
 
+### CentOS 7 RPM (CI-style)
+
+```bash
+docker build -f dockerfiles/Dockerfile.builder-centos7 -t obdiag-builder-centos7 .
+mkdir -p centos7-rpm-out
+docker run --rm -v "$(pwd)/centos7-rpm-out:/out" --entrypoint /bin/bash obdiag-builder-centos7 \
+  -c 'shopt -s nullglob; cp -av /oceanbase-diagnostic-tool-*.rpm /out/'
+```
+
 ### Test Local Modifications
 
 ```bash
@@ -196,6 +244,7 @@ docker run -it --rm obdiag:prod obdiag --help
 | Dockerfile.production | ✅ | ✅ |
 | Dockerfile.release | ✅ | ✅ |
 | Dockerfile.builder | ✅ | ❌ |
+| Dockerfile.builder-centos7 | ✅ | ❌ |
 | Dockerfile.dev | ✅ | ❌ |
 | Dockerfile.local | ✅ | ✅ |
 
@@ -208,11 +257,19 @@ docker run -it --rm obdiag:prod obdiag --help
 | `OBDIAG_HOME` | obdiag configuration directory | `~/.obdiag` |
 | `PATH` | Includes obdiag executable path | Auto-configured |
 
+### Docker build arguments (`Dockerfile.builder-centos7`)
+
+| Build arg | Description | Default |
+|-----------|-------------|---------|
+| `CENTOS_BASEURL_PREFIX` | yum `baseurl` prefix for CentOS vault tree (`…/$releasever/os/...`) | `https://vault.centos.org/centos` |
+
 ---
 
 ## Related Files
 
 - `dev_helper.sh` - Development helper script
-- `Makefile` - Build and development commands
+- `Makefile` - Build and development commands (`make pack`, etc.)
 - `rpm/oceanbase-diagnostic-tool.spec` - RPM packaging specification
-- `.github/workflows/` - CI/CD workflow configurations
+- `.github/workflows/build_package.yml` - Package builds (includes CentOS 7 Docker RPM + artifact upload)
+- `.github/workflows/build_base_docker.yml` - Publishes builder image from `Dockerfile.builder`
+- `.github/workflows/build_obdiag_docker.yml` - Release image from `Dockerfile.release`
