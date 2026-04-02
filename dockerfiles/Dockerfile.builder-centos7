@@ -17,8 +17,11 @@ RUN sed -i '/^\[main\]/a retries=10' /etc/yum.conf \
     && sed -i "s|^#baseurl=http://mirror.centos.org/centos/|baseurl=${CENTOS_BASEURL_PREFIX}/|" /etc/yum.repos.d/CentOS-*.repo \
     && yum clean all \
     && yum install -y wget rpm-build
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --no-check-certificate
-RUN sh Miniconda3-latest-Linux-x86_64.sh -p /opt/miniconda3 -b
+# Miniconda3-latest requires glibc >= 2.28; CentOS 7 has 2.17. Pin a 2023-era installer (bootstrap only; env still uses Python 3.11).
+ARG MINICONDA_SH=Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
+RUN wget "https://repo.anaconda.com/miniconda/${MINICONDA_SH}" -O /tmp/miniconda.sh --no-check-certificate \
+    && sh /tmp/miniconda.sh -p /opt/miniconda3 -b \
+    && rm -f /tmp/miniconda.sh
 RUN export PATH=/opt/miniconda3/bin:$PATH
 RUN /opt/miniconda3/bin/conda init
 RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y

@@ -95,7 +95,8 @@ docker build -f dockerfiles/Dockerfile.builder -t obdiag-builder:latest .
 **Features**:
 - Default **`vault.centos.org`** (HTTPS): right for GitHub-hosted runners (overseas). Stock `.repo` files contain commented `#baseurl=http://mirror.centos.org/...` lines only; the Dockerfile replaces that pattern — **yum does not use `mirror.centos.org` at runtime** (EOL / unavailable).
 - Tunes `yum` for CI (`ip_resolve=4`, `minrate=0`, `retries=10`, fastestmirror off)
-- Miniconda + Python 3.11, then `make pack` during image build (RPM lands in image root as `oceanbase-diagnostic-tool-*.rpm`)
+- Pinned **Miniconda3 `py311_23.5.2-0`** installer (not `latest`): Anaconda’s current `Miniconda3-latest` requires **glibc ≥ 2.28**, while CentOS 7 only has **2.17**. After install, `conda create` still provides **Python 3.11** for the build env.
+- Then `make pack` during image build (RPM lands in image root as `oceanbase-diagnostic-tool-*.rpm`)
 
 **Use Cases**:
 - GitHub Actions: job `build-rpm-centos7` in `.github/workflows/build_package.yml`
@@ -262,6 +263,7 @@ docker run -it --rm obdiag:prod obdiag --help
 | Build arg | Description | Default |
 |-----------|-------------|---------|
 | `CENTOS_BASEURL_PREFIX` | yum `baseurl` prefix for CentOS vault tree (`…/$releasever/os/...`) | `https://vault.centos.org/centos` |
+| `MINICONDA_SH` | Installer filename under `repo.anaconda.com/miniconda/` (must run on glibc 2.17) | `Miniconda3-py311_23.5.2-0-Linux-x86_64.sh` |
 
 ---
 
