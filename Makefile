@@ -89,6 +89,7 @@ build_update_package:
 # Download obstack tools
 download_obstack:
 	@echo "Checking obstack..."
+	@test "$(CURDIR)" != "/" || (echo "Error: do not run make from / (rm -rf ./usr would delete the system /usr)." && exit 1)
 	@mkdir -p ./dependencies/bin
 	@if [ -f ./dependencies/bin/obstack_aarch64 ]; then \
 		echo "obstack_aarch64 exists, skip download"; \

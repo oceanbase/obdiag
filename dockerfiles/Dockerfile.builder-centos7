@@ -1,0 +1,39 @@
+FROM centos:centos7.9.2009
+# GitHub Actions: ubuntu-latest (overseas). Default yum archive is vault.centos.org — do not switch to CN mirrors.
+#
+# CentOS 7 is EOL: mirrorlist.centos.org is gone; mirror.centos.org is not used for downloads anymore.
+# The image only ships *commented* lines like #baseurl=http://mirror.centos.org/centos/... in *.repo files.
+# The sed below rewrites that template to an *enabled* baseurl=https://vault.centos.org/centos/... (default).
+# Yum never connects to mirror.centos.org at runtime.
+#
+# vault can be slow from CI; minrate=0 + retries reduce spurious failures. ip_resolve=4 avoids broken IPv6 in Docker.
+# Optional (slow vault on a laptop in mainland China only): --build-arg CENTOS_BASEURL_PREFIX=https://mirrors.aliyun.com/centos-vault
+ARG CENTOS_BASEURL_PREFIX=https://vault.centos.org/centos
+RUN sed -i '/^\[main\]/a retries=10' /etc/yum.conf \
+    && sed -i '/^\[main\]/a minrate=0' /etc/yum.conf \
+    && sed -i '/^\[main\]/a ip_resolve=4' /etc/yum.conf \
+    && sed -i 's/^enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf 2>/dev/null || true \
+    && sed -i 's/^mirrorlist=/#mirrorlist=/' /etc/yum.repos.d/CentOS-*.repo \
+    && sed -i "s|^#baseurl=http://mirror.centos.org/centos/|baseurl=${CENTOS_BASEURL_PREFIX}/|" /etc/yum.repos.d/CentOS-*.repo \
+    && yum clean all \
+    && yum install -y wget rpm-build
+# Miniconda3-latest requires glibc >= 2.28; CentOS 7 has 2.17. Pin a 2023-era installer (bootstrap only; env still uses Python 3.11).
+ARG MINICONDA_SH=Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
+RUN wget "https://repo.anaconda.com/miniconda/${MINICONDA_SH}" -O /tmp/miniconda.sh --no-check-certificate \
+    && sh /tmp/miniconda.sh -p /opt/miniconda3 -b \
+    && rm -f /tmp/miniconda.sh
+RUN export PATH=/opt/miniconda3/bin:$PATH
+RUN /opt/miniconda3/bin/conda init
+RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
+RUN source /opt/miniconda3/bin/activate obdiag
+RUN /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
+# pydantic-ai stack often builds Rust extensions on el7 (no matching manylinux wheel); need cargo + link deps.
+RUN yum install -y gcc gcc-c++ make curl openssl-devel \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
+    && rm -rf /root/.rustup/toolchains/*/share/doc
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Never run `make pack` with cwd `/`: download_obstack ends with `rm -rf ./usr` which becomes `rm -rf /usr` and destroys the image.
+WORKDIR /obdiag
+COPY ./ ./
+RUN source /opt/miniconda3/bin/activate obdiag && make pack
