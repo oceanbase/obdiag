@@ -194,7 +194,7 @@ _obdiag_completion() {
                     type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump parameter variable"
                     ;;
                 analyze)
-                    type_list="log flt_trace parameter variable index_space queue memory"
+                    type_list="log flt_trace parameter variable index_space queue memory sql sql_review"
                     ;;
                 rca)
                     type_list="run list"
