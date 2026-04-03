@@ -77,9 +77,7 @@ class AnalyzeSQLReviewHandler(object):
             port = self.tenant_db_port if self.tenant_db_port is not None else self.ob_cluster.get("db_port")
             pwd = self.db_password if self.db_password is not None else ''
             self.db_connector = OBConnector(context=self.context, ip=host, port=port, username=self.db_user, password=pwd, timeout=100)
-            self.stdio.print(
-                "DB connection: using --user (business tenant) at {0}:{1}, user={2}. (password not logged)".format(host, port, self.db_user)
-            )
+            self.stdio.print("DB connection: using --user (business tenant) at {0}:{1}, user={2}. (password not logged)".format(host, port, self.db_user))
             self.stdio.verbose("init db connector complete")
         else:
             self.db_connector = self.sys_connector
@@ -92,11 +90,7 @@ class AnalyzeSQLReviewHandler(object):
                     "password": tenant_sys.get("password"),
                 }
             )
-            self.stdio.print(
-                "DB connection: no --user; defaulting to sys tenant from obcluster (host={0}, port={1}, user={2}; config password redacted).".format(
-                    summary.get("db_host"), summary.get("db_port"), summary.get("sys_user")
-                )
-            )
+            self.stdio.print("DB connection: no --user; defaulting to sys tenant from obcluster (host={0}, port={1}, user={2}; config password redacted).".format(summary.get("db_host"), summary.get("db_port"), summary.get("sys_user")))
 
     def init_option(self):
         self.stdio.print('init option start')

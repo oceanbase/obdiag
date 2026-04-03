@@ -146,9 +146,7 @@ class AnalyzeSQLHandler(object):
             port = self.tenant_db_port if self.tenant_db_port is not None else self.ob_cluster.get("db_port")
             pwd = self.db_password if self.db_password is not None else ''
             self.db_connector = OBConnector(context=self.context, ip=host, port=port, username=self.db_user, password=pwd, timeout=100)
-            self.stdio.print(
-                "sql_audit: using --user (business tenant) at {0}:{1}, user={2}. (password not logged)".format(host, port, self.db_user)
-            )
+            self.stdio.print("sql_audit: using --user (business tenant) at {0}:{1}, user={2}. (password not logged)".format(host, port, self.db_user))
         else:
             self.db_connector = self.sys_connector
             tenant_sys = self.ob_cluster.get("tenant_sys") or {}
@@ -160,11 +158,7 @@ class AnalyzeSQLHandler(object):
                     "password": tenant_sys.get("password"),
                 }
             )
-            self.stdio.print(
-                "sql_audit: no --user; defaulting to sys tenant from obcluster (host={0}, port={1}, user={2}; config password redacted).".format(
-                    summary.get("db_host"), summary.get("db_port"), summary.get("sys_user")
-                )
-            )
+            self.stdio.print("sql_audit: no --user; defaulting to sys tenant from obcluster (host={0}, port={1}, user={2}; config password redacted).".format(summary.get("db_host"), summary.get("db_port"), summary.get("sys_user")))
 
     def init_option(self):
         self._input_error_detail = None
@@ -182,9 +176,7 @@ class AnalyzeSQLHandler(object):
             tenant_name = self.__extract_tenant_name(db_user_option)
             if not tenant_name:
                 self._input_error_detail = (
-                    "Invalid --user: cannot derive tenant from username. Expected formats: "
-                    "user@tenant (e.g. app@mytenant), user@tenant#cluster, or cluster:tenant:user. "
-                    "Omit --user to use sys tenant from obcluster for sql_audit."
+                    "Invalid --user: cannot derive tenant from username. Expected formats: " "user@tenant (e.g. app@mytenant), user@tenant#cluster, or cluster:tenant:user. " "Omit --user to use sys tenant from obcluster for sql_audit."
                 )
                 self.stdio.error(self._input_error_detail)
                 return False
@@ -439,14 +431,7 @@ class AnalyzeSQLHandler(object):
                 )
                 rows.append("<tr>" + "".join(row) + "</tr>")
             else:
-                rows.append(
-                    "<tr class='merge'>"
-                    + f"<td>{html.escape(diag.class_name)}</td>"
-                    + f"<td>{html.escape(diag.description)}</td>"
-                    + f"<td class='{lvl}'>{lvl}</td>"
-                    + f"<td>{html.escape(diag.suggestion)}</td>"
-                    + "</tr>"
-                )
+                rows.append("<tr class='merge'>" + f"<td>{html.escape(diag.class_name)}</td>" + f"<td>{html.escape(diag.description)}</td>" + f"<td class='{lvl}'>{lvl}</td>" + f"<td>{html.escape(diag.suggestion)}</td>" + "</tr>")
         return "".join(rows)
 
     def __generate_table_headers(self):
