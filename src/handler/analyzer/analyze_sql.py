@@ -423,13 +423,8 @@ class AnalyzeSQLHandler(object):
         for idx, diag in enumerate(diagnostics['diagnosticEntries']):
             lvl = html.escape(diag.level.string)
             if idx == 0:
-                row = table_head + (
-                    f"<td>{html.escape(diag.class_name)}</td>",
-                    f"<td>{html.escape(diag.description)}</td>",
-                    f"<td class='{lvl}'>{lvl}</td>",
-                    f"<td>{html.escape(diag.suggestion)}</td>",
-                )
-                rows.append("<tr>" + "".join(row) + "</tr>")
+                diag_cells = f"<td>{html.escape(diag.class_name)}</td>" f"<td>{html.escape(diag.description)}</td>" f"<td class='{lvl}'>{lvl}</td>" f"<td>{html.escape(diag.suggestion)}</td>"
+                rows.append("<tr>" + table_head + diag_cells + "</tr>")
             else:
                 rows.append("<tr class='merge'>" + f"<td>{html.escape(diag.class_name)}</td>" + f"<td>{html.escape(diag.description)}</td>" + f"<td class='{lvl}'>{lvl}</td>" + f"<td>{html.escape(diag.suggestion)}</td>" + "</tr>")
         return "".join(rows)
