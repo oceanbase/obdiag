@@ -491,15 +491,18 @@ class ObdiagHome(object):
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeVariableHandler(self.context, 'diff')
                 return handler.handle()
-            # todo not support silent
             elif function_type == 'analyze_sql':
+                self.set_context_stdio()
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_sql_review':
+                self.set_context_stdio()
+                self.update_obcluster_nodes(config)
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeSQLReviewHandler(self.context)
-                handler.handle()
+                return handler.handle()
             elif function_type == 'analyze_index_space':
                 self.set_context(function_type, 'analyze', config)
                 handler = AnalyzeIndexSpaceHandler(self.context)
