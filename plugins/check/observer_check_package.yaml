@@ -66,7 +66,6 @@ k8s_basic:
     - cluster.memstore_limit_percentage
     - cluster.mod_too_large
     - cluster.no_leader
-    - cluster.no_leader
     - cluster.ob_enable_plan_cache_bad_version
     - cluster.observer_not_active
     - cluster.optimizer_better_inlist_costing_parmmeter

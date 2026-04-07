@@ -198,7 +198,7 @@ run:
 # Run tests (placeholder)
 test:
 	@echo "Running tests..."
-	@PYTHONPATH=$(PROJECT_PATH):$$PYTHONPATH python3 -m pytest tests/ -v 2>/dev/null || echo "No tests found or pytest not installed"
+	@PYTHONPATH=$(PROJECT_PATH):$$PYTHONPATH python3 -m pytest test/ -v 2>/dev/null || echo "No tests found or pytest not installed"
 
 # Show current configuration
 info:
