@@ -554,7 +554,7 @@ class ObdiagHome(object):
                     observer_report_path = os.path.expanduser(observer_check_handler.report.get_report_path())
                     if os.path.exists(observer_report_path):
                         result_data['observer_report_path'] = os.path.abspath(observer_report_path)
-                        self.stdio.print("Check observer finished. For more details, please run cmd'" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
+                        self.stdio.print("Check observer finished. For more details, please run cmd '" + Fore.YELLOW + " cat {0} ".format(observer_check_handler.report.get_report_path()) + Style.RESET_ALL + "'")
                 self.stdio.print('\nTips: If you run into SSH connection issues with obdiag, try lowering concurrency by adding --inner_config check.max_workers=1 to the command.')
                 return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=result_data)
             except Exception as e:
