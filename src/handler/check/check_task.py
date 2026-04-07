@@ -16,6 +16,8 @@
 @desc: Base class for Python check tasks
 """
 
+import re
+
 from src.common.command import get_observer_version, get_obproxy_version, get_obproxy_full_version
 from src.common.tool import StringUtils, Util
 
@@ -95,7 +97,8 @@ class TaskBase:
                 self.observer_nodes = []
 
         if check_target_type == "obproxy":
-            obproxy_nodes_config = self.context.obproxy_config.get("servers")
+            obproxy_config = self.context.obproxy_config or {}
+            obproxy_nodes_config = obproxy_config.get("servers")
             if obproxy_nodes_config:
                 self.obproxy_nodes = []
                 for node in obproxy_nodes_config:
@@ -142,12 +145,13 @@ class TaskBase:
             # Fallback: create new connector if pool not available
             from src.common.ob_connector import OBConnector
 
+            tenant_sys = self.ob_cluster.get("tenant_sys") or {}
             self.ob_connector = OBConnector(
                 context=self.context,
                 ip=self.ob_cluster.get("db_host"),
                 port=self.ob_cluster.get("db_port"),
-                username=self.ob_cluster.get("tenant_sys").get("user"),
-                password=self.ob_cluster.get("tenant_sys").get("password"),
+                username=tenant_sys.get("user"),
+                password=tenant_sys.get("password"),
                 timeout=10000,
             )
             self._using_pool_connection = False
@@ -157,14 +161,20 @@ class TaskBase:
             if self.obproxy_nodes is None or len(self.obproxy_nodes) == 0:
                 self.stdio.verbose("obproxy_nodes is None. So set obproxy_version and obproxy_full_version to None")
             else:
-                try:
-                    self.obproxy_version = get_obproxy_version(self.context)
-                except Exception as e:
-                    self.stdio.error("get obproxy_version fail: {0}".format(e))
-                try:
-                    self.obproxy_full_version = get_obproxy_full_version(self.context)
-                except Exception as e:
-                    self.stdio.error("get obproxy_full_version fail: {0}".format(e))
+                # Prefer context cache (set by parent before task dispatch), then query
+                self.obproxy_version = self.context.get_variable("check_obproxy_version") or ""
+                if not self.obproxy_version:
+                    try:
+                        self.obproxy_version = get_obproxy_version(self.context)
+                    except Exception as e:
+                        self.stdio.error("get obproxy_version fail: {0}".format(e))
+                # Prefer context cache for full_version too
+                self.obproxy_full_version = self.context.get_variable("check_obproxy_full_version") or ""
+                if not self.obproxy_full_version:
+                    try:
+                        self.obproxy_full_version = get_obproxy_full_version(self.context)
+                    except Exception as e:
+                        self.stdio.error("get obproxy_full_version fail: {0}".format(e))
 
     def cleanup(self):
         """
@@ -241,10 +251,7 @@ class TaskBase:
             return False
         if self.observer_version == min_version:
             return True
-        if StringUtils.compare_versions_greater(self.observer_version, min_version):
-            return True
-        else:
-            return False
+        return StringUtils.compare_versions_greater(self.observer_version, min_version)
 
     def check_obproxy_version_min(self, min_version: str) -> bool:
         """
@@ -260,10 +267,7 @@ class TaskBase:
             return False
         if self.obproxy_version == min_version:
             return True
-        if StringUtils.compare_versions_greater(self.obproxy_version, min_version):
-            return True
-        else:
-            return False
+        return StringUtils.compare_versions_greater(self.obproxy_version, min_version)
 
     def check_ob_version_max(self, max_version: str) -> bool:
         """
@@ -279,21 +283,21 @@ class TaskBase:
             return False
         if self.observer_version == max_version:
             return True
-        if StringUtils.compare_versions_greater(max_version, self.observer_version):
-            return True
-        else:
-            return False
+        return StringUtils.compare_versions_greater(max_version, self.observer_version)
 
     def get_obproxy_parameter(self, parameter_name: str) -> list:
         """
         Get obproxy parameter value.
 
         Args:
-            parameter_name: Name of the parameter to query
+            parameter_name: Name of the parameter to query (must match ^[\\w.]+$)
 
         Returns:
             list: Parameter data from query result
         """
+        if not re.match(r'^[\w.]+$', parameter_name):
+            self.stdio.error("invalid parameter_name '{0}': only word characters and dots are allowed".format(parameter_name))
+            return []
         try:
             sql = "show proxyconfig like '{0}';".format(parameter_name)
             data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
@@ -308,12 +312,15 @@ class TaskBase:
 
         Args:
             ssh_client: SSH client instance
-            command: Command to check
+            command: Command to check (must contain only word characters and hyphens)
 
         Returns:
             bool: True if command exists
         """
         if ssh_client is None:
+            return False
+        if not re.match(r'^[\w.\-]+$', command):
+            self.stdio.error("invalid command name '{0}': only word characters, dots and hyphens are allowed".format(command))
             return False
         try:
             result = ssh_client.exec_cmd("command -v " + command)
@@ -373,6 +380,11 @@ class TaskBase:
         try:
             os_type = self.get_os_type(ssh_client)
 
+            # Validate parameter_name before any branch to prevent shell injection
+            if not re.match(r'^[\w.\-]+$', parameter_name):
+                self.stdio.error("invalid parameter_name '{0}': only word characters, dots and hyphens are allowed".format(parameter_name))
+                return None
+
             if os_type == "darwin":
                 # macOS: use sysctl command
                 # Convert Linux-style parameter name to macOS style if needed
@@ -390,9 +402,9 @@ class TaskBase:
             else:
                 # Linux: use /proc/sys/
                 proc_path = parameter_name.replace(".", "/")
-                # check parameter_name exists
-                if ssh_client.exec_cmd('find /proc/sys/ -name "{0}"'.format(proc_path.split("/")[-1])) == "":
-                    self.stdio.warn("{0} is not exist".format(parameter_name))
+                check_result = ssh_client.exec_cmd("test -f /proc/sys/{0} && echo exists".format(proc_path))
+                if "exists" not in (check_result or ""):
+                    self.stdio.warn("{0} does not exist".format(parameter_name))
                     return None
                 parameter_value = ssh_client.exec_cmd("cat /proc/sys/" + proc_path).strip()
                 return parameter_value

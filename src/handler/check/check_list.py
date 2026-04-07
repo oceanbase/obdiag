@@ -20,7 +20,7 @@ import os
 import oyaml as yaml
 
 from src.common.result_type import ObdiagResult
-from src.common.tool import Util, DynamicLoading
+from src.common.tool import Util
 
 
 class CheckListHandler:
@@ -30,7 +30,7 @@ class CheckListHandler:
         self.context = context
         self.options = self.context.options
         self.stdio = context.stdio
-        self.work_path = os.path.expanduser(self.context.inner_config["check"]["work_path"] or "~/.obdiag/check")
+        self.work_path = os.path.expanduser(self.context.inner_config.get("check", {}).get("work_path") or "~/.obdiag/check")
 
     def handle(self):
         """List all available check cases and tasks."""
@@ -49,7 +49,7 @@ class CheckListHandler:
                         self.stdio.warn("invalid check package name: {0}, Please don't add file which 'check_package' in the name".format(file))
                         continue
                     target = parts[0]
-                    file_path = "{0}/{1}".format(self.work_path, file)
+                    file_path = os.path.join(self.work_path, file)
 
                     # read yaml file
                     with open(file_path, 'r') as f:
@@ -99,6 +99,8 @@ class CheckListHandler:
                         continue
                     self.stdio.print("\n\n")
                     self.stdio.print("tasks of {0}:".format(target))
+                    if target not in result_map:
+                        result_map[target] = {"commands": [], "tasks": {}}
                     result_map[target]["tasks"] = get_task_list[target]
                     for task_name in result_map[target]["tasks"]:
                         task_data = get_task_list[target][task_name]
@@ -131,24 +133,25 @@ class CheckListHandler:
         Returns:
             dict: Task name -> task info mapping (includes 'info' and optional 'issue_link')
         """
+        import importlib.util as _importlib_util
+
         self.stdio.verbose("get all tasks by target: {0}".format(target))
-        current_path = os.path.join(os.path.expanduser("~/.obdiag/check/tasks"), target)
+        current_path = os.path.join(self.work_path, "tasks", target)
         tasks_info = {}
 
         for root, dirs, files in os.walk(current_path):
             for file in files:
-                # Only load Python files
                 if file.endswith('.py') and not file.startswith('__'):
-                    lib_path = root
-                    module_name = os.path.basename(file)[:-3]
+                    module_name = file[:-3]
                     task_name = "{}.{}".format(os.path.basename(root), module_name)
+                    file_path = os.path.join(root, file)
                     try:
-                        DynamicLoading.add_lib_path(lib_path)
-                        module = DynamicLoading.import_module(module_name, None)
+                        spec = _importlib_util.spec_from_file_location(task_name, file_path)
+                        module = _importlib_util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
                         if not hasattr(module, module_name):
-                            self.stdio.error("{0} import_module failed: missing {1} attribute".format(task_name, module_name))
+                            self.stdio.error("{0} import failed: missing {1} attribute".format(task_name, module_name))
                             continue
-                        # get task info including issue_link
                         task_info = getattr(module, module_name).get_task_info()
                         tasks_info[task_name] = {"info": task_info.get("info", ""), "issue_link": task_info.get("issue_link", "")}
                     except Exception as e:

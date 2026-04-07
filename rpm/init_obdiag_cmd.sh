@@ -29,7 +29,7 @@ _obdiag_completion() {
                     ;;
                 analyze)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log flt_trace parameter variable index_space queue memory"
+                        type_list="log flt_trace parameter variable index_space queue memory sql sql_review"
                     elif [ "${COMP_WORDS[2]}" = "parameter" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="diff default"
                     elif [ "${COMP_WORDS[2]}" = "variable" ] && [ "$COMP_CWORD" -eq 3 ]; then

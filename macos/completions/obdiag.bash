@@ -22,7 +22,7 @@ _obdiag_completion() {
                     type_list="scene"
                     ;;
                 analyze)
-                    type_list="log flt_trace parameter variable index_space queue memory"
+                    type_list="log flt_trace parameter variable index_space queue memory sql sql_review"
                     ;;
                 rca)
                     type_list="run list"

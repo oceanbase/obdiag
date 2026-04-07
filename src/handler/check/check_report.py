@@ -22,12 +22,12 @@ import os
 import oyaml as yaml
 import xmltodict
 import json
-import threading
 from io import open
 
 from src.common.command import get_obproxy_version, get_observer_version, get_observer_commit_id
 from src.telemetry.telemetry import telemetry
-from jinja2 import Template
+from jinja2 import Environment
+from markupsafe import Markup
 from src.common.version import OBDIAG_VERSION
 from src.common.tool import Util
 
@@ -37,14 +37,13 @@ class CheckReport:
         self.context = context
         self.stdio = context.stdio
         self.tasks = []
-        self._tasks_lock = threading.Lock()  # Thread lock for concurrent task report addition
         self.export_report_path = export_report_path
         try:
             if not os.path.exists(export_report_path):
-                os.makedirs(export_report_path)
+                os.makedirs(export_report_path, exist_ok=True)
         except Exception as e:
             self.stdio.error("init check_report {0}".format(e))
-            raise Exception("int check_report {0}".format(e))
+            raise Exception("init check_report {0}".format(e))
         self.export_report_type = export_report_type
 
         now = datetime.datetime.now()
@@ -59,12 +58,18 @@ class CheckReport:
         self.stdio.verbose("export report to {0}".format(report_path))
 
     def add_task_report(self, task_report):
-        """Thread-safe method to add task report."""
-        with self._tasks_lock:
-            self.tasks.append(task_report)
+        self.tasks.append(task_report)
+
+    def _push_telemetry(self):
+        """Push check telemetry once per export. Separated from report_tobeMap so that
+        callers of report_tobeMap (e.g. __execute return value) do not trigger a second push."""
+        fail_cases = [t.name for t in self.tasks if t.all_fail()]
+        critical_cases = [t.name for t in self.tasks if t.all_critical()]
+        warning_cases = [t.name for t in self.tasks if t.all_warning()]
+        telemetry.push_check_info(self.report_target, {"fail_cases": fail_cases, "critical_cases": critical_cases, "warning_cases": warning_cases})
 
     def export_report(self):
-        self.stdio.verbose("export report to {0}.{1}, export type is {1}".format(self.report_path, self.export_report_type))
+        self.stdio.verbose("exporting report to {0}.{1}".format(self.report_path, self.export_report_type))
         try:
             if self.export_report_type == "table":
                 self.export_report_table()
@@ -78,7 +83,7 @@ class CheckReport:
                 self.export_report_html()
             else:
                 raise Exception("export_report_type: {0} is not support".format(self.export_report_type))
-            self.export_report_path = self.export_report_path + "." + self.export_report_type
+            self._push_telemetry()
         except Exception as e:
             self.stdio.error("export_report Exception : {0}".format(e))
             raise Exception(e)
@@ -89,11 +94,8 @@ class CheckReport:
     def export_report_xml(self):
         allMap = self.report_tobeMap()
         with open(self.report_path + ".xml", 'w', encoding='utf-8') as f:
-            allreport = {"report": allMap}
-            json_str = json.dumps(allreport)
-            xml_str = xmltodict.unparse(json.loads(json_str))
+            xml_str = xmltodict.unparse({"report": allMap})
             f.write(xml_str)
-            f.close()
 
     def export_report_yaml(self):
         allMap = self.report_tobeMap()
@@ -121,14 +123,13 @@ class CheckReport:
                 warningMap[task.name] = task.all_warning()
             if len(task.all()) != 0:
                 allInfoMap[task.name] = task.all()
-            if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
+            elif len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                 allInfoMap[task.name] = ["all pass"]
 
         allMap["fail"] = failMap
         allMap["critical"] = criticalMap
         allMap["warning"] = warningMap
         allMap["all"] = allInfoMap
-        telemetry.push_check_info(self.report_target, {"fail_cases": list(failMap), "critical_cases": list(criticalMap), "warning_cases": list(warningMap)})
         return allMap
 
     def export_report_table(self):
@@ -165,49 +166,50 @@ class CheckReport:
                     warningMap.append(task.name)
                 if len(task.all()) != 0:
                     report_all_tb.add_row([task.name, '\n'.join(task.all())])
-                if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
+                elif len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_tb.add_row([task.name, "all pass"])
-            telemetry.push_check_info(self.report_target, {"fail_cases": list(set(failMap)), "critical_cases": list(set(criticalMap)), "warning_cases": list(set(warningMap))})
 
-            fp = open(self.report_path + ".table", 'a+', encoding='utf-8')
-            fp.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
-            fp.write("report time: {0}\n\n".format(self.report_time))
+            fp = open(self.report_path + ".table", 'w', encoding='utf-8')
+            try:
+                fp.write("obdiag version: {0}\n".format(OBDIAG_VERSION))
+                fp.write("report time: {0}\n\n".format(self.report_time))
 
-            # Check if this is build_before case (should not get version)
-            cases_option = Util.get_option(self.context.options, 'cases')
-            is_build_before = cases_option == "build_before"
+                # Check if this is build_before case (should not get version)
+                cases_option = Util.get_option(self.context.options, 'cases')
+                is_build_before = cases_option == "build_before"
 
-            if self.report_target == "observer":
-                if not is_build_before:
-                    observer_version = get_observer_version(self.context)
-                    if observer_version:
-                        fp.write("observer version: {0}\n".format(observer_version))
-                    observer_version_commit_id = get_observer_commit_id(self.context)
-                    if observer_version_commit_id:
-                        fp.write("observer commit id: {0}\n".format(observer_version_commit_id))
-                else:
-                    self.stdio.verbose("cases is build_before, skip getting observer version in report")
-            elif self.report_target == "obproxy":
-                if not is_build_before:
-                    obproxy_version = get_obproxy_version(self.context)
-                    if obproxy_version:
-                        fp.write("obproxy version: {0}\n".format(obproxy_version))
-                else:
-                    self.stdio.verbose("cases is build_before, skip getting obproxy version in report")
+                if self.report_target == "observer":
+                    if not is_build_before:
+                        observer_version = get_observer_version(self.context)
+                        if observer_version:
+                            fp.write("observer version: {0}\n".format(observer_version))
+                        observer_version_commit_id = get_observer_commit_id(self.context)
+                        if observer_version_commit_id:
+                            fp.write("observer commit id: {0}\n".format(observer_version_commit_id))
+                    else:
+                        self.stdio.verbose("cases is build_before, skip getting observer version in report")
+                elif self.report_target == "obproxy":
+                    if not is_build_before:
+                        obproxy_version = get_obproxy_version(self.context)
+                        if obproxy_version:
+                            fp.write("obproxy version: {0}\n".format(obproxy_version))
+                    else:
+                        self.stdio.verbose("cases is build_before, skip getting obproxy version in report")
 
-            if len(report_fail_tb._rows) != 0:
-                self.stdio.verbose(report_fail_tb)
-                fp.write(report_fail_tb.get_string() + "\n")
-            if len(report_critical_tb._rows) != 0:
-                self.stdio.verbose(report_critical_tb)
-                fp.write(report_critical_tb.get_string() + "\n")
-            if len(report_warning_tb._rows) != 0:
-                self.stdio.verbose(report_warning_tb)
-                fp.write(report_warning_tb.get_string() + "\n")
-            if len(report_all_tb._rows) != 0:
-                self.stdio.verbose(report_all_tb)
-                fp.write(report_all_tb.get_string() + "\n")
-            fp.close()
+                if failMap:
+                    self.stdio.verbose(report_fail_tb)
+                    fp.write(report_fail_tb.get_string() + "\n")
+                if criticalMap:
+                    self.stdio.verbose(report_critical_tb)
+                    fp.write(report_critical_tb.get_string() + "\n")
+                if warningMap:
+                    self.stdio.verbose(report_warning_tb)
+                    fp.write(report_warning_tb.get_string() + "\n")
+                if report_all_tb.get_string().strip():
+                    self.stdio.verbose(report_all_tb)
+                    fp.write(report_all_tb.get_string() + "\n")
+            finally:
+                fp.close()
             self.stdio.verbose("export report end")
         except Exception as e:
             raise Exception("export report {0}".format(e))
@@ -310,9 +312,9 @@ class CheckReport:
             """
             html_template_report_info_table = """
                     <section>
+                        <div style="font-weight: bold;font-size: 24px;">{{ report_title }}</div>
+                        <p class="line"></p>
                         <table>
-                            <div style="font-weight: bold;font-size: 24px;">{{ report_title }}</div>
-                            <p class="line"></p>
                             <tr>
                                 <th>Report Time</th>
                                 <th>obdiag Version</th>
@@ -355,16 +357,25 @@ class CheckReport:
             warning_map_html = []
             report_all_html = []
 
+            def _html_cell(items):
+                """Escape message text then join with <br>.
+
+                Handles both literal escape sequences (\\n from DB/JSON output) and
+                real newline characters. Returns Markup so autoescape won't double-escape.
+                """
+                parts = [Markup.escape(item).replace("\\n", Markup("<br>")).replace("\n", Markup("<br>")) for item in items]
+                return Markup("<br>").join(parts)
+
             for task in self.tasks:
                 if len(task.all_fail()) != 0:
-                    fail_map_html.append({"task": task.name, "task_report": '<br>'.join([item.replace("\\n", "<br>") for item in task.all_fail()])})
+                    fail_map_html.append({"task": task.name, "task_report": _html_cell(task.all_fail())})
                 if len(task.all_critical()) != 0:
-                    critical_map_html.append({"task": task.name, "task_report": '<br>'.join([item.replace("\\n", "<br>") for item in task.all_critical()])})
+                    critical_map_html.append({"task": task.name, "task_report": _html_cell(task.all_critical())})
                 if len(task.all_warning()) != 0:
-                    warning_map_html.append({"task": task.name, "task_report": '<br>'.join([item.replace("\\n", "<br>") for item in task.all_warning()])})
+                    warning_map_html.append({"task": task.name, "task_report": _html_cell(task.all_warning())})
                 if len(task.all()) != 0:
-                    report_all_html.append({"task": task.name, "task_report": '<br>'.join([item.replace("\\n", "<br>") for item in task.all()])})
-                if len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
+                    report_all_html.append({"task": task.name, "task_report": _html_cell(task.all())})
+                elif len(task.all_fail()) == 0 and len(task.all_critical()) == 0 and len(task.all_warning()) == 0:
                     report_all_html.append({"task": task.name, "task_report": "all pass"})
 
             report_title_str = "obdiag Check Report"
@@ -372,46 +383,54 @@ class CheckReport:
                 report_title_str = "obdiag observer Check Report"
             elif self.report_target == "obproxy":
                 report_title_str = "obdiag obproxy Check Report"
-            fp = open(self.report_path + ".html", 'a+', encoding='utf-8')
-            template_head = Template(html_template_head)
-            template_table = Template(html_template_data_table)
-            fp.write(template_head.render(report_title=report_title_str) + "\n")
-            template_report_info_table = Template(html_template_report_info_table)
-            cluster_ips = ""
 
-            # Check if this is build_before case (should not get version)
-            cases_option = Util.get_option(self.context.options, 'cases')
-            is_build_before = cases_option == "build_before"
+            _jinja_env = Environment(autoescape=True)
+            fp = open(self.report_path + ".html", 'w', encoding='utf-8')
+            try:
+                template_head = _jinja_env.from_string(html_template_head)
+                template_table = _jinja_env.from_string(html_template_data_table)
+                fp.write(template_head.render(report_title=report_title_str) + "\n")
+                template_report_info_table = _jinja_env.from_string(html_template_report_info_table)
 
-            ob_commit_id = None
-            ob_version = None
-            if not is_build_before:
-                ob_commit_id = get_observer_commit_id(self.context)
-                ob_version = self.context.cluster_config.get("version")
-            else:
-                self.stdio.verbose("cases is build_before, skip getting observer version in html report")
+                # Check if this is build_before case (should not get version)
+                cases_option = Util.get_option(self.context.options, 'cases')
+                is_build_before = cases_option == "build_before"
 
-            for server in self.context.cluster_config["servers"]:
-                cluster_ips += server["ip"]
-                cluster_ips += ";"
-            fp.write(template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_commit_id=ob_commit_id or "", ob_version=ob_version or "") + "\n")
+                ob_commit_id = None
+                ob_version = None
+                cluster_ips = ""
+                if not is_build_before:
+                    if self.report_target == "observer":
+                        ob_commit_id = get_observer_commit_id(self.context)
+                        ob_version = self.context.cluster_config.get("version")
+                        for server in self.context.cluster_config.get("servers") or []:
+                            cluster_ips += server.get("ip", "") + ";"
+                    elif self.report_target == "obproxy":
+                        ob_version = get_obproxy_version(self.context)
+                        obproxy_cfg = self.context.obproxy_config or {}
+                        for server in obproxy_cfg.get("servers") or []:
+                            cluster_ips += server.get("ip", "") + ";"
+                else:
+                    self.stdio.verbose("cases is build_before, skip getting version in html report")
+                fp.write(template_report_info_table.render(report_title=report_title_str, report_time=self.report_time, obdiag_version=OBDIAG_VERSION, ob_cluster_ip=cluster_ips, ob_commit_id=ob_commit_id or "", ob_version=ob_version or "") + "\n")
 
-            if len(fail_map_html) != 0:
-                rendered_fail_map_html = template_table.render(task_name="Fail Tasks Report", tasks=fail_map_html)
-                fp.write(rendered_fail_map_html + "\n")
-            if len(critical_map_html) != 0:
-                rendered_critical_map_html = template_table.render(task_name="Critical Tasks Report", tasks=critical_map_html)
-                fp.write(rendered_critical_map_html + "\n")
-            if len(warning_map_html) != 0:
-                rendered_warning_map_html = template_table.render(task_name="Warning Tasks Report", tasks=warning_map_html)
-                fp.write(rendered_warning_map_html + "\n")
-            if len(report_all_html) != 0:
-                rendered_report_all_html = template_table.render(task_name="All Tasks Report", tasks=report_all_html)
-                fp.write(rendered_report_all_html + "\n")
+                if len(fail_map_html) != 0:
+                    rendered_fail_map_html = template_table.render(task_name="Fail Tasks Report", tasks=fail_map_html)
+                    fp.write(rendered_fail_map_html + "\n")
+                if len(critical_map_html) != 0:
+                    rendered_critical_map_html = template_table.render(task_name="Critical Tasks Report", tasks=critical_map_html)
+                    fp.write(rendered_critical_map_html + "\n")
+                if len(warning_map_html) != 0:
+                    rendered_warning_map_html = template_table.render(task_name="Warning Tasks Report", tasks=warning_map_html)
+                    fp.write(rendered_warning_map_html + "\n")
+                if len(report_all_html) != 0:
+                    rendered_report_all_html = template_table.render(task_name="All Tasks Report", tasks=report_all_html)
+                    fp.write(rendered_report_all_html + "\n")
 
-            template_tail = Template(html_template_tail)
-            fp.write(template_tail.render())
-            fp.close()
+                template_tail = _jinja_env.from_string(html_template_tail)
+                fp.write(template_tail.render())
+            finally:
+                fp.close()
             self.stdio.verbose("export report end")
         except Exception as e:
             raise Exception("export report {0}".format(e))
@@ -470,8 +489,8 @@ class TaskReport:
             self.fail.append(msg)
 
     def all(self):
-        list = self.fail + self.critical + self.warning + self.normal
-        return list
+        items = self.fail + self.critical + self.warning + self.normal
+        return items
 
     def all_fail(self):
         return self.fail
