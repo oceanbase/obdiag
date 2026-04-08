@@ -34,7 +34,7 @@ OCEANBASE_KNOWLEDGE_GATEWAY_BASE = (
     (os.environ.get("OCEANBASE_KNOWLEDGE_GATEWAY_BASE") or "https://ai-api.oceanbase.com").strip().rstrip("/")
     or "https://ai-api.oceanbase.com"
 )
-_KNOWLEDGE_RETRIEVAL_PATH = "/retrieval"
+_KNOWLEDGE_RETRIEVAL_PATH = "/gateway/retrieval"
 _MAX_QUERY_CHARS = 4096
 _MAX_COMPONENT_CHARS = 256
 _MAX_VERSION_CHARS = 64
@@ -136,6 +136,32 @@ def _format_json_error(status: int, body: str) -> str:
         pass
     snippet = (body or "").strip()[:2000]
     return f"HTTP {status}: {snippet}" if snippet else f"HTTP {status}: (empty body)"
+
+
+def _extract_knowledge_answer(data: dict) -> str:
+    """Extract and format results from the knowledge gateway response.
+
+    Response structure: data.data.outputs.result[] with {title, content} items.
+    Falls back to full JSON dump if the expected path is absent.
+    """
+    try:
+        results = data.get("data", {}).get("outputs", {}).get("result", [])
+        if isinstance(results, list) and results:
+            parts = []
+            for item in results:
+                title = (item.get("title") or "").strip()
+                content = (item.get("content") or "").strip()
+                if title and content:
+                    parts.append(f"## {title}\n{content}")
+                elif content:
+                    parts.append(content)
+                elif title:
+                    parts.append(title)
+            if parts:
+                return "\n\n".join(parts)[:8000]
+    except Exception:
+        pass
+    return json.dumps(data, ensure_ascii=False)[:8000]
 
 
 @knowledge_toolset.tool
@@ -293,30 +319,16 @@ def query_oceanbase_knowledge_base(
         return (r.text or "").strip()[:8000] or "(empty response)"
 
     if isinstance(data, dict):
-        ans = data.get("answer")
-        if ans is None:
-            for k in ("result", "output", "text"):
-                v = data.get(k)
-                if isinstance(v, str) and v.strip():
-                    ans = v
-                    break
-        if ans is not None:
-            out = str(ans)
-        else:
-            out = json.dumps(data, ensure_ascii=False)[:8000]
-        cid = data.get("conversation_id")
-        if cid:
-            out = f"{out}\n\n(conversation_id for follow-up in this KB session: {cid})"
+        out = _extract_knowledge_answer(data)
         ans_len = len(out)
         _stdio_verbose(
             deps,
-            f"OceanBase knowledge: success answer_len={ans_len} conversation_id={cid or 'none'} elapsed_s={elapsed:.2f}",
+            f"OceanBase knowledge: success answer_len={ans_len} elapsed_s={elapsed:.2f}",
         )
         _LOG.info(
-            "OceanBase knowledge success url=%s answer_len=%s has_conv_id=%s elapsed_s=%.2f",
+            "OceanBase knowledge success url=%s answer_len=%s elapsed_s=%.2f",
             url,
             ans_len,
-            bool(cid),
             elapsed,
         )
         return out.strip()

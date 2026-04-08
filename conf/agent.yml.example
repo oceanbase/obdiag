@@ -56,11 +56,11 @@ skills:
   run_script_tool: false
 
 # Official OceanBase knowledge gateway (optional). Off by default until the service is ready.
-# Tool calls POST {base}/retrieval with JSON query, component, version — see knowledge_base.py (default component: oceanbase).
+# Tool calls POST {base}/gateway/retrieval with JSON query, component, version — see knowledge_base.py (default component: oceanbase).
 # Optional: export OCEANBASE_KNOWLEDGE_GATEWAY_BASE=https://your-gateway:port (no trailing slash).
-# oceanbase_knowledge:
-#   enabled: false
-#   bearer_token: ""
+oceanbase_knowledge:
+  enabled: false
+  bearer_token: ""
 
 mcp:
   enabled: true
