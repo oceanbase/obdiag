@@ -57,10 +57,7 @@ def _check_path_allowed(abs_path: str, *, write: bool = False) -> Optional[str]:
         if abs_path == allowed or abs_path.startswith(allowed + os.sep):
             return None  # permitted
     action = "write to" if write else "read"
-    return (
-        f"Access denied: cannot {action} '{abs_path}'. "
-        f"Allowed locations: home directory, /tmp, and /var/tmp."
-    )
+    return f"Access denied: cannot {action} '{abs_path}'. " f"Allowed locations: home directory, /tmp, and /var/tmp."
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB

@@ -30,10 +30,7 @@ from src.handler.agent.models import AgentConfig, AgentDependencies
 _LOG = logging.getLogger(__name__)
 
 # Gateway origin only (no trailing slash). Override with env for staging/self-hosted gateways.
-OCEANBASE_KNOWLEDGE_GATEWAY_BASE = (
-    (os.environ.get("OCEANBASE_KNOWLEDGE_GATEWAY_BASE") or "https://ai-api.oceanbase.com").strip().rstrip("/")
-    or "https://ai-api.oceanbase.com"
-)
+OCEANBASE_KNOWLEDGE_GATEWAY_BASE = (os.environ.get("OCEANBASE_KNOWLEDGE_GATEWAY_BASE") or "https://ai-api.oceanbase.com").strip().rstrip("/") or "https://ai-api.oceanbase.com"
 _KNOWLEDGE_RETRIEVAL_PATH = "/gateway/retrieval"
 _MAX_QUERY_CHARS = 4096
 _MAX_COMPONENT_CHARS = 256
@@ -80,10 +77,7 @@ knowledge_base_toolset = knowledge_toolset
 
 def oceanbase_knowledge_gateway_ready(config: AgentConfig) -> bool:
     """True when ``oceanbase_knowledge.enabled`` and a non-empty ``bearer_token`` (real gateway calls)."""
-    return bool(
-        getattr(config, "oceanbase_knowledge_enabled", False)
-        and (config.oceanbase_knowledge_bearer_token or "").strip()
-    )
+    return bool(getattr(config, "oceanbase_knowledge_enabled", False) and (config.oceanbase_knowledge_bearer_token or "").strip())
 
 
 def oceanbase_knowledge_enabled(config: AgentConfig) -> bool:
@@ -240,10 +234,7 @@ def query_oceanbase_knowledge_base(
     ctx_part = f"yes(len={len(context_text)})" if context_text else "no"
     _stdio_verbose(
         deps,
-        "OceanBase knowledge: POST "
-        f"{url} query_len={len(q)} query_preview={preview!r} "
-        f"context_text={ctx_part} component={comp!r} version={ver!r} "
-        f"bearer_len={len(token)} timeout_s={_REQUEST_TIMEOUT_SECONDS}",
+        "OceanBase knowledge: POST " f"{url} query_len={len(q)} query_preview={preview!r} " f"context_text={ctx_part} component={comp!r} version={ver!r} " f"bearer_len={len(token)} timeout_s={_REQUEST_TIMEOUT_SECONDS}",
     )
     _LOG.info(
         "OceanBase knowledge request url=%s query_len=%s has_context=%s component=%s version=%s",

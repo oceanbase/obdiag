@@ -718,10 +718,7 @@ class AiAgentHandler:
                 "gemini": "GEMINI_API_KEY",
                 "google": "GEMINI_API_KEY",
             }.get(provider, "OPENAI_API_KEY")
-            raise ValueError(
-                f"API key is required for provider '{provider}'. "
-                f"Set {env_hint} or configure llm.api_key in ~/.obdiag/config/agent.yml"
-            )
+            raise ValueError(f"API key is required for provider '{provider}'. " f"Set {env_hint} or configure llm.api_key in ~/.obdiag/config/agent.yml")
         config.api_key = api_key
 
         if not config.base_url:
