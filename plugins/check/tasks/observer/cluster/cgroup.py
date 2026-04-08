@@ -31,8 +31,12 @@ class Cgroup(TaskBase):
             # check dir "cgroup" on home_path
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
+                if ssh_client is None:
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get("ip")))
+                    continue
                 if node.get("home_path") is None:
-                    return self.report.add_fail("node: {0} home_path is None".format(ssh_client.get_name()))
+                    self.report.add_fail("node: {0} home_path is None".format(ssh_client.get_name()))
+                    continue
                 home_path = node.get("home_path")
                 cgroup_path = "{0}/cgroup".format(home_path)
                 cgroup_exist = ssh_client.exec_cmd('[ -d "{0}" ] && echo "Directory exists" || echo "Directory does not exist"'.format(cgroup_path))

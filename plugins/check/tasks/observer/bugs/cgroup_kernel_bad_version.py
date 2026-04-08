@@ -35,6 +35,9 @@ class CgroupKernelBadVersion(TaskBase):
             # get kernel version by ssher
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
+                if ssh_client is None:
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get("ip")))
+                    continue
                 # check cgroup is existed
                 home_path = node.get("home_path")
                 home_dir_path = ssh_client.exec_cmd("ls {0}".format(home_path))

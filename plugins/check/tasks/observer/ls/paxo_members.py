@@ -70,7 +70,7 @@ class PaxosMembersTask(TaskBase):
             self.stdio.warn(f"SQL execution error: {str(e)}")
 
     def get_task_info(self):
-        return {"name": "paxo_members", "info": "Inspecion checks if ls consistents with paxo-members，else delete server can't success. #"}
+        return {"name": "paxo_members", "info": "Inspection checks if ls is consistent with paxo-members, else delete server can't success."}
 
 
 # Register task instance (instance name should match filename)

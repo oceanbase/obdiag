@@ -90,6 +90,7 @@ mkdir -p "$BUILD_DIR/etc/profile.d"
 
 # Install Python build dependencies
 echo "Installing build dependencies (if needed)..."
+$PYTHON -m pip install -U pip setuptools wheel
 $PYTHON -m pip install -e . 2>/dev/null || true
 
 # Prepare source

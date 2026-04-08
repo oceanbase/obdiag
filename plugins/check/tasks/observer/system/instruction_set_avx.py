@@ -31,7 +31,7 @@ class InstructionSetAvxTask(TaskBase):
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
                 if ssh_client is None:
-                    self.report.add_fail("node: {0} ssh client is None".format(node.get_name()))
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get("ip")))
                     continue
 
                 # Check CPU architecture first

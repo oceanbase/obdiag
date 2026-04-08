@@ -15,7 +15,7 @@ _obdiag_completion() {
                     ;;
                 gather)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log all scene ash tabledump parameter variable dbms_xplan core"
+                        type_list="log clog slog plan_monitor stack perf sysstat obproxy_log oms_log all scene ash awr tabledump parameter variable dbms_xplan core"
                     elif [ "${COMP_WORDS[2]}" = "scene" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="list run"
                     fi
@@ -29,7 +29,7 @@ _obdiag_completion() {
                     ;;
                 analyze)
                     if [ "$COMP_CWORD" -eq 2 ]; then
-                        type_list="log flt_trace parameter variable index_space queue memory"
+                        type_list="log flt_trace parameter variable index_space queue memory sql sql_review"
                     elif [ "${COMP_WORDS[2]}" = "parameter" ] && [ "$COMP_CWORD" -eq 3 ]; then
                         type_list="diff default"
                     elif [ "${COMP_WORDS[2]}" = "variable" ] && [ "$COMP_CWORD" -eq 3 ]; then
@@ -40,7 +40,7 @@ _obdiag_completion() {
                     type_list="list run"
                     ;;
                 tool)
-                    type_list="config_check crypto_config io_performance"
+                    type_list="config_check crypto_config io_performance sql_syntax"
                     ;;
                 *)
                     type_list=""

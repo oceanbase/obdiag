@@ -62,10 +62,10 @@ class LogonsCheckTask(TaskBase):
                 # Threshold check logic
                 if value >= MAX_THRESHOLD:
                     self.report.add_critical(f"Node {node_id} has reached the maximum value {MAX_THRESHOLD}. " "Immediate action required: Plan version upgrade or emergency restart.")
-                elif value >= WARNING_THRESHOLD:
-                    self.report.add_critical(f"Node {node_id} is approaching threshold: {value}/{MAX_THRESHOLD} (~{value/MAX_THRESHOLD*100:.1f}%). " "Recommended: Upgrade to 4.2.1.4+ or restart observer process.")
                 elif value >= CRITICAL_THRESHOLD:
                     self.report.add_critical(f"Node {node_id} is critically close to threshold: {value}/{MAX_THRESHOLD} (~{value/MAX_THRESHOLD*100:.1f}%). " "Urgent: Restart observer process immediately.")
+                elif value >= WARNING_THRESHOLD:
+                    self.report.add_critical(f"Node {node_id} is approaching threshold: {value}/{MAX_THRESHOLD} (~{value/MAX_THRESHOLD*100:.1f}%). " "Recommended: Upgrade to 4.2.1.4+ or restart observer process.")
                 else:
                     self.stdio.verbose(f"Node {node_id} is within safe range: {value}/{MAX_THRESHOLD}")
 

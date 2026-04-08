@@ -18,12 +18,21 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
 from src.common.ob_connector import OBConnector
-from src.handler.agent.cluster_resolve import DEFAULT_CLUSTER_CONFIG, resolve_cluster_config_path
+from src.handler.agent.cluster_resolve import (
+    DEFAULT_CLUSTER_CONFIG,
+    OBDIAG_CONFIG_DIR,
+    resolve_cluster_config_path,
+)
+
+
+def read_obcluster_config(config_path: str) -> Dict[str, Any]:
+    """Load the ``obcluster`` section from an obdiag YAML file (public API)."""
+    return _load_cluster_config_from_file(config_path)
 
 
 def _load_cluster_config_from_file(config_path: str) -> Dict[str, Any]:
@@ -40,6 +49,47 @@ def _load_cluster_config_from_file(config_path: str) -> Dict[str, Any]:
         return {}
 
 
+def discover_obcluster_configs() -> List[Dict[str, Any]]:
+    """
+    List ``*.yml`` / ``*.yaml`` files in the obdiag workspace root that can hold cluster config.
+
+    Each entry includes path, short name for ``/use <name>`` in the agent REPL, whether it is the default
+    ``config.yml``, and ``ob_cluster_name`` / ``db_host`` when an ``obcluster`` section exists.
+    """
+    entries: List[Dict[str, Any]] = []
+    root = OBDIAG_CONFIG_DIR
+    default_abs = os.path.abspath(DEFAULT_CLUSTER_CONFIG)
+    if not os.path.isdir(root):
+        return entries
+
+    for name in sorted(os.listdir(root), key=str.lower):
+        if name.startswith("."):
+            continue
+        if not (name.endswith(".yml") or name.endswith(".yaml")):
+            continue
+        path = os.path.join(root, name)
+        if not os.path.isfile(path):
+            continue
+        abs_path = os.path.abspath(path)
+        ob = _load_cluster_config_from_file(abs_path)
+        is_default = abs_path == default_abs
+        stem = name[: -len(".yaml")] if name.endswith(".yaml") else name[: -len(".yml")]
+        entries.append(
+            {
+                "path": abs_path,
+                "file_name": name,
+                "short_name": stem,
+                "is_default": is_default,
+                "ob_cluster_name": ob.get("ob_cluster_name") or "",
+                "db_host": ob.get("db_host") or "",
+                "has_obcluster": bool(ob),
+            }
+        )
+
+    entries.sort(key=lambda e: (not e["is_default"], e["file_name"].lower()))
+    return entries
+
+
 def _build_connector_from_cluster_config(
     cluster_config: Dict[str, Any],
 ) -> Optional[OBConnector]:
@@ -49,6 +99,9 @@ def _build_connector_from_cluster_config(
     The dict is expected to match the obcluster section of obdiag's config.yml:
         {db_host, db_port, tenant_sys: {user, password}, ...}
 
+    ``tenant_sys.password`` may be omitted or an empty string (valid when the
+    cluster allows blank passwords).
+
     Returns None if required fields are missing or connection fails.
     """
     db_host = cluster_config.get("db_host")
@@ -56,8 +109,10 @@ def _build_connector_from_cluster_config(
     tenant_sys = cluster_config.get("tenant_sys", {})
     username = tenant_sys.get("user", "root@sys")
     password = tenant_sys.get("password")
+    if password is None:
+        password = ""
 
-    if not all([db_host, db_port, username, password]):
+    if not db_host or not db_port or not username:
         return None
 
     try:
@@ -96,6 +151,9 @@ class AgentDependencies:
     # the default cluster_config that was supplied at construction time).
     _connector_cache: Dict[str, OBConnector] = field(default_factory=dict, repr=False)
 
+    # OceanBase official knowledge gateway (Bearer from agent.yml); used by query_oceanbase_knowledge_base.
+    oceanbase_knowledge_bearer_token: str = ""
+
     # ------------------------------------------------------------------
     # Active cluster management
     # ------------------------------------------------------------------
@@ -124,9 +182,11 @@ class AgentDependencies:
         if not cluster_config:
             return False, f"No 'obcluster' section found in {abs_path}"
 
+        # Invalidate the old default-path connector before switching
+        self._connector_cache.pop(self.config_path or "", None)
         self.config_path = abs_path
         self.cluster_config = cluster_config
-        # Invalidate cached connector for this path so next call reconnects
+        # Invalidate cached connector for the new path so next call reconnects
         self._connector_cache.pop(abs_path, None)
 
         cluster_name = cluster_config.get("ob_cluster_name", abs_path)
@@ -134,13 +194,16 @@ class AgentDependencies:
 
     def current_cluster_info(self) -> str:
         """Return a human-readable summary of the active cluster."""
+        cfg = self.config_path or DEFAULT_CLUSTER_CONFIG
         if not self.cluster_config:
-            return "No cluster configured."
+            if cfg and os.path.isfile(cfg):
+                return f"Active config file: {cfg}\n" "The file exists but has no usable ``obcluster`` section (missing or empty). " "Run ``list_obdiag_clusters`` to see all configs or fix the YAML."
+            return "No cluster configured. Default is ~/.obdiag/config.yml when using obdiag. " "Run ``list_obdiag_clusters`` to discover existing config files."
 
         name = self.cluster_config.get("ob_cluster_name", "(unnamed)")
         host = self.cluster_config.get("db_host", "?")
         port = self.cluster_config.get("db_port", "?")
-        config = self.config_path or "~/.obdiag/config.yml (default)"
+        config = self.config_path or DEFAULT_CLUSTER_CONFIG
         return f"Active cluster: {name}  host={host}:{port}  config={config}"
 
     # ------------------------------------------------------------------
@@ -183,7 +246,7 @@ class AgentDependencies:
             return connector
 
         # Default path: use constructor-supplied cluster_config, or load from config_path
-        cache_key = ""
+        cache_key = self.config_path or ""
         if cache_key in self._connector_cache:
             return self._connector_cache[cache_key]
 
@@ -232,6 +295,8 @@ class AgentConfig:
     skills_directory: str = ""  # Resolved to ~/.obdiag/agent/skills when empty
     skills_validate: bool = True
     skills_script_timeout: int = 60
+    # When False, ``run_skill_script`` is not registered (avoids LLMs passing args as JSON string).
+    skills_run_script_tool: bool = False
 
     # UI
     show_welcome: bool = True
@@ -240,6 +305,18 @@ class AgentConfig:
     prompt: str = "obdiag agent> "
     tool_approval: bool = True  # Ask user before executing tools (human-in-the-loop)
     stream_output: bool = False  # Stream agent response token by token
+    show_usage_after_turn: bool = False  # Print token usage after each turn
+    show_tool_trace: bool = True  # Print tool trace lines during execution
+    show_usage_cost: bool = False  # Show cost placeholder in usage footer
+    auto_compact: bool = True  # Auto-compact history when context window is nearly full
+    context_window_tokens: Optional[int] = None  # Model context window size for auto-compact
+    auto_compact_threshold_ratio: float = 0.85  # Fraction of context_window_tokens that triggers compact
+    auto_compact_min_messages: int = 2  # Minimum messages required before auto-compact fires
+
+    # ~/.obdiag/config/agent.yml → oceanbase_knowledge.*
+    # Default False until gateway GA; flip to True with config defaults (see obdiag-agent-future-roadmap §9).
+    oceanbase_knowledge_enabled: bool = False
+    oceanbase_knowledge_bearer_token: str = ""
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "AgentConfig":
@@ -248,6 +325,9 @@ class AgentConfig:
         mcp = config_dict.get("mcp", {})
         skills = config_dict.get("skills", {})
         ui = config_dict.get("ui", {})
+        ok = config_dict.get("oceanbase_knowledge") or {}
+        kb_token = (ok.get("bearer_token") or "").strip() if isinstance(ok, dict) else ""
+        kb_enabled = bool(ok.get("enabled", False)) if isinstance(ok, dict) else False
 
         return cls(
             provider=llm.get("provider", llm.get("api_type", "openai")),
@@ -263,10 +343,20 @@ class AgentConfig:
             skills_directory=(skills.get("directory") or "").strip(),
             skills_validate=skills.get("validate", True),
             skills_script_timeout=skills.get("script_timeout", 60),
+            skills_run_script_tool=skills.get("run_script_tool", False),
             show_welcome=ui.get("show_welcome", True),
             show_beta_warning=ui.get("show_beta_warning", True),
             clear_screen=ui.get("clear_screen", True),
             prompt=ui.get("prompt", "obdiag agent> "),
             tool_approval=ui.get("tool_approval", True),
             stream_output=ui.get("stream_output", False),
+            show_usage_after_turn=ui.get("show_usage_after_turn", False),
+            show_tool_trace=ui.get("show_tool_trace", True),
+            show_usage_cost=ui.get("show_usage_cost", False),
+            auto_compact=ui.get("auto_compact", True),
+            context_window_tokens=ui.get("context_window_tokens"),
+            auto_compact_threshold_ratio=ui.get("auto_compact_threshold_ratio", 0.85),
+            auto_compact_min_messages=ui.get("auto_compact_min_messages", 2),
+            oceanbase_knowledge_enabled=kb_enabled,
+            oceanbase_knowledge_bearer_token=kb_token,
         )

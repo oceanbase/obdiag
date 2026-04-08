@@ -56,6 +56,9 @@ class TraceLogSlowQueryWatermark(TaskBase):
                 svr_ip = str(data_item['SVR_IP'])
                 value = data_item['VALUE']
                 value_match = re.search(r'(\d+)(\w*)', value)
+                if not value_match:
+                    self.report.add_fail("node: {0} trace_log_slow_query_watermark value format error: {1}".format(svr_ip, value))
+                    continue
                 num_value = int(value_match.group(1))
                 unit = value_match.group(2).lower() if value_match.group(2) else 's'
                 if unit == 'ms':
@@ -90,6 +93,9 @@ class TraceLogSlowQueryWatermark(TaskBase):
                 svr_ip = str(data_item['svr_ip'])
                 value = data_item['value']
                 value_match = re.search(r'(\d+)(\w*)', value)
+                if not value_match:
+                    self.report.add_fail("node: {0} trace_log_slow_query_watermark value format error: {1}".format(svr_ip, value))
+                    continue
                 num_value = int(value_match.group(1))
                 unit = value_match.group(2).lower() if value_match.group(2) else 's'
                 if unit == 'ms':

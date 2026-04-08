@@ -276,15 +276,15 @@ class AnalyzeSQLReviewHandler(object):
                 + f"""
             <p>Command: {data["command"]}</p>
             <p>Files: {data["options"]["files"]}</p>
-            <h3>诊断结果</h3>
+            <h3>Diagnostic results</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>SQL文本</th>
-                        <th>诊断规则</th>
-                        <th>规则描述</th>
-                        <th>规则级别</th>
-                        <th>调优建议</th>
+                        <th>SQL text</th>
+                        <th>Rule</th>
+                        <th>Description</th>
+                        <th>Level</th>
+                        <th>Suggestion</th>
                     </tr>
                 </thead>
                 <tbody>

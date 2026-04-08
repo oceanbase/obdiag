@@ -406,10 +406,10 @@ class AnalyzeSQLHandler(object):
                     <thead>
                         <tr>
                             {table_headers}
-                            <th>诊断规则</th>
-                            <th>规则描述</th>
-                            <th>规则级别</th>
-                            <th>诊断建议</th>
+                            <th>Rule</th>
+                            <th>Description</th>
+                            <th>Level</th>
+                            <th>Suggestion</th>
                         </tr>
                     </thead>
                     <tbody>

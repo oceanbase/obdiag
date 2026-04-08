@@ -51,16 +51,14 @@ def _validate_config_args(arguments: Dict[str, Any]) -> Optional[str]:
             if not node.get("ip"):
                 missing.append(f"nodes[{i}].ip")
 
-    has_global_ssh = arguments.get("global_ssh_username") and (arguments.get("global_ssh_password") or arguments.get("global_ssh_key_file"))
+    # has_global_ssh is True when a global SSH username is set — password may be empty (passwordless SSH is valid).
+    has_global_ssh = bool(arguments.get("global_ssh_username"))
     has_global_home = arguments.get("global_home_path")
 
     if nodes and not has_global_ssh:
         for i, node in enumerate(nodes):
             if not node.get("ssh_username") and not arguments.get("global_ssh_username"):
                 missing.append(f"global_ssh_username or nodes[{i}].ssh_username")
-                break
-            if not node.get("ssh_password") and not arguments.get("global_ssh_password") and not arguments.get("global_ssh_key_file"):
-                missing.append(f"global_ssh_password/global_ssh_key_file or nodes[{i}].ssh_password")
                 break
 
     if nodes and not has_global_home:
@@ -131,7 +129,7 @@ def _build_config(arguments: Dict[str, Any]) -> Dict[str, Any]:
         }
         for node in arguments.get("obproxy_nodes", []):
             nc = {}
-            for key in ("ip", "ssh_username", "ssh_password", "home_path"):
+            for key in ("ip", "ssh_username", "ssh_password", "ssh_key_file", "home_path"):
                 if node.get(key):
                     nc[key] = node[key]
             if nc:
