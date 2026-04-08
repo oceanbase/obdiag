@@ -65,7 +65,7 @@ class MemstoreUsage(TaskBase):
 
     def get_task_info(self):
         return {
-            "name": "memstore_useage",
+            "name": "memstore_usage",
             "info": "Check memstore usage and alert when utilization rate exceeds 50%",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
         }

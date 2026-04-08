@@ -28,14 +28,14 @@ class NetworkWriteCondWakeupTask(TaskBase):
             for node in self.observer_nodes:
                 ssh_client = node.get("ssher")
                 if ssh_client is None:
-                    self.report.add_fail("node: {0} ssh client is None".format(ssh_client.get_name()))
-                    return
+                    self.report.add_fail("node: {0} ssh client is None".format(node.get("ip")))
+                    continue
 
                 # Get home_path from context
                 home_path = node.get('home_path')
                 if not home_path:
                     self.report.add_fail("node: {0} home_path is not configured".format(ssh_client.get_name()))
-                    return
+                    continue
 
                 # Check observer.log for "write cond wakeup" occurrences
                 log_file_path = "{0}/log/observer.log".format(home_path)

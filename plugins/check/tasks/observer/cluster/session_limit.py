@@ -12,7 +12,7 @@
 
 """
 @time: 2025/06/03
-@file: memstore_usage.py
+@file: session_limit.py
 @desc:
 """
 from decimal import Decimal
@@ -54,7 +54,7 @@ class SessionLimit(TaskBase):
 
     def get_task_info(self):
         return {
-            "name": "session_count",
+            "name": "session_limit",
             "info": "Check tenant session count and alert when exceeds 5000 threshold",
             "issue_link": "https://github.com/oceanbase/obdiag/issues/963",
         }

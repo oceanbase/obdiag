@@ -62,6 +62,8 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
             "directory": "",
             "validate": True,
             "script_timeout": 60,
+            # Register pydantic-ai-skills ``run_skill_script`` (requires skills with scripts; some models pass args as string and fail validation)
+            "run_script_tool": False,
         },
         "ui": {
             "show_welcome": True,
@@ -70,6 +72,21 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
             "prompt": "obdiag agent> ",
             "tool_approval": True,
             "stream_output": False,
+            "show_usage_after_turn": False,
+            "show_tool_trace": True,
+            # Auto-compact when API-reported input_tokens (peak within a user turn) exceeds ratio of context window.
+            "auto_compact": True,
+            "context_window_tokens": None,
+            "auto_compact_threshold_ratio": 0.85,
+            "auto_compact_min_messages": 2,
+            # Footer ``($0.00)``-style cost slot (placeholder until pricing is wired).
+            "show_usage_cost": False,
+        },
+        "oceanbase_knowledge": {
+            # TODO: When the official knowledge gateway is production-ready, default ``enabled`` to True
+            # (see docs/obdiag-agent-future-roadmap.md §9). Until then False avoids registering the tool.
+            "enabled": False,
+            "bearer_token": "",
         },
     }
 
@@ -123,11 +140,18 @@ def load_agent_config(config_path: Optional[str] = None, stdio: Any = None) -> D
     else:
         skills_config["directory"] = DEFAULT_SKILLS_DIRECTORY
 
+    ok_default = default_config.get("oceanbase_knowledge", {})
+    ok_user = agent_config.get("oceanbase_knowledge") or {}
+    if not isinstance(ok_user, dict):
+        ok_user = {}
+    oceanbase_knowledge_config = {**ok_default, **ok_user}
+
     return {
         "llm": llm_config,
         "mcp": mcp_config,
         "skills": skills_config,
         "ui": ui_config,
+        "oceanbase_knowledge": oceanbase_knowledge_config,
     }
 
 

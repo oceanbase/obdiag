@@ -56,13 +56,15 @@ class OBConnector(object):
 
     def __enter__(self):
         """Ensures the database connection is open upon entering the 'with' block."""
-        self._connect_to_db()
+        if self.conn is None:
+            self._connect_db()
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         """Automatically closes the database connection when exiting the 'with' block."""
-        if self.connection:
-            self.connection.close()
+        if self.conn:
+            self.conn.close()
+            self.conn = None
 
     def _connect_db(self):
         try:
