@@ -68,9 +68,8 @@ find $SRC_DIR -name "obdiag"
 %post
 chmod -R 755 /opt/oceanbase-diagnostic-tool/*
 chown -R root:root /opt/oceanbase-diagnostic-tool/*
-find /opt/oceanbase-diagnostic-tool/obdiag -type f -exec chmod 644 {} \;
-ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 chmod +x /opt/oceanbase-diagnostic-tool/obdiag
+ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 
 cp -rf /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
 /opt/oceanbase-diagnostic-tool/obdiag_backup.sh
@@ -81,3 +80,4 @@ echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 %preun
 # Clean up symbolic links before uninstall
 rm -f /usr/bin/obdiag 2>/dev/null || true
+rm -f /bin/obdiag 2>/dev/null || true

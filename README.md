@@ -111,6 +111,25 @@ In case you have any problems when using obdiag, welcome reach out for help:
 
 # Developer
 
+## RPM builds on RHEL / CentOS 7 (EL7)
+
+Packaging `obdiag` on EL7 (for example `make pack` / `rpmbuild`) runs `pip install .[build]`, which pulls **pydantic-ai-slim** and its dependency **tiktoken** (version constraints such as `>=0.12.0`).
+
+**Why Rust may be required**
+
+- If `pip` installs a **prebuilt wheel** for `tiktoken` for your Python and platform, **no Rust toolchain is needed**.
+- If the index only serves the **source distribution** (`.tar.gz`)—which can happen with some PyPI mirrors—or resolution picks sdist, `pip` **builds `tiktoken` from source**. That build uses **Cargo** and downloads crates from **crates.io**, so a working **Rust** install and reliable access to crates matter.
+
+**What to configure on EL7 / in restricted networks**
+
+1. **Rust via rustup** (provides `rustc` / `cargo` on `PATH` when building). Follow the official install at [rustup.rs](https://rustup.rs/). If your environment cannot reach the default distribution hosts, use the mirror or proxy settings recommended by your organization.
+
+2. **Optional Cargo registry mirror** in `~/.cargo/config.toml` if downloads from `crates.io` are slow or blocked during a source build—point `crates-io` at a registry your network can reach. Ensure the file is valid TOML (normal quotes; avoid accidental escaping when the config is generated from other tools).
+
+3. **Prefer wheels when possible**: upgrade `pip` / `setuptools` / `wheel`, and optionally set `PIP_EXTRA_INDEX_URL=https://pypi.org/simple` (or ensure your PyPI mirror provides `tiktoken` wheels) so `pip` can skip compiling `tiktoken` entirely.
+
+End users who install the published RPM do **not** need Rust; this applies to **developers and CI images** that build the binary package from source.
+
 ## Join us
 Please add the OB community assistant (WeChat ID: obce666) and note "obdiag SIG", and the staff will contact you and guide you on matters related to joining SIG. We look forward to your active participation and valuable contributions!
 

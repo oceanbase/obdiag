@@ -60,9 +60,9 @@ class DataPathSettings(TaskBase):
                 log_dir_disk = ssher.exec_cmd(cmd).strip()
 
                 # Check if the obtained disk device is empty
-                if data_dir_disk == "" or data_dir_disk == None:
+                if data_dir_disk == "" or data_dir_disk is None:
                     self.stdio.warn(f"ip:{ip}, The obtained data_ir_disk disk device is null, please manually check.")
-                if log_dir_disk == "" or log_dir_disk == None:
+                if log_dir_disk == "" or log_dir_disk is None:
                     self.stdio.warn(f"ip:{ip}, The obtained log_dir_disk disk device is null, please manually check.")
 
                 # Check if data directory and log directory are on different disks

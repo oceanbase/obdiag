@@ -55,12 +55,13 @@ class OldVersionTask(TaskBase):
             if is_deprecated:
                 self.report.add_warning("obproxy version {0} is not recommended, please upgrade to the obproxy".format(self.obproxy_version))
                 # check obproxy_full_version
+            is_full_version_deprecated = False
             full_version_list = ["4.3.2.0 42", "4.3.2.0 26", "4.3.1.0 4"]
             for full_version in full_version_list:
                 if full_version in self.obproxy_full_version:
-                    is_deprecated = True
+                    is_full_version_deprecated = True
                     break
-            if is_deprecated:
+            if is_full_version_deprecated:
                 self.report.add_warning("obproxy full version {0} is not recommended, please upgrade to the obproxy".format(self.obproxy_full_version))
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))

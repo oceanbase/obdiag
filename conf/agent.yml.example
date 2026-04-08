@@ -6,6 +6,8 @@ llm:
   api_key: ""
   base_url: ""
   model: gpt-4
+  temperature: 0.7
+  max_tokens: 4096
   system_prompt: |
     You are obdiag agent, an intelligent diagnostic assistant for OceanBase database.
 
@@ -50,6 +52,15 @@ skills:
   directory: ""  # default: ~/.obdiag/agent/skills
   validate: true
   script_timeout: 60
+  # Some models pass script args as JSON strings and fail validation; keep false unless you need scripted skills.
+  run_script_tool: false
+
+# Official OceanBase knowledge gateway (optional). Off by default until the service is ready.
+# Tool calls POST {base}/gateway/retrieval with JSON query, component, version — see knowledge_base.py (default component: oceanbase).
+# Optional: export OCEANBASE_KNOWLEDGE_GATEWAY_BASE=https://your-gateway:port (no trailing slash).
+oceanbase_knowledge:
+  enabled: false
+  bearer_token: ""
 
 mcp:
   enabled: true
@@ -62,3 +73,15 @@ ui:
   prompt: "obdiag agent> "
   tool_approval: true
   stream_output: false
+  # Print each tool call + short args during a turn (matches handler default).
+  show_tool_trace: true
+  # Footer after each assistant reply (↑/↓ tokens, optional context % if context_window_tokens set). Default off.
+  show_usage_after_turn: false
+  show_usage_cost: false  # placeholder ($0.00) until pricing is wired
+  # Model context size (e.g. 128000); unset/null disables % in footer and auto-compact threshold.
+  context_window_tokens: null
+  auto_compact: true
+  auto_compact_threshold_ratio: 0.85
+  auto_compact_min_messages: 2
+  # Max transcript size (chars) sent to the model for /compact (handler clamps to a safe range).
+  compact_transcript_max_chars: 120000

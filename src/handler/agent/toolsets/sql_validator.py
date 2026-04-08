@@ -68,8 +68,6 @@ def validate_sql(sql: str) -> Tuple[bool, str]:
     if starts_with_keyword == 'WITH':
         if 'SELECT' not in sql_upper:
             return False, "Error: WITH statements must be followed by a SELECT statement"
-        if sql_upper.find('SELECT', sql_upper.find('WITH')) == -1:
-            return False, "Error: WITH statements must contain a SELECT statement"
 
     forbidden_keywords_pattern = re.compile(
         r'\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|COMMIT|ROLLBACK|LOCK|UNLOCK)\b',

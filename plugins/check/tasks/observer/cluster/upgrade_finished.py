@@ -63,9 +63,9 @@ class UpgradeFinished(TaskBase):
                 return
             compatible_diff_data = self.ob_connector.execute_sql_return_cursor_dictionary("select * from oceanbase.DBA_OB_TENANTS where compatible<>'{0}' and TENANT_ROLE<>'STANDBY';".format(build_version)).fetchall()
             if len(compatible_diff_data) > 0:
-                compatible_diff_tenants = ""
                 for row in compatible_diff_data:
-                    self.report.add_critical("there tenant:{0} compatible not equal min_observer_version. tenants: {0} ,compatible:{1} min_observer_version:{2}".format(compatible_diff_tenants, row.get("compatible"), build_version))
+                    tenant_name = row.get("TENANT_NAME") or row.get("tenant_name") or ""
+                    self.report.add_critical("there tenant:{0} compatible not equal min_observer_version. compatible:{1} min_observer_version:{2}".format(tenant_name, row.get("compatible"), build_version))
 
             # alter system run job 'root_inspection'
             try:

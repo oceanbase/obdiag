@@ -60,8 +60,8 @@ def db_query(
     connector = deps.get_db_connector(cluster_config_path)
     if not connector:
         if cluster_config_path:
-            return f"Error: Cannot connect to cluster from config '{cluster_config_path}'. " "Please verify the file exists and contains valid 'obcluster' connection settings " "(db_host, db_port, tenant_sys.user, tenant_sys.password)."
-        return "Error: No database connection available. " "Use 'use <config_path>' to switch to a cluster, or pass cluster_config_path."
+            return f"Error: Cannot connect to cluster from config '{cluster_config_path}'. " "Please verify the file exists and contains valid 'obcluster' settings " "(db_host, db_port, tenant_sys.user; tenant_sys.password may be empty)."
+        return "Error: No database connection available. " "Use `/use <config_path>` in the agent REPL to switch cluster, or pass cluster_config_path."
 
     target = cluster_config_path or deps.config_path or "default cluster"
     try:

@@ -58,7 +58,7 @@ class ObserverPort(TaskBase):
                     self.report.add_critical("node: {0}. can not conn {1}:{2} ".format(ssh_client.get_name(), server_data.get("SVR_IP"), server_data.get("SQL_PORT")))
         except Exception as e:
             self.stdio.error("ssh execute Exception:{0}".format(e).strip())
-            self.report.add_fail("node:{1} execute error {0}".format(node.get("ip"), e).strip())
+            self.report.add_fail("node:{0} execute error {1}".format(node.get("ip"), e).strip())
 
     def get_task_info(self):
         return {

@@ -892,7 +892,7 @@ html_dict.set_value(
 
 <head>
     <meta charset="UTF-8">
-    <title>SQL Review报告</title>
+    <title>SQL Review Report</title>
     <style>
         table {
             width: 100%;
@@ -932,7 +932,7 @@ html_dict.set_value(
     </style>
 </head>
 </body>
-    <h1>SQL Review报告</h1>
+    <h1>SQL Review Report</h1>
     ''',
 )
 
@@ -945,7 +945,7 @@ html_dict.set_value(
 
 <head>
     <meta charset="UTF-8">
-    <title>租户SQL诊断报告</title>
+    <title>Tenant SQL Diagnostic Report</title>
     <style>
         table,
         th,
