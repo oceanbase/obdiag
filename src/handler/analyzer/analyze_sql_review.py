@@ -15,6 +15,7 @@
 @file: analyze_sql_review.py
 @desc:
 """
+import html
 import json
 import os
 import time
@@ -27,7 +28,9 @@ from src.common.tool import FileUtil
 from src.common.tool import DirectoryUtil
 from src.common.ob_connector import OBConnector
 from src.handler.analyzer.sql.rule_manager import SQLReviewRuleManager
+from src.handler.analyzer.sql.rules.level import Level
 from src.handler.meta.html_meta import GlobalHtmlMeta
+from src.common.result_type import ObdiagResult
 
 
 class AnalyzeSQLReviewHandler(object):
@@ -42,8 +45,10 @@ class AnalyzeSQLReviewHandler(object):
         self.directly_analyze_files = False
         self.level = 'notice'
         self.local_store_path = None
-        self.local_stored_parrent_path = os.path.abspath('./obdiag_analyze/')
+        self.local_stored_parrent_path = os.path.abspath('.')
         self.output_type = 'html'
+        self.tenant_db_host = None
+        self.tenant_db_port = None
 
     def init_inner_config(self):
         self.stdio.print("init inner config start")
@@ -68,15 +73,32 @@ class AnalyzeSQLReviewHandler(object):
         if self.db_user:
             self.stdio.verbose("init db connector start")
             self.db_connector_provided = True
-            self.db_connector = OBConnector(context=self.context, ip=self.ob_cluster.get("db_host"), port=self.ob_cluster.get("db_port"), username=self.db_user, password=self.db_password, timeout=100)
+            host = self.tenant_db_host or self.ob_cluster.get("db_host")
+            port = self.tenant_db_port if self.tenant_db_port is not None else self.ob_cluster.get("db_port")
+            pwd = self.db_password if self.db_password is not None else ''
+            self.db_connector = OBConnector(context=self.context, ip=host, port=port, username=self.db_user, password=pwd, timeout=100)
+            self.stdio.print("DB connection: using --user (business tenant) at {0}:{1}, user={2}. (password not logged)".format(host, port, self.db_user))
             self.stdio.verbose("init db connector complete")
         else:
             self.db_connector = self.sys_connector
+            tenant_sys = self.ob_cluster.get("tenant_sys") or {}
+            summary = StringUtils.mask_passwords(
+                {
+                    "db_host": self.ob_cluster.get("db_host"),
+                    "db_port": self.ob_cluster.get("db_port"),
+                    "sys_user": tenant_sys.get("user"),
+                    "password": tenant_sys.get("password"),
+                }
+            )
+            self.stdio.print("DB connection: no --user; defaulting to sys tenant from obcluster (host={0}, port={1}, user={2}; config password redacted).".format(summary.get("db_host"), summary.get("db_port"), summary.get("sys_user")))
 
     def init_option(self):
         self.stdio.print('init option start')
         options = self.context.options
-        self.stdio.verbose('options:[{0}]'.format(options))
+        try:
+            self.stdio.verbose('options:[{0}]'.format(json.dumps(StringUtils.mask_passwords(dict(vars(options))), ensure_ascii=False, default=str)))
+        except Exception:
+            self.stdio.verbose('options:[unavailable]')
         files_option = Util.get_option(options, 'files')
         if files_option:
             self.directly_analyze_files = True
@@ -86,12 +108,27 @@ class AnalyzeSQLReviewHandler(object):
             return False
         db_user_option = Util.get_option(options, 'user')
         db_password_option = Util.get_option(options, 'password')
+        host_option = Util.get_option(options, 'host')
+        port_option = Util.get_option(options, 'port')
+        if host_option:
+            self.tenant_db_host = host_option.strip()
+        if port_option is not None and str(port_option).strip() != '':
+            try:
+                self.tenant_db_port = int(port_option)
+            except (TypeError, ValueError):
+                self.stdio.error('Invalid --port: must be an integer')
+                return False
         tenant_name_option = Util.get_option(options, 'tenant_name')
         if tenant_name_option is not None:
             self.tenant_name = tenant_name_option
         level_option = Util.get_option(options, 'level')
         if level_option:
-            self.level = level_option
+            try:
+                Level.from_string(level_option.strip().lower())
+                self.level = level_option.strip().lower()
+            except ValueError:
+                self.stdio.error("Invalid --level: use one of critical, warn, notice, ok")
+                return False
         store_dir_option = Util.get_option(options, 'store_dir')
         if store_dir_option is not None:
             if not os.path.exists(os.path.abspath(store_dir_option)):
@@ -100,9 +137,14 @@ class AnalyzeSQLReviewHandler(object):
             self.local_stored_parrent_path = os.path.abspath(store_dir_option)
         output_option = Util.get_option(options, 'output')
         if output_option:
-            self.output_type = output_option
+            self.output_type = output_option.strip().lower()
+        if self.output_type not in ('html', 'json'):
+            self.stdio.error('Invalid --output: use html or json')
+            return False
         self.db_user = db_user_option
         self.db_password = db_password_option
+        if (self.tenant_db_host or self.tenant_db_port is not None) and not self.db_user:
+            self.stdio.warn('--host/--port only take effect with --user.')
         self.stdio.print('init option complete')
         return True
 
@@ -110,23 +152,23 @@ class AnalyzeSQLReviewHandler(object):
         self.start_time = time.time()
         if not self.init_option():
             self.stdio.error('init option failed')
-            return False
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="init option failed")
         if not self.init_inner_config():
             self.stdio.error('init inner config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init inner config failed")
         if not self.init_config():
             self.stdio.error('init config failed')
-            return False
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data="init config failed")
         self.init_db_connector()
         ext = "json" if self.output_type == "json" else "html"
         pack_dir_name = "obdiag_sql_review_{0}".format(TimeUtils.timestamp_to_filename_time(TimeUtils.get_current_us_timestamp()))
         self.pack_dir = os.path.join(self.local_stored_parrent_path, pack_dir_name)
         DirectoryUtil.mkdir(path=self.pack_dir, stdio=self.stdio)
         self.local_store_path = os.path.join(self.pack_dir, "result.{0}".format(ext))
-        self.stdio.verbose("use {0} as result store path.".format(self.pack_dir))
+        self.stdio.print("use {0} as result store path.".format(self.pack_dir))
         all_results = self.__directly_analyze_files()
         if all_results is None:
-            return
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data="failed to load sql files from --files")
         results = self.__parse_results(all_results)
         if self.output_type == "html":
             html_result = self.__generate_html_result(results)
@@ -136,7 +178,12 @@ class AnalyzeSQLReviewHandler(object):
             FileUtil.write_append(self.local_store_path, json_result)
         else:
             self.stdio.error('Unsupported output type: {0}. Use --output html or json.'.format(self.output_type))
+            return ObdiagResult(ObdiagResult.INPUT_ERROR_CODE, error_data='Unsupported output type: {0}'.format(self.output_type))
         self.__print_result()
+        return ObdiagResult(
+            ObdiagResult.SUCCESS_CODE,
+            data={"store_dir": self.pack_dir, "result_file": os.path.abspath(self.local_store_path)},
+        )
 
     def __directly_analyze_files(self):
         sql_files = self.__get_sql_file_list()
@@ -144,8 +191,8 @@ class AnalyzeSQLReviewHandler(object):
             self.stdio.error("failed to find SQL files from the --files option provided")
             return None
         file_results = {}
-        sql_results = {}
         for file in sql_files:
+            sql_results = {}
             sql_list = self.__parse_sql_file(file)
             for sql in sql_list:
                 rules = SQLReviewRuleManager()
@@ -173,7 +220,7 @@ class AnalyzeSQLReviewHandler(object):
         return sql_files
 
     def __parse_sql_file(self, file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as file:
             sql_content = file.read()
         statements = sqlparse.split(sql_content)
         sql_list = []
@@ -252,17 +299,23 @@ class AnalyzeSQLReviewHandler(object):
 
     def __generate_html_table(self, sql_entry):
         diagnostics = sql_entry["diagnostics"]
-        sql_text = sql_entry["sqlText"]
+        sql_text = html.escape(sql_entry["sqlText"])
+        if not diagnostics:
+            return "<tr><td>{0}</td><td colspan='4'><i>No rule results (SQL may be invalid or unparsable)</i></td></tr>".format(sql_text)
         rows = []
         current_row = [f"<td rowspan={len(diagnostics)}>{sql_text}</td>"]
 
         for idx, diag in enumerate(diagnostics):
+            lvl_raw = diag['ruleLevel'][1] if isinstance(diag['ruleLevel'], (list, tuple)) else str(diag['ruleLevel'])
+            lvl = html.escape(lvl_raw)
+            cn = html.escape(str(diag['ruleClassName']))
+            rd = html.escape(str(diag['ruleDescription']))
+            sg = html.escape(str(diag['suggestion']))
             if idx == 0:
-                # Start a new row with SQL text having rowspan equal to the number of diagnostics.
-                row = current_row + [f"<td>{diag['ruleClassName']}</td>", f"<td>{diag['ruleDescription']}</td>", f"<td class='{diag['ruleLevel'][1]}'>{diag['ruleLevel'][1]}</td>", f"<td>{diag['suggestion']}</td>"]
+                row = current_row + [f"<td>{cn}</td>", f"<td>{rd}</td>", f"<td class='{lvl}'>{lvl}</td>", f"<td>{sg}</td>"]
                 rows.append("<tr>" + "".join(row) + "</tr>")
             else:
-                rows.append("<tr class='merge'>" + f"<td>{diag['ruleClassName']}</td>" + f"<td>{diag['ruleDescription']}</td>" + f"<td class='{diag['ruleLevel'][1]}'>{diag['ruleLevel'][1]}</td>" + f"<td>{diag['suggestion']}</td>" + "</tr>")
+                rows.append("<tr class='merge'>" + f"<td>{cn}</td>" + f"<td>{rd}</td>" + f"<td class='{lvl}'>{lvl}</td>" + f"<td>{sg}</td>" + "</tr>")
         return "".join(rows)
 
     def __generate_html_result(self, all_results):
@@ -274,8 +327,8 @@ class AnalyzeSQLReviewHandler(object):
             full_html += (
                 GlobalHtmlMeta().get_value(key="sql_review_html_head_template")
                 + f"""
-            <p>Command: {data["command"]}</p>
-            <p>Files: {data["options"]["files"]}</p>
+            <p>Command: {html.escape(data["command"])}</p>
+            <p>Files: {html.escape(str(data["options"]["files"]))}</p>
             <h3>Diagnostic results</h3>
             <table>
                 <thead>
