@@ -8,6 +8,11 @@ llm:
   model: gpt-4
   temperature: 0.7
   max_tokens: 4096
+  # Custom HTTP headers added to every LLM request.
+  # Useful for enterprise API gateways that require additional authentication headers, e.g.:
+  # default_headers:
+  #   uuap-id: "your-uuap-id"
+  #   request-id: "your-request-id"
   system_prompt: |
     You are obdiag agent, an intelligent diagnostic assistant for OceanBase database.
 
