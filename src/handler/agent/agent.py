@@ -109,7 +109,7 @@ KNOWLEDGE_SYSTEM_SUFFIX_DISABLED = """
 
 
 def _credential_provider_factory(config: AgentConfig):
-    """Inject ``api_key`` / ``base_url`` from agent.yml into OpenAI-compatible providers.
+    """Inject ``api_key`` / ``base_url`` / ``default_headers`` from agent.yml into OpenAI-compatible providers.
 
     Avoids mutating ``os.environ`` (which breaks multi-config or tests in one process).
     Other providers still use pydantic-ai ``infer_provider`` (typically env vars).
@@ -117,12 +117,18 @@ def _credential_provider_factory(config: AgentConfig):
 
     api_key = (config.api_key or "").strip() or None
     base_url = (config.base_url or "").strip() or None
+    default_headers = config.default_headers or None
 
     def factory(provider_name: str):
         from pydantic_ai.providers import infer_provider
         from pydantic_ai.providers.openai import OpenAIProvider
 
         if provider_name in ("openai", "openai-chat", "openai-responses"):
+            if default_headers:
+                from openai import AsyncOpenAI
+
+                openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url, default_headers=default_headers)
+                return OpenAIProvider(openai_client=openai_client)
             return OpenAIProvider(api_key=api_key, base_url=base_url)
         return infer_provider(provider_name)
 

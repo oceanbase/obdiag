@@ -313,6 +313,9 @@ class AgentConfig:
     auto_compact_threshold_ratio: float = 0.85  # Fraction of context_window_tokens that triggers compact
     auto_compact_min_messages: int = 2  # Minimum messages required before auto-compact fires
 
+    # Custom HTTP headers for every LLM request (useful for enterprise gateways, e.g. uuap-id, request-id).
+    default_headers: Optional[Dict[str, str]] = None
+
     # ~/.obdiag/config/agent.yml → oceanbase_knowledge.*
     # Default False until gateway GA; flip to True with config defaults (see obdiag-agent-future-roadmap §9).
     oceanbase_knowledge_enabled: bool = False
@@ -329,6 +332,11 @@ class AgentConfig:
         kb_token = (ok.get("bearer_token") or "").strip() if isinstance(ok, dict) else ""
         kb_enabled = bool(ok.get("enabled", False)) if isinstance(ok, dict) else False
 
+        raw_headers = llm.get("default_headers")
+        parsed_headers: Optional[Dict[str, str]] = None
+        if isinstance(raw_headers, dict) and raw_headers:
+            parsed_headers = {str(k): str(v) for k, v in raw_headers.items()}
+
         return cls(
             provider=llm.get("provider", llm.get("api_type", "openai")),
             api_key=llm.get("api_key", ""),
@@ -337,6 +345,7 @@ class AgentConfig:
             temperature=llm.get("temperature", 0.7),
             max_tokens=llm.get("max_tokens", 2000),
             system_prompt=llm.get("system_prompt") or None,
+            default_headers=parsed_headers,
             mcp_enabled=mcp.get("enabled", True),
             mcp_servers=mcp.get("servers", {}),
             skills_enabled=skills.get("enabled", True),
