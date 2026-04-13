@@ -767,6 +767,7 @@ class AiAgentHandler:
         deferred_results = None
         turn_total = RunUsage()
         peak_input = 0
+        auto_approve_all = False
 
         while True:
             if stream_output:
@@ -806,7 +807,7 @@ class AiAgentHandler:
                     tool_name = call.tool_name
                     args = call.args
                     call_id = call.tool_call_id
-                    if tool_approval:
+                    if tool_approval and not auto_approve_all:
                         self.stdio.print(f"\n[Tool] {_format_tool_trace_line(tool_name, args)}")
                         try:
                             if PROMPT_TOOLKIT_AVAILABLE:
@@ -816,8 +817,9 @@ class AiAgentHandler:
                         except (EOFError, KeyboardInterrupt):
                             ans = "n"
                         if ans == "all":
+                            auto_approve_all = True
                             deferred_results.approvals[call_id] = True
-                            # Auto-approve remaining
+                            # Auto-approve remaining in this batch
                             for c in output.approvals:
                                 if c.tool_call_id not in deferred_results.approvals:
                                     deferred_results.approvals[c.tool_call_id] = True
@@ -833,6 +835,7 @@ class AiAgentHandler:
                         else:
                             deferred_results.approvals[call_id] = ToolDenied("User skipped")
                     else:
+                        # auto_approve_all is True: skip prompt and approve
                         deferred_results.approvals[call_id] = True
                 history = run_result.all_messages()
                 message = "Continue"
