@@ -17,7 +17,7 @@
 """
 
 # obdiag version
-OBDIAG_VERSION = '4.3.1'
+OBDIAG_VERSION = '5.0.0'
 # obdiag build time
 OBDIAG_BUILD_TIME = '<B_TIME>'
 
