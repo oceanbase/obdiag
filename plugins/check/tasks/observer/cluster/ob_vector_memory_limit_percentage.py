@@ -30,9 +30,7 @@ class ObVectorMemoryLimitPercentage(TaskBase):
                 return self.report.add_critical("can't build obcluster connection")
             if not super().check_ob_version_min("4.3.3.0"):
                 return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
-            rows = self.ob_connector.execute_sql_return_cursor_dictionary(
-                'SELECT * FROM oceanbase.GV$OB_PARAMETERS WHERE name = "ob_vector_memory_limit_percentage";'
-            ).fetchall()
+            rows = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.GV$OB_PARAMETERS WHERE name = "ob_vector_memory_limit_percentage";').fetchall()
             if len(rows) < 1:
                 return self.report.add_fail("get ob_vector_memory_limit_percentage data error")
             for row in rows:
@@ -47,10 +45,7 @@ class ObVectorMemoryLimitPercentage(TaskBase):
                     return self.report.add_fail("get ob_vector_memory_limit_percentage value error: {0}".format(value_raw))
                 if pct > 60:
                     tid = "tenant_id: {0}, ".format(tenant_id) if tenant_id is not None else ""
-                    self.report.add_warning(
-                        "svr_ip: {1} {2}ob_vector_memory_limit_percentage is {0}, greater than 60. "
-                        "In production it is recommended to keep this at or below 60.".format(pct, svr_ip, tid)
-                    )
+                    self.report.add_warning("svr_ip: {1} {2}ob_vector_memory_limit_percentage is {0}, greater than 60. " "In production it is recommended to keep this at or below 60.".format(pct, svr_ip, tid))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
