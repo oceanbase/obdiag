@@ -75,6 +75,7 @@ obdiag check run --observer_tasks=<folder>.<task_stem> -c ~/.obdiag/config.yml -
 
 - 改动保持 **仅涉及该需求相关文件**；合并说明里链到对应 **GitHub issue**。
 - 分支命名可与工单或内部编号对齐（见上文 **创建分支**）。
+- 若本仓库将 **`.cursor/`** 列入 **`.gitignore`**，提交 Skill 时需 **`git add -f .cursor/skills/.../SKILL.md`**，否则不会被纳入提交。
 
 ## 自检清单
 
