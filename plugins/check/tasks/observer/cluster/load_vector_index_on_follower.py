@@ -38,9 +38,7 @@ class LoadVectorIndexOnFollower(TaskBase):
                 return self.report.add_critical("can't build obcluster connection")
             if not super().check_ob_version_min("4.4.1.0"):
                 return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
-            rows = self.ob_connector.execute_sql_return_cursor_dictionary(
-                'SELECT * FROM oceanbase.GV$OB_PARAMETERS WHERE name = "load_vector_index_on_follower";'
-            ).fetchall()
+            rows = self.ob_connector.execute_sql_return_cursor_dictionary('SELECT * FROM oceanbase.GV$OB_PARAMETERS WHERE name = "load_vector_index_on_follower";').fetchall()
             if len(rows) < 1:
                 return self.report.add_fail("get load_vector_index_on_follower data error")
             for row in rows:
@@ -51,10 +49,7 @@ class LoadVectorIndexOnFollower(TaskBase):
                     return self.report.add_fail("get load_vector_index_on_follower value error")
                 if _is_ob_bool_false(value_raw):
                     tid = "tenant_id: {0}, ".format(tenant_id) if tenant_id is not None else ""
-                    self.report.add_warning(
-                        "svr_ip: {1} {2}load_vector_index_on_follower is {0}. For latency-sensitive workloads, "
-                        "keep the default true so followers load in-memory vector indexes.".format(value_raw, svr_ip, tid)
-                    )
+                    self.report.add_warning("svr_ip: {1} {2}load_vector_index_on_follower is {0}. For latency-sensitive workloads, " "keep the default true so followers load in-memory vector indexes.".format(value_raw, svr_ip, tid))
 
         except Exception as e:
             self.stdio.error("execute error {0}".format(e))
