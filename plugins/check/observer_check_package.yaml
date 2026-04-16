@@ -64,7 +64,6 @@ k8s_basic:
     - cluster.memory_chunk_cache_size
     - cluster.memory_limit_percentage
     - cluster.memstore_limit_percentage
-    - cluster.ob_vector_memory_limit_percentage
     - cluster.mod_too_large
     - cluster.no_leader
     - cluster.ob_enable_plan_cache_bad_version
