@@ -81,3 +81,4 @@ obdiag check run --observer_tasks=<folder>.<task_stem> -c ~/.obdiag/config.yml -
 - [ ] 新任务模块 **stem** 与 **`observer_tasks`** 中 **`cluster.xxx`** 的 **`xxx`** 一致。
 - [ ] **`get_task_info()`** 含 **`name`**、**`info`**，必要时 **`issue_link`**。
 - [ ] 版本与 SQL 行为在目标集群上已验证。
+- [ ] 若未改 **`observer_check_package.yaml`**，文档/说明中明确 **仅支持 `observer_tasks` 显式调用**。
