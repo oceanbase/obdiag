@@ -34,9 +34,7 @@ class ClogWriteThrottlingTask(TaskBase):
             if not super().check_ob_version_min("4.0.0.0"):
                 return self.report.add_warning("this version:{} is not support this task".format(self.observer_version))
 
-            rows = self.ob_connector.execute_sql_return_cursor_dictionary(
-                "SELECT SVR_IP, TENANT_ID, VALUE FROM oceanbase.GV$OB_PARAMETERS WHERE name = '{0}';".format(PARAM_NAME)
-            ).fetchall()
+            rows = self.ob_connector.execute_sql_return_cursor_dictionary("SELECT SVR_IP, TENANT_ID, VALUE FROM oceanbase.GV$OB_PARAMETERS WHERE name = '{0}';".format(PARAM_NAME)).fetchall()
             if len(rows) < 1:
                 return self.report.add_warning("can't find {0} in GV$OB_PARAMETERS, skip clog write throttling check".format(PARAM_NAME))
 
@@ -83,15 +81,10 @@ class ClogWriteThrottlingTask(TaskBase):
                     self.report.add_fail("node {0}: failed to parse grep result: {1}".format(ssh_client.get_name(), result))
                     continue
 
-                self.stdio.verbose(
-                    "node {0}: {1} hits of {2} in observer.log".format(ssh_client.get_name(), hit_count, LOG_MARK)
-                )
+                self.stdio.verbose("node {0}: {1} hits of {2} in observer.log".format(ssh_client.get_name(), hit_count, LOG_MARK))
                 if hit_count > 0:
                     self.report.add_warning(
-                        "node {0}: {1} < 100 and observer.log contains {2} ({3} occurrence(s)). "
-                        "Clog write throttling is in effect; tune log disk or throttling settings if unexpected.".format(
-                            ssh_client.get_name(), PARAM_NAME, LOG_MARK, hit_count
-                        )
+                        "node {0}: {1} < 100 and observer.log contains {2} ({3} occurrence(s)). " "Clog write throttling is in effect; tune log disk or throttling settings if unexpected.".format(ssh_client.get_name(), PARAM_NAME, LOG_MARK, hit_count)
                     )
 
         except Exception as e:
