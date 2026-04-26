@@ -575,10 +575,7 @@ class MajorHoldScene(RcaScene):
                     if result_files:
                         tenant_record.add_record("Collected {0} trace logs: {1}".format(scope, result_files))
                     else:
-                        tenant_record.add_record(
-                            "No matching {0} logs found for trace_id(s) {1}. "
-                            "Logs may have been rotated/purged.".format(scope, err_traces)
-                        )
+                        tenant_record.add_record("No matching {0} logs found for trace_id(s) {1}. " "Logs may have been rotated/purged.".format(scope, err_traces))
                 except Exception as e:
                     tenant_record.add_record("Failed to collect {0} trace logs: {1}".format(scope, e))
         else:
