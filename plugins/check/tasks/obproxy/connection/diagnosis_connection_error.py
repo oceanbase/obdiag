@@ -48,12 +48,7 @@ class DiagnosisConnectionErrorTask(TaskBase):
                 # Exclude CLIENT_VC_TRACE: these are normal client-side connection closes (EOS)
                 # and would generate excessive noise in busy environments.
                 # Focus on LOGIN_TRACE, SERVER_VC_TRACE, TIMEOUT_TRACE, PROXY_INTERNAL_TRACE.
-                check_cmd = (
-                    "tail -n {0} {1} 2>/dev/null"
-                    " | grep 'CONNECTION](trace_type'"
-                    " | grep -cv 'CLIENT_VC_TRACE'"
-                    " || true"
-                ).format(TAIL_LINES, log_file_path)
+                check_cmd = ("tail -n {0} {1} 2>/dev/null" " | grep 'CONNECTION](trace_type'" " | grep -cv 'CLIENT_VC_TRACE'" " || true").format(TAIL_LINES, log_file_path)
 
                 result = ssh_client.exec_cmd(check_cmd).strip()
                 self.stdio.verbose("node {0}: abnormal connection error count (last {1} lines, excluding CLIENT_VC_TRACE) = {2}".format(node_name, TAIL_LINES, result))
