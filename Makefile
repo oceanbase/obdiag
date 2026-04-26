@@ -229,12 +229,23 @@ uninstall_macos:
 # Build macOS package (requires Python 3.11+)
 pack_macos:
 	@echo "Building macOS package (version: $(OBDIAG_VERSION))..."
-	@command -v pyinstaller >/dev/null 2>&1 || pip3 install pyinstaller
+	@command -v pyinstaller >/dev/null 2>&1 || python3.11 -m pip install pyinstaller
 	@mkdir -p $(PROJECT_PATH)/dist_macos
 	@cp -f src/main.py src/obdiag.py
 	@sed -i '' "s/<B_TIME>/$$(date)/" ./src/common/version.py 2>/dev/null || sed -i "s/<B_TIME>/$$(date)/" ./src/common/version.py
 	@sed -i '' "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py 2>/dev/null || sed -i "s/<VERSION>/$(OBDIAG_VERSION)/" ./src/common/version.py
-	@pyinstaller --hidden-import=decimal --hidden-import=pyzipper --copy-metadata genai_prices --copy-metadata pydantic-ai-slim --copy-metadata pydantic-ai-skills --copy-metadata pydantic --copy-metadata pydantic-core --copy-metadata pydantic-graph --copy-metadata pydantic-settings --copy-metadata openai -p $(PROJECT_PATH)/src -F src/obdiag.py --distpath $(PROJECT_PATH)/dist_macos
+	@python3.11 -m PyInstaller \
+		--hidden-import=decimal \
+		--hidden-import=pyzipper \
+		--copy-metadata pydantic \
+		--copy-metadata deepagents \
+		--copy-metadata langchain-core \
+		--copy-metadata langgraph \
+		--copy-metadata langsmith \
+		--copy-metadata textual \
+		-p $(PROJECT_PATH)/src \
+		-F src/obdiag.py \
+		--distpath $(PROJECT_PATH)/dist_macos
 	@rm -f src/obdiag.py
 	@echo "macOS binary built: $(PROJECT_PATH)/dist_macos/obdiag"
 	@echo ""

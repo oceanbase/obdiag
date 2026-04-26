@@ -1,6 +1,6 @@
 ---
 name: obproxy-log-analysis
-description: 标准 SOP：OBProxy 日志采集（gather_obproxy_log）、包内解读（file_list/file_read/run_shell 解压）、可选巡检。用户提到 OBProxy/代理/obproxy_diagnosis 等时使用；与 observer 侧 log-troubleshoot 互斥 analyze_log。
+description: 标准 SOP：OBProxy 日志采集（gather_obproxy_log）、包内解读（file_list/file_read/run_shell 解压）、可选巡检。用户提到 OBProxy/代理/obproxy_diagnosis 等时使用；与 observer 侧 observer-log-analysis 互斥 analyze_log。
 ---
 
 # OBProxy 日志：采集与分析

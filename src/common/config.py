@@ -20,7 +20,7 @@ import os
 from src.common.file_crypto.file_crypto import FileEncryptor
 from src.common.tool import ConfigOptionsParserUtil, DirectoryUtil
 from src.common.stdio import SafeStdio
-import oyaml as yaml
+import yaml
 import pathlib
 import sys
 from collections import defaultdict

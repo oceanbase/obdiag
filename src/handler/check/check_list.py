@@ -17,7 +17,7 @@
 """
 
 import os
-import oyaml as yaml
+import yaml
 
 from src.common.result_type import ObdiagResult
 from src.common.tool import Util

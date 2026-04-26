@@ -25,7 +25,7 @@ VERSION="$RPM_PACKAGE_VERSION"
 
 cd $SRC_DIR
 pwd
-pip install .[build]
+python3.11 -m pip install .[build]
 cp -f src/main.py src/obdiag.py
 sed -i  "s/<B_TIME>/$DATE/" ./src/common/version.py  && sed -i "s/<VERSION>/$VERSION/" ./src/common/version.py
 mkdir -p $BUILD_DIR/SOURCES ${RPM_BUILD_ROOT}
@@ -35,7 +35,17 @@ mkdir -p $BUILD_DIR/SOURCES/dependencies/bin
 mkdir -p ${RPM_BUILD_ROOT}/usr/bin
 mkdir -p ${RPM_BUILD_ROOT}/opt/oceanbase-diagnostic-tool
 cp -rf $SRC_DIR/src $BUILD_DIR/SOURCES/site-packages/
-pyinstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table --copy-metadata genai_prices --copy-metadata pydantic-ai-slim --copy-metadata pydantic-ai-skills --copy-metadata pydantic --copy-metadata pydantic-core --copy-metadata pydantic-graph --copy-metadata pydantic-settings --copy-metadata openai -p $BUILD_DIR/SOURCES/site-packages -F src/obdiag.py
+python3.11 -m PyInstaller \
+    --hidden-import=decimal \
+    --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table \
+    --copy-metadata pydantic \
+    --copy-metadata deepagents \
+    --copy-metadata langchain-core \
+    --copy-metadata langgraph \
+    --copy-metadata langsmith \
+    --copy-metadata textual \
+    -p $BUILD_DIR/SOURCES/site-packages \
+    -F src/obdiag.py
 rm -f obdiag.py oceanbase-diagnostic-tool.spec
 
 cd $SRC_DIR

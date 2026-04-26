@@ -11,22 +11,19 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2026/03/10
+@time: 2026/04/09
 @file: __init__.py
-@desc: obdiag agent toolsets — independent FunctionToolset instances that can be
-       composed, tested, and reused by any pydantic-ai Agent.
+@desc: obdiag agent toolsets — factory functions that return plain callables for Deep Agents SDK.
 """
 
-from src.handler.agent.toolsets.config_gen import config_gen_toolset
-from src.handler.agent.toolsets.database import db_toolset
-from src.handler.agent.toolsets.file_ops import file_toolset
-from src.handler.agent.toolsets.knowledge_base import knowledge_toolset
-from src.handler.agent.toolsets.obdiag import obdiag_toolset
+from src.handler.agent.toolsets.config_gen import create_config_gen_tools
+from src.handler.agent.toolsets.database import create_db_tools
+from src.handler.agent.toolsets.knowledge_base import create_knowledge_tools
+from src.handler.agent.toolsets.obdiag import create_obdiag_tools
 
 __all__ = [
-    "config_gen_toolset",
-    "db_toolset",
-    "file_toolset",
-    "knowledge_toolset",
-    "obdiag_toolset",
+    "create_obdiag_tools",
+    "create_db_tools",
+    "create_config_gen_tools",
+    "create_knowledge_tools",
 ]

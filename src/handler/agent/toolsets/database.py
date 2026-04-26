@@ -11,76 +11,68 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2026/03/10
+@time: 2026/04/09
 @file: database.py
-@desc: Database query toolset for obdiag agent
+@desc: Database query tool for Deep Agents SDK. No RunContext; deps injected via closure.
 """
 
 import json
+from collections.abc import Callable
 from typing import Optional
-
-from pydantic_ai import FunctionToolset, RunContext
 
 from src.handler.agent.models import AgentDependencies
 from src.handler.agent.toolsets.sql_validator import validate_sql
 
-db_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
 
-
-@db_toolset.tool(requires_approval=True, retries=2)
-def db_query(
-    ctx: RunContext[AgentDependencies],
-    sql: str,
-    cluster_config_path: Optional[str] = None,
-) -> str:
-    """
-    Execute a read-only SQL query on an OceanBase database.
-
-    Only SELECT, SHOW, DESCRIBE, EXPLAIN, and WITH queries are allowed.
-
-    By default connects to the currently active cluster. To query a different
-    cluster, pass the path to its obdiag config.yml as ``cluster_config_path``.
+def create_db_tools(deps_getter: Callable[[], AgentDependencies]) -> list:
+    """Return list of database tool functions.
 
     Args:
-        sql: The SQL query to execute (must be read-only)
-        cluster_config_path: Optional path or short name (e.g., 'obdiag_test' for
-            ~/.obdiag/obdiag_test.yml) for a non-default cluster.
-
-    Returns:
-        Query results as formatted JSON, or error message if query fails
+        deps_getter: Callable returning the current AgentDependencies (for connector access).
     """
-    deps = ctx.deps
 
-    is_valid, error_msg = validate_sql(sql)
-    if not is_valid:
-        if deps.stdio:
-            deps.stdio.verbose(f"SQL validation failed: {error_msg}")
-        return error_msg
+    def db_query(sql: str, cluster_config_path: Optional[str] = None) -> str:
+        """Execute a read-only SQL query on the OceanBase database.
 
-    connector = deps.get_db_connector(cluster_config_path)
-    if not connector:
-        if cluster_config_path:
-            return f"Error: Cannot connect to cluster from config '{cluster_config_path}'. " "Please verify the file exists and contains valid 'obcluster' settings " "(db_host, db_port, tenant_sys.user; tenant_sys.password may be empty)."
-        return "Error: No database connection available. " "Use `/use <config_path>` in the agent REPL to switch cluster, or pass cluster_config_path."
+        Only SELECT, SHOW, DESCRIBE, DESC, EXPLAIN, and WITH queries are allowed.
 
-    target = cluster_config_path or deps.config_path or "default cluster"
-    try:
-        if deps.stdio:
-            deps.stdio.verbose(f"Executing SQL on [{target}]: {sql[:100]}...")
+        Args:
+            sql: Read-only SQL statement
+            cluster_config_path: Optional short name or full path for non-default cluster
+        """
+        deps = deps_getter()
+        is_valid, error_msg = validate_sql(sql)
+        if not is_valid:
+            if deps.stdio:
+                deps.stdio.verbose(f"SQL validation failed: {error_msg}")
+            return error_msg
 
-        cursor = connector.execute_sql_return_cursor_dictionary(sql)
-        results = cursor.fetchall()
-        cursor.close()
+        connector = deps.get_db_connector(cluster_config_path)
+        if not connector:
+            if cluster_config_path:
+                return f"Error: Cannot connect to cluster from config '{cluster_config_path}'. " "Please verify the file exists and contains valid 'obcluster' settings " "(db_host, db_port, tenant_sys.user; tenant_sys.password may be empty)."
+            return "Error: No database connection available. " "Use `/use <config_path>` in the agent REPL to switch cluster, or pass cluster_config_path."
 
-        if not results:
-            return "Query executed successfully. No rows returned."
+        target = cluster_config_path or deps.config_path or "default cluster"
+        try:
+            if deps.stdio:
+                deps.stdio.verbose(f"Executing SQL on [{target}]: {sql[:100]}...")
 
-        result_text = f"Query executed successfully on [{target}]. Returned {len(results)} row(s):\n\n"
-        result_text += json.dumps(results, indent=2, ensure_ascii=False, default=str)
-        return result_text
+            cursor = connector.execute_sql_return_cursor_dictionary(sql)
+            results = cursor.fetchall()
+            cursor.close()
 
-    except Exception as e:
-        error_msg = f"SQL query execution failed on [{target}]: {e}"
-        if deps.stdio:
-            deps.stdio.verbose(error_msg)
-        return error_msg
+            if not results:
+                return "Query executed successfully. No rows returned."
+
+            result_text = f"Query executed successfully on [{target}]. Returned {len(results)} row(s):\n\n"
+            result_text += json.dumps(results, indent=2, ensure_ascii=False, default=str)
+            return result_text
+
+        except Exception as e:
+            error_msg = f"SQL query execution failed on [{target}]: {e}"
+            if deps.stdio:
+                deps.stdio.verbose(error_msg)
+            return error_msg
+
+    return [db_query]

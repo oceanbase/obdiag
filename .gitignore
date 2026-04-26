@@ -14,7 +14,9 @@ obdiag_*
 dev_doc/*
 dev_docs/
 *.md
+!CLAUDE.md
 !plugins/**/*.md
 build/
 rpmbuild/
 .cursor/
+.claude/

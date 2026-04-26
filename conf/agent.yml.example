@@ -1,92 +1,55 @@
 # obdiag agent Configuration
-# mkdir -p ~/.obdiag/config && cp conf/agent.yml.example ~/.obdiag/config/agent.yml
+#
+# File layout:
+#   ~/.obdiag/
+#     config.yml        — cluster connection config (SSH nodes, DB host/port)
+#     config/
+#       agent.yml       — all agent config: LLM, skills, MCP, UI  (this file)
+#                         also stores TUI runtime state (theme, warnings) — auto-managed sections
+#       sessions.db     — conversation history (SQLite, auto-managed)
+#       history.jsonl   — chat input history (auto-managed)
+#
+# Setup: mkdir -p ~/.obdiag/config && cp conf/agent.yml.example ~/.obdiag/config/agent.yml
+
+# ---------------------------------------------------------------------------
+# LLM — OpenAI-compatible gateway
+# ---------------------------------------------------------------------------
 
 llm:
-  provider: openai
-  api_key: ""
-  base_url: ""
-  model: gpt-4
-  temperature: 0.7
-  max_tokens: 4096
-  # Custom HTTP headers added to every LLM request.
-  # Useful for enterprise API gateways that require additional authentication headers, e.g.:
-  # default_headers:
-  #   uuap-id: "your-uuap-id"
-  #   request-id: "your-request-id"
-  system_prompt: |
-    You are obdiag agent, an intelligent diagnostic assistant for OceanBase database.
+  base_url: "https://api.openai.com/v1"   # custom gateway URL, or leave blank for openai.com
+  api_key: ""                              # injected as OPENAI_API_KEY at startup
+  model: "gpt-4o"                         # model name passed to the gateway
+  # headers:                              # optional extra HTTP headers for the gateway
+  #   X-Custom-Auth: "token123"
 
-    Your capabilities include:
-    1. Executing obdiag diagnostic commands (gather logs, analyze, check health, RCA)
-    2. Analyzing diagnostic results and providing insights
-    3. Recommending diagnostic steps based on user descriptions
-    4. Explaining OceanBase concepts and troubleshooting procedures
-    5. Querying the OceanBase database directly using SQL
-    6. Generating obdiag configuration files
-    7. Diagnosing multiple clusters in a single session
+# ---------------------------------------------------------------------------
+# obdiag-specific settings
+# ---------------------------------------------------------------------------
 
-    Multi-cluster support:
-    - When no cluster is specified, the default config ~/.obdiag/config.yml is used.
-    - Every diagnostic tool accepts an optional cluster_config_path parameter.
-    - The user may type "use obdiag_test" or "use <config_path>" to switch the active cluster.
-    - Use show_current_cluster to confirm which cluster is currently active.
-
-    When users describe problems or ask for diagnostics:
-    1. First understand what they need and which cluster they mean
-    2. Use the appropriate diagnostic tools (with cluster_config_path when needed)
-    3. Analyze the results
-    4. Provide clear explanations and recommendations
-
-    Tool selection for gather operations:
-    - gather_log: Use when the user wants to collect logs, observer logs, or logs filtered by trace_id/keywords.
-    - gather_plan_monitor: Use ONLY when the user explicitly wants SQL plan monitor data for a trace_id.
-
-    User experience guidelines:
-    - Prefer action over clarification: When the user asks about file sizes without a path, assume current directory.
-    - Respond in the same language as the user's question.
-    - Keep responses concise. Use bullet points or tables for lists.
-    - When a tool fails: explain clearly and suggest concrete next steps.
-
-    Other guidelines:
-    - Always confirm before executing potentially long-running operations (SQL, bash, gather/analyze).
-    - Only execute read-only SQL queries (SELECT, SHOW, DESCRIBE, EXPLAIN).
-
-# Agent skills (pydantic-ai-skills). Preset skills in plugins/agent/skills/ are copied to ~/.obdiag/agent/skills/ on init.
 skills:
   enabled: true
-  directory: ""  # default: ~/.obdiag/agent/skills
+  directory: ""          # default: ~/.obdiag/agent/skills/
   validate: true
   script_timeout: 60
-  # Some models pass script args as JSON strings and fail validation; keep false unless you need scripted skills.
   run_script_tool: false
 
-# Official OceanBase knowledge gateway (optional). Off by default until the service is ready.
-# Tool calls POST {base}/gateway/retrieval with JSON query, component, version — see knowledge_base.py (default component: oceanbase).
-# Optional: export OCEANBASE_KNOWLEDGE_GATEWAY_BASE=https://your-gateway:port (no trailing slash).
+# OceanBase knowledge gateway (optional, off by default)
 oceanbase_knowledge:
   enabled: false
   bearer_token: ""
 
 mcp:
   enabled: true
-  servers: ""
 
 ui:
-  show_welcome: true
-  show_beta_warning: true
-  clear_screen: true
-  prompt: "obdiag agent> "
-  tool_approval: true
-  stream_output: false
-  # Print each tool call + short args during a turn (matches handler default).
-  show_tool_trace: true
-  # Footer after each assistant reply (↑/↓ tokens, optional context % if context_window_tokens set). Default off.
-  show_usage_after_turn: false
-  show_usage_cost: false  # placeholder ($0.00) until pricing is wired
-  # Model context size (e.g. 128000); unset/null disables % in footer and auto-compact threshold.
-  context_window_tokens: null
-  auto_compact: true
-  auto_compact_threshold_ratio: 0.85
-  auto_compact_min_messages: 2
-  # Max transcript size (chars) sent to the model for /compact (handler clamps to a safe range).
-  compact_transcript_max_chars: 120000
+  tool_approval: true    # require confirmation before executing tools
+  show_tool_trace: true  # print each tool call during a turn
+  auto_compact: true     # auto-compact conversation when context is nearly full
+
+# ---------------------------------------------------------------------------
+# The sections below are auto-managed by the TUI. Do not edit manually.
+# ---------------------------------------------------------------------------
+# models:       — last-used / default model (set via /model command)
+# warnings:     — suppressed warning dialogs
+# ui.theme:     — UI theme preference
+# mcp_trust:    — approved MCP server fingerprints

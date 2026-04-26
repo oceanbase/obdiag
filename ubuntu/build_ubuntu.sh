@@ -104,7 +104,7 @@ sed -i "s/<VERSION>/$OBDIAG_VERSION/" ./src/common/version.py
 
 # Build binary with PyInstaller
 echo "Building binary with PyInstaller..."
-$PYTHON -m PyInstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table --copy-metadata genai_prices -p ./src -F src/obdiag.py
+$PYTHON -m PyInstaller --hidden-import=decimal --hidden-import=sqlgpt_parser.parser.oceanbase_parser.parser_table --copy-metadata pydantic --copy-metadata deepagents --copy-metadata langchain-core --copy-metadata langgraph -p ./src -F src/obdiag.py
 
 # Cleanup temp file
 rm -f src/obdiag.py

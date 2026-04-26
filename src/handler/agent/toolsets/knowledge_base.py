@@ -20,12 +20,10 @@ import json
 import logging
 import os
 import time
+from collections.abc import Callable
 from typing import Any, Dict, Optional
 
 import requests
-from pydantic_ai import FunctionToolset, RunContext
-
-from src.handler.agent.models import AgentConfig, AgentDependencies
 
 _LOG = logging.getLogger(__name__)
 
@@ -67,25 +65,16 @@ OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS = frozenset(
     )
 )
 
-# TODO: Document user registration flow to obtain ~/.obdiag/config/agent.yml
+# TODO: Document user registration flow to obtain ~/.obdiag/config/agent.toml
 #       oceanbase_knowledge.bearer_token (onboarding / portal link).
 
-knowledge_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
-# Alias for tests and callers expecting the old name
-knowledge_base_toolset = knowledge_toolset
 
-
-def oceanbase_knowledge_gateway_ready(config: AgentConfig) -> bool:
+def oceanbase_knowledge_gateway_ready(config: object) -> bool:
     """True when ``oceanbase_knowledge.enabled`` and a non-empty ``bearer_token`` (real gateway calls)."""
-    return bool(getattr(config, "oceanbase_knowledge_enabled", False) and (config.oceanbase_knowledge_bearer_token or "").strip())
+    return bool(getattr(config, "oceanbase_knowledge_enabled", False) and (getattr(config, "oceanbase_knowledge_bearer_token", "") or "").strip())
 
 
-def oceanbase_knowledge_enabled(config: AgentConfig) -> bool:
-    """Same as :func:`oceanbase_knowledge_gateway_ready` (kept for older call sites)."""
-    return oceanbase_knowledge_gateway_ready(config)
-
-
-def _stdio_verbose(deps: Optional[AgentDependencies], msg: str) -> None:
+def _stdio_verbose(deps: Optional[object], msg: str) -> None:
     stdio = getattr(deps, "stdio", None) if deps else None
     if stdio and getattr(stdio, "verbose", None):
         try:
@@ -95,7 +84,7 @@ def _stdio_verbose(deps: Optional[AgentDependencies], msg: str) -> None:
     _LOG.debug("%s", msg)
 
 
-def _stdio_warn(deps: Optional[AgentDependencies], msg: str) -> None:
+def _stdio_warn(deps: Optional[object], msg: str) -> None:
     stdio = getattr(deps, "stdio", None) if deps else None
     if stdio and getattr(stdio, "warn", None):
         try:
@@ -158,176 +147,179 @@ def _extract_knowledge_answer(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False)[:8000]
 
 
-@knowledge_toolset.tool
-def query_oceanbase_knowledge_base(
-    ctx: RunContext[AgentDependencies],
-    query: str,
-    context_text: Optional[str] = None,
-    component: Optional[str] = None,
-    version: Optional[str] = None,
-) -> str:
-    """
-    Query official OceanBase knowledge via the fixed gateway (POST ``/retrieval``).
-
-    Use for documented information about OceanBase (not live cluster state; use obdiag tools or SQL).
+def create_knowledge_tools(token_getter: Callable[[], str]) -> list:
+    """Return list of knowledge base tool functions.
 
     Args:
-        query: Main question string (up to 4096 characters after optional context merge).
-            When Observer/OBProxy/etc. versions are known, put them in ``version`` or include
-            them in this string so retrieval matches the right doc generation.
-        context_text: Optional extra material (logs, errors, long snippets); appended to ``query``
-            for the gateway (same field budget as ``query`` overall).
-        component: Knowledge slice id; must be one of ``OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS``
-            (see oceanbase-knowledge SKILL). Default ``oceanbase`` when omitted.
-        version: Optional product/doc line version (max 64 chars), e.g. ``4.3.0.0``.
-
-    The tool is registered only when ``oceanbase_knowledge.enabled: true`` in ``agent.yml``.
-    Without ``bearer_token``, returns setup instructions for obtaining a token.
+        token_getter: Callable that returns the OceanBase knowledge bearer token.
     """
-    deps = ctx.deps
-    token = (deps.oceanbase_knowledge_bearer_token or "").strip()
 
-    if not token:
-        _stdio_warn(
-            deps,
-            "query_oceanbase_knowledge_base: bearer token empty; set oceanbase_knowledge.bearer_token in agent.yml to reach the gateway",
-        )
-        return "OceanBase knowledge is not enabled: set oceanbase_knowledge.bearer_token in " "~/.obdiag/config/agent.yml after registration. " "(Registration / token onboarding — see project TODO.)"
+    def query_oceanbase_knowledge_base(
+        query: str,
+        context_text: Optional[str] = None,
+        component: Optional[str] = None,
+        version: Optional[str] = None,
+    ) -> str:
+        """
+        Query official OceanBase knowledge via the fixed gateway (POST ``/retrieval``).
 
-    base = OCEANBASE_KNOWLEDGE_GATEWAY_BASE.rstrip("/")
+        Use for documented information about OceanBase (not live cluster state; use obdiag tools or SQL).
 
-    q = _compose_query_with_context(query or "", context_text)
-    if not q.strip():
-        _stdio_warn(deps, "query_oceanbase_knowledge_base: rejected empty query")
-        return "Error: query must be non-empty."
-    if len(q) > _MAX_QUERY_CHARS:
-        _stdio_warn(deps, f"query_oceanbase_knowledge_base: query too long len={len(q)} (max {_MAX_QUERY_CHARS})")
-        return f"Error: query (including context_text) must be at most {_MAX_QUERY_CHARS} characters (got {len(q)})."
+        Args:
+            query: Main question string (up to 4096 characters after optional context merge).
+                When Observer/OBProxy/etc. versions are known, put them in ``version`` or include
+                them in this string so retrieval matches the right doc generation.
+            context_text: Optional extra material (logs, errors, long snippets); appended to ``query``
+                for the gateway (same field budget as ``query`` overall).
+            component: Knowledge slice id; must be one of ``OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS``
+                (see oceanbase-knowledge SKILL). Default ``oceanbase`` when omitted.
+            version: Optional product/doc line version (max 64 chars), e.g. ``4.3.0.0``.
 
-    comp = (component or "").strip() or _DEFAULT_COMPONENT
-    if len(comp) > _MAX_COMPONENT_CHARS:
-        _stdio_warn(deps, f"query_oceanbase_knowledge_base: component too long len={len(comp)}")
-        return f"Error: component must be at most {_MAX_COMPONENT_CHARS} characters (got {len(comp)})."
-    if comp not in OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS:
-        _stdio_warn(deps, f"query_oceanbase_knowledge_base: invalid component {comp!r}")
-        allowed = ", ".join(sorted(OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS))
-        return f"Error: component must be exactly one of the gateway allowlist: {allowed}"
+        The tool is registered only when ``oceanbase_knowledge.enabled: true`` in ``agent.toml``.
+        Without ``bearer_token``, returns setup instructions for obtaining a token.
+        """
+        token = (token_getter() or "").strip()
 
-    ver = (version or "").strip()
-    if len(ver) > _MAX_VERSION_CHARS:
-        _stdio_warn(deps, f"query_oceanbase_knowledge_base: version too long len={len(ver)}")
-        return f"Error: version must be at most {_MAX_VERSION_CHARS} characters (got {len(ver)})."
+        if not token:
+            _stdio_warn(
+                None,
+                "query_oceanbase_knowledge_base: bearer token empty; set oceanbase_knowledge.bearer_token in agent.toml to reach the gateway",
+            )
+            return "OceanBase knowledge is not enabled: set oceanbase_knowledge.bearer_token in " "~/.obdiag/config/agent.toml after registration. " "(Registration / token onboarding — see project TODO.)"
 
-    body: Dict[str, Any] = {
-        "query": q,
-        "component": comp,
-        "version": ver,
-    }
+        base = OCEANBASE_KNOWLEDGE_GATEWAY_BASE.rstrip("/")
 
-    url = f"{base}{_KNOWLEDGE_RETRIEVAL_PATH}"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
+        q = _compose_query_with_context(query or "", context_text)
+        if not q.strip():
+            _stdio_warn(None, "query_oceanbase_knowledge_base: rejected empty query")
+            return "Error: query must be non-empty."
+        if len(q) > _MAX_QUERY_CHARS:
+            _stdio_warn(None, f"query_oceanbase_knowledge_base: query too long len={len(q)} (max {_MAX_QUERY_CHARS})")
+            return f"Error: query (including context_text) must be at most {_MAX_QUERY_CHARS} characters (got {len(q)})."
 
-    preview = _truncate(q, 120)
-    ctx_part = f"yes(len={len(context_text)})" if context_text else "no"
-    _stdio_verbose(
-        deps,
-        "OceanBase knowledge: POST " f"{url} query_len={len(q)} query_preview={preview!r} " f"context_text={ctx_part} component={comp!r} version={ver!r} " f"bearer_len={len(token)} timeout_s={_REQUEST_TIMEOUT_SECONDS}",
-    )
-    _LOG.info(
-        "OceanBase knowledge request url=%s query_len=%s has_context=%s component=%s version=%s",
-        url,
-        len(q),
-        bool(context_text),
-        comp,
-        ver or "(empty)",
-    )
+        comp = (component or "").strip() or _DEFAULT_COMPONENT
+        if len(comp) > _MAX_COMPONENT_CHARS:
+            _stdio_warn(None, f"query_oceanbase_knowledge_base: component too long len={len(comp)}")
+            return f"Error: component must be at most {_MAX_COMPONENT_CHARS} characters (got {len(comp)})."
+        if comp not in OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS:
+            _stdio_warn(None, f"query_oceanbase_knowledge_base: invalid component {comp!r}")
+            allowed = ", ".join(sorted(OCEANBASE_KNOWLEDGE_ALLOWED_COMPONENTS))
+            return f"Error: component must be exactly one of the gateway allowlist: {allowed}"
 
-    t0 = time.monotonic()
-    try:
-        r = requests.post(url, json=body, headers=headers, timeout=_REQUEST_TIMEOUT_SECONDS)
-    except requests.exceptions.Timeout:
-        elapsed = time.monotonic() - t0
-        _stdio_warn(
-            deps,
-            f"OceanBase knowledge: timeout after {elapsed:.2f}s (limit {_REQUEST_TIMEOUT_SECONDS}s) url={url}",
-        )
-        _LOG.warning("OceanBase knowledge timeout url=%s elapsed_s=%.2f", url, elapsed)
-        return f"Error: request timed out after {_REQUEST_TIMEOUT_SECONDS}s (gateway: {base})."
-    except requests.exceptions.RequestException as e:
-        elapsed = time.monotonic() - t0
-        _stdio_warn(
-            deps,
-            f"OceanBase knowledge: request failed url={url} error={type(e).__name__}: {e}",
-        )
-        _LOG.warning(
-            "OceanBase knowledge request error url=%s type=%s err=%s elapsed_s=%.2f",
-            url,
-            type(e).__name__,
-            e,
-            elapsed,
-        )
-        return f"Error: failed to reach knowledge gateway ({base}): {e}"
+        ver = (version or "").strip()
+        if len(ver) > _MAX_VERSION_CHARS:
+            _stdio_warn(None, f"query_oceanbase_knowledge_base: version too long len={len(ver)}")
+            return f"Error: version must be at most {_MAX_VERSION_CHARS} characters (got {len(ver)})."
 
-    elapsed = time.monotonic() - t0
-    body_len = len(r.text or "")
-    _stdio_verbose(
-        deps,
-        f"OceanBase knowledge: response status={r.status_code} body_len={body_len} elapsed_s={elapsed:.2f}",
-    )
+        body: Dict[str, Any] = {
+            "query": q,
+            "component": comp,
+            "version": ver,
+        }
 
-    if r.status_code != 200:
-        snippet = (r.text or "")[:800]
-        _stdio_warn(
-            deps,
-            f"OceanBase knowledge: HTTP {r.status_code} url={url} body_preview={snippet!r}",
-        )
-        _LOG.warning(
-            "OceanBase knowledge HTTP %s url=%s body_len=%s preview=%r",
-            r.status_code,
-            url,
-            body_len,
-            snippet[:200],
-        )
-        return _format_json_error(r.status_code, r.text)
+        url = f"{base}{_KNOWLEDGE_RETRIEVAL_PATH}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
 
-    try:
-        data = r.json()
-    except Exception as ex:
-        raw = (r.text or "").strip()[:800]
-        _stdio_warn(
-            deps,
-            f"OceanBase knowledge: JSON parse failed status=200 url={url} err={type(ex).__name__}: {ex} " f"raw_preview={raw!r}",
-        )
-        _LOG.warning(
-            "OceanBase knowledge JSON parse error url=%s err=%s raw_len=%s",
-            url,
-            ex,
-            body_len,
-        )
-        return (r.text or "").strip()[:8000] or "(empty response)"
-
-    if isinstance(data, dict):
-        out = _extract_knowledge_answer(data)
-        ans_len = len(out)
+        preview = _truncate(q, 120)
+        ctx_part = f"yes(len={len(context_text)})" if context_text else "no"
         _stdio_verbose(
-            deps,
-            f"OceanBase knowledge: success answer_len={ans_len} elapsed_s={elapsed:.2f}",
+            None,
+            "OceanBase knowledge: POST " f"{url} query_len={len(q)} query_preview={preview!r} " f"context_text={ctx_part} component={comp!r} version={ver!r} " f"bearer_len={len(token)} timeout_s={_REQUEST_TIMEOUT_SECONDS}",
         )
         _LOG.info(
-            "OceanBase knowledge success url=%s answer_len=%s elapsed_s=%.2f",
+            "OceanBase knowledge request url=%s query_len=%s has_context=%s component=%s version=%s",
             url,
-            ans_len,
-            elapsed,
+            len(q),
+            bool(context_text),
+            comp,
+            ver or "(empty)",
         )
-        return out.strip()
 
-    out = str(data)[:8000]
-    _stdio_verbose(deps, f"OceanBase knowledge: success (non-dict JSON) out_len={len(out)} elapsed_s={elapsed:.2f}")
-    _LOG.info("OceanBase knowledge success url=%s non_dict_json elapsed_s=%.2f", url, elapsed)
-    return out
+        t0 = time.monotonic()
+        try:
+            r = requests.post(url, json=body, headers=headers, timeout=_REQUEST_TIMEOUT_SECONDS)
+        except requests.exceptions.Timeout:
+            elapsed = time.monotonic() - t0
+            _stdio_warn(
+                None,
+                f"OceanBase knowledge: timeout after {elapsed:.2f}s (limit {_REQUEST_TIMEOUT_SECONDS}s) url={url}",
+            )
+            _LOG.warning("OceanBase knowledge timeout url=%s elapsed_s=%.2f", url, elapsed)
+            return f"Error: request timed out after {_REQUEST_TIMEOUT_SECONDS}s (gateway: {base})."
+        except requests.exceptions.RequestException as e:
+            elapsed = time.monotonic() - t0
+            _stdio_warn(
+                None,
+                f"OceanBase knowledge: request failed url={url} error={type(e).__name__}: {e}",
+            )
+            _LOG.warning(
+                "OceanBase knowledge request error url=%s type=%s err=%s elapsed_s=%.2f",
+                url,
+                type(e).__name__,
+                e,
+                elapsed,
+            )
+            return f"Error: failed to reach knowledge gateway ({base}): {e}"
 
+        elapsed = time.monotonic() - t0
+        body_len = len(r.text or "")
+        _stdio_verbose(
+            None,
+            f"OceanBase knowledge: response status={r.status_code} body_len={body_len} elapsed_s={elapsed:.2f}",
+        )
 
-knowledge_base_tools = [query_oceanbase_knowledge_base]
+        if r.status_code != 200:
+            snippet = (r.text or "")[:800]
+            _stdio_warn(
+                None,
+                f"OceanBase knowledge: HTTP {r.status_code} url={url} body_preview={snippet!r}",
+            )
+            _LOG.warning(
+                "OceanBase knowledge HTTP %s url=%s body_len=%s preview=%r",
+                r.status_code,
+                url,
+                body_len,
+                snippet[:200],
+            )
+            return _format_json_error(r.status_code, r.text)
+
+        try:
+            data = r.json()
+        except Exception as ex:
+            raw = (r.text or "").strip()[:800]
+            _stdio_warn(
+                None,
+                f"OceanBase knowledge: JSON parse failed status=200 url={url} err={type(ex).__name__}: {ex} " f"raw_preview={raw!r}",
+            )
+            _LOG.warning(
+                "OceanBase knowledge JSON parse error url=%s err=%s raw_len=%s",
+                url,
+                ex,
+                body_len,
+            )
+            return (r.text or "").strip()[:8000] or "(empty response)"
+
+        if isinstance(data, dict):
+            out = _extract_knowledge_answer(data)
+            ans_len = len(out)
+            _stdio_verbose(
+                None,
+                f"OceanBase knowledge: success answer_len={ans_len} elapsed_s={elapsed:.2f}",
+            )
+            _LOG.info(
+                "OceanBase knowledge success url=%s answer_len=%s elapsed_s=%.2f",
+                url,
+                ans_len,
+                elapsed,
+            )
+            return out.strip()
+
+        out = str(data)[:8000]
+        _stdio_verbose(None, f"OceanBase knowledge: success (non-dict JSON) out_len={len(out)} elapsed_s={elapsed:.2f}")
+        _LOG.info("OceanBase knowledge success url=%s non_dict_json elapsed_s=%.2f", url, elapsed)
+        return out
+
+    return [query_oceanbase_knowledge_base]

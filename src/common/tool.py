@@ -38,7 +38,7 @@ import json
 import time
 import datetime
 import string
-import oyaml as yaml
+import yaml
 import lzma
 import pymysql as mysql
 import shutil
@@ -62,7 +62,6 @@ from random import choice
 from io import BytesIO
 import copy
 from colorama import Fore, Style
-from ruamel.yaml import YAML
 from src.common.err import EC_SQL_EXECUTE_FAILED
 from src.common.stdio import SafeStdio
 from src.common.version import OBDIAG_VERSION
@@ -70,7 +69,7 @@ from src.common.version import OBDIAG_VERSION
 _open = open
 encoding_open = open
 
-__all__ = ("Timeout", "DynamicLoading", "ConfigUtil", "DirectoryUtil", "FileUtil", "YamlLoader", "COMMAND_ENV", "TimeUtils", "NetUtils", "StringUtils", "YamlUtils", "Util")
+__all__ = ("Timeout", "DynamicLoading", "ConfigUtil", "DirectoryUtil", "FileUtil", "COMMAND_ENV", "TimeUtils", "NetUtils", "StringUtils", "YamlUtils", "Util")
 
 _WINDOWS = os.name == 'nt'
 
@@ -761,57 +760,6 @@ class FileUtil(object):
             return False
 
         return True
-
-
-class YamlLoader(YAML):
-
-    def __init__(self, stdio=None, typ=None, pure=False, output=None, plug_ins=None):
-        super(YamlLoader, self).__init__(typ=typ, pure=pure, output=output, plug_ins=plug_ins)
-        self.stdio = stdio
-        if not self.Representer.yaml_multi_representers and self.Representer.yaml_representers:
-            self.Representer.yaml_multi_representers = self.Representer.yaml_representers
-
-    def load(self, stream):
-        try:
-            return super(YamlLoader, self).load(stream)
-        except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('Parsing error:\n%s' % e)
-            raise e
-
-    def loads(self, yaml_content):
-        try:
-            stream = BytesIO()
-            yaml_content = str(yaml_content).encode()
-            stream.write(yaml_content)
-            stream.seek(0)
-            return self.load(stream)
-        except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('Parsing error:\n%s' % e)
-            raise e
-
-    def dump(self, data, stream=None, transform=None):
-        try:
-            return super(YamlLoader, self).dump(data, stream=stream, transform=transform)
-        except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('dump error:\n%s' % e)
-            raise e
-
-    def dumps(self, data, transform=None):
-        try:
-            stream = BytesIO()
-            self.dump(data, stream=stream, transform=transform)
-            stream.seek(0)
-            content = stream.read()
-            if sys.version_info.major == 2:
-                return content
-            return content.decode()
-        except Exception as e:
-            if getattr(self.stdio, 'exception', False):
-                self.stdio.exception('dumps error:\n%s' % e)
-            raise e
 
 
 class YamlUtils(object):

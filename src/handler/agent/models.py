@@ -151,7 +151,7 @@ class AgentDependencies:
     # the default cluster_config that was supplied at construction time).
     _connector_cache: Dict[str, OBConnector] = field(default_factory=dict, repr=False)
 
-    # OceanBase official knowledge gateway (Bearer from agent.yml); used by query_oceanbase_knowledge_base.
+    # OceanBase official knowledge gateway (Bearer from agent.toml); used by query_oceanbase_knowledge_base.
     oceanbase_knowledge_bearer_token: str = ""
 
     # ------------------------------------------------------------------
@@ -275,24 +275,20 @@ class AgentDependencies:
 
 @dataclass
 class AgentConfig:
-    """Configuration for the obdiag agent, parsed from ~/.obdiag/config/agent.yml."""
+    """Configuration for the obdiag agent, parsed from ~/.obdiag/config/agent.toml.
 
-    # LLM
-    provider: str = "openai"
-    api_key: str = ""
-    base_url: Optional[str] = None
-    model: str = "gpt-4"
-    temperature: float = 0.7
-    max_tokens: int = 2000
-    system_prompt: Optional[str] = None
+    LLM / model settings are NOT stored here — they use deepagents-cli's native
+    [models.providers.*] format and are read directly by deepagents-cli's
+    ModelConfig / create_model().
+    """
 
     # MCP
     mcp_enabled: bool = True
     mcp_servers: Dict[str, Any] = field(default_factory=dict)
 
-    # Skills (pydantic-ai-skills)
+    # Skills
     skills_enabled: bool = True
-    skills_directory: str = ""  # Resolved to ~/.obdiag/agent/skills when empty
+    skills_directory: str = ""  # Resolved to ~/.obdiag/agent/skills/ when empty
     skills_validate: bool = True
     skills_script_timeout: int = 60
     # When False, ``run_skill_script`` is not registered (avoids LLMs passing args as JSON string).
@@ -313,18 +309,13 @@ class AgentConfig:
     auto_compact_threshold_ratio: float = 0.85  # Fraction of context_window_tokens that triggers compact
     auto_compact_min_messages: int = 2  # Minimum messages required before auto-compact fires
 
-    # Custom HTTP headers for every LLM request (useful for enterprise gateways, e.g. uuap-id, request-id).
-    default_headers: Optional[Dict[str, str]] = None
-
-    # ~/.obdiag/config/agent.yml → oceanbase_knowledge.*
-    # Default False until gateway GA; flip to True with config defaults (see obdiag-agent-future-roadmap §9).
+    # OceanBase knowledge gateway
     oceanbase_knowledge_enabled: bool = False
     oceanbase_knowledge_bearer_token: str = ""
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "AgentConfig":
         """Create AgentConfig from a configuration dictionary."""
-        llm = config_dict.get("llm", {})
         mcp = config_dict.get("mcp", {})
         skills = config_dict.get("skills", {})
         ui = config_dict.get("ui", {})
@@ -332,20 +323,7 @@ class AgentConfig:
         kb_token = (ok.get("bearer_token") or "").strip() if isinstance(ok, dict) else ""
         kb_enabled = bool(ok.get("enabled", False)) if isinstance(ok, dict) else False
 
-        raw_headers = llm.get("default_headers")
-        parsed_headers: Optional[Dict[str, str]] = None
-        if isinstance(raw_headers, dict) and raw_headers:
-            parsed_headers = {str(k): str(v) for k, v in raw_headers.items()}
-
         return cls(
-            provider=llm.get("provider", llm.get("api_type", "openai")),
-            api_key=llm.get("api_key", ""),
-            base_url=(llm.get("base_url") or "").strip() or None,
-            model=(llm.get("model") or "gpt-4").strip(),
-            temperature=llm.get("temperature", 0.7),
-            max_tokens=llm.get("max_tokens", 2000),
-            system_prompt=llm.get("system_prompt") or None,
-            default_headers=parsed_headers,
             mcp_enabled=mcp.get("enabled", True),
             mcp_servers=mcp.get("servers", {}),
             skills_enabled=skills.get("enabled", True),

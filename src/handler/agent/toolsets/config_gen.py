@@ -11,10 +11,9 @@
 # See the Mulan PSL v2 for more details.
 
 """
-@time: 2026/03/10
+@time: 2026/04/09
 @file: config_gen.py
-@desc: obdiag config generation toolset — allows the agent to interactively
-       create ~/.obdiag/config.yml for users.
+@desc: obdiag config generation tool for Deep Agents SDK. No RunContext; stdio injected via closure.
 """
 
 import os
@@ -24,12 +23,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from pydantic_ai import FunctionToolset, RunContext
-
 from src.common.constant import obdiag_path
-from src.handler.agent.models import AgentDependencies
-
-config_gen_toolset: FunctionToolset[AgentDependencies] = FunctionToolset()
 
 
 def _validate_config_args(arguments: Dict[str, Any]) -> Optional[str]:
@@ -152,118 +146,124 @@ def _build_config(arguments: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-@config_gen_toolset.tool
-def generate_config(
-    ctx: RunContext[AgentDependencies],
-    ob_cluster_name: str,
-    db_host: str,
-    tenant_sys_password: str,
-    nodes: List[Dict[str, Any]],
-    db_port: int = 2881,
-    tenant_sys_user: str = "root@sys",
-    global_ssh_username: Optional[str] = None,
-    global_ssh_password: Optional[str] = None,
-    global_ssh_port: int = 22,
-    global_ssh_key_file: Optional[str] = None,
-    global_home_path: Optional[str] = None,
-    global_data_dir: Optional[str] = None,
-    global_redo_dir: Optional[str] = None,
-    obproxy_cluster_name: Optional[str] = None,
-    obproxy_nodes: Optional[List[Dict[str, Any]]] = None,
-    obproxy_global_ssh_username: Optional[str] = None,
-    obproxy_global_ssh_password: Optional[str] = None,
-    obproxy_global_ssh_port: int = 22,
-    obproxy_global_home_path: Optional[str] = None,
-) -> str:
-    """
-    Generate obdiag configuration file (~/.obdiag/config.yml).
-
-    Automatically backs up existing config if present.
+def create_config_gen_tools(stdio: Any = None) -> list:
+    """Return list of config generation tool functions.
 
     Args:
-        ob_cluster_name: OceanBase cluster name
-        db_host: Database host IP address
-        tenant_sys_password: System tenant password
-        nodes: Server nodes, each dict must contain 'ip'; optional keys: ssh_username, ssh_password, home_path, data_dir, redo_dir
-        db_port: Database port (default 2881)
-        tenant_sys_user: System tenant user (default root@sys)
-        global_ssh_username: Global SSH username for all nodes
-        global_ssh_password: Global SSH password for all nodes
-        global_ssh_port: Global SSH port (default 22)
-        global_ssh_key_file: Global SSH key file path
-        global_home_path: Global OceanBase home directory
-        global_data_dir: Global data directory
-        global_redo_dir: Global redo log directory
-        obproxy_cluster_name: OBProxy cluster name (optional)
-        obproxy_nodes: OBProxy nodes (optional)
-        obproxy_global_ssh_username: OBProxy global SSH username
-        obproxy_global_ssh_password: OBProxy global SSH password
-        obproxy_global_ssh_port: OBProxy global SSH port
-        obproxy_global_home_path: OBProxy global home directory
+        stdio: Optional stdio object for logging.
     """
-    deps = ctx.deps
-    args = {
-        "ob_cluster_name": ob_cluster_name,
-        "db_host": db_host,
-        "tenant_sys_password": tenant_sys_password,
-        "nodes": nodes,
-        "db_port": db_port,
-        "tenant_sys_user": tenant_sys_user,
-        "global_ssh_username": global_ssh_username,
-        "global_ssh_password": global_ssh_password,
-        "global_ssh_port": global_ssh_port,
-        "global_ssh_key_file": global_ssh_key_file,
-        "global_home_path": global_home_path,
-        "global_data_dir": global_data_dir,
-        "global_redo_dir": global_redo_dir,
-        "obproxy_cluster_name": obproxy_cluster_name,
-        "obproxy_nodes": obproxy_nodes,
-        "obproxy_global_ssh_username": obproxy_global_ssh_username,
-        "obproxy_global_ssh_password": obproxy_global_ssh_password,
-        "obproxy_global_ssh_port": obproxy_global_ssh_port,
-        "obproxy_global_home_path": obproxy_global_home_path,
-    }
 
-    err = _validate_config_args(args)
-    if err:
-        return err
+    def generate_obdiag_config(
+        ob_cluster_name: str,
+        db_host: str,
+        tenant_sys_password: str,
+        nodes: List[Dict[str, Any]],
+        db_port: int = 2881,
+        tenant_sys_user: str = "root@sys",
+        global_ssh_username: Optional[str] = None,
+        global_ssh_password: Optional[str] = None,
+        global_ssh_port: int = 22,
+        global_ssh_key_file: Optional[str] = None,
+        global_home_path: Optional[str] = None,
+        global_data_dir: Optional[str] = None,
+        global_redo_dir: Optional[str] = None,
+        obproxy_cluster_name: Optional[str] = None,
+        obproxy_nodes: Optional[List[Dict[str, Any]]] = None,
+        obproxy_global_ssh_username: Optional[str] = None,
+        obproxy_global_ssh_password: Optional[str] = None,
+        obproxy_global_ssh_port: int = 22,
+        obproxy_global_home_path: Optional[str] = None,
+    ) -> str:
+        """
+        Generate obdiag configuration file (~/.obdiag/config.yml).
 
-    config = _build_config(args)
-    output_path = obdiag_path("config.yml")
-    output_dir = os.path.dirname(output_path)
-    if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+        Automatically backs up existing config if present.
 
-    backup_path = None
-    if os.path.exists(output_path):
-        try:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"{output_path}.backup_{ts}"
-            shutil.copy2(output_path, backup_path)
-        except Exception as e:
-            return f"Failed to backup existing config file: {e}"
+        Args:
+            ob_cluster_name: OceanBase cluster name
+            db_host: Database host IP address
+            tenant_sys_password: System tenant password
+            nodes: Server nodes, each dict must contain 'ip'; optional keys: ssh_username, ssh_password, home_path, data_dir, redo_dir
+            db_port: Database port (default 2881)
+            tenant_sys_user: System tenant user (default root@sys)
+            global_ssh_username: Global SSH username for all nodes
+            global_ssh_password: Global SSH password for all nodes
+            global_ssh_port: Global SSH port (default 22)
+            global_ssh_key_file: Global SSH key file path
+            global_home_path: Global OceanBase home directory
+            global_data_dir: Global data directory
+            global_redo_dir: Global redo log directory
+            obproxy_cluster_name: OBProxy cluster name (optional)
+            obproxy_nodes: OBProxy nodes (optional)
+            obproxy_global_ssh_username: OBProxy global SSH username
+            obproxy_global_ssh_password: OBProxy global SSH password
+            obproxy_global_ssh_port: OBProxy global SSH port
+            obproxy_global_home_path: OBProxy global home directory
+        """
+        args = {
+            "ob_cluster_name": ob_cluster_name,
+            "db_host": db_host,
+            "tenant_sys_password": tenant_sys_password,
+            "nodes": nodes,
+            "db_port": db_port,
+            "tenant_sys_user": tenant_sys_user,
+            "global_ssh_username": global_ssh_username,
+            "global_ssh_password": global_ssh_password,
+            "global_ssh_port": global_ssh_port,
+            "global_ssh_key_file": global_ssh_key_file,
+            "global_home_path": global_home_path,
+            "global_data_dir": global_data_dir,
+            "global_redo_dir": global_redo_dir,
+            "obproxy_cluster_name": obproxy_cluster_name,
+            "obproxy_nodes": obproxy_nodes,
+            "obproxy_global_ssh_username": obproxy_global_ssh_username,
+            "obproxy_global_ssh_password": obproxy_global_ssh_password,
+            "obproxy_global_ssh_port": obproxy_global_ssh_port,
+            "obproxy_global_home_path": obproxy_global_home_path,
+        }
 
-    try:
-        with open(output_path, "w", encoding="utf-8") as f:
-            yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        err = _validate_config_args(args)
+        if err:
+            return err
 
-        file_size = os.path.getsize(output_path)
-        if file_size == 0:
-            return f"Generated file is empty at {output_path}"
+        config = _build_config(args)
+        output_path = obdiag_path("config.yml")
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
 
-        msg = f"Configuration file generated successfully!\n\nOutput: {output_path}\nSize: {file_size} bytes\n"
-        if backup_path:
-            msg += f"Backup: {backup_path}\n"
-        msg += "\n" + yaml.dump(config, default_flow_style=False, allow_unicode=True, sort_keys=False)
-
-        if deps.stdio:
-            deps.stdio.verbose(f"Config generated at {output_path}")
-        return msg
-
-    except Exception as e:
-        if backup_path and os.path.exists(backup_path):
+        backup_path = None
+        if os.path.exists(output_path):
             try:
-                shutil.copy2(backup_path, output_path)
-            except Exception:
-                pass
-        return f"Failed to write config file: {e}"
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = f"{output_path}.backup_{ts}"
+                shutil.copy2(output_path, backup_path)
+            except Exception as e:
+                return f"Failed to backup existing config file: {e}"
+
+        try:
+            with open(output_path, "w", encoding="utf-8") as f:
+                yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                return f"Generated file is empty at {output_path}"
+
+            msg = f"Configuration file generated successfully!\n\nOutput: {output_path}\nSize: {file_size} bytes\n"
+            if backup_path:
+                msg += f"Backup: {backup_path}\n"
+            msg += "\n" + yaml.dump(config, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+            if stdio:
+                stdio.verbose(f"Config generated at {output_path}")
+            return msg
+
+        except Exception as e:
+            if backup_path and os.path.exists(backup_path):
+                try:
+                    shutil.copy2(backup_path, output_path)
+                except Exception:
+                    pass
+            return f"Failed to write config file: {e}"
+
+    return [generate_obdiag_config]

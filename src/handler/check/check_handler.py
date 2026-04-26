@@ -23,7 +23,7 @@ import os
 import queue
 import traceback
 import re
-import oyaml as yaml
+import yaml
 import datetime
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import signal

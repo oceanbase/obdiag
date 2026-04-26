@@ -19,7 +19,7 @@
 from prettytable import PrettyTable
 import datetime
 import os
-import oyaml as yaml
+import yaml
 import xmltodict
 import json
 from io import open
