@@ -45,6 +45,9 @@ class LockConflictScene(RcaScene):
             if self.observer_version is None or len(self.observer_version.strip()) == 0 or self.observer_version == "":
                 raise Exception("observer version is None. Please check the NODES conf.")
 
+            if self.ob_connector is None:
+                raise RCAInitException("ob_connector is None. Please check the NODES conf.")
+
             # Check for error_msg parameter (for log-based analysis)
             self.error_msg = self.input_parameters.get("error_msg")
 
