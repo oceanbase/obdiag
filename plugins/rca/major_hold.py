@@ -131,6 +131,9 @@ class MajorHoldScene(RcaScene):
             if not (self.observer_version == "4.0.0.0" or StringUtils.compare_versions_greater(self.observer_version, "4.0.0.0")):
                 raise Exception("observer version must be greater than 4.0.0.0. Please check the NODES conf.")
 
+            if self.ob_connector is None:
+                raise RCAInitException("ob_connector is None. Please check the NODES conf.")
+
             if not os.path.exists(self.local_path):
                 os.makedirs(self.local_path)
 
