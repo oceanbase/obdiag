@@ -4,3 +4,4 @@ proxy:
   info_cn: "obproxy 版本检查"
   tasks:
     - version.bad_version
+    - connection.diagnosis_connection_error
