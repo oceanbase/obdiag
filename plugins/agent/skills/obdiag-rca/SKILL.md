@@ -10,7 +10,7 @@ description: OceanBase 集群所有根因分析场景的统一 SOP。覆盖事�
 1. **rca_run 优先**：每个场景必须先尝试 `rca_run(scene=xxx)`，不得直接跳到手动步骤。
 2. **结果判断**：rca_run 输出含明确 `suggest` 或 `root cause` → 直接向用户汇报，结束；输出为"无法定位"或空 → 进入降级手动分析。
 3. **降级**：按本 skill 中对应场景的手动步骤执行，逐步推进，不要一次性调用大量工具。
-4. **场景参数**：部分 scene 需要 `--env` 参数（见各场景说明），调用前务必向用户确认。
+4. **场景参数**：部分 scene 需要 `--env` 参数（见各场景说明中"必填 env 参数"列）。**注意：agent 工具 `rca_run` 不支持传 env**，需要 env 参数的场景直接调用 `rca_run(scene="xxx")` 即可——obdiag 底层会自动读取上下文；若 rca_run 因缺少 env 参数而失败，直接进入手动降级分析步骤。
 
 ---
 
@@ -54,8 +54,8 @@ description: OceanBase 集群所有根因分析场景的统一 SOP。覆盖事�
 ### Step 1：收集必要参数后执行 rca_run
 
 ```
-rca_list()                         # 可选：确认 scene 名及所需参数
-rca_run(scene="<scene_name>")      # 有 env 参数时：rca_run(scene="xxx", env={"key": "val"})
+rca_list()                    # 可选：确认 scene 名及所需参数
+rca_run(scene="<scene_name>") # agent 工具只接受 scene 和 cluster_config_path，无 env 参数
 ```
 
 **若 rca_run 成功给出根因建议 → 向用户汇报，结束本 skill。**

@@ -51,8 +51,8 @@ check_cluster()
 
 | 告警类型 | 后续动作 |
 |----------|----------|
-| 磁盘空间不足、IO 异常 | `gather_sysstat()` + `tool_io_performance()` |
-| 内存/memstore 告警 | `check_cluster(cases="memory")` 精查 + `rca_run(scene="major_hold")` |
+| 磁盘空间不足、IO 异常 | 明确要 RCA 时加载 **`obdiag-rca`**；需要手动 SOP 时加载 **`observer-storage-space-troubleshooting`**，再配合 `gather_sysstat()` / `tool_io_performance()` |
+| 内存/memstore 告警 | `check_cluster(cases="memory")` 精查 + 加载 **`obdiag-rca`** skill 按症状选 scene（如 `memory_full`、`execute_memory_high`、`major_hold`）后调 `rca_run` |
 | 网络相关告警 | `gather_log(since="1h", grep="ERROR")` 过滤网络错误 |
 | 租户/Session 异常 | `check_cluster(cases="tenant")` + `gather_log` |
 | 参数配置不合理 | 向用户说明该参数的推荐值与风险 |
@@ -65,7 +65,10 @@ check_cluster()
 |----------|-----------------|
 | SQL 慢、执行计划异常 | `observer-sql-analysis` |
 | 有具体错误日志 / trace_id | `observer-log-analysis` |
-| OBProxy 连接问题 | `obproxy-log-analysis` |
+| OBProxy 日志采集/解读 | `obproxy-log-analysis` |
+| OBProxy/ODP 路由、弱读、读写分离、连接配置 | `obproxy-routing-troubleshooting` |
+| 日志盘/数据盘、-4184/-4264、文件系统、索引或副本空间 | `observer-storage-space-troubleshooting` |
+| 备份、归档、恢复窗口、OSS/COS/NFS、oblogminer | `backup-archive-restore-troubleshooting` |
 | 已知故障场景（断连、合并卡住等） | `obdiag-rca` skill → `rca_run` 优先 |
 | 性能抖动、CPU 高 | `obdiag-performance` |
 

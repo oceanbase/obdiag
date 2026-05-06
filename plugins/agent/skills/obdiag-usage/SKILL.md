@@ -94,9 +94,9 @@ gather_log(from_time="2024-01-01 10:00:00", to_time="2024-01-01 11:00:00", grep=
 
 | 参数 | 说明 |
 |------|------|
-| `scope` | `obproxy` / `obproxy_slow` / `obproxy_diagnosis` / `obproxy_error` / `all` |
+| `scope` | `obproxy` / `obproxy_limit` / `obproxy_stat` / `obproxy_digest` / `obproxy_slow` / `obproxy_diagnosis` / `obproxy_error` / `all` |
 | `recent_count` | 仅采集最近 N 个日志文件 |
-| 其余 | 同 gather_log |
+| 其余（`since`/`from_time`/`to_time`/`grep`/`store_dir`/`cluster_config_path`） | 同 gather_log |
 
 ### 3.3 gather_oms_log — OMS 组件日志
 
@@ -107,7 +107,8 @@ gather_log(from_time="2024-01-01 10:00:00", to_time="2024-01-01 11:00:00", grep=
 | `scope` | `all` / `ghana` / `supervisor` / `cm` / `cdc` / `libobcdc` / `store` / `console` / `nginx` |
 | `oms_component_id` | CDC 类采集必填，格式 `"IP-进程编号"`（如 `"192.168.1.1-1"`），在 OMS 控制台「组件管理」查询 |
 | `temp_dir` | 远端临时目录 |
-| 其余 | 同 gather_log |
+| `recent_count` | 仅采集最近 N 个日志文件 |
+| 其余（`since`/`from_time`/`to_time`/`grep`/`store_dir`/`cluster_config_path`） | 同 gather_log |
 
 ### 3.4 gather_sysstat — 系统资源快照
 
@@ -144,10 +145,18 @@ gather_perf()
 |------|------|
 | `since` / `from_time` / `to_time` | 时间范围 |
 | `cluster_name` / `cluster_id` | 覆盖集群标识 |
+| `store_dir` | 输出目录 |
+| `cluster_config_path` | 非默认集群名或路径 |
 
 ### 3.8 gather_plan_monitor — SQL 执行计划监控
 
 **仅用于采集指定 trace_id 的执行计划，不用于"收集日志"。收日志请用 gather_log(grep=trace_id)。**
+
+| 参数 | 说明 |
+|------|------|
+| `trace_id` | SQL trace ID（必填） |
+| `store_dir` | 输出目录 |
+| `cluster_config_path` | 非默认集群名或路径 |
 
 ```
 gather_plan_monitor(trace_id="Y123456789-0001")
@@ -192,18 +201,21 @@ check_list()
 
 | 参数 | 说明 |
 |------|------|
-| `cases` | observer 巡检 case 名（逗号分隔），如 `"tenant,disk"` |
-| `obproxy_cases` | OBProxy 巡检 case 名 |
-| `observer_tasks` | 指定 observer 具体任务名（逗号分隔） |
-| `obproxy_tasks` | 指定 OBProxy 具体任务名 |
+| `cases` | observer **套餐名**（来自 `observer_check_package.yaml` 的顶层 key，如 `"ad"`、`"k8s_basic"`、`"deep"`）；与 `observer_tasks` 互斥，`observer_tasks` 优先 |
+| `obproxy_cases` | OBProxy **套餐名**（来自 `obproxy_check_package.yaml`，如 `"proxy"`）；与 `obproxy_tasks` 互斥 |
+| `observer_tasks` | 指定 observer **具体任务名或正则**（**分号**分隔），如 `"cluster.*"` 或 `"disk.data_disk_full;cluster.no_leader"` |
+| `obproxy_tasks` | 指定 OBProxy **具体任务名或正则**（**分号**分隔） |
 | `store_dir` | 输出目录 |
+| `cluster_config_path` | 非默认集群的短名或完整路径 |
 
-所有参数均省略 → 执行完整默认巡检套件。
+所有参数均省略 → 加载全部任务，排除 `filter` 套餐中的项，执行完整默认巡检套件。
 
 ```
-check_cluster()                          # 全量巡检
-check_cluster(cases="tenant,disk")       # 只跑 tenant 和 disk 相关 case
-check_cluster(observer_tasks="disk.data_disk_full")  # 指定单个任务
+check_cluster()                                              # 全量巡检（排除 filter 套餐）
+check_cluster(cases="k8s_basic")                            # 跑 k8s_basic 套餐中的所有任务
+check_cluster(observer_tasks="cluster.*")                   # 只跑 cluster 目录下所有任务（正则匹配）
+check_cluster(observer_tasks="disk.data_disk_full;cluster.no_leader")  # 指定多个任务（分号分隔）
+check_cluster(cases="k8s_basic", cluster_config_path="prod")           # 指定非默认集群
 ```
 
 ---
@@ -220,8 +232,10 @@ rca_list()
 
 | 参数 | 说明 |
 |------|------|
-| `scene` | RCA 场景名（从 rca_list 获取） |
+| `scene` | RCA 场景名（从 rca_list 或 `obdiag-rca` skill 场景速查表获取） |
 | `cluster_config_path` | 非默认集群 |
+
+> **注意**：agent 工具 `rca_run` 不支持 `--env` 参数。部分 scene 在 CLI 层需要 `--env`，通过 agent 调用时直接传 `scene` 即可；若因缺少 env 参数导致失败，进入 `obdiag-rca` 手动降级步骤。
 
 ```
 rca_run(scene="disconnection")
@@ -229,8 +243,10 @@ rca_run(scene="major_hold")
 ```
 
 **行动原则**：
-1. 用户描述故障症状时，先调 `rca_list` 确认有无匹配场景，再调 `rca_run`。
-2. 无匹配场景时，转向 `gather_log` + `analyze_log` 手动排查。
+1. 用户描述故障症状时，加载 **`obdiag-rca`** skill，按其"场景速查表"将症状（如"合并卡住"、"断连"、"OOM"）映射到正确 `scene` 名称；再调 `rca_run`。
+2. 不确定 scene 时可先调 `rca_list` 确认 scene 在当前环境中可用。
+3. `rca_run` 无结论时，按 **`obdiag-rca`** 的手动降级步骤继续分析，不要直接告知用户"无法定位"。
+4. 完全无匹配场景时，转向 `gather_log` + `analyze_log` 手动排查。
 
 ---
 
@@ -248,8 +264,15 @@ tool_io_performance(date="20240101")     # 查历史数据
 
 使用 EXPLAIN 验证，**不实际执行 SQL**。
 
+| 参数 | 说明 |
+|------|------|
+| `sql` | 单条 SQL 语句（必填） |
+| `env` | 可选连接覆盖，字符串列表，格式 `["host=127.0.0.1", "port=2881", "user=root@sys"]` |
+| `cluster_config_path` | 非默认集群名或路径 |
+
 ```
 tool_sql_syntax(sql="SELECT * FROM t1 WHERE id = 1")
+tool_sql_syntax(sql="SELECT * FROM t1", env=["host=10.0.0.1", "port=2881"])
 ```
 
 ---
@@ -270,7 +293,7 @@ tool_sql_syntax(sql="SELECT * FROM t1 WHERE id = 1")
 | 活跃会话历史 | `gather_ash` |
 | AWR 性能报告 | `gather_awr` |
 | 按 trace_id 收执行计划 | `gather_plan_monitor` |
-| 集群健康巡检 | `check_list` → `check_cluster` |
+| 集群健康巡检 | `check_list` → `check_cluster`（全量默认）；`cases=套餐名` 或 `observer_tasks=任务名/正则` 缩小范围 |
 | 根因分析 | `rca_list` → `rca_run` |
 | 磁盘 IO 检测 | `tool_io_performance` |
 | SQL 语法验证 | `tool_sql_syntax` |

@@ -1,6 +1,6 @@
 ---
 name: obdiag-check-rca
-description: 标准 SOP：集群巡检 check_cluster/check_list 与根因分析 rca_run/rca_list。用户要健康检查、巡检或按场景 RCA 时使用；与 observer-log-analysis、observer-sql-analysis、obproxy-log-analysis 分工明确。
+description: 标准 SOP：集群巡检 check_cluster/check_list 与 RCA 入口（rca_run/rca_list）。用户要健康检查、巡检时使用；RCA 场景映射与手动降级详见 obdiag-rca skill；与 observer-log-analysis、observer-sql-analysis、obproxy-log-analysis 分工明确。
 ---
 
 # 巡检与根因分析（check / RCA）
@@ -17,7 +17,10 @@ description: 标准 SOP：集群巡检 check_cluster/check_list 与根因分析 
 |------|--------|------|
 | 收集 observer 日志、按 trace 过滤 | 本 skill | **`observer-log-analysis`**（`gather_log` / `analyze_log`） |
 | OBProxy 日志 | 本 skill | **`obproxy-log-analysis`**（`gather_obproxy_log` + 文件工具） |
+| OBProxy/ODP 路由、弱读、读写分离、连接配置 | 本 skill | **`obproxy-routing-troubleshooting`** |
 | 单条 SQL 计划 / trace 计划监控 | 本 skill | **`observer-sql-analysis`**（`gather_plan_monitor`、`db_query`） |
+| 日志盘/数据盘、文件系统、索引或副本空间的手动 SOP | 直接跳 RCA | **`observer-storage-space-troubleshooting`**；若用户要 RCA，仍先用本 skill → **`obdiag-rca`** |
+| 备份、归档、恢复窗口、OSS/COS/NFS、oblogminer | 本 skill | **`backup-archive-restore-troubleshooting`** |
 | 文档级「参数含义、官方怎么说」 | 本 skill | **`oceanbase-knowledge`** |
 
 ## 推荐流程
@@ -28,16 +31,18 @@ description: 标准 SOP：集群巡检 check_cluster/check_list 与根因分析 
    - 用户不确定有哪些检查项、或只要跑全量默认巡检时，**可跳过** `check_list` 直接执行 `check_cluster`。
    - 用户指定特定检查项（如"只跑 OBProxy 内存检查"）时，**先调 `check_list` 确认** 任务名或用例名存在再执行。
 2. 调用 **`check_cluster`** 执行巡检，支持以下参数：
-   - **Observer 侧**：`cases`（检查用例，逗号分隔）、`observer_tasks`（任务名，优先级高于 cases）
-   - **OBProxy 侧**：`obproxy_cases`（检查用例，逗号分隔）、`obproxy_tasks`（任务名，优先级高于 obproxy_cases）
-   - 示例：`check_cluster(obproxy_tasks="xxx_task")` 或 `check_cluster(cases="memory_check,disk_check")`
+   - **Observer 侧**：`cases`（**套餐名**，来自 `observer_check_package.yaml` 的顶层 key，如 `"ad"`、`"k8s_basic"`、`"deep"`）、`observer_tasks`（**具体任务名或正则，分号分隔**，如 `"cluster.*"` 或 `"disk.data_disk_full;cluster.no_leader"`，优先级高于 `cases`）
+   - **OBProxy 侧**：`obproxy_cases`（**套餐名**，如 `"proxy"`）、`obproxy_tasks`（**具体任务名或正则，分号分隔**，优先级高于 `obproxy_cases`）
+   - 示例：`check_cluster(observer_tasks="cluster.*")` 或 `check_cluster(cases="k8s_basic")`
 3. 需要落盘时传 **`store_dir`**。若用户点名 **非默认集群**，在 **`check_cluster`** 上传 **`cluster_config_path`**（短名如 `obdiag_test` 或完整 yml 路径）。
 4. 若结果里给出报告路径或采集目录，可用 **`file_list`** / **`file_read`** 查看 HTML/文本报告摘要。
 
 ### 根因分析（RCA）
 
-1. 调用 **`rca_list`** 查看可用 **scene** 名称（同样基于当前活跃集群配置）。
-2. 用户确认或你根据现象选定 **`scene`** 后，调用 **`rca_run`**，传入 **`scene`**；非默认集群加 **`cluster_config_path`**。
+1. **症状 → scene 映射**：优先加载 **`obdiag-rca`** skill，按其"场景速查表"将用户描述的症状（如"合并卡住"、"断连"、"OOM"）匹配到正确 `scene` 名称；不要凭感觉猜测 scene。
+2. 可选：调用 **`rca_list`** 确认该 scene 在当前环境中可用。
+3. 调用 **`rca_run(scene="<scene_name>")`**；非默认集群加 **`cluster_config_path`**。
+4. **rca_run 无结论时**：按 **`obdiag-rca`** 中对应场景的手动降级步骤继续分析，不要直接告知用户"无法定位"。
 
 ## 阶段完成标准（SOP）
 
