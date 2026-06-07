@@ -147,6 +147,12 @@ class MajorHoldScene(RcaScene):
         err_tenant_ids = []
         self.record.add_record("Starting major compaction hold diagnosis...")
 
+        try:
+            self.record.add_record("Step 0: Checking compaction_low_thread_score for all tenants")
+            self._check_compaction_low_thread_score(self.record)
+        except Exception as e:
+            self.stdio.warn("Error checking compaction_low_thread_score: {0}".format(e))
+
         # Step 1: Check for compaction errors (IS_ERROR='YES')
         try:
             self.record.add_record("Step 1: Checking CDB_OB_MAJOR_COMPACTION for errors")
@@ -285,6 +291,24 @@ class MajorHoldScene(RcaScene):
                     # Alert if speed is very low
                     if speed_mbps < 1 and elapsed > 600:  # < 1MB/s after 10 minutes
                         self.record.add_suggest("Very slow compaction detected for tenant {0} ({1:.2f} MB/s). " "Check disk I/O, memory pressure, or DAG scheduler status.".format(tenant_id, speed_mbps))
+
+    def _check_compaction_low_thread_score(self, record):
+        sql = """
+            SELECT tenant_id, zone, svr_ip, svr_port, name, value, info, section, scope, edit_level
+            FROM oceanbase.__all_virtual_tenant_parameter_info
+            WHERE name = 'compaction_low_thread_score'
+            ORDER BY tenant_id, zone, svr_ip, svr_port;
+        """
+        parameter_data = self._execute_sql_safe(sql, "check compaction_low_thread_score")
+        if not parameter_data:
+            record.add_record("No compaction_low_thread_score parameter data found")
+            return
+
+        self._save_to_file("compaction_low_thread_score.json", parameter_data)
+        record.add_record("Collected compaction_low_thread_score for {0} tenant/server scope rows".format(len(parameter_data)))
+        zero_value_rows = [row for row in parameter_data if str(row.get("value", "")).strip() == "0"]
+        if zero_value_rows:
+            record.add_record("compaction_low_thread_score value 0 means OceanBase uses the internal default thread score")
 
     def _diagnose_tenant(self, err_tenant_id):
         """
