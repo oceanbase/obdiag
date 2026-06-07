@@ -52,7 +52,7 @@ else
     for py in python3.12 python3.11 python3; do
         if command -v $py >/dev/null 2>&1; then
             version=$($py -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-            if [ "$(echo "$version >= 3.11" | bc -l 2>/dev/null || echo 0)" -eq 1 ]; then
+            if $py -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"; then
                 PYTHON=$py
                 echo "Using Python: $PYTHON (version $version)"
                 break
