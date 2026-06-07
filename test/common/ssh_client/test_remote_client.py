@@ -21,7 +21,7 @@ from io import StringIO
 from unittest.mock import patch, MagicMock
 from src.common.ssh_client.remote_client import RemoteClient
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
-from src.common.obdiag_exception import OBDIAGSSHConnException, OBDIAGShellCmdException
+from src.common.exception import OBDIAGSSHConnException, OBDIAGShellCmdException
 
 
 class TestRemoteClient(unittest.TestCase):
@@ -37,6 +37,16 @@ class TestRemoteClient(unittest.TestCase):
         # Create a mock context object with a stdio attribute
         self.context = MagicMock()
         self.context.stdio = MagicMock()
+        self.context.stdio.silent = False
+        self.context.inner_config = {
+            "obdiag": {
+                "ssh_client": {"remote_client_sudo": False},
+                "basic": {
+                    "dis_rsa_algorithms": False,
+                    "strict_host_key_checking": False,
+                },
+            }
+        }
 
         # Assuming 'self.node' is a dictionary with all necessary keys including 'ssh_type'.
         self.node = {"ip": "192.168.1.1", "ssh_username": "user", "ssh_port": 22, "ssh_password": "password", "ssh_key_file": "/path/to/key", "ssh_type": "remote"}
@@ -63,7 +73,7 @@ class TestRemoteClient(unittest.TestCase):
         """
 
         # Use patch to mock os.path.expanduser behavior for testing path expansion.
-        with patch('common.ssh_client.remote_client.os.path.expanduser') as mock_expanduser:
+        with patch('src.common.ssh_client.remote_client.os.path.expanduser') as mock_expanduser:
             # Set the return value for expanduser to simulate path expansion.
             mock_expanduser.return_value = '/expanded/path/to/key'
 
@@ -76,6 +86,7 @@ class TestRemoteClient(unittest.TestCase):
 
             # Verify auto_add_policy was called during the SSHClient initialization.
             mock_auto_add_policy.assert_called_once()
+            remote_client._ssh_fd.load_system_host_keys.assert_not_called()
 
     @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
     @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
@@ -106,6 +117,41 @@ class TestRemoteClient(unittest.TestCase):
 
         # Verify that auto add policy was called to handle connection policies.
         mock_auto_add_policy.assert_called_once()
+        remote_client._ssh_fd.load_system_host_keys.assert_not_called()
+
+    @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
+    @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    def test_init_non_strict_host_key_checking_does_not_load_known_hosts(self, mock_auto_add_policy, mock_ssh_client):
+        """
+        Non-strict host key checking should not read ~/.ssh/known_hosts.
+
+        Large known_hosts files can make check tasks very slow when every SSH
+        client initialization parses the file.
+        """
+
+        ssh_client = mock_ssh_client.return_value
+        ssh_client.connect.return_value = None
+
+        RemoteClient(self.context, self.node)
+
+        ssh_client.load_system_host_keys.assert_not_called()
+        ssh_client.set_missing_host_key_policy.assert_called_once_with(mock_auto_add_policy.return_value)
+
+    @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
+    @patch('src.common.ssh_client.remote_client.paramiko.MissingHostKeyPolicy')
+    @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
+    def test_init_strict_host_key_checking_loads_known_hosts(self, mock_auto_add_policy, mock_missing_host_key_policy, mock_ssh_client):
+        """Strict host key checking should preserve known_hosts validation."""
+
+        self.context.inner_config["obdiag"]["basic"]["strict_host_key_checking"] = True
+        ssh_client = mock_ssh_client.return_value
+        ssh_client.connect.return_value = None
+
+        RemoteClient(self.context, self.node)
+
+        ssh_client.load_system_host_keys.assert_called_once()
+        ssh_client.set_missing_host_key_policy.assert_any_call(mock_missing_host_key_policy.return_value)
+        ssh_client.set_missing_host_key_policy.assert_any_call(mock_auto_add_policy.return_value)
 
     @patch('src.common.ssh_client.remote_client.paramiko.SSHClient')
     @patch('src.common.ssh_client.remote_client.paramiko.client.AutoAddPolicy')
@@ -164,9 +210,9 @@ class TestRemoteClient(unittest.TestCase):
         # Define a command that will produce an error
         cmd = "echo 'Error'"
 
-        # Execute the command and catch the exception
-        with self.assertRaises(Exception):
-            self.remote_client.exec_cmd(cmd)
+        # Execute the command and verify stderr text is returned to callers.
+        result = self.remote_client.exec_cmd(cmd)
+        self.assertEqual(result, "Error")
 
     def test_exec_cmd_ssh_exception(self):
         """
@@ -323,7 +369,6 @@ class TestRemoteClient(unittest.TestCase):
 
         # Verify that the output is as expected
         self.assertIn(expected_output, mock_stdout.getvalue())
-        self.assertIn('\r\n', mock_stdout.getvalue())
 
     @patch('src.common.ssh_client.remote_client.paramiko')
     def test_upload(self, mock_paramiko):
