@@ -100,7 +100,7 @@ OBDIAG_TOOL_SUMMARY_ZH: Dict[str, str] = {
     "rca_run": "执行根因分析（RCA）",
     "rca_list": "列出 RCA 场景",
     "tool_io_performance": "检查节点磁盘 IO",
-    "tool_sql_syntax": "用 EXPLAIN 验证 SQL 语法/语义（不执行）",
+    "tool_sql_syntax": "用 EXPLAIN/PREPARE 验证 SQL 语法/语义（不执行）",
     "list_obdiag_clusters": "列出 obdiag 集群配置",
     "show_current_cluster": "显示当前会话集群与配置路径",
     "db_query": "对集群执行只读 SQL",
@@ -771,7 +771,7 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
         env: Optional[List[str]] = None,
         cluster_config_path: Optional[str] = None,
     ) -> str:
-        """Validate SQL syntax/semantics using EXPLAIN — does not execute the statement (obdiag tool sql_syntax).
+        """Validate SQL syntax/semantics using EXPLAIN/PREPARE — does not execute the statement (obdiag tool sql_syntax).
 
         Args:
             sql: Single SQL statement to check
