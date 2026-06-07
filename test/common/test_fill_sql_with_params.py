@@ -81,6 +81,24 @@ class TestFillSQLWithParams(unittest.TestCase):
         expected = "SELECT * FROM users WHERE id = 100 AND name = ?"
         self.assertEqual(result, expected)
 
+    def test_question_mark_in_string_literal_is_not_placeholder(self):
+        sql = "SELECT * FROM users WHERE remark = '?' AND id = ?"
+        params = "100"
+        result = self.string_utils.fill_sql_with_params(sql, params, self.string_utils.stdio)
+        expected = "SELECT * FROM users WHERE remark = '?' AND id = 100"
+        self.assertEqual(result, expected)
+
+    def test_question_mark_in_comments_is_not_placeholder(self):
+        sql = "SELECT /* ? */ * FROM users WHERE id = ? -- ?\nAND name = ?"
+        params = "100, 'Alice'"
+        result = self.string_utils.fill_sql_with_params(sql, params, self.string_utils.stdio)
+        expected = "SELECT /* ? */ * FROM users WHERE id = 100 -- ?\nAND name = 'Alice'"
+        self.assertEqual(result, expected)
+
+    def test_has_sql_placeholder_ignores_literals_and_comments(self):
+        self.assertFalse(self.string_utils.has_sql_placeholder("SELECT '?' /* ? */ -- ?\n"))
+        self.assertTrue(self.string_utils.has_sql_placeholder("SELECT * FROM users WHERE id = ?"))
+
 
 if __name__ == '__main__':
     unittest.main()
