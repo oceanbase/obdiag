@@ -64,7 +64,6 @@ class RemoteClient(SsherClient):
                 self._ssh_fd = paramiko.SSHClient()
                 if remote_client_missing_host_key_policy:
                     self._ssh_fd.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-                else:
                     self._ssh_fd.load_system_host_keys()
                 self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 self._ssh_fd.connect(hostname=self.host_ip, username=self.username, key_filename=self.key_file, port=self.ssh_port, disabled_algorithms=self._disabled_rsa_algorithms)
@@ -78,7 +77,6 @@ class RemoteClient(SsherClient):
             self._ssh_fd = paramiko.SSHClient()
             if remote_client_missing_host_key_policy:
                 self._ssh_fd.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-            else:
                 self._ssh_fd.load_system_host_keys()
             self._ssh_fd.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
             self.need_password = True
