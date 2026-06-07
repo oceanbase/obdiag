@@ -22,6 +22,7 @@ from src.handler.analyzer.sql.rules.abstract_rule import AbstractRule
 from src.handler.analyzer.sql.rules.result import Result
 from src.handler.analyzer.sql.rules.review.arithmetic import ArithmeticRule
 from src.handler.analyzer.sql.rules.review.full_scan import FullScanRule
+from src.handler.analyzer.sql.rules.review.function_index_or_predicate import FunctionIndexOrPredicateRule
 from src.handler.analyzer.sql.rules.review.is_null import IsNullRule
 from src.handler.analyzer.sql.rules.review.large_in_clause import LargeInClauseAdjustedRule
 from src.handler.analyzer.sql.rules.review.multi_table_join import MultiTableJoinRule
@@ -78,6 +79,7 @@ class SQLReviewRuleManager(object):
         self.manager = RuleManager()
         self.manager.register_rule(SelectAllRule)
         self.manager.register_rule(ArithmeticRule)
+        self.manager.register_rule(FunctionIndexOrPredicateRule)
         self.manager.register_rule(FullScanRule)
         self.manager.register_rule(IsNullRule)
         self.manager.register_rule(LargeInClauseAdjustedRule)
