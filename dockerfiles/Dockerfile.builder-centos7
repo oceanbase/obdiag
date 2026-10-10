@@ -28,10 +28,13 @@ RUN /opt/miniconda3/bin/conda create --name obdiag python=3.11 -y
 RUN source /opt/miniconda3/bin/activate obdiag
 RUN /opt/miniconda3/envs/obdiag/bin/python3  -m pip install --upgrade pip setuptools wheel
 # pydantic-ai stack often builds Rust extensions on el7 (no matching manylinux wheel); need cargo + link deps.
-RUN yum install -y gcc gcc-c++ make curl openssl-devel \
+# CentOS 7 需要从源码构建 Pillow；JPEG 和 zlib 的头文件是其默认必需依赖。
+RUN yum install -y gcc gcc-c++ make curl openssl-devel libjpeg-turbo-devel zlib-devel \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
     && rm -rf /root/.rustup/toolchains/*/share/doc
 ENV PATH="/root/.cargo/bin:${PATH}"
+# CentOS 7 的 GCC 默认使用 GNU89；Pillow 的 C 源码需要 C99，且此参数不能用于 C++。
+ENV CFLAGS="-std=gnu99"
 
 # Never run `make pack` with cwd `/`: download_obstack ends with `rm -rf ./usr` which becomes `rm -rf /usr` and destroys the image.
 WORKDIR /obdiag
