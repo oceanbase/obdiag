@@ -19,6 +19,7 @@ from __future__ import absolute_import, division, print_function
 import os
 from src.common.file_crypto.file_crypto import FileEncryptor
 from src.common.tool import ConfigOptionsParserUtil, DirectoryUtil
+from src.common.path_utils import validate_config_path
 from src.common.stdio import SafeStdio
 import yaml
 import pathlib
@@ -220,15 +221,18 @@ class ConfigManager(Manager):
         ob_cluster = self.config_data.get('obcluster', {})
         nodes = ob_cluster.get('servers', {}).get('nodes', [])
 
-        def create_ob_cluster_node(node_config, global_config):
+        def create_ob_cluster_node(node_config, global_config, node_index):
+            home_path = validate_config_path(node_config.get('home_path', global_config.get('home_path', '/root/observer')), 'obcluster.servers.nodes[{0}].home_path'.format(node_index))
+            data_dir = validate_config_path(node_config.get('data_dir', global_config.get('data_dir', '/root/observer/store')), 'obcluster.servers.nodes[{0}].data_dir'.format(node_index))
+            redo_dir = validate_config_path(node_config.get('redo_dir', global_config.get('redo_dir', '/root/observer/store')), 'obcluster.servers.nodes[{0}].redo_dir'.format(node_index))
             return {
                 'ip': node_config.get('ip'),
                 'ssh_username': node_config.get('ssh_username', global_config.get('ssh_username')),
                 'ssh_password': node_config.get('ssh_password', global_config.get('ssh_password')),
                 'ssh_port': node_config.get('ssh_port', global_config.get('ssh_port', 22)),
-                'home_path': node_config.get('home_path', global_config.get('home_path', '/root/observer')),
-                'data_dir': node_config.get('data_dir', global_config.get('data_dir', '/root/observer/store')),
-                'redo_dir': node_config.get('redo_dir', global_config.get('redo_dir', '/root/observer/store')),
+                'home_path': home_path,
+                'data_dir': data_dir,
+                'redo_dir': redo_dir,
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
                 'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
                 'container_name': node_config.get('container_name', global_config.get('container_name', '')),
@@ -239,7 +243,7 @@ class ConfigManager(Manager):
             }
 
         global_config = ob_cluster.get('servers', {}).get('global', {})
-        ob_cluster_nodes = [create_ob_cluster_node(node, global_config) for node in nodes]
+        ob_cluster_nodes = [create_ob_cluster_node(node, global_config, index) for index, node in enumerate(nodes)]
 
         return {
             'ob_cluster_name': ob_cluster.get('ob_cluster_name'),
@@ -257,13 +261,14 @@ class ConfigManager(Manager):
         ob_proxy = self.config_data.get('obproxy', {})
         nodes = ob_proxy.get('servers', {}).get('nodes', [])
 
-        def create_ob_proxy_node(node_config, global_config):
+        def create_ob_proxy_node(node_config, global_config, node_index):
+            home_path = validate_config_path(node_config.get('home_path', global_config.get('home_path', '/root/obproxy')), 'obproxy.servers.nodes[{0}].home_path'.format(node_index))
             return {
                 'ip': node_config.get('ip'),
                 'ssh_username': node_config.get('ssh_username', global_config.get('ssh_username', '')),
                 'ssh_password': node_config.get('ssh_password', global_config.get('ssh_password', '')),
                 'ssh_port': node_config.get('ssh_port', global_config.get('ssh_port', 22)),
-                'home_path': node_config.get('home_path', global_config.get('home_path', '/root/obproxy')),
+                'home_path': home_path,
                 'ssh_key_file': node_config.get('ssh_key_file', global_config.get('ssh_key_file', '')),
                 'ssh_type': node_config.get('ssh_type', global_config.get('ssh_type', 'remote')),
                 'container_name': node_config.get('container_name', global_config.get('container_name')),
@@ -274,7 +279,7 @@ class ConfigManager(Manager):
             }
 
         global_config = ob_proxy.get('servers', {}).get('global', {})
-        ob_proxy_nodes = [create_ob_proxy_node(node, global_config) for node in nodes]
+        ob_proxy_nodes = [create_ob_proxy_node(node, global_config, index) for index, node in enumerate(nodes)]
 
         return {
             'obproxy_cluster_name': ob_proxy.get('obproxy_cluster_name'),

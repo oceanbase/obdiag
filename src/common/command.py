@@ -15,10 +15,12 @@
 @file: command.py
 @desc:
 """
+import posixpath
 import re
 import subprocess
 import traceback
 from src.common.ob_connector import OBConnector
+from src.common.path_utils import quote_shell_path
 from src.common.ssh_client.ssh import SshClient
 from src.common.tool import TimeUtils
 
@@ -282,7 +284,9 @@ def get_observer_commit_id_by_sql(context, obcluster):
 
 
 def get_observer_commit_id_by_ssh(ssh_client, ob_install_dir, stdio):
-    cmd = "{ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+    observer_bin = quote_shell_path(posixpath.join(ob_install_dir, "bin/observer"))
+    observer_lib = quote_shell_path(posixpath.join(ob_install_dir, "lib"))
+    cmd = "{0} --version".format(observer_bin)
     ob_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get observer version, run cmd = [{0}] ".format(cmd))
     if ob_version_info is not None:
@@ -291,7 +295,7 @@ def get_observer_commit_id_by_ssh(ssh_client, ob_install_dir, stdio):
             result = re.sub(r'[a-zA-Z]', '', ob_version[0])
             return result.strip()
         else:
-            cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+            cmd = "export LD_LIBRARY_PATH={0} && {1} --version".format(observer_lib, observer_bin)
             ob_version_info = ssh_client.exec_cmd(cmd)
             stdio.verbose("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
             if "REVISION" not in ob_version_info:
@@ -306,7 +310,9 @@ def get_observer_version_by_ssh(ssh_client, ob_install_dir, stdio):
     :return:
     """
     ob_version = ""
-    cmd = "{ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+    observer_bin = quote_shell_path(posixpath.join(ob_install_dir, "bin/observer"))
+    observer_lib = quote_shell_path(posixpath.join(ob_install_dir, "lib"))
+    cmd = "{0} --version".format(observer_bin)
     ob_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get observer version, run cmd = [{0}] ".format(cmd))
     if ob_version_info is not None:
@@ -315,7 +321,7 @@ def get_observer_version_by_ssh(ssh_client, ob_install_dir, stdio):
             result = re.sub(r'[a-zA-Z]', '', ob_version[0])
             return result.strip()
         else:
-            cmd = "export LD_LIBRARY_PATH={ob_install_dir}/lib && {ob_install_dir}/bin/observer --version".format(ob_install_dir=ob_install_dir)
+            cmd = "export LD_LIBRARY_PATH={0} && {1} --version".format(observer_lib, observer_bin)
             ob_version_info = ssh_client.exec_cmd(cmd)
             stdio.verbose("get observer version with LD_LIBRARY_PATH,cmd:{0}".format(cmd))
             if "REVISION" not in ob_version_info:
@@ -335,7 +341,9 @@ def get_obproxy_version(context):
     if len(obproxy_nodes) < 1:
         raise Exception("obproxy_nodes is not exist. get_obproxy_version fail")
     obproxy_install_dir = obproxy_nodes[0]["home_path"]
-    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+    obproxy_bin = quote_shell_path(posixpath.join(obproxy_install_dir, "bin/obproxy"))
+    obproxy_lib = quote_shell_path(posixpath.join(obproxy_install_dir, "lib"))
+    cmd = "{0} --version".format(obproxy_bin)
     ssh_client = SshClient(context, obproxy_nodes[0])
     obproxy_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get obproxy version, run cmd = [{0}] ".format(cmd))
@@ -345,7 +353,7 @@ def get_obproxy_version(context):
         if len(ob_version) > 0:
             return ob_version[0]
         else:
-            cmd = "export LD_LIBRARY_PATH={obproxy_install_dir}/lib && {obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+            cmd = "export LD_LIBRARY_PATH={0} && {1} --version".format(obproxy_lib, obproxy_bin)
             obproxy_version_info = ssh_client.exec_cmd(cmd)
             stdio.verbose("get obproxy version with LD_LIBRARY_PATH,cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
@@ -373,7 +381,9 @@ def get_obproxy_full_version(context):
     if len(obproxy_nodes) < 1:
         raise Exception("obproxy_nodes is not exist. get_obproxy_full_version fail")
     obproxy_install_dir = obproxy_nodes[0]["home_path"]
-    cmd = "{obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+    obproxy_bin = quote_shell_path(posixpath.join(obproxy_install_dir, "bin/obproxy"))
+    obproxy_lib = quote_shell_path(posixpath.join(obproxy_install_dir, "lib"))
+    cmd = "{0} --version".format(obproxy_bin)
     ssh_client = SshClient(context, obproxy_nodes[0])
     obproxy_version_info = ssh_client.exec_cmd(cmd)
     stdio.verbose("get obproxy full version, run cmd = [{0}] ".format(cmd))
@@ -385,7 +395,7 @@ def get_obproxy_full_version(context):
             return match.group(1).strip()
         else:
             # Try with LD_LIBRARY_PATH if first attempt fails
-            cmd = "export LD_LIBRARY_PATH={obproxy_install_dir}/lib && {obproxy_install_dir}/bin/obproxy --version".format(obproxy_install_dir=obproxy_install_dir)
+            cmd = "export LD_LIBRARY_PATH={0} && {1} --version".format(obproxy_lib, obproxy_bin)
             obproxy_version_info = ssh_client.exec_cmd(cmd)
             stdio.verbose("get obproxy full version with LD_LIBRARY_PATH, cmd:{0}, result:{1}".format(cmd, obproxy_version_info))
             if "REVISION" not in obproxy_version_info:
@@ -423,7 +433,8 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
     get observer pid
     :return: list of observer pids (only valid integers for existing processes)
     """
-    pid_file_path = "{ob_install_dir}/run/observer.pid".format(ob_install_dir=ob_install_dir)
+    pid_file_path = posixpath.join(ob_install_dir, "run/observer.pid")
+    observer_bin = posixpath.join(ob_install_dir, "bin/observer")
 
     def _valid_pids(pid_list):
         """Filter to valid positive integers only."""
@@ -441,7 +452,7 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
             return []
 
     try:
-        cmd = "cat {}".format(pid_file_path)
+        cmd = "cat -- {}".format(quote_shell_path(pid_file_path))
         pids = ssh_client.exec_cmd(cmd)
         pid_list = _valid_pids(pids.split())
         stdio.verbose("Get observer pid from file, run cmd = [{0}], result:{1} ".format(cmd, pid_list))
@@ -454,7 +465,7 @@ def get_observer_pid(ssh_client, ob_install_dir, stdio=None):
         stdio.exception(f"Failed to read observer pid file {pid_file_path}, error: {e}")
 
     try:
-        cmd = "ps -ef | grep '{}/bin/observer' | grep -v grep".format(ob_install_dir)
+        cmd = "ps -ef | grep -F -- {0} | grep -v grep".format(quote_shell_path(observer_bin))
         result = ssh_client.exec_cmd(cmd)
         processes = result.splitlines()
 
@@ -480,7 +491,8 @@ def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
     :param stdio: stdio for logging
     :return: list of obproxy pids (only valid integers for existing processes)
     """
-    run_dir = "{obproxy_install_dir}/run".format(obproxy_install_dir=obproxy_install_dir)
+    run_dir = posixpath.join(obproxy_install_dir, "run")
+    obproxy_bin = posixpath.join(obproxy_install_dir, "bin/obproxy")
 
     def _valid_pids(pid_list):
         """Filter to valid positive integers only."""
@@ -499,7 +511,7 @@ def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
 
     # Read obproxy-*.pid only (excludes obproxyd-*.pid)
     try:
-        cmd = "find {run_dir} -maxdepth 1 -name 'obproxy-*.pid' -exec cat {{}} \\; 2>/dev/null".format(run_dir=run_dir)
+        cmd = "find {0} -maxdepth 1 -name 'obproxy-*.pid' -exec cat {{}} \\; 2>/dev/null".format(quote_shell_path(run_dir))
         pids = ssh_client.exec_cmd(cmd)
         pid_list = _valid_pids(pids.split()) if pids else []
         if stdio:
@@ -515,7 +527,7 @@ def get_obproxy_pid(ssh_client, obproxy_install_dir, stdio=None):
             stdio.verbose("Failed to read obproxy pid files in {0}, error: {1}".format(run_dir, e))
 
     try:
-        cmd = "ps -ef | grep '{}/bin/obproxy' | grep -v grep".format(obproxy_install_dir)
+        cmd = "ps -ef | grep -F -- {0} | grep -v grep".format(quote_shell_path(obproxy_bin))
         result = ssh_client.exec_cmd(cmd)
         processes = result.splitlines()
 
