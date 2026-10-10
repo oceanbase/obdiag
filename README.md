@@ -57,6 +57,8 @@ The path of the configuration file for the diagnosed cluster is stored in `~/.ob
 obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ```
 
+The `home_path`, `data_dir`, and `redo_dir` values must be absolute POSIX paths, `~`, or paths that start with `~/`. Use only letters, numbers, `/`, `.`, `_`, `-`, `@`, `%`, `+`, `=`, `:`, and `,` in these values. obdiag rejects empty, relative, or otherwise unsupported paths before starting cluster processing; correct the reported field in the configuration file and run the command again.
+
 # obdiag Fuctions
 - One-click cluster inspection
 - One-click diagnostic analyze

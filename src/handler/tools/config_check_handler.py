@@ -16,9 +16,11 @@
 @desc: Handler for checking config validity including DB connection and SSH connection
 """
 
+import posixpath
 import threading
 from src.common.result_type import ObdiagResult
 from src.common.ob_connector import OBConnector
+from src.common.path_utils import quote_shell_path
 from src.common.ssh_client.ssh import SshClient
 from colorama import Fore, Style
 
@@ -274,7 +276,7 @@ class ConfigCheckHandler:
                 if node_type == "observer":
                     # Check home_path/bin/observer exists
                     if home_path:
-                        observer_bin = "{0}/bin/observer".format(home_path)
+                        observer_bin = quote_shell_path(posixpath.join(home_path, "bin/observer"))
                         check_observer = ssh_client.exec_cmd("test -f {0} && echo 'yes' || echo 'no'".format(observer_bin))
                         if check_observer and check_observer.strip() == "yes":
                             path_check_display.append(Fore.GREEN + "      ✓ bin/observer found" + Style.RESET_ALL)
@@ -284,7 +286,7 @@ class ConfigCheckHandler:
 
                     # Check data_dir/sstable exists
                     if data_dir:
-                        sstable_path = "{0}/sstable".format(data_dir)
+                        sstable_path = quote_shell_path(posixpath.join(data_dir, "sstable"))
                         check_sstable = ssh_client.exec_cmd("test -d {0} && echo 'yes' || echo 'no'".format(sstable_path))
                         if check_sstable and check_sstable.strip() == "yes":
                             path_check_display.append(Fore.GREEN + "      ✓ data_dir/sstable found" + Style.RESET_ALL)
@@ -294,7 +296,7 @@ class ConfigCheckHandler:
 
                     # Check redo_dir/clog exists
                     if redo_dir:
-                        clog_path = "{0}/clog".format(redo_dir)
+                        clog_path = quote_shell_path(posixpath.join(redo_dir, "clog"))
                         check_clog = ssh_client.exec_cmd("test -d {0} && echo 'yes' || echo 'no'".format(clog_path))
                         if check_clog and check_clog.strip() == "yes":
                             path_check_display.append(Fore.GREEN + "      ✓ redo_dir/clog found" + Style.RESET_ALL)
@@ -304,7 +306,7 @@ class ConfigCheckHandler:
                 else:
                     # For obproxy nodes, check home_path/bin/obproxy exists
                     if home_path:
-                        obproxy_bin = "{0}/bin/obproxy".format(home_path)
+                        obproxy_bin = quote_shell_path(posixpath.join(home_path, "bin/obproxy"))
                         check_obproxy = ssh_client.exec_cmd("test -f {0} && echo 'yes' || echo 'no'".format(obproxy_bin))
                         if check_obproxy and check_obproxy.strip() == "yes":
                             path_check_display.append(Fore.GREEN + "      ✓ bin/obproxy found" + Style.RESET_ALL)

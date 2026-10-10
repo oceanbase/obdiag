@@ -18,6 +18,7 @@
 from src.common.ssh_client.ssh import SshClient
 from src.common.tool import Util
 from src.common.result_type import ObdiagResult
+from src.common.path_utils import quote_shell_path
 
 
 class IoPerformanceHandler:
@@ -59,7 +60,7 @@ class IoPerformanceHandler:
                     self.stdio.error("redo_dir is not configured for node {0}".format(node.get("ip")))
                     return None
                 # Find clog directory
-                cmd = 'find {0}/ -name "clog" -type d 2>/dev/null | head -1'.format(redo_dir)
+                cmd = 'find {0} -name "clog" -type d 2>/dev/null | head -1'.format(quote_shell_path(redo_dir))
                 self.stdio.verbose("Executing: {0}".format(cmd))
                 log_dir_path = ssh_client.exec_cmd(cmd).strip()
                 if not log_dir_path:
@@ -71,7 +72,7 @@ class IoPerformanceHandler:
                     self.stdio.error("data_dir is not configured for node {0}".format(node.get("ip")))
                     return None
                 # Find sstable directory
-                cmd = 'find {0}/ -name "sstable" -type d 2>/dev/null | head -1'.format(data_dir)
+                cmd = 'find {0} -name "sstable" -type d 2>/dev/null | head -1'.format(quote_shell_path(data_dir))
                 self.stdio.verbose("Executing: {0}".format(cmd))
                 log_dir_path = ssh_client.exec_cmd(cmd).strip()
                 if not log_dir_path:
@@ -81,7 +82,9 @@ class IoPerformanceHandler:
                 return None
 
             # Get the disk device name
-            cmd = 'device=$(df -P {0} | awk \'NR==2{{print $1}}\') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done'.format(log_dir_path)
+            cmd = 'device=$(df -P {0} | awk \'NR==2{{print $1}}\') && while [[ -n $device ]]; do parent=$(lsblk -no PKNAME $device 2>/dev/null); if [[ -n $parent ]]; then device=$parent; else echo $device; break; fi; done'.format(
+                quote_shell_path(log_dir_path)
+            )
             self.stdio.verbose("Executing: {0}".format(cmd))
             disk_device = ssh_client.exec_cmd(cmd).strip()
             # Extract device name (e.g., /dev/sda -> sda)

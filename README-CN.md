@@ -57,6 +57,8 @@ source ~/.bashrc
 obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 ```
 
+`home_path`、`data_dir` 和 `redo_dir` 必须是 POSIX 绝对路径、`~` 或以 `~/` 开头的路径，路径中仅可使用字母、数字、`/`、`.`、`_`、`-`、`@`、`%`、`+`、`=`、`:` 和 `,`。obdiag 会在开始处理集群前拒绝空路径、相对路径或其他不支持的路径；请根据错误信息修正配置文件中的对应字段，然后重新运行命令。
+
 # obdiag 功能
 - 一键集群巡检
 - 一键诊断分析
