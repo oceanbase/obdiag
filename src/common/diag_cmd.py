@@ -1369,7 +1369,7 @@ class ObdiagToolSqlSyntaxCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagToolSqlSyntaxCommand, self).__init__(
             'sql_syntax',
-            'obdiag tool sql_syntax. Validate SQL against a live OceanBase instance using EXPLAIN (no execution of the original statement)',
+            'obdiag tool sql_syntax. Validate SQL against a live OceanBase instance using EXPLAIN/PREPARE (no execution of the original statement)',
         )
         self.parser.add_option('--sql', type='string', help='SQL statement to validate (single statement only)')
         self.parser.add_option('--env', action='append', type='string', help='Connection override: --env key=value (host, port, user, password/pwd, database/db)')
