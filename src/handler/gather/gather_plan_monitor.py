@@ -1187,6 +1187,8 @@ class GatherPlanMonitorHandler(object):
             return False
         if len(raw_sql) > 1000 and (ctrl / float(len(raw_sql))) > 0.001:
             return False
+        if StringUtils.has_sql_placeholder(raw_sql):
+            return False
         # Long INSERT from audit frequently embeds blob/hex; EXPLAIN usually fails even under length cap
         lead = raw_sql.lstrip()
         if len(lead) >= 6 and lead[:6].upper() == "INSERT" and len(raw_sql) > 8192:
@@ -1196,7 +1198,7 @@ class GatherPlanMonitorHandler(object):
     def report_plan_explain(self, db_name, raw_sql):
         if not self._sql_eligible_for_explain_extended(raw_sql):
             self.stdio.warn("skip EXPLAIN extended: query_sql is not eligible (empty, too long, null/replacement chars, " "high control-char ratio, or long INSERT; common with binary/blob). len=%s" % (len(raw_sql) if raw_sql else 0))
-            self.__report("<pre>EXPLAIN extended skipped: query_sql not suitable for text EXPLAIN " "(e.g. INSERT with large binary / blob in sql_audit).</pre>")
+            self.__report("<pre>EXPLAIN extended skipped: query_sql not suitable for text EXPLAIN " "(e.g. prepared statement placeholders, INSERT with large binary / blob in sql_audit).</pre>")
             return
         explain_sql = "explain extended %s" % raw_sql
         try:
