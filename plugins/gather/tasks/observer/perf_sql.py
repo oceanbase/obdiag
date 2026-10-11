@@ -15,10 +15,14 @@
 @file: perf_sql.py
 @desc:
 """
+import os
+from types import SimpleNamespace
+
 from src.handler.gather.gather_component_log import GatherComponentLogHandler
 from src.common.stdio import SafeStdio
 from src.handler.gather.gather_plan_monitor import GatherPlanMonitorHandler
 from src.handler.gather.gather_dbms_xplan import GatherDBMSXPLANHandler
+from src.handler.analyzer.analyze_flt_trace import AnalyzeFltTraceHandler
 from src.common.tool import StringUtils
 from src.common.ssh_client.ssh import SshClient
 from src.common.command import find_home_path_by_port
@@ -54,6 +58,8 @@ class PerfSQL(SafeStdio):
             if skip_type != "sql":
                 self.__gather_sql_info()
                 self.__gather_dbms_xplan_opt_trace()
+            if skip_type != "ssh" and self._need_trace_enabled():
+                self.__gather_flt_trace()
 
     def __find_home_path_by_port(self, ip_str, internal_port_str):
         for node in self.ob_nodes:
@@ -131,6 +137,35 @@ class PerfSQL(SafeStdio):
         except Exception as e:
             self.stdio.error("gather dbms_xplan_opt_trace failed, error: {0}".format(e))
             raise Exception("gather dbms_xplan_opt_trace failed, error: {0}".format(e))
+
+    def _need_trace_enabled(self):
+        need_trace = self.env.get("need_trace", False)
+        if isinstance(need_trace, bool):
+            return need_trace
+        return str(need_trace).strip().lower() in ("1", "true", "yes", "y", "on")
+
+    def __gather_flt_trace(self):
+        self.stdio.verbose("gather flt_trace start")
+        original_options = self.context.options
+        flt_trace_store_dir = os.path.join(self.report_path, "flt_trace")
+        self.context.options = SimpleNamespace(
+            flt_trace_id=self.trace_id,
+            files=None,
+            top=5,
+            recursion=8,
+            output=60,
+            store_dir=flt_trace_store_dir,
+            temp_dir="/tmp",
+        )
+        try:
+            result = AnalyzeFltTraceHandler(self.context, gather_pack_dir=flt_trace_store_dir).handle()
+            self.stdio.verbose("gather flt_trace end")
+            return result
+        except Exception as e:
+            self.stdio.error("gather flt_trace failed, error: {0}".format(e))
+            raise Exception("gather flt_trace failed, error: {0}".format(e))
+        finally:
+            self.context.options = original_options
 
     def report(self):
         pass
