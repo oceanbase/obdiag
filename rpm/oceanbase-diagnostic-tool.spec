@@ -79,15 +79,21 @@ find $SRC_DIR -name "obdiag"
 chmod -R 755 /opt/oceanbase-diagnostic-tool/*
 chown -R root:root /opt/oceanbase-diagnostic-tool/*
 chmod +x /opt/oceanbase-diagnostic-tool/obdiag
-ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 
 cp -rf /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
 /opt/oceanbase-diagnostic-tool/obdiag_backup.sh
 /opt/oceanbase-diagnostic-tool/init.sh
-echo -e 'Please execute the following command to init obdiag:\n'
-echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 
 %preun
-# Clean up symbolic links before uninstall
-rm -f /usr/bin/obdiag 2>/dev/null || true
-rm -f /bin/obdiag 2>/dev/null || true
+# 升级时仍有新版本在使用命令入口，只有彻底卸载时才清理。
+if [ "$1" -eq 0 ]; then
+    rm -f /usr/bin/obdiag 2>/dev/null || true
+    rm -f /bin/obdiag 2>/dev/null || true
+fi
+
+%posttrans
+# 已发布旧包的 %preun 会删除命令链接，必须等旧包清理结束后再创建入口。
+ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
+echo -e 'Please execute the following command to init obdiag:\n'
+echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
+echo 'Verify the installation after initialization: obdiag --version'
