@@ -79,14 +79,19 @@ find $SRC_DIR -name "obdiag"
 chmod -R 755 /opt/oceanbase-diagnostic-tool/*
 chown -R root:root /opt/oceanbase-diagnostic-tool/*
 chmod +x /opt/oceanbase-diagnostic-tool/obdiag
+# 保留安装阶段入口，兼容 alien 转换后只执行 %post 的 DEB 包。
+ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
 
 cp -rf /opt/oceanbase-diagnostic-tool/init_obdiag_cmd.sh /etc/profile.d/obdiag.sh
 /opt/oceanbase-diagnostic-tool/obdiag_backup.sh
 /opt/oceanbase-diagnostic-tool/init.sh
+echo -e 'Please execute the following command to init obdiag:\n'
+echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 
 %preun
 # 升级时仍有新版本在使用命令入口，只有彻底卸载时才清理。
-if [ "$1" -eq 0 ]; then
+# alien 会将 %preun 转为 prerm，最终卸载参数为 remove。
+if [ "$1" = "0" ] || [ "$1" = "remove" ]; then
     rm -f /usr/bin/obdiag 2>/dev/null || true
     rm -f /bin/obdiag 2>/dev/null || true
 fi
@@ -94,6 +99,4 @@ fi
 %posttrans
 # 已发布旧包的 %preun 会删除命令链接，必须等旧包清理结束后再创建入口。
 ln -sf /opt/oceanbase-diagnostic-tool/obdiag /usr/bin/obdiag
-echo -e 'Please execute the following command to init obdiag:\n'
-echo -e '\033[32m source /opt/oceanbase-diagnostic-tool/init.sh \n \033[0m'
 echo 'Verify the installation after initialization: obdiag --version'

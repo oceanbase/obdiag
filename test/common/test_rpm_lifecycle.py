@@ -74,6 +74,10 @@ class TestRpmLifecycle(unittest.TestCase):
         self.assert_command_works()
         self.assertTrue((self.root / 'etc/profile.d/obdiag.sh').is_file())
 
+    def test_converted_package_install_without_posttrans(self):
+        self.run_scriptlet('post', 'configure')
+        self.assert_command_works()
+
     def check_legacy_upgrade(self):
         self.command_link.symlink_to(self.binary)
         self.run_scriptlet('post', 2)
@@ -93,7 +97,7 @@ class TestRpmLifecycle(unittest.TestCase):
     def test_upgrade_preserves_command_while_packages_remain(self):
         self.run_scriptlet('post', 2)
         self.run_scriptlet('posttrans', 2)
-        for count in (1, 2, 3):
+        for count in (1, 2, 3, 'upgrade'):
             with self.subTest(count=count):
                 self.run_scriptlet('preun', count)
                 self.assert_command_works()
@@ -112,6 +116,11 @@ class TestRpmLifecycle(unittest.TestCase):
         self.run_scriptlet('preun', 0)
         self.run_scriptlet('preun', 0)
 
+    def test_converted_package_final_uninstall(self):
+        self.run_scriptlet('post', 'configure')
+        self.run_scriptlet('preun', 'remove')
+        self.assertFalse(self.command_link.is_symlink())
+
     def test_final_uninstall_with_merged_usr(self):
         (self.root / 'bin').rmdir()
         (self.root / 'bin').symlink_to('usr/bin')
@@ -128,8 +137,9 @@ class TestRpmLifecycle(unittest.TestCase):
 
     def test_installation_guidance_follows_transaction_cleanup(self):
         output = self.run_scriptlet('post', 1)
-        self.assertNotIn('source ', output)
-        output = self.run_scriptlet('posttrans', 1)
+        self.assertIn('source ', output)
+        self.assertNotIn('obdiag --version', output)
+        output += self.run_scriptlet('posttrans', 1)
         self.assertLess(output.index('source '), output.index('obdiag --version'))
         self.assert_command_works()
 
