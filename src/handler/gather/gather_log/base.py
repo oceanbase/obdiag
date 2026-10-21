@@ -24,6 +24,8 @@ import traceback
 import uuid
 
 from src.common.command import get_file_size, is_empty_dir
+from src.common.log_filter import build_grep_command
+from src.common.path_utils import quote_shell_path
 from src.common.ssh_client.ssh import SshClient
 from src.common.tool import FileUtil, TimeUtils
 
@@ -154,18 +156,16 @@ class BaseGatherLogOnNode(ABC):
 
             # For compressed files, just copy
             if log_name.endswith(".gz") or log_name.endswith(".zst"):
-                log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
+                log_grep_cmd = "cp -a -- {0} {1}".format(quote_shell_path(source_log_name), quote_shell_path(target_log_name))
                 self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
                 self.ssh_client.exec_cmd(log_grep_cmd)
                 continue
 
             # For normal files
             if not grep_options:
-                log_grep_cmd = "cp -a {0} {1}".format(source_log_name, target_log_name)
+                log_grep_cmd = "cp -a -- {0} {1}".format(quote_shell_path(source_log_name), quote_shell_path(target_log_name))
             else:
-                # Build correct grep pipeline: cat file | grep -e 'p1' | grep -e 'p2' > target
-                grep_pipeline = " | ".join(["grep -e '{0}'".format(opt) for opt in grep_options])
-                log_grep_cmd = "cat {0} | {1} > {2}".format(source_log_name, grep_pipeline, target_log_name)
+                log_grep_cmd = build_grep_command(source_log_name, target_log_name, grep_options)
 
             self.stdio.verbose("grep files, run cmd = [{0}]".format(log_grep_cmd))
             self.ssh_client.exec_cmd(log_grep_cmd)
