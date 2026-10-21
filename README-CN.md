@@ -66,6 +66,8 @@ obdiag config -h <db_host> -u <sys_user> [-p password] [-P port]
 - 一键信息采集
 - 一键集群洞察
 
+筛选日志前，请将每个 `--grep` 表达式引用为一个命令行参数。`analyze log` 以及 `gather all`、`gather log`、`gather obproxy_log` 和 `gather oms_log` 使用 grep 正则表达式；重复指定 `--grep` 时，仅保留满足所有表达式的日志行。日志采集会直接复制 `.gz`、`.zst` 文件，不对其应用关键字筛选；`analyze log --files` 按原始文件内容筛选，本地分析压缩日志前请先解压。运行后可根据命令输出确认结果目录。
+
 
 # 参与贡献
 

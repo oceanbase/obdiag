@@ -15,6 +15,7 @@
 @file: analyze_log.py
 @desc:
 """
+
 import datetime
 import glob
 import os
@@ -24,6 +25,7 @@ import tarfile
 import tabulate
 
 from src.common.ssh_client.local_client import LocalClient
+from src.common.log_filter import build_grep_command
 from src.handler.base_shell_handler import BaseShellHandler
 from src.common.exception import OBDIAGFormatException
 from src.common.constant import const
@@ -370,7 +372,7 @@ class AnalyzeLogHandler(BaseShellHandler):
         local_client = LocalClient(context=self.context, node={"ssh_type": "local"})
         local_store_path = "{0}/{1}".format(local_store_dir, str(log_name).strip(".").replace("/", "_"))
         if self.grep_args is not None:
-            grep_cmd = "grep -e '{grep_args}' {log_name} >> {local_store_path} ".format(grep_args=self.grep_args, log_name=log_name, local_store_path=local_store_path)
+            grep_cmd = build_grep_command(os.path.abspath(log_name), local_store_path, self.grep_args, append=True)
             self.stdio.verbose("grep files, run cmd = [{0}]".format(grep_cmd))
             local_client.exec_cmd(grep_cmd)
         else:

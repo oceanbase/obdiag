@@ -66,6 +66,8 @@ The `home_path`, `data_dir`, and `redo_dir` values must be absolute POSIX paths,
 - One-click information collection
 - One-click information display
 
+For log filtering, quote each `--grep` expression as one command-line argument. `analyze log` and the `gather all`, `gather log`, `gather obproxy_log`, and `gather oms_log` commands use grep regular expressions. Repeat `--grep` to keep only lines that match every expression. Log gathering copies `.gz` and `.zst` files without applying these filters; `analyze log --files` filters local files as provided, so decompress compressed files before local analysis. Check the command output for the result directory.
+
 For more details, please refer to [Official docs](https://www.oceanbase.com/docs/obdiag-cn)
 
 # Join the Contributing Community

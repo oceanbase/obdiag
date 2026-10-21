@@ -98,6 +98,8 @@ import datetime
 import os
 import re
 
+from src.common.log_filter import build_grep_command
+from src.common.path_utils import quote_shell_path
 from src.handler.gather.gather_log.base import BaseGatherLogOnNode
 
 
@@ -525,17 +527,16 @@ class OmsGatherLogOnNode(BaseGatherLogOnNode):
 
             # For compressed files, just copy
             if log_name.endswith(".gz") or log_name.endswith(".zst"):
-                cmd = "cp -a '{0}' '{1}'".format(source_log_name, target_log_name)
+                cmd = "cp -a -- {0} {1}".format(quote_shell_path(source_log_name), quote_shell_path(target_log_name))
                 self.stdio.verbose("copy compressed file: {0}".format(cmd))
                 self.ssh_client.exec_cmd(cmd)
                 continue
 
             # For normal files
             if not grep_options:
-                cmd = "cp -a '{0}' '{1}'".format(source_log_name, target_log_name)
+                cmd = "cp -a -- {0} {1}".format(quote_shell_path(source_log_name), quote_shell_path(target_log_name))
             else:
-                grep_pipeline = " | ".join(["grep -e '{0}'".format(opt) for opt in grep_options])
-                cmd = "cat '{0}' | {1} > '{2}'".format(source_log_name, grep_pipeline, target_log_name)
+                cmd = build_grep_command(source_log_name, target_log_name, grep_options)
 
             self.stdio.verbose("grep files: {0}".format(cmd))
             self.ssh_client.exec_cmd(cmd)
