@@ -19,6 +19,7 @@
 import json
 import os.path
 import re
+import shlex
 from src.handler.rca.rca_exception import (
     RCAInitException,
     RCAExecuteException,
@@ -53,10 +54,12 @@ class MajorHoldScene(RcaScene):
     # Configurable thresholds
     COMPACTION_TIMEOUT_MINUTES = 20  # Consider compaction stuck if running longer than this
     SPEED_RATIO_THRESHOLD = 5  # Alert if current speed is 5x slower than previous
+    TRACE_LOG_LIMIT = 10
 
     def __init__(self):
         super().__init__()
         self.local_path = ""
+        self._collected_trace_ids = set()
 
     def _find_observer_node(self, svr_ip, svr_port=None):
         """
@@ -100,6 +103,82 @@ class MajorHoldScene(RcaScene):
         except Exception as e:
             self.stdio.warn("Failed to save file {0}: {1}".format(filename, e))
             return None
+
+    def _extract_trace_ids(self, text):
+        if not text:
+            return []
+
+        trace_ids = []
+        trace_patterns = [
+            r'\berror_trace\s*=\s*([^,\s;\]\)]+)',
+            r'\bError trace\s*:\s*([^,\s;\]\)]+)',
+            r'\btrace_id\s*[=:]\s*([^,\s;\]\)]+)',
+            r'\bTRACE_ID\s*[=:]\s*([^,\s;\]\)]+)',
+            r'\b(Y[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)\b',
+        ]
+        for pattern in trace_patterns:
+            for matched in re.findall(pattern, str(text)):
+                trace_id = matched.strip().strip("'\"")
+                if trace_id and trace_id.lower() != "unknown" and trace_id not in trace_ids:
+                    trace_ids.append(trace_id)
+        return trace_ids
+
+    def _safe_filename_part(self, value):
+        return re.sub(r'[^A-Za-z0-9_.-]+', '_', str(value))[:120]
+
+    def _collect_trace_logs(self, trace_ids, tenant_record):
+        trace_ids = [trace_id for trace_id in trace_ids if trace_id]
+        if not trace_ids:
+            return
+        if not self.observer_nodes:
+            tenant_record.add_record("Cannot collect trace logs: observer nodes are not configured")
+            return
+
+        for trace_id in trace_ids[: self.TRACE_LOG_LIMIT]:
+            if trace_id in self._collected_trace_ids:
+                continue
+            self._collected_trace_ids.add(trace_id)
+            saved_files = []
+            safe_trace = self._safe_filename_part(trace_id)
+            tenant_record.add_record("Collecting observer/rootservice logs for trace_id: {0}".format(trace_id))
+            for observer_node in self.observer_nodes:
+                ssh_client = observer_node.get("ssher")
+                home_path = observer_node.get("home_path")
+                if ssh_client is None or not home_path:
+                    continue
+
+                node_name = self._safe_filename_part(ssh_client.get_name())
+                for log_kind, log_glob in (("observer", "observer.log*"), ("rootservice", "rootservice.log*")):
+                    remote_log = "/tmp/rca_major_hold_trace_{0}_{1}_{2}.log".format(safe_trace, node_name, log_kind)
+                    local_log = os.path.join(self.local_path, os.path.basename(remote_log))
+                    grep_cmd = ("grep -F {trace_id} {home_path}/log/{log_glob} > {remote_log} 2>/dev/null; " "if [ -s {remote_log} ]; then echo FOUND; else rm -f {remote_log}; echo NOT_FOUND; fi").format(
+                        trace_id=shlex.quote(trace_id),
+                        home_path=shlex.quote(home_path),
+                        log_glob=log_glob,
+                        remote_log=shlex.quote(remote_log),
+                    )
+                    try:
+                        result = ssh_client.exec_cmd(grep_cmd)
+                        if "FOUND" not in [line.strip() for line in str(result).splitlines()]:
+                            continue
+                        ssh_client.download(remote_log, local_log)
+                        saved_files.append(local_log)
+                    except Exception as e:
+                        tenant_record.add_record("Failed to collect {0} logs for trace_id {1} from {2}: {3}".format(log_kind, trace_id, node_name, e))
+                    finally:
+                        try:
+                            ssh_client.exec_cmd("rm -f {0}".format(shlex.quote(remote_log)))
+                        except Exception:
+                            pass
+
+            if saved_files:
+                for local_log in saved_files:
+                    tenant_record.add_record("Downloaded trace_id log to {0}".format(local_log))
+            else:
+                tenant_record.add_record("No observer/rootservice logs found for trace_id: {0}".format(trace_id))
+
+        if len(trace_ids) > self.TRACE_LOG_LIMIT:
+            tenant_record.add_record("Trace log collection limited to first {0} trace_ids, skipped {1}".format(self.TRACE_LOG_LIMIT, len(trace_ids) - self.TRACE_LOG_LIMIT))
 
     def _execute_sql_safe(self, sql, description=""):
         """
@@ -317,9 +396,12 @@ class MajorHoldScene(RcaScene):
 
             if diagnose_data:
                 self._save_to_file("diagnose_info.json", diagnose_data, err_tenant_id)
+                trace_ids = []
                 for data in diagnose_data:
+                    trace_ids.extend(self._extract_trace_ids(data.get("diagnose_info", "")))
                     if data.get("status") == "FAILED":
                         self._analyze_diagnose_info(data, tenant_record)
+                self._collect_trace_logs(list(dict.fromkeys(trace_ids)), tenant_record)
         except Exception as e:
             tenant_record.add_record("Failed to analyze diagnose info: {0}".format(e))
 
@@ -556,18 +638,8 @@ class MajorHoldScene(RcaScene):
                     compaction_scn = tablet_data[0].get("snapshot_version", 0)
                     tenant_record.add_record("Tablet compaction_scn: {0}, global_broadcast_scn: {1}".format(compaction_scn, global_broadcast_scn))
 
-            # Collect error trace logs
-            node, ssh_client = self._find_observer_node(svr_ip, svr_port)
-            if node and err_trace != "unknown":
-                log_name = "/tmp/rca_error_trace_{0}_{1}_{2}.txt".format(tenant_id, svr_ip, svr_port)
-                try:
-                    ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* > {2}'.format(err_trace, node.get("home_path"), log_name))
-                    local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
-                    ssh_client.download(log_name, local_file_path)
-                    tenant_record.add_record("Downloaded error trace logs to {0}".format(local_file_path))
-                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-                except Exception as e:
-                    tenant_record.add_record("Failed to collect error trace logs: {0}".format(e))
+            if err_trace != "unknown":
+                self._collect_trace_logs([err_trace], tenant_record)
 
         except Exception as e:
             tenant_record.add_record("Failed to parse error_no: {0}".format(e))
@@ -818,8 +890,11 @@ class MajorHoldScene(RcaScene):
             pending_tasks = [t for t in ddl_tasks if t.get("STATUS") in ("PREPARE", "REDEFINITION", "COPY_TABLE_DATA", "TAKE_EFFECT", "WAIT_TRANS_END")]
             if pending_tasks:
                 tenant_record.add_record("Found {0} pending DDL tasks that may block compaction".format(len(pending_tasks)))
+                trace_ids = []
                 for task in pending_tasks[:5]:  # Show first 5
                     tenant_record.add_record("Pending DDL: type={0}, status={1}, table_id={2}, trace_id={3}".format(task.get("DDL_TYPE"), task.get("STATUS"), task.get("TABLE_ID"), task.get("TRACE_ID")))
+                    trace_ids.extend(self._extract_trace_ids(task.get("TRACE_ID", "")))
+                self._collect_trace_logs(list(dict.fromkeys(trace_ids)), tenant_record)
                 tenant_record.add_suggest(
                     "Pending DDL tasks detected. These may block major compaction.\n"
                     "1. Check if DDL is making progress: query __all_virtual_ddl_task_status periodically\n"
