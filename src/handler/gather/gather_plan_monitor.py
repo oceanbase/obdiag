@@ -265,10 +265,21 @@ class GatherPlanMonitorHandler(object):
         self.stdio.verbose("[sql plan monitor report task] end")
         summary_tuples = self.__get_overall_summary(gather_tuples)
         self.stdio.print(summary_tuples)
+        self.stdio.print("SQL plan monitor report file: {0}".format(self.report_file_path))
+        self.stdio.print("SQL plan monitor resources directory: {0}".format(target_resources_path))
         # 将汇总结果持久化记录到文件中
         FileUtil.write_append(os.path.join(pack_dir_this_command, "result_summary.txt"), summary_tuples)
         # return gather_tuples, gather_pack_path_dict
-        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"store_dir": pack_dir_this_command})
+        return ObdiagResult(ObdiagResult.SUCCESS_CODE, data=self._build_result_data(pack_dir_this_command, target_resources_path))
+
+    def _build_result_data(self, store_dir, resources_dir=None):
+        if resources_dir is None:
+            resources_dir = os.path.join(store_dir, "resources")
+        return {
+            "store_dir": store_dir,
+            "report_file": self.report_file_path,
+            "resources_dir": resources_dir,
+        }
 
     def __init_db_conn(self, env):
         try:
