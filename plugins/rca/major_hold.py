@@ -526,13 +526,13 @@ class MajorHoldScene(RcaScene):
     def _handle_error_no(self, sql_data, tenant_record):
         """Handle 'error_no' diagnose type"""
         diagnose_info = sql_data.get("diagnose_info", "")
-        svr_ip = sql_data.get("svr_ip")
-        svr_port = sql_data.get("svr_port")
         tenant_id = sql_data.get("tenant_id")
         tablet_id = sql_data.get("tablet_id")
 
         tenant_record.add_record("Diagnose type: error_no")
 
+        err_no = "unknown"
+        err_trace = "unknown"
         try:
             err_no_match = re.search(r'error_no=([^,\s]+)', diagnose_info)
             err_trace_match = re.search(r'error_trace=([^,\s]+)', diagnose_info)
@@ -556,21 +556,30 @@ class MajorHoldScene(RcaScene):
                     compaction_scn = tablet_data[0].get("snapshot_version", 0)
                     tenant_record.add_record("Tablet compaction_scn: {0}, global_broadcast_scn: {1}".format(compaction_scn, global_broadcast_scn))
 
-            # Collect error trace logs
-            node, ssh_client = self._find_observer_node(svr_ip, svr_port)
-            if node and err_trace != "unknown":
-                log_name = "/tmp/rca_error_trace_{0}_{1}_{2}.txt".format(tenant_id, svr_ip, svr_port)
-                try:
-                    ssh_client.exec_cmd('grep "{0}" {1}/log/observer.log* > {2}'.format(err_trace, node.get("home_path"), log_name))
-                    local_file_path = os.path.join(self.local_path, os.path.basename(log_name))
-                    ssh_client.download(log_name, local_file_path)
-                    tenant_record.add_record("Downloaded error trace logs to {0}".format(local_file_path))
-                    ssh_client.exec_cmd("rm -rf {0}".format(log_name))
-                except Exception as e:
-                    tenant_record.add_record("Failed to collect error trace logs: {0}".format(e))
-
         except Exception as e:
             tenant_record.add_record("Failed to parse error_no: {0}".format(e))
+
+        # Collect error trace logs via gather_log (observer + rootservice)
+        err_traces = re.findall(r'error_trace=([^,\s]+)', diagnose_info)
+        if not err_traces and err_trace != "unknown":
+            err_traces = [err_trace]
+        if err_traces:
+            tenant_record.add_record("Collecting logs for trace_id(s): {0}".format(err_traces))
+            trace_log_path = os.path.join(self.local_path, "error_trace_logs")
+            for scope in ("observer", "rootservice"):
+                try:
+                    for trace in err_traces:
+                        self.gather_log.grep(trace)
+                    self.gather_log.set_parameters("scope", scope)
+                    result_files = self.gather_log.execute(save_path=trace_log_path)
+                    if result_files:
+                        tenant_record.add_record("Collected {0} trace logs: {1}".format(scope, result_files))
+                    else:
+                        tenant_record.add_record("No matching {0} logs found for trace_id(s) {1}. " "Logs may have been rotated/purged.".format(scope, err_traces))
+                except Exception as e:
+                    tenant_record.add_record("Failed to collect {0} trace logs: {1}".format(scope, e))
+        else:
+            tenant_record.add_record("No error_trace found in diagnose_info, skipping log extraction")
 
         tenant_record.add_suggest("Compaction error occurred. Check the error trace in observer logs for root cause.")
 
@@ -659,7 +668,6 @@ class MajorHoldScene(RcaScene):
         tenant_id = sql_data.get("tenant_id")
         ls_id = sql_data.get("ls_id")
         tablet_id = sql_data.get("tablet_id")
-        create_time = sql_data.get("create_time")
 
         tenant_record.add_record("Diagnose type: major not schedule for long time")
 
