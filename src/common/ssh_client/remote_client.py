@@ -176,15 +176,18 @@ class RemoteClient(SsherClient):
         self._sftp_client.close()
 
     def ssh_invoke_shell_switch_user(self, new_user, cmd, time_out):
+        ssh = None
         try:
             ssh = self._ssh_fd.invoke_shell()
             ssh.send('su {0}\n'.format(new_user))
             ssh.send('{}\n'.format(cmd))
             time.sleep(time_out)
-            self._ssh_fd.close()
             result = ssh.recv(65535)
         except SSHException as e:
             raise OBDIAGShellCmdException("Execute Shell command on server {0} failed, " "command=[{1}], exception:{2}".format(self.host_ip, cmd, e))
+        finally:
+            if ssh is not None:
+                ssh.close()
         return result.decode('utf-8')
 
     def get_name(self):
