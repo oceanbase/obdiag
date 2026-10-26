@@ -58,7 +58,7 @@ task:
         sql: "SELECT a.TENANT_NAME,a.TENANT_ID,b.SVR_IP FROM oceanbase.DBA_OB_TENANTS a, oceanbase.GV$OB_UNITS b WHERE a.TENANT_ID=b.TENANT_ID;"
         global: true
       - type: sql
-        sql: "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */  t1.svr_ip, t1.role, t1.tenant_id,t1.database_name,t1.table_name, ifnull(t2.data_size,0) / 1073741824 as total_data_size_gb  from (select tenant_id, database_name, table_name, role, svr_ip, table_id, tablet_id  from oceanbase.cdb_ob_table_locations) t1 left join  (select tenant_id, tablet_id, data_size from oceanbase.cdb_ob_tablet_replicas)  t2 on t1.tenant_id = t2.tenant_id and  t1.tablet_id = t2.tablet_id order by total_data_size_gb desc limit 50;"
+        sql: "select /*+read_consistency(weak) QUERY_TIMEOUT(60000000) */ t1.tenant_id, t1.database_name, t1.table_name, sum(ifnull(t2.data_size,0)) / 1073741824 as total_data_size_gb from (select tenant_id, database_name, table_name, role, svr_ip, ls_id, tablet_id from oceanbase.cdb_ob_table_locations where role='leader') t1 left join (select tenant_id, svr_ip, ls_id, tablet_id, data_size from oceanbase.cdb_ob_tablet_replicas) t2 on t1.tenant_id = t2.tenant_id and t1.svr_ip = t2.svr_ip and t1.ls_id = t2.ls_id and t1.tablet_id = t2.tablet_id group by t1.tenant_id, t1.database_name, t1.table_name order by total_data_size_gb desc limit 50;"
         global: true
       - type: sql
         sql: "show parameters"
