@@ -284,8 +284,7 @@ class BaseGatherLogOnNode(ABC):
     def _get_logfile_names_by_time(self, log_files) -> list:
         """
         Get log files filtered by time range.
-        Default implementation for components with standard timestamp format (17 digits).
-        Subclass can override for special handling.
+        Subclass can override _parse_timestamp_from_filename / _get_log_type for its own file name format.
         """
         self.stdio.verbose("get log file name list, from time {0}, to time {1}, log dir {2}".format(self.from_time_str, self.to_time_str, self.log_path))
         log_name_list = []
@@ -297,36 +296,15 @@ class BaseGatherLogOnNode(ABC):
             self.stdio.warn("gather_log_on_node {0} parse time failed: {1}".format(self.ssh_client.get_ip(), str(e)))
             return log_name_list
 
+        logs = []
         for file_name in log_files.split('\n'):
             file_name = file_name.strip()
             if not file_name:
                 self.stdio.verbose("existing file name is empty")
                 continue
+            logs.append((file_name, self.log_path))
 
-            try:
-                # Parse timestamp from filename
-                file_time_dt = self._parse_timestamp_from_filename(file_name)
-
-                if file_time_dt:
-                    # File has timestamp in filename
-                    self.stdio.verbose("node: {0}, file_name: {1}, file_time: {2}".format(self.ssh_client.get_name(), file_name, file_time_dt.strftime("%Y-%m-%d %H:%M:%S.%f")))
-
-                    if self._is_file_in_time_range(file_time_dt, from_time_dt, to_time_dt):
-                        log_name_list.append(file_name)
-                        self.stdio.verbose("node: {0}, file {1} is in range [{2}, {3}], include it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
-                    else:
-                        self.stdio.verbose("node: {0}, file {1} is out of range [{2}, {3}], exclude it".format(self.ssh_client.get_name(), file_name, self.from_time_str, self.to_time_str))
-                else:
-                    # File has no timestamp - check if it's a current log file
-                    if self._is_current_log_file(file_name):
-                        log_name_list.append(file_name)
-                        self.stdio.verbose("node: {0}, file {1} has no timestamp, is current log file, include it".format(self.ssh_client.get_name(), file_name))
-                    else:
-                        self.stdio.verbose("node: {0}, file {1} has no timestamp and is not a recognized log file, skip".format(self.ssh_client.get_name(), file_name))
-
-            except Exception as e:
-                self.stdio.warn("gather_log_on_node {0} get log file: {2} name failed, Skip it: {1}".format(self.ssh_client.get_ip(), str(e), file_name))
-                continue
+        log_name_list = [log_name for log_name, _ in self._filter_logs_by_time_range(logs, from_time_dt, to_time_dt)]
 
         if log_name_list:
             self.stdio.verbose("Find the qualified log file {0} on Server [{1}]".format(log_name_list, self.ssh_client.get_ip()))
@@ -423,6 +401,42 @@ class BaseGatherLogOnNode(ABC):
         except (ValueError, IndexError):
             return None
 
-    def _is_file_in_time_range(self, file_time_dt, from_time_dt, to_time_dt) -> bool:
-        """Check if file time is within the query range"""
-        return from_time_dt <= file_time_dt <= to_time_dt
+    def _filter_logs_by_time_range(self, logs, from_time_dt, to_time_dt) -> list:
+        """
+        Filter (log_name, log_dir) list by time range, keeping the input order.
+
+        The timestamp in a rotated file name is the rotation time, i.e. the END time of the file.
+        The file starts at the previous rotation of the same log type in the same directory.
+        The current file (no timestamp) starts at the last rotation and is still being written.
+        A file is kept when [start, end] overlaps [from_time, to_time]. The start of the oldest
+        rotated file and the end of the current file are unknown and treated as unbounded.
+        """
+        log_type_groups = {}  # (log_type, log_dir) -> list of (log_name, log_dir, end_time_dt or None)
+        for log_name, log_dir in logs:
+            file_time_dt = self._parse_timestamp_from_filename(log_name)
+            if file_time_dt is None and not self._is_current_log_file(log_name):
+                self.stdio.verbose("log file {0} has no timestamp and is not a recognized log file, skip".format(log_name))
+                continue
+            # Compressed rotated files (.gz/.zst) belong to the same log type as the uncompressed ones
+            log_type = self._get_log_type(re.sub(r'\.(gz|zst)$', '', log_name))
+            log_type_groups.setdefault((log_type, log_dir), []).append((log_name, log_dir, file_time_dt))
+
+        selected = set()
+        for files in log_type_groups.values():
+            start_dt = None
+            for log_name, log_dir, end_dt in sorted((f for f in files if f[2] is not None), key=lambda f: f[2]):
+                if self._is_time_range_overlap(start_dt, end_dt, from_time_dt, to_time_dt):
+                    selected.add((log_name, log_dir))
+                self.stdio.verbose("log file {0} covers [{1}, {2}], in range: {3}".format(log_name, start_dt, end_dt, (log_name, log_dir) in selected))
+                start_dt = end_dt
+            for log_name, log_dir, end_dt in files:
+                if end_dt is None:
+                    if self._is_time_range_overlap(start_dt, None, from_time_dt, to_time_dt):
+                        selected.add((log_name, log_dir))
+                    self.stdio.verbose("current log file {0} covers [{1}, now], in range: {2}".format(log_name, start_dt, (log_name, log_dir) in selected))
+
+        return [log for log in logs if tuple(log) in selected]
+
+    def _is_time_range_overlap(self, start_dt, end_dt, from_time_dt, to_time_dt) -> bool:
+        """Check if [start_dt, end_dt] overlaps the query range, None means unbounded"""
+        return (start_dt is None or start_dt <= to_time_dt) and (end_dt is None or end_dt >= from_time_dt)

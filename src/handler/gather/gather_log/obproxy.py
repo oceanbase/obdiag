@@ -16,7 +16,9 @@
 @desc: OBProxy log gathering
 """
 
+import datetime
 import os
+import re
 
 from src.handler.gather.gather_log.base import BaseGatherLogOnNode
 
@@ -38,5 +40,30 @@ class ObproxyGatherLogOnNode(BaseGatherLogOnNode):
         """Get OBProxy log path"""
         return os.path.join(self.node.get("home_path"), "log")
 
-    # _get_logfile_names_by_time is inherited from BaseGatherLogOnNode
-    # Same timestamp format as Observer
+    # _get_logfile_names_by_time is inherited from BaseGatherLogOnNode.
+    # Unlike Observer (17 digits), OBProxy rotated logs use a 14-digit timestamp: obproxy.log.20261111212023
+
+    def _parse_timestamp_from_filename(self, file_name):
+        """
+        Parse timestamp from OBProxy filename.
+        Filename format: obproxy.log.20261111212023
+        Timestamp format: YYYYMMDDHHMMSS (14 digits)
+        Returns datetime object or None if no valid timestamp found.
+        """
+        timestamp_match = re.search(r'\.(\d{14})(?:\.|$)', file_name)
+        if not timestamp_match:
+            return None
+        try:
+            return datetime.datetime.strptime(timestamp_match.group(1), "%Y%m%d%H%M%S")
+        except ValueError:
+            return None
+
+    def _get_log_type(self, file_name) -> str:
+        """
+        Extract log type from OBProxy file name by removing timestamp suffix.
+        Examples:
+            obproxy.log -> obproxy.log
+            obproxy.log.20261111212023 -> obproxy.log
+            obproxy_digest.log.20261111212023 -> obproxy_digest.log
+        """
+        return re.sub(r'\.\d{14}$', '', file_name)
