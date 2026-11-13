@@ -216,25 +216,7 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
             self.stdio.warn("Observer parse time failed: {0}, returning all logs".format(str(e)))
             return logs
 
-        filtered = []
-
-        for log_name, log_path in logs:
-            file_time_dt = self._parse_timestamp_from_filename(log_name)
-
-            if file_time_dt:
-                # File has timestamp - check time range
-                if from_time_dt <= file_time_dt <= to_time_dt:
-                    filtered.append((log_name, log_path))
-                    self.stdio.verbose("Observer log {0} in time range, include".format(log_name))
-                else:
-                    self.stdio.verbose("Observer log {0} out of time range, skip".format(log_name))
-            else:
-                # No timestamp - this is a current log file
-                if self._is_current_log_file(log_name):
-                    filtered.append((log_name, log_path))
-                    self.stdio.verbose("Observer log {0} is current log, include".format(log_name))
-                else:
-                    self.stdio.verbose("Observer log {0} has no timestamp and is not a recognized log file, skip".format(log_name))
+        filtered = self._filter_logs_by_time_range(logs, from_time_dt, to_time_dt)
 
         self.stdio.verbose("Observer filtered {0} logs by time range".format(len(filtered)))
         return filtered
