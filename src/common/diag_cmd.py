@@ -439,7 +439,11 @@ class ObdiagGatherAllCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherAllCommand, self).__init__('all', 'Gather OceanBase diagnostic info')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option(
+            '--to',
+            type='string',
+            help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'. Observer logs are selected as whole overlapping files; current log start is checked from its first timestamp when readable, otherwise inferred from rotation history",
+        )
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--grep', action="append", type='string', help="filter uncompressed logs with a grep regular expression; repeat to require all expressions to match; quote each expression as one argument")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
@@ -461,7 +465,11 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherLogCommand, self).__init__('log', 'Gather OceanBase logs from OceanBase machines')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option(
+            '--to',
+            type='string',
+            help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'. Logs are selected as whole overlapping files; current log start is checked from its first timestamp when readable, otherwise inferred from rotation history",
+        )
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="filter uncompressed logs with a grep regular expression; repeat to require all expressions to match; quote each expression as one argument")
@@ -662,7 +670,11 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
     def __init__(self):
         super(ObdiagGatherObproxyLogCommand, self).__init__('obproxy_log', 'Gather obproxy log from obproxy machines')
         self.parser.add_option('--from', type='string', help="specify the start of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
-        self.parser.add_option('--to', type='string', help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'")
+        self.parser.add_option(
+            '--to',
+            type='string',
+            help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'. Logs are selected as whole overlapping files; current log start is checked from its first timestamp when readable, otherwise inferred from rotation history",
+        )
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
         self.parser.add_option('--scope', type='string', help="log type constrains, choices=[obproxy, obproxy_limit, obproxy_stat, obproxy_digest, obproxy_slow, obproxy_diagnosis, obproxy_error, all]", default='all')
         self.parser.add_option('--grep', action="append", type='string', help="filter uncompressed logs with a grep regular expression; repeat to require all expressions to match; quote each expression as one argument")

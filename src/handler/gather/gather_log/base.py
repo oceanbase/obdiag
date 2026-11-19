@@ -401,15 +401,26 @@ class BaseGatherLogOnNode(ABC):
         except (ValueError, IndexError):
             return None
 
+    def _get_current_log_start_time(self, log_name, log_dir):
+        """读取当前日志首条记录的时间，读取失败或格式未知时保留轮转链推断。"""
+        try:
+            first_line = self.ssh_client.exec_cmd("head -n 1 -- {0}".format(quote_shell_path(os.path.join(log_dir, log_name))))
+            if not isinstance(first_line, str):
+                return None
+            timestamp = re.match(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,6})?)\]', first_line)
+            if timestamp:
+                return datetime.datetime.fromisoformat(timestamp.group(1))
+        except Exception as e:
+            self.stdio.verbose("Read current log start time failed for {0}: {1}; keeping rotation-based estimate".format(log_name, e))
+        return None
+
     def _filter_logs_by_time_range(self, logs, from_time_dt, to_time_dt) -> list:
         """
-        Filter (log_name, log_dir) list by time range, keeping the input order.
+        按时间区间重叠筛选 (log_name, log_dir)，保持输入顺序。
 
-        The timestamp in a rotated file name is the rotation time, i.e. the END time of the file.
-        The file starts at the previous rotation of the same log type in the same directory.
-        The current file (no timestamp) starts at the last rotation and is still being written.
-        A file is kept when [start, end] overlaps [from_time, to_time]. The start of the oldest
-        rotated file and the end of the current file are unknown and treated as unbounded.
+        轮转文件名表示结束时间，同目录同类型的上次轮转时间用于推定开始时间。
+        当前文件优先使用首条记录的时间，读取失败时回退到最后一次轮转时间。
+        最早轮转文件的开始时间、当前文件的结束时间未知时按无界处理，避免漏采。
         """
         log_type_groups = {}  # (log_type, log_dir) -> list of (log_name, log_dir, end_time_dt or None)
         for log_name, log_dir in logs:
@@ -431,9 +442,13 @@ class BaseGatherLogOnNode(ABC):
                 start_dt = end_dt
             for log_name, log_dir, end_dt in files:
                 if end_dt is None:
+                    current_start_dt = start_dt
                     if self._is_time_range_overlap(start_dt, None, from_time_dt, to_time_dt):
+                        # 重启或历史文件清理后，轮转时间不能代表当前文件的真实起点；仅为候选文件增加一次首行读取。
+                        current_start_dt = self._get_current_log_start_time(log_name, log_dir) or start_dt
+                    if self._is_time_range_overlap(current_start_dt, None, from_time_dt, to_time_dt):
                         selected.add((log_name, log_dir))
-                    self.stdio.verbose("current log file {0} covers [{1}, now], in range: {2}".format(log_name, start_dt, (log_name, log_dir) in selected))
+                    self.stdio.verbose("current log file {0} covers [{1}, now], in range: {2}".format(log_name, current_start_dt, (log_name, log_dir) in selected))
 
         return [log for log in logs if tuple(log) in selected]
 
