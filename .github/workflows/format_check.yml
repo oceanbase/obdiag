@@ -17,12 +17,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: 3.8
+        python-version: '3.11'
 
     - name: Install Black
       run: |
         python -m pip install --upgrade pip
-        pip install black
+        # 保持现有格式规则，避免升级 Python 时同时引入格式器版本变化。
+        pip install black==24.8.0
 
     - name: Run Black Formatter Check
       run: black --check -S -l 256 .
