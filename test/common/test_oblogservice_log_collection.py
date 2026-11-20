@@ -10,7 +10,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-"""OBLogService 独立配置、日志采集及发布版本的回归测试。"""
+"""Regression tests for independent OBLogService configuration, log collection, and release versions."""
 
 import datetime
 import gzip

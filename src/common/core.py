@@ -401,7 +401,7 @@ class ObdiagHome(object):
             return handler.handle()
 
     def gather_oblogservice_log(self, opt):
-        """仅采集配置中的 OBLogService 节点，不查询或补全 Observer 节点。"""
+        """Collect configured OBLogService nodes without discovering Observer nodes."""
         self.set_context_skip_cluster_conn('gather_oblogservice_log', 'gather', self.config_manager)
         options = self.context.options
         handler = GatherComponentLogHandler()

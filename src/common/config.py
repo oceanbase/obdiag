@@ -288,7 +288,7 @@ class ConfigManager(Manager):
 
     @property
     def get_oblogservice_config(self):
-        """解析独立的 OBLogService 节点，不依赖数据库连接或 OBD 的组件命名。"""
+        """Parse independent OBLogService nodes without SQL settings or OBD component aliases."""
         component = self.config_data.get('oblogservice', {})
         servers = component.get('servers', {})
         global_config = servers.get('global', {})

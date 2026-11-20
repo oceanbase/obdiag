@@ -398,13 +398,21 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
         recent_count: Optional[int] = None,
         cluster_config_path: Optional[str] = None,
     ) -> str:
-        """采集独立的 OBLogService 日志，对应 obdiag gather oblogservice_log。
+        """Collect independent OBLogService logs (obdiag gather oblogservice_log).
 
-        配置文件必须使用 oblogservice 区块，提供节点连接信息和 home_path，不需要数据库凭据。
-        scope 支持 all 和 oblogservice；since/from_time/to_time 用于时间范围筛选。
-        recent_count 大于 0 时按每类日志选择最近文件并忽略时间范围。
-        grep 为一个表达式或表达式列表；store_dir 为本地结果目录，temp_dir 为目标环境内的可写临时目录。
-        cluster_config_path 为配置文件路径或短名，日志归档保留原修改时间。
+        Requires an oblogservice section with node connection settings and home_path, without SQL credentials.
+        Collected archives retain the original log modification times.
+
+        Args:
+            since: Relative time window, for example '1h' or '30m'.
+            from_time: Start time in yyyy-mm-dd hh:mm:ss format.
+            to_time: End time in yyyy-mm-dd hh:mm:ss format.
+            scope: all or oblogservice.
+            grep: One regular expression or a list of expressions that must all match.
+            store_dir: Local output directory.
+            temp_dir: Writable temporary directory in the target environment.
+            recent_count: If greater than zero, select the N most recent files per log type and ignore time ranges.
+            cluster_config_path: Configuration file path or short name.
         """
         cfg = _resolve_config(cluster_config_path, config_path_getter)
         args = {'since': since, 'from': from_time, 'to': to_time, 'scope': scope, 'grep': [grep] if isinstance(grep, str) else grep, 'store_dir': store_dir, 'temp_dir': temp_dir, 'recent_count': recent_count}

@@ -10,7 +10,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-"""OBLogService 日志采集，复用公共连接、区间筛选和归档流程。"""
+"""Collect OBLogService logs using shared connections, time filtering, and archiving."""
 
 import datetime
 import hashlib
@@ -29,12 +29,12 @@ class OblogserviceGatherLogOnNode(BaseGatherLogOnNode):
         return os.path.join(self.node['home_path'], 'log')
 
     def _build_tmp_dir_name(self, from_ts, to_ts):
-        # 同机多实例具有相同的连接名称，用安装目录标识区分各自的采集包。
+        # Instances on the same host share a connection name; distinguish their archives by installation directory.
         instance = hashlib.sha256(self.node['home_path'].encode('utf-8')).hexdigest()[:8]
         return super()._build_tmp_dir_name(from_ts, to_ts) + '_' + instance
 
     def _parse_timestamp_from_filename(self, file_name):
-        # OBLogService 轮转后缀为秒级时间，与 Observer 的 17 位后缀不同。
+        # OBLogService rotations use second-resolution timestamps rather than the 17-digit Observer format.
         match = re.fullmatch(r'oblogservice\.log(?:\.wf)?\.(\d{14})(?:\.(?:gz|zst))?', file_name)
         if match:
             try:
@@ -51,7 +51,7 @@ class OblogserviceGatherLogOnNode(BaseGatherLogOnNode):
         return re.sub(r'\.\d{14}$', '', file_name)
 
     def _get_all_logfile_names(self, log_files):
-        # 最近文件选择也排除无效后缀、临时文件，避免它们被当作当前日志。
+        # Exclude invalid suffixes and temporary files from recent-file selection so they are not treated as current logs.
         return [name for name in super()._get_all_logfile_names(log_files) if self._is_current_log_file(name) or self._parse_timestamp_from_filename(name) is not None]
 
     def _grep_log_to_tmp(self, logs_name, tmp_log_dir):
@@ -59,5 +59,5 @@ class OblogserviceGatherLogOnNode(BaseGatherLogOnNode):
         if self._build_grep_options():
             for name in logs_name:
                 if not name.endswith(('.gz', '.zst')):
-                    # 过滤会重新生成文件，归档前恢复源日志的修改时间。
+                    # Filtering creates new files; restore the source modification time before archiving.
                     self.ssh_client.exec_cmd('touch -m -r {0} -- {1}'.format(quote_shell_path(os.path.join(self.log_path, name)), quote_shell_path(os.path.join(tmp_log_dir, name))))
