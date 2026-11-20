@@ -10,7 +10,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-"""OceanSeek 日志采集、原修改时间和共用入口兼容性测试。"""
+"""Regression tests for OceanSeek log collection, modification times, and shared entry-point compatibility."""
 
 import datetime
 import gzip

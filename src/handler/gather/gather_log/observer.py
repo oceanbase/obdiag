@@ -56,7 +56,7 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
 
     @classmethod
     def get_log_scopes(cls, ob_startup_mode='normal'):
-        """校验启动模式并返回独立的日志集合，避免不同采集任务互相污染。"""
+        """Validate the startup mode and return a separate scope mapping for each collection task."""
         if not isinstance(ob_startup_mode, str) or ob_startup_mode.strip().lower() not in ('normal', 'shared-storage'):
             raise ValueError('Invalid obcluster.ob_startup_mode: expected normal or Shared-Storage (case-insensitive)')
         scopes = dict(cls.LOG_SCOPES)
@@ -74,7 +74,7 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
         return os.path.join(self.node.get("home_path"), "log")
 
     def _parse_timestamp_from_filename(self, file_name):
-        # libpalf 使用秒级轮转后缀；已有 Observer 日志继续使用原来的毫秒级解析。
+        # libpalf rotations use second-resolution suffixes; retain millisecond parsing for existing Observer logs.
         if 'libpalf' in (self.scope or {}) and file_name.startswith('libpalf.log'):
             match = re.search(r'\.(\d{14})(?:\.(?:gz|zst))?$', file_name)
             if match:
@@ -86,7 +86,7 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
 
     def _get_log_type(self, file_name):
         if 'libpalf' in (self.scope or {}) and file_name.startswith('libpalf.log'):
-            # 压缩和未压缩的轮转文件属于同一类型，最近文件数量也必须一起计算。
+            # Group compressed and uncompressed rotations together when selecting recent files.
             file_name = re.sub(r'\.(gz|zst)$', '', file_name)
             return re.sub(r'\.(?:\d{17}|\d{14})$', '', file_name)
         return super()._get_log_type(file_name)
@@ -317,5 +317,5 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
             self.stdio.verbose("grep files: {0}".format(cmd))
             self.ssh_client.exec_cmd(cmd)
             if grep_options and self.config.get('preserve_mtime', False):
-                # 过滤重建了文件，打包前恢复源日志的修改时间；压缩日志已由 cp -a 保留。
+                # Filtering creates a new file; restore its source modification time before archiving. Compressed logs already use cp -a.
                 self.ssh_client.exec_cmd('touch -m -r {0} -- {1}'.format(quote_shell_path(source_log_name), quote_shell_path(target_log_name)))

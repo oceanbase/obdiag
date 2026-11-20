@@ -80,7 +80,7 @@ generate_obdiag_config(
 obcluster:
   ob_cluster_name: oceanseek
   ob_startup_mode: Shared-Storage
-  # 其余数据库连接和服务器配置沿用现有格式。
+  # Keep the existing database connection and server settings.
 ```
 
 | 参数 | 说明 |

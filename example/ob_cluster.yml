@@ -1,7 +1,7 @@
 obcluster:
   ob_cluster_name: test
-  # 可选，缺省为 normal；normal 和 Shared-Storage 均不区分大小写。
-  # OceanSeek 共享存储模式使用 Shared-Storage，gather log 的 all 将包含 libpalf。
+  # Optional; defaults to normal. Both normal and Shared-Storage are case-insensitive.
+  # Use Shared-Storage for OceanSeek shared storage; gather log with scope all then includes libpalf.
   # ob_startup_mode: Shared-Storage
   db_host: 192.168.1.1
   db_port: 2881 # default 2881

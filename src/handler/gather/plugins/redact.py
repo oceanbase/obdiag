@@ -160,7 +160,7 @@ class Redact:
             with open(output_file, 'w', encoding='utf-8', errors='ignore') as file:
                 file.write(log_content)
             if source_stat is not None:
-                # 脱敏会重新写文件，归档前恢复采集日志的原修改时间。
+                # Redaction rewrites files; restore their collected modification times before archiving.
                 os.utime(output_file, ns=(source_stat.st_atime_ns, source_stat.st_mtime_ns))
 
         except Exception as e:

@@ -90,7 +90,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio = self.context.stdio
             self.inner_config = self.context.inner_config
             self.target = kwargs.get('target', None)
-            # 仅由 gather log 显式启用新模式，其他共用入口保持原有日志范围。
+            # Enable the mode only when gather log explicitly requests it; shared callers retain their existing scopes.
             self.ob_startup_mode = kwargs.get('ob_startup_mode', 'normal')
             self.from_option = kwargs.get('from_option', None)
             if self.from_option:
