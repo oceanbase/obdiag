@@ -1541,48 +1541,16 @@ class StringUtils(object):
             return sql
 
         try:
-            # Parse parameters
-            params = []
-            current_param = ""
-            in_quotes = False
-            quote_char = None
-
-            for char in params_value:
-                if char in ["'", '"']:
-                    if not in_quotes:
-                        in_quotes = True
-                        quote_char = char
-                        current_param += char
-                    elif char == quote_char:
-                        in_quotes = False
-                        quote_char = None
-                        current_param += char
-                    else:
-                        current_param += char
-                elif char == ',' and not in_quotes:
-                    # Remove leading/trailing spaces
-                    param = current_param.strip()
-                    params.append(param)
-                    current_param = ""
-                else:
-                    current_param += char
-
-            # Process the last parameter
-            if current_param:
-                param = current_param.strip()
-                params.append(param)
-
-            # Replace placeholders in SQL
+            params = StringUtils._split_sql_params(params_value)
             result_sql = sql
             for param in params:
-                # Find the first ? and replace
-                pos = result_sql.find('?')
-                if pos != -1:
-                    result_sql = result_sql[:pos] + str(param) + result_sql[pos + 1 :]
-                else:
-                    # If the parameter count does not match, record a warning and stop
-                    stdio.warn(f"Parameter count mismatch: SQL has more placeholders than parameters. SQL: {sql}, Params: {params_value}")
+                pos = StringUtils._find_next_sql_placeholder(result_sql)
+                if pos == -1:
+                    stdio.warn(f"Parameter count mismatch: SQL has fewer placeholders than parameters. SQL: {sql}, Params: {params_value}")
                     break
+                result_sql = result_sql[:pos] + str(param) + result_sql[pos + 1 :]
+            if StringUtils.has_sql_placeholder(result_sql):
+                stdio.warn(f"Parameter count mismatch: SQL has more placeholders than parameters. SQL: {sql}, Params: {params_value}")
 
             stdio.verbose(f"Original SQL: {sql}")
             stdio.verbose(f"Params: {params_value}")
@@ -1593,6 +1561,91 @@ class StringUtils(object):
         except Exception as e:
             stdio.warn(f"Failed to fill SQL with parameters: {e}")
             return sql
+
+    @staticmethod
+    def _split_sql_params(params_value):
+        params = []
+        current_param = ""
+        in_quotes = False
+        quote_char = None
+        escape_next = False
+
+        for char in params_value:
+            if escape_next:
+                current_param += char
+                escape_next = False
+                continue
+            if char == "\\":
+                current_param += char
+                escape_next = True
+                continue
+            if char in ["'", '"']:
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+                current_param += char
+            elif char == ',' and not in_quotes:
+                params.append(current_param.strip())
+                current_param = ""
+            else:
+                current_param += char
+
+        if current_param:
+            params.append(current_param.strip())
+        return params
+
+    @staticmethod
+    def has_sql_placeholder(sql):
+        return StringUtils._find_next_sql_placeholder(sql) != -1
+
+    @staticmethod
+    def _find_next_sql_placeholder(sql):
+        if not sql:
+            return -1
+
+        i = 0
+        length = len(sql)
+        quote_char = None
+        while i < length:
+            char = sql[i]
+            next_char = sql[i + 1] if i + 1 < length else ""
+
+            if quote_char:
+                if char == "\\":
+                    i += 2
+                    continue
+                if char == quote_char:
+                    if quote_char == "'" and next_char == "'":
+                        i += 2
+                        continue
+                    quote_char = None
+                i += 1
+                continue
+
+            if char in ("'", '"', "`"):
+                quote_char = char
+                i += 1
+                continue
+            if char == "-" and next_char == "-":
+                newline = sql.find("\n", i + 2)
+                if newline == -1:
+                    return -1
+                i = newline + 1
+                continue
+            if char == "/" and next_char == "*":
+                end = sql.find("*/", i + 2)
+                if end == -1:
+                    return -1
+                i = end + 2
+                continue
+            if char == "?":
+                return i
+            i += 1
+
+        return -1
 
 
 class Cursor(SafeStdio):
