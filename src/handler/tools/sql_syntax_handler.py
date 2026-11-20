@@ -14,7 +14,7 @@
 @time: 2026/03/27
 @file: sql_syntax_handler.py
 @desc: Validate SQL syntax/semantics against a live OceanBase instance
-       using EXPLAIN — without executing the SQL.
+       using EXPLAIN or PREPARE — without executing the SQL.
        See https://github.com/oceanbase/obdiag/issues/1181
 """
 
@@ -43,6 +43,32 @@ def normalize_sql_for_syntax_check(sql):
     if re.search(r';\s*\S', s):
         return None, "multiple statements are not allowed; pass a single statement only"
     return s, None
+
+
+def strip_leading_block_comments(sql):
+    pos = 0
+    length = len(sql)
+    while pos < length:
+        while pos < length and sql[pos].isspace():
+            pos += 1
+        if not sql.startswith("/*", pos):
+            break
+        end = sql.find("*/", pos + 2)
+        if end == -1:
+            return ""
+        pos = end + 2
+    return sql[pos:]
+
+
+def is_ddl_statement(sql):
+    matched = re.match(r'(\w+)', strip_leading_block_comments(sql))
+    if not matched:
+        return False
+    return matched.group(1).upper() in ("ALTER", "CREATE", "DROP", "RENAME", "TRUNCATE")
+
+
+def quote_sql_literal(value):
+    return str(value).replace("\\", "\\\\").replace("'", "''")
 
 
 class SqlSyntaxHandler:
@@ -131,7 +157,12 @@ class SqlSyntaxHandler:
         return host, int(port), user, password, database
 
     def _check_syntax(self, connector, sql):
-        """Run EXPLAIN against the SQL and interpret the result."""
+        if is_ddl_statement(sql):
+            return self._check_ddl_syntax(connector, sql)
+        return self._check_explain_syntax(connector, sql)
+
+    def _check_explain_syntax(self, connector, sql):
+        """Run EXPLAIN against DML SQL and interpret the result."""
         explain_sql = "EXPLAIN {0}".format(sql)
         self.stdio.verbose("[sql-syntax] exec: {0}".format(explain_sql))
 
@@ -139,25 +170,49 @@ class SqlSyntaxHandler:
             connector.execute_sql(explain_sql)
             self.stdio.print("Result: VALID")
             return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "VALID", "sql": sql})
-
         except mysql.Error as e:
-            error_code = e.args[0] if e.args else None
-            error_msg = e.args[1] if len(e.args) > 1 else str(e)
-
-            if error_code == 1064:
-                self.stdio.print("Result: SYNTAX ERROR")
-                self.stdio.print("Detail: {0}".format(error_msg))
-                return ObdiagResult(
-                    ObdiagResult.SUCCESS_CODE,
-                    data={"result": "SYNTAX_ERROR", "error_code": error_code, "detail": error_msg},
-                )
-            else:
-                self.stdio.print("Result: VALID (syntax OK, but semantic error [{0}]: {1})".format(error_code, error_msg))
-                return ObdiagResult(
-                    ObdiagResult.SUCCESS_CODE,
-                    data={"result": "SEMANTIC_ERROR", "error_code": error_code, "detail": error_msg},
-                )
-
+            return self._handle_mysql_syntax_error(e)
         except Exception as e:
             self.stdio.error("Unexpected error during SQL syntax check: {0}".format(e))
             return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
+
+    def _check_ddl_syntax(self, connector, sql):
+        """Use PREPARE to validate DDL syntax without executing the DDL statement."""
+        stmt_name = "obdiag_sql_syntax_stmt"
+        prepare_sql = "PREPARE {0} FROM '{1}'".format(stmt_name, quote_sql_literal(sql))
+        prepared = False
+        self.stdio.verbose("[sql-syntax] exec: {0}".format(prepare_sql))
+        try:
+            connector.execute_sql(prepare_sql)
+            prepared = True
+            self.stdio.print("Result: VALID")
+            return ObdiagResult(ObdiagResult.SUCCESS_CODE, data={"result": "VALID", "sql": sql, "method": "PREPARE"})
+        except mysql.Error as e:
+            return self._handle_mysql_syntax_error(e)
+        except Exception as e:
+            self.stdio.error("Unexpected error during SQL syntax check: {0}".format(e))
+            return ObdiagResult(ObdiagResult.SERVER_ERROR_CODE, error_data=str(e))
+        finally:
+            if prepared:
+                try:
+                    connector.execute_sql("DEALLOCATE PREPARE {0}".format(stmt_name))
+                except Exception as e:
+                    self.stdio.warn("Failed to deallocate prepared statement {0}: {1}".format(stmt_name, e))
+
+    def _handle_mysql_syntax_error(self, error):
+        error_code = error.args[0] if error.args else None
+        error_msg = error.args[1] if len(error.args) > 1 else str(error)
+
+        if error_code == 1064:
+            self.stdio.print("Result: SYNTAX ERROR")
+            self.stdio.print("Detail: {0}".format(error_msg))
+            return ObdiagResult(
+                ObdiagResult.SUCCESS_CODE,
+                data={"result": "SYNTAX_ERROR", "error_code": error_code, "detail": error_msg},
+            )
+
+        self.stdio.print("Result: VALID (syntax OK, but semantic error [{0}]: {1})".format(error_code, error_msg))
+        return ObdiagResult(
+            ObdiagResult.SUCCESS_CODE,
+            data={"result": "SEMANTIC_ERROR", "error_code": error_code, "detail": error_msg},
+        )
