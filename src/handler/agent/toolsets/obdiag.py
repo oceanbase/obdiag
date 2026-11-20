@@ -310,7 +310,10 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
         store_dir: Optional[str] = None,
         cluster_config_path: Optional[str] = None,
     ) -> str:
-        """Gather observer-side OceanBase logs (observer, election, rootservice). This is obdiag gather log.
+        """采集 OceanBase 节点日志，对应 obdiag gather log。
+
+        OceanSeek 的 libpalf 采集需要配置 obcluster.ob_startup_mode: Shared-Storage；模式值不区分大小写。
+        normal 或未配置时沿用原有 scope；Shared-Storage 模式下 all 包含 libpalf，也可单独选择 libpalf。
 
         Do NOT use for OBProxy/obproxy — use gather_obproxy_log. Do NOT use for OMS (Ghana, CDC) — use gather_oms_log.
 
@@ -318,7 +321,7 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
             since: Time range from now, e.g. '1h', '30m', '2d'
             from_time: Start time yyyy-mm-dd hh:mm:ss
             to_time: End time yyyy-mm-dd hh:mm:ss
-            scope: observer/election/rootservice/all
+            scope: observer/election/rootservice/alert/all；Shared-Storage 模式额外支持 libpalf
             grep: Keyword(s) to filter — string or list; pass trace_id here to filter by trace
             store_dir: Output directory
             cluster_config_path: Short name (e.g. 'obdiag_test') or full path for non-default cluster

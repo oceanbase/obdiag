@@ -90,6 +90,8 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.stdio = self.context.stdio
             self.inner_config = self.context.inner_config
             self.target = kwargs.get('target', None)
+            # 仅由 gather log 显式启用新模式，其他共用入口保持原有日志范围。
+            self.ob_startup_mode = kwargs.get('ob_startup_mode', 'normal')
             self.from_option = kwargs.get('from_option', None)
             if self.from_option:
                 self.from_option = self.from_option.strip()
@@ -132,6 +134,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 "file_size_limit": self.file_size_limit,
                 "oms_component_id": self.oms_component_id,
                 "recent_count": self.recent_count,
+                "preserve_mtime": kwargs.get('preserve_mtime', False),
             }
 
         except Exception as e:
@@ -200,6 +203,8 @@ class GatherComponentLogHandler(BaseShellHandler):
     def __check_scope(self):
         """Validate scope option"""
         log_scope_list = self.LOG_SCOPE_CONFIG.get(self.target, {})
+        if self.target == 'observer':
+            log_scope_list = ObserverGatherLogOnNode.get_log_scopes(self.ob_startup_mode)
 
         if self.scope is None or self.scope == "" or self.scope == "all":
             self.scope = log_scope_list
@@ -401,7 +406,7 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.redact_dir = redact_dir
             all_files = self.open_all_file()
             self.stdio.verbose(all_files)
-            redact = Redact(self.context, self.store_dir, redact_dir)
+            redact = Redact(self.context, self.store_dir, redact_dir, preserve_mtime=self.gather_log_conf_dict.get('preserve_mtime', False))
             redact.redact_files(self.redact, all_files)
             self.stdio.print("redact success the log save on {0}".format(self.redact_dir))
             self.__delete_all_files_in_tar()
