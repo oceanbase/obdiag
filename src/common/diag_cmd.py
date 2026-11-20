@@ -471,7 +471,12 @@ class ObdiagGatherLogCommand(ObdiagOriginCommand):
             help="specify the end of the time range. format: 'yyyy-mm-dd hh:mm:ss'. Logs are selected as whole overlapping files; current log start is checked from its first timestamp when readable, otherwise inferred from rotation history",
         )
         self.parser.add_option('--since', type='string', help="Specify time range that from 'n' [d]ays, 'n' [h]ours or 'n' [m]inutes. before to now. format: <n> <m|h|d>. example: 1h.", default='30m')
-        self.parser.add_option('--scope', type='string', help="log type constrains, choices=[observer, election, rootservice, all]", default='all')
+        self.parser.add_option(
+            '--scope',
+            type='string',
+            help="log types: observer, election, rootservice, alert, all (default). Set obcluster.ob_startup_mode to Shared-Storage (case-insensitive) in the config to enable OceanSeek libpalf logs in home_path/log; all then includes libpalf, or use --scope libpalf. Omitted mode or normal keeps the existing scopes. Collected logs retain their original modification time, including after --grep",
+            default='all',
+        )
         self.parser.add_option('--grep', action="append", type='string', help="filter uncompressed logs with a grep regular expression; repeat to require all expressions to match; quote each expression as one argument")
         self.parser.add_option('--store_dir', type='string', help='the dir to store gather result, current dir by default.', default='./')
         self.parser.add_option('--temp_dir', type='string', help='the dir for temporarily storing files on nodes', default='/tmp')

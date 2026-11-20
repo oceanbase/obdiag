@@ -33,7 +33,9 @@ Alert Log Reference:
 https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000001499552
 """
 
+import datetime
 import os
+import re
 import subprocess
 
 from src.common.log_filter import build_grep_command
@@ -52,6 +54,16 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
         "alert": {"key": "*alert*", "subdir": "alert"},
     }
 
+    @classmethod
+    def get_log_scopes(cls, ob_startup_mode='normal'):
+        """Validate the startup mode and return a separate scope mapping for each collection task."""
+        if not isinstance(ob_startup_mode, str) or ob_startup_mode.strip().lower() not in ('normal', 'shared-storage'):
+            raise ValueError('Invalid obcluster.ob_startup_mode: expected normal or Shared-Storage (case-insensitive)')
+        scopes = dict(cls.LOG_SCOPES)
+        if ob_startup_mode.strip().lower() == 'shared-storage':
+            scopes['libpalf'] = {'key': 'libpalf.log*'}
+        return scopes
+
     def __init__(self, context, node, config):
         super().__init__(context, node, config)
         # Store log path mapping for multi-directory structure
@@ -60,6 +72,24 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
     def _get_log_path(self) -> str:
         """Get Observer log path"""
         return os.path.join(self.node.get("home_path"), "log")
+
+    def _parse_timestamp_from_filename(self, file_name):
+        # libpalf rotations use second-resolution suffixes; retain millisecond parsing for existing Observer logs.
+        if 'libpalf' in (self.scope or {}) and file_name.startswith('libpalf.log'):
+            match = re.search(r'\.(\d{14})(?:\.(?:gz|zst))?$', file_name)
+            if match:
+                try:
+                    return datetime.datetime.strptime(match.group(1), '%Y%m%d%H%M%S')
+                except ValueError:
+                    return None
+        return super()._parse_timestamp_from_filename(file_name)
+
+    def _get_log_type(self, file_name):
+        if 'libpalf' in (self.scope or {}) and file_name.startswith('libpalf.log'):
+            # Group compressed and uncompressed rotations together when selecting recent files.
+            file_name = re.sub(r'\.(gz|zst)$', '', file_name)
+            return re.sub(r'\.(?:\d{17}|\d{14})$', '', file_name)
+        return super()._get_log_type(file_name)
 
     def _build_tmp_dir_name(self, from_ts, to_ts) -> str:
         """Override to add PID for local observer"""
@@ -286,3 +316,6 @@ class ObserverGatherLogOnNode(BaseGatherLogOnNode):
 
             self.stdio.verbose("grep files: {0}".format(cmd))
             self.ssh_client.exec_cmd(cmd)
+            if grep_options and self.config.get('preserve_mtime', False):
+                # Filtering creates a new file; restore its source modification time before archiving. Compressed logs already use cp -a.
+                self.ssh_client.exec_cmd('touch -m -r {0} -- {1}'.format(quote_shell_path(source_log_name), quote_shell_path(target_log_name)))

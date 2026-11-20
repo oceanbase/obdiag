@@ -23,12 +23,13 @@ import multiprocessing as mp
 
 
 class Redact:
-    def __init__(self, context, input_file_dir, output_file_dir):
+    def __init__(self, context, input_file_dir, output_file_dir, preserve_mtime=False):
         self.context = context
         self.stdio = context.stdio
         self.redacts = {}
         self.input_file_dir = input_file_dir
         self.output_file_dir = output_file_dir
+        self.preserve_mtime = preserve_mtime
         self.stdio.verbose("Redact output_file_dir: {0}".format(self.output_file_dir))
         self.module_dir = os.path.expanduser('~/.obdiag/gather/redact')
         self.inner_config = self.context.inner_config
@@ -134,6 +135,7 @@ class Redact:
         try:
             input_file = os.path.abspath(input_file)
             output_file = os.path.abspath(output_file)
+            source_stat = os.stat(input_file) if self.preserve_mtime else None
             dir_path = os.path.dirname(output_file)
             log_content = ""
             if not os.path.exists(dir_path):
@@ -157,6 +159,9 @@ class Redact:
             # Write output file
             with open(output_file, 'w', encoding='utf-8', errors='ignore') as file:
                 file.write(log_content)
+            if source_stat is not None:
+                # Redaction rewrites files; restore their collected modification times before archiving.
+                os.utime(output_file, ns=(source_stat.st_atime_ns, source_stat.st_mtime_ns))
 
         except Exception as e:
             self.stdio.error(f"Error redact file {input_file}: {e}")
