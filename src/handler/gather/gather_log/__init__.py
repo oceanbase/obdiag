@@ -19,9 +19,11 @@
 from src.handler.gather.gather_log.observer import ObserverGatherLogOnNode
 from src.handler.gather.gather_log.obproxy import ObproxyGatherLogOnNode
 from src.handler.gather.gather_log.oms import OmsGatherLogOnNode
+from src.handler.gather.gather_log.oblogservice import OblogserviceGatherLogOnNode
 
 __all__ = [
     "ObserverGatherLogOnNode",
     "ObproxyGatherLogOnNode",
     "OmsGatherLogOnNode",
+    "OblogserviceGatherLogOnNode",
 ]

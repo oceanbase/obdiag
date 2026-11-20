@@ -110,7 +110,42 @@ gather_log(from_time="2024-01-01 10:00:00", to_time="2024-01-01 11:00:00", grep=
 | `recent_count` | 仅采集最近 N 个日志文件 |
 | 其余（`since`/`from_time`/`to_time`/`grep`/`store_dir`/`cluster_config_path`） | 同 gather_log |
 
-### 3.4 gather_sysstat — 系统资源快照
+### 3.4 gather_oblogservice_log — OBLogService 独立组件日志
+
+采集前，在配置文件中添加 `oblogservice` 区块。OBD 的部署组件名可能是 `oblogservice-ce`，但 obdiag 固定使用 `oblogservice`；该命令不需要 `obcluster` 区块或数据库凭据。
+
+```yaml
+oblogservice:
+  oblogservice_cluster_name: logservice
+  servers:
+    nodes:
+      - ip: 192.168.1.7
+    global:
+      ssh_username: admin
+      ssh_key_file: /home/admin/.ssh/id_ed25519
+      home_path: /home/admin/oblogservice
+```
+
+配置正确的节点连接方式和目标环境内的安装目录。账号需要读取 `<home_path>/log` 和写入临时目录的权限；同一主机有多个实例时，为每个实例分别填写节点及其 `home_path`。`servers.global` 提供公共字段，节点上的同名字段覆盖公共值。Docker 使用 `ssh_type: docker` 和 `container_name`；Kubernetes 使用 `ssh_type: kubernetes`、`namespace`、`pod_name`、`container_name`，集群外运行时还需要 `kubernetes_config_file`。
+
+| 参数 | 说明 |
+|------|------|
+| `scope` | `oblogservice` / `all`（默认），采集 `oblogservice.log`、警告日志及轮转文件 |
+| `since` / `from_time` / `to_time` | 时间范围；选择与区间重叠的完整日志文件 |
+| `grep` | 一个正则表达式或表达式列表，多个条件取交集，仅筛选未压缩日志 |
+| `recent_count` | 大于 0 时按每类日志保留最近 N 个文件，忽略时间范围 |
+| `temp_dir` | 目标环境中的可写临时目录，默认 `/tmp` |
+| `store_dir` | 本地结果目录，默认当前目录 |
+| `cluster_config_path` | OBLogService 配置文件路径或短名 |
+
+```text
+gather_oblogservice_log(since="1h", scope="all", cluster_config_path="logservice")
+gather_oblogservice_log(recent_count=2, grep="ERROR", cluster_config_path="logservice")
+```
+
+也可直接执行 `obdiag gather oblogservice_log -c oblogservice.yml --since 1h`。采集结果位于输出中的 `obdiag_gather_pack_*` 目录，包内文件保留源日志修改时间，包括关键字过滤后的文件；`.gz` / `.zst` 文件直接复制。安装目录标识用于区分同机多实例的采集包。配置缺少节点时，检查 `oblogservice.servers.nodes`；没有日志或连接失败时，查看结果汇总中的失败节点及原因。
+
+### 3.5 gather_sysstat — 系统资源快照
 
 采集各节点 CPU、内存、磁盘、网络等系统指标，无时间范围参数。
 
@@ -119,7 +154,7 @@ gather_sysstat()
 gather_sysstat(store_dir="/tmp/sysstat_out")
 ```
 
-### 3.5 gather_perf — 性能剖析（火焰图/pstack）
+### 3.6 gather_perf — 性能剖析（火焰图/pstack）
 
 采集实时性能数据，适用于高 CPU/卡顿场景。无额外必填参数。
 
@@ -127,7 +162,7 @@ gather_sysstat(store_dir="/tmp/sysstat_out")
 gather_perf()
 ```
 
-### 3.6 gather_ash — 活跃会话历史（ASH）
+### 3.7 gather_ash — 活跃会话历史（ASH）
 
 | 参数 | 说明 |
 |------|------|
@@ -139,7 +174,7 @@ gather_perf()
 | `svr_ip` / `svr_port` | 指定节点 |
 | `tenant_id` | 租户 ID |
 
-### 3.7 gather_awr — AWR 报告
+### 3.8 gather_awr — AWR 报告
 
 | 参数 | 说明 |
 |------|------|
@@ -148,7 +183,7 @@ gather_perf()
 | `store_dir` | 输出目录 |
 | `cluster_config_path` | 非默认集群名或路径 |
 
-### 3.8 gather_plan_monitor — SQL 执行计划监控
+### 3.9 gather_plan_monitor — SQL 执行计划监控
 
 **仅用于采集指定 trace_id 的执行计划，不用于"收集日志"。收日志请用 gather_log(grep=trace_id)。**
 

@@ -51,7 +51,7 @@ def truncate_for_agent(
     return (
         f"{head}\n\n"
         f"... [{label} truncated: {len(text)} characters total, showing first {limit}] "
-        "After gather_log / gather_obproxy_log / gather_oms_log, use file_list on the pack directory from tool output, "
+        "After gather_log / gather_obproxy_log / gather_oblogservice_log / gather_oms_log, use file_list on the pack directory from tool output, "
         "then file_read(start_line=…, max_lines=…). Else use run_shell (head/tail/grep) with approval or read files on disk. "
         "中文：采集完成后先到打包输出目录执行 file_list，再用 file_read 分段读取；或经 run_shell 用 grep/head/tail。"
     )
@@ -69,6 +69,7 @@ OBDIAG_COMMANDS = {
     "gather_sysstat": "obdiag gather sysstat",
     "gather_perf": "obdiag gather perf",
     "gather_obproxy_log": "obdiag gather obproxy_log",
+    "gather_oblogservice_log": "obdiag gather oblogservice_log",
     "gather_oms_log": "obdiag gather oms_log",
     "gather_ash": "obdiag gather ash",
     "gather_awr": "obdiag gather awr",
@@ -86,6 +87,7 @@ OBDIAG_COMMANDS = {
 OBDIAG_TOOL_SUMMARY_ZH: Dict[str, str] = {
     "gather_log": "采集 OceanBase 集群侧日志（observer / election / rootservice）",
     "gather_obproxy_log": "采集 OBProxy 节点日志",
+    "gather_oblogservice_log": "采集 OBLogService 独立组件日志",
     "gather_oms_log": "采集 OMS 组件日志（Ghana/CDC 等）",
     "gather_sysstat": "采集各节点系统资源与指标",
     "gather_perf": "采集性能数据（火焰图、pstack 等）",
@@ -384,6 +386,29 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
         if result.get("success"):
             text += _OBPROXY_GATHER_ANALYSIS_FOLLOWUP
         return truncate_for_agent(text, label="obdiag")
+
+    def gather_oblogservice_log(
+        since: Optional[str] = None,
+        from_time: Optional[str] = None,
+        to_time: Optional[str] = None,
+        scope: str = 'all',
+        grep: Optional[Union[str, List[str]]] = None,
+        store_dir: Optional[str] = None,
+        temp_dir: Optional[str] = None,
+        recent_count: Optional[int] = None,
+        cluster_config_path: Optional[str] = None,
+    ) -> str:
+        """采集独立的 OBLogService 日志，对应 obdiag gather oblogservice_log。
+
+        配置文件必须使用 oblogservice 区块，提供节点连接信息和 home_path，不需要数据库凭据。
+        scope 支持 all 和 oblogservice；since/from_time/to_time 用于时间范围筛选。
+        recent_count 大于 0 时按每类日志选择最近文件并忽略时间范围。
+        grep 为一个表达式或表达式列表；store_dir 为本地结果目录，temp_dir 为目标环境内的可写临时目录。
+        cluster_config_path 为配置文件路径或短名，日志归档保留原修改时间。
+        """
+        cfg = _resolve_config(cluster_config_path, config_path_getter)
+        args = {'since': since, 'from': from_time, 'to': to_time, 'scope': scope, 'grep': [grep] if isinstance(grep, str) else grep, 'store_dir': store_dir, 'temp_dir': temp_dir, 'recent_count': recent_count}
+        return _run('gather_oblogservice_log', args, cfg, 'OBLogService log gathering completed.', 'OBLogService log gathering failed.', stdio)
 
     def gather_oms_log(
         since: Optional[str] = None,
@@ -818,6 +843,7 @@ def create_obdiag_tools(config_path_getter: Callable[[], str], stdio) -> list:
     return [
         gather_log,
         gather_obproxy_log,
+        gather_oblogservice_log,
         gather_oms_log,
         gather_sysstat,
         gather_perf,

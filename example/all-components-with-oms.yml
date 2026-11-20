@@ -64,4 +64,19 @@ oms:
       run_path: /home/admin/run
       # The directory for oms task's store path
       store_path: /home/admin/store
-
+oblogservice:
+  oblogservice_cluster_name: logservice
+  servers:
+    nodes:
+      - ip: 192.168.1.7
+      - ip: 192.168.1.8
+      - ip: 192.168.1.9
+    global:
+      # 连接账号需要读取日志及写入临时目录的权限；密钥路径位于运行 obdiag 的机器上。
+      ssh_username: admin
+      ssh_key_file: /home/admin/.ssh/id_ed25519
+      ssh_port: 22
+      # 支持 remote、local、docker、kubernetes，按部署方式提供容器或 Pod 定位字段。
+      ssh_type: remote
+      # 目标环境内的安装目录，日志读取位置为 home_path/log。
+      home_path: /home/admin/oblogservice
