@@ -222,6 +222,7 @@ Multi-cluster support:
 Tool selection for gather operations:
 - gather_log: Observer-side logs only (observer/election/rootservice).
 - gather_obproxy_log: OBProxy/obproxy/代理日志 — never use gather_log for these.
+- gather_oblogservice_log: independent OBLogService logs — requires the oblogservice section and no SQL credentials.
 - gather_oms_log: OMS logs — requires oms in config.yml.
 - gather_ash: ASH report / 活跃会话历史.
 - gather_awr: AWR / ParallelSQL gather awr.

@@ -288,6 +288,22 @@ class ConfigManager(Manager):
         }
 
     @property
+    def get_oblogservice_config(self):
+        """Parse independent OBLogService nodes without SQL settings or OBD component aliases."""
+        component = self.config_data.get('oblogservice', {})
+        servers = component.get('servers', {})
+        global_config = servers.get('global', {})
+        defaults = {'ssh_username': '', 'ssh_password': '', 'ssh_port': 22, 'ssh_key_file': '', 'ssh_type': 'remote', 'container_name': '', 'namespace': '', 'pod_name': '', 'kubernetes_config_file': ''}
+        nodes = []
+        for index, node in enumerate(servers.get('nodes', [])):
+            values = {key: node.get(key, global_config.get(key, default)) for key, default in defaults.items()}
+            values['ip'] = node.get('ip')
+            values['home_path'] = validate_config_path(node.get('home_path', global_config.get('home_path', '/root/oblogservice')), 'oblogservice.servers.nodes[{0}].home_path'.format(index))
+            values['host_type'] = 'OBLOGSERVICE'
+            nodes.append(values)
+        return {'oblogservice_cluster_name': component.get('oblogservice_cluster_name'), 'servers': nodes}
+
+    @property
     def get_oms_config(self):
         oms = self.config_data.get('oms', {})
         nodes = oms.get('servers', {}).get('nodes', [])

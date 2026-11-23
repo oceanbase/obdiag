@@ -137,6 +137,7 @@ class ObdiagHome(object):
             namespace=namespace,
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
+            oblogservice_config=config.get_oblogservice_config,
             ocp_config=config.get_ocp_config,
             oms_config=config.get_oms_config,
             cmd=self.cmds,
@@ -152,6 +153,7 @@ class ObdiagHome(object):
             namespace=namespace,
             cluster_config=config.get_ob_cluster_config,
             obproxy_config=config.get_obproxy_config,
+            oblogservice_config=config.get_oblogservice_config,
             ocp_config=config.get_ocp_config,
             oms_config=config.get_oms_config,
             cmd=self.cmds,
@@ -399,6 +401,25 @@ class ObdiagHome(object):
                 recent_count=Util.get_option(options, 'recent_count'),
             )
             return handler.handle()
+
+    def gather_oblogservice_log(self, opt):
+        """Collect configured OBLogService nodes without discovering Observer nodes."""
+        self.set_context_skip_cluster_conn('gather_oblogservice_log', 'gather', self.config_manager)
+        options = self.context.options
+        handler = GatherComponentLogHandler()
+        handler.init(
+            self.context,
+            target='oblogservice',
+            from_option=Util.get_option(options, 'from'),
+            to_option=Util.get_option(options, 'to'),
+            since=Util.get_option(options, 'since'),
+            scope=Util.get_option(options, 'scope'),
+            grep=Util.get_option(options, 'grep'),
+            store_dir=Util.get_option(options, 'store_dir'),
+            temp_dir=Util.get_option(options, 'temp_dir'),
+            recent_count=Util.get_option(options, 'recent_count'),
+        )
+        return handler.handle()
 
     def gather_oms_log(self, opt):
         config = self.config_manager

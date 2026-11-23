@@ -47,3 +47,19 @@ obproxy:
       # container_name: xxx # container_name for ssh_type is docker
       # The directory for obproxy installed
       home_path: /root/obproxy
+oblogservice:
+  oblogservice_cluster_name: logservice
+  servers:
+    nodes:
+      - ip: 192.168.1.7
+      - ip: 192.168.1.8
+      - ip: 192.168.1.9
+    global:
+      # The account needs read access to logs and write access to the temporary directory. The key path is on the obdiag host.
+      ssh_username: admin
+      ssh_key_file: /home/admin/.ssh/id_ed25519
+      ssh_port: 22
+      # Supported types: remote, local, docker, kubernetes. Set container or Pod fields for the deployment.
+      ssh_type: remote
+      # Installation directory in the target environment; logs are read from home_path/log.
+      home_path: /home/admin/oblogservice

@@ -33,6 +33,7 @@ from src.handler.gather.gather_log import (
     ObserverGatherLogOnNode,
     ObproxyGatherLogOnNode,
     OmsGatherLogOnNode,
+    OblogserviceGatherLogOnNode,
 )
 
 
@@ -44,6 +45,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         "observer": ObserverGatherLogOnNode,
         "obproxy": ObproxyGatherLogOnNode,
         "oms": OmsGatherLogOnNode,
+        "oblogservice": OblogserviceGatherLogOnNode,
     }
 
     # Log scope configuration for each component
@@ -51,6 +53,7 @@ class GatherComponentLogHandler(BaseShellHandler):
         "observer": ObserverGatherLogOnNode.LOG_SCOPES,
         "obproxy": ObproxyGatherLogOnNode.LOG_SCOPES,
         "oms": OmsGatherLogOnNode.LOG_SCOPES,
+        "oblogservice": OblogserviceGatherLogOnNode.LOG_SCOPES,
     }
 
     # Default configuration constants
@@ -191,6 +194,7 @@ class GatherComponentLogHandler(BaseShellHandler):
                 'observer': lambda: self.context.cluster_config.get("servers"),
                 'obproxy': lambda: self.context.obproxy_config.get("servers"),
                 'oms': lambda: self.context.oms_config.get("servers"),
+                'oblogservice': lambda: (self.context.oblogservice_config or {}).get('servers'),
             }
             config_getter = target_config_map.get(self.target)
             if config_getter is None:
@@ -198,6 +202,8 @@ class GatherComponentLogHandler(BaseShellHandler):
             self.nodes = config_getter()
 
         if not self.nodes:
+            if self.target == 'oblogservice':
+                raise Exception('No OBLogService nodes configured; set oblogservice.servers.nodes in the config file selected with -c')
             raise Exception("can not get nodes by target: {0}, nodes is empty.".format(self.target))
 
     def __check_scope(self):

@@ -697,6 +697,35 @@ class ObdiagGatherObproxyLogCommand(ObdiagOriginCommand):
         return obdiag.gather_obproxy_log(self.opts)
 
 
+class ObdiagGatherOblogserviceLogCommand(ObdiagOriginCommand):
+
+    def __init__(self):
+        super(ObdiagGatherOblogserviceLogCommand, self).__init__('oblogservice_log', 'Gather OBLogService logs from the oblogservice configuration section')
+        self.parser.add_option(
+            '-c',
+            type='string',
+            help='config file containing oblogservice.servers.nodes and servers.global; home_path is the installation directory inside the target environment. No obcluster section or SQL credentials required',
+            default=os.path.expanduser('~/.obdiag/config.yml'),
+        )
+        self.parser.add_option('--config', action='append', type='string', help='config options Format: --config key=value; use the oblogservice prefix')
+        self.parser.add_option('--from', type='string', help="start time: 'yyyy-mm-dd hh:mm:ss'; use together with --to")
+        self.parser.add_option('--to', type='string', help="end time: 'yyyy-mm-dd hh:mm:ss'; select whole overlapping files, checking the current log's first timestamp when readable")
+        self.parser.add_option('--since', type='string', help='relative time range, for example 30m, 1h, or 1d (default: 30m)', default='30m')
+        self.parser.add_option('--scope', type='string', help='log types: oblogservice, all (default); collect oblogservice.log and rotations from home_path/log', default='all')
+        self.parser.add_option('--grep', action='append', type='string', help='filter uncompressed logs with a grep regular expression; repeat to require all expressions to match; quote each expression as one argument')
+        self.parser.add_option('--recent_count', type='int', help='most recent N files per log type; when > 0, ignore from/to/since (default: 0)', default=0)
+        self.parser.add_option('--temp_dir', type='string', help='writable temporary directory in the target environment (default: /tmp)', default='/tmp')
+        self.parser.add_option('--store_dir', type='string', help='local output directory (default: current directory); logs in the collected archives retain their original modification time, including after --grep', default='./')
+
+    def init(self, cmd, args):
+        super(ObdiagGatherOblogserviceLogCommand, self).init(cmd, args)
+        self.parser.set_usage('%s [options]' % self.prev_cmd)
+        return self
+
+    def _do_command(self, obdiag):
+        return obdiag.gather_oblogservice_log(self.opts)
+
+
 class ObdiagGatherOmsLogCommand(ObdiagOriginCommand):
 
     def __init__(self):
@@ -1416,6 +1445,7 @@ class ObdiagGatherCommand(MajorCommand):
         self.register_command(ObdiagGatherPlanMonitorCommand())
         self.register_command(ObdiagGatherAwrCommand())
         self.register_command(ObdiagGatherObproxyLogCommand())
+        self.register_command(ObdiagGatherOblogserviceLogCommand())
         self.register_command(ObdiagGatherOmsLogCommand())
         self.register_command(ObdiagGatherSceneCommand())
         self.register_command(ObdiagGatherAshReportCommand())
