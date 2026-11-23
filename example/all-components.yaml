@@ -5,6 +5,9 @@ ocp:
     password: ''
 obcluster:
   ob_cluster_name: test
+  # Optional; defaults to normal. Both normal and Shared-Storage are case-insensitive.
+  # Use Shared-Storage for OceanSeek shared storage; gather log with scope all then includes libpalf.
+  # ob_startup_mode: Shared-Storage
   db_host: 192.168.1.1
   db_port: 2881 # default 2881, if the obcluster use obproxy ,please set db_port to obproxy mysql_port
   tenant_sys:

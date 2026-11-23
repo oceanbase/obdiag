@@ -264,6 +264,8 @@ class ObdiagHome(object):
                 handler.init(
                     self.context,
                     target="observer",
+                    ob_startup_mode=self.context.cluster_config.get('ob_startup_mode', 'normal'),
+                    preserve_mtime=True,
                     from_option=Util.get_option(options, 'from'),
                     to_option=Util.get_option(options, 'to'),
                     since=Util.get_option(options, 'since'),

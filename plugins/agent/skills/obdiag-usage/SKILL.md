@@ -70,15 +70,24 @@ generate_obdiag_config(
 > 采集完成后，工具输出中会包含 `obdiag_gather_pack_*` 打包目录路径。
 > 若用户同时要求分析，**在同一轮内**继续对该目录执行 `file_list` → `file_read` → 总结。
 
-### 3.1 gather_log — 集群侧日志（observer/election/rootservice）
+### 3.1 gather_log — 集群侧日志（observer/election/rootservice/alert/libpalf）
 
 **仅用于 OceanBase 节点侧，不用于 OBProxy 或 OMS。**
+
+采集 OceanSeek 的 `libpalf` 日志前，在目标配置文件的 `obcluster` 下设置 `ob_startup_mode: Shared-Storage`；`normal` 和 `Shared-Storage` 不区分大小写，未配置时默认为 `normal`。日志从对应节点的 `<home_path>/log` 目录读取，连接账号需要读取日志和写入临时目录的权限。
+
+```yaml
+obcluster:
+  ob_cluster_name: oceanseek
+  ob_startup_mode: Shared-Storage
+  # Keep the existing database connection and server settings.
+```
 
 | 参数 | 说明 |
 |------|------|
 | `since` | 相对时间窗，如 `"30m"`、`"1h"`、`"2d"` |
 | `from_time` / `to_time` | 绝对时间 `"yyyy-mm-dd hh:mm:ss"` |
-| `scope` | `observer` / `election` / `rootservice` / `all`（默认 all） |
+| `scope` | `observer` / `election` / `rootservice` / `alert` / `all`（默认 all）；`Shared-Storage` 模式额外支持 `libpalf`，且 `all` 包含该类型 |
 | `grep` | 关键词或列表，trace_id 过滤传此参数 |
 | `store_dir` | 输出目录 |
 | `cluster_config_path` | 非默认集群名或路径 |
@@ -86,7 +95,10 @@ generate_obdiag_config(
 ```
 gather_log(since="30m", scope="observer", grep="ERROR")
 gather_log(from_time="2024-01-01 10:00:00", to_time="2024-01-01 11:00:00", grep=["trace_id_xxx"])
+gather_log(since="1h", scope="libpalf", cluster_config_path="oceanseek")
 ```
+
+采集结果位于输出中的 `obdiag_gather_pack_*` 目录。压缩包内日志保留源日志的修改时间，包括关键字过滤或脱敏后的文件。`normal` 模式显式选择 `libpalf` 会提示不支持该 scope；共享存储模式的 `all` 在没有 `libpalf` 文件时继续采集其他已存在的日志。
 
 ### 3.2 gather_obproxy_log — OBProxy 日志
 

@@ -247,6 +247,7 @@ class ConfigManager(Manager):
 
         return {
             'ob_cluster_name': ob_cluster.get('ob_cluster_name'),
+            'ob_startup_mode': ob_cluster.get('ob_startup_mode', 'normal'),
             'db_host': ob_cluster.get('db_host'),
             'db_port': ob_cluster.get('db_port'),
             'tenant_sys': {
