@@ -34,7 +34,7 @@ class TenantLocks(TaskBase):
             if self.ob_connector is None:
                 return self.report.add_critical("can't build obcluster connection")
             sql = '''
-                select tenant_id,count(tenant_id) as locks_count from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE="TX" group by tenant_id;
+                select tenant_id,count(tenant_id) as locks_count from oceanbase.GV$OB_LOCKS where BLOCK=1 and TYPE IN ("TR", "TX") group by tenant_id;
             '''
             tenant_locks_data = self.ob_connector.execute_sql_return_cursor_dictionary(sql).fetchall()
             if tenant_locks_data is None:

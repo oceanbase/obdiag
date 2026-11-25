@@ -200,7 +200,7 @@ class LockConflictScene(RcaScene):
         first_record = RCA_ResultRecord(self.stdio)
 
         # Query blocked locks
-        locks_sql = 'SELECT * FROM oceanbase.GV$OB_LOCKS WHERE BLOCK=1 AND TYPE="TX" '
+        locks_sql = 'SELECT * FROM oceanbase.GV$OB_LOCKS WHERE BLOCK=1 AND TYPE IN ("TR", "TX") '
         if self.tenant_id is not None:
             locks_sql = locks_sql + 'AND tenant_id={0}'.format(self.tenant_id)
         locks_sql = locks_sql + ' LIMIT 100;'
