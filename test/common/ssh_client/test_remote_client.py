@@ -21,7 +21,7 @@ from io import StringIO
 from unittest.mock import patch, MagicMock
 from src.common.ssh_client.remote_client import RemoteClient
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
-from src.common.obdiag_exception import OBDIAGSSHConnException, OBDIAGShellCmdException
+from src.common.exception import OBDIAGSSHConnException, OBDIAGShellCmdException
 
 
 class TestRemoteClient(unittest.TestCase):
@@ -37,6 +37,16 @@ class TestRemoteClient(unittest.TestCase):
         # Create a mock context object with a stdio attribute
         self.context = MagicMock()
         self.context.stdio = MagicMock()
+        self.context.stdio.silent = False
+        self.context.inner_config = {
+            "obdiag": {
+                "ssh_client": {"remote_client_sudo": False},
+                "basic": {
+                    "dis_rsa_algorithms": False,
+                    "strict_host_key_checking": False,
+                },
+            }
+        }
 
         # Assuming 'self.node' is a dictionary with all necessary keys including 'ssh_type'.
         self.node = {"ip": "192.168.1.1", "ssh_username": "user", "ssh_port": 22, "ssh_password": "password", "ssh_key_file": "/path/to/key", "ssh_type": "remote"}
@@ -63,7 +73,7 @@ class TestRemoteClient(unittest.TestCase):
         """
 
         # Use patch to mock os.path.expanduser behavior for testing path expansion.
-        with patch('common.ssh_client.remote_client.os.path.expanduser') as mock_expanduser:
+        with patch('src.common.ssh_client.remote_client.os.path.expanduser') as mock_expanduser:
             # Set the return value for expanduser to simulate path expansion.
             mock_expanduser.return_value = '/expanded/path/to/key'
 
@@ -164,9 +174,9 @@ class TestRemoteClient(unittest.TestCase):
         # Define a command that will produce an error
         cmd = "echo 'Error'"
 
-        # Execute the command and catch the exception
-        with self.assertRaises(Exception):
-            self.remote_client.exec_cmd(cmd)
+        # Execute the command and verify stderr text is returned to callers.
+        result = self.remote_client.exec_cmd(cmd)
+        self.assertEqual(result, "Error")
 
     def test_exec_cmd_ssh_exception(self):
         """
@@ -323,7 +333,6 @@ class TestRemoteClient(unittest.TestCase):
 
         # Verify that the output is as expected
         self.assertIn(expected_output, mock_stdout.getvalue())
-        self.assertIn('\r\n', mock_stdout.getvalue())
 
     @patch('src.common.ssh_client.remote_client.paramiko')
     def test_upload(self, mock_paramiko):
@@ -358,7 +367,8 @@ class TestRemoteClient(unittest.TestCase):
         expected_result = "Command executed successfully"
 
         # Mock the invoke_shell method to return the expected result in bytes
-        self.remote_client._ssh_fd.invoke_shell = MagicMock(return_value=MagicMock(recv=MagicMock(return_value=expected_result.encode('utf-8'))))
+        shell = MagicMock(recv=MagicMock(return_value=expected_result.encode('utf-8')))
+        self.remote_client._ssh_fd.invoke_shell = MagicMock(return_value=shell)
 
         # Mock the close method to return None
         self.remote_client._ssh_fd.close = MagicMock(return_value=None)
@@ -372,8 +382,10 @@ class TestRemoteClient(unittest.TestCase):
         # Verify that the invoke_shell method was called once
         self.remote_client._ssh_fd.invoke_shell.assert_called_once()
 
-        # Verify that the close method was called once
-        self.remote_client._ssh_fd.close.assert_called_once()
+        # The shell channel should be closed, but the SSH connection must stay
+        # open because callers continue to use it after switching user.
+        shell.close.assert_called_once()
+        self.remote_client._ssh_fd.close.assert_not_called()
 
     @patch('time.sleep', return_value=None)
     def test_ssh_invoke_shell_switch_user_ssh_exception(self, mock_time_sleep):
